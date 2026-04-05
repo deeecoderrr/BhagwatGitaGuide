@@ -55,6 +55,11 @@
       50% { transform: translateY(20px); }
     }
 
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
     .app {
       position: relative;
       z-index: 1;
@@ -74,6 +79,21 @@
     }
     .hero h1 { margin: 0 0 10px; font-size: clamp(24px, 3vw, 34px); letter-spacing: 0.2px; }
     .hero p { margin: 0; color: var(--muted); line-height: 1.5; max-width: 720px; }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      margin-bottom: 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.06);
+      color: #d7e5ff;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
 
     .top-nav {
       display: flex;
@@ -95,6 +115,12 @@
       border-radius: 10px;
       font-size: 13px;
       background: rgba(255, 255, 255, 0.04);
+    }
+    .top-nav .nav-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
     }
     .auth-pill {
       border-radius: 999px;
@@ -234,6 +260,59 @@
       margin-top: 10px;
     }
 
+    .today-card {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top right, rgba(34, 211, 238, 0.18), transparent 40%),
+        linear-gradient(160deg, rgba(255, 214, 153, 0.16), rgba(114, 78, 184, 0.14));
+    }
+
+    .today-card::after {
+      content: "";
+      position: absolute;
+      inset: auto -20px -40px auto;
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      background: rgba(255, 220, 120, 0.08);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .today-kicker {
+      color: #ffe3a2;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .today-verse {
+      margin: 0 0 10px;
+      font-size: 18px;
+      line-height: 1.5;
+      font-weight: 600;
+      color: #fff7df;
+    }
+
+    .today-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      margin-bottom: 12px;
+    }
+
+    .today-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
     .section {
       border: 1px solid var(--border);
       background: rgba(8, 14, 28, 0.35);
@@ -243,6 +322,88 @@
     }
 
     .section h4 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+
+    .transcript {
+      display: grid;
+      gap: 10px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+      scroll-behavior: smooth;
+    }
+
+    .chat-bubble {
+      max-width: 88%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      line-height: 1.55;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .chat-bubble.user {
+      margin-left: auto;
+      background: rgba(34, 211, 238, 0.12);
+    }
+
+    .chat-bubble.assistant {
+      margin-right: auto;
+      background: rgba(139, 92, 246, 0.14);
+      border-color: rgba(173, 137, 255, 0.28);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .chat-bubble.typing-live .typing-text,
+    .typing-panel.typing-live .typing-text {
+      white-space: pre-wrap;
+    }
+
+    .typing-cursor {
+      display: inline-block;
+      width: 10px;
+      margin-left: 2px;
+      color: var(--accent-2);
+      animation: blink 0.9s steps(1) infinite;
+    }
+
+    .chat-role {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-transform: uppercase;
+    }
+
+    .thinking-bubble {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      min-height: 44px;
+    }
+
+    .thinking-dots {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .thinking-dots span {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+      animation: thinkingPulse 1.2s ease-in-out infinite;
+    }
+
+    .thinking-dots span:nth-child(2) {
+      animation-delay: 0.18s;
+    }
+
+    .thinking-dots span:nth-child(3) {
+      animation-delay: 0.36s;
+    }
 
     .verse-item {
       margin-bottom: 10px;
@@ -262,6 +423,202 @@
     }
     .mini-list li { margin-bottom: 4px; }
 
+    .conversation-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .conversation-card {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px 12px;
+    }
+
+    .conversation-card.active {
+      border-color: rgba(34, 211, 238, 0.5);
+      background: rgba(34, 211, 238, 0.1);
+    }
+
+    .conversation-card-top {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .conversation-link {
+      display: block;
+      flex: 1;
+      min-width: 0;
+      color: var(--text);
+      text-decoration: none;
+    }
+
+    .conversation-title {
+      display: block;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 4px;
+      font-weight: 700;
+    }
+
+    .conversation-preview {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      margin-bottom: 8px;
+    }
+
+    .conversation-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .conversation-delete {
+      margin: 0;
+      padding: 7px 10px;
+      border-radius: 10px;
+      background: rgba(255, 67, 101, 0.16);
+      border: 1px solid rgba(255, 67, 101, 0.35);
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .conversation-delete:hover {
+      filter: brightness(1.08);
+      transform: translateY(0);
+    }
+
+    .conversation-panel-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .conversation-panel-meta {
+      color: var(--muted);
+      font-size: 13px;
+      margin: -6px 0 0;
+    }
+
+    .chat-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      min-height: 720px;
+    }
+
+    .chat-scroll-area {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding-bottom: 12px;
+    }
+
+    .chat-bottom-composer {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 12px;
+      flex-shrink: 0;
+    }
+
+    .chat-bottom-composer textarea {
+      min-height: 60px;
+    }
+
+    .transcript-empty {
+      border: 1px dashed rgba(255, 255, 255, 0.16);
+      border-radius: 16px;
+      padding: 22px 18px;
+      color: var(--muted);
+      line-height: 1.6;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .composer-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
+      margin: 10px 0 14px;
+    }
+
+    .assistant-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .reply-main {
+      color: #f8fbff;
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .reply-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .reply-section {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(6, 10, 26, 0.28);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+
+    .reply-section.warm {
+      background: linear-gradient(180deg, rgba(255, 209, 102, 0.08), rgba(255, 255, 255, 0.04));
+      border-color: rgba(255, 209, 102, 0.18);
+    }
+
+    .reply-section.cool {
+      background: linear-gradient(180deg, rgba(34, 211, 238, 0.08), rgba(255, 255, 255, 0.04));
+      border-color: rgba(34, 211, 238, 0.16);
+    }
+
+    .reply-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .reply-list li + li {
+      margin-top: 6px;
+    }
+
+    .chat-composer {
+      display: grid;
+      gap: 10px;
+      padding-top: 4px;
+    }
+
+    .chat-composer-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chat-composer-top .muted {
+      margin: 0;
+    }
+
+    .chat-composer-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .chat-composer-actions button {
+      margin-top: 0;
+    }
+
     .split {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -277,6 +634,11 @@
       .layout { grid-template-columns: 1fr; }
       .split { grid-template-columns: 1fr; }
     }
+
+    @keyframes thinkingPulse {
+      0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+      40% { opacity: 1; transform: translateY(-2px); }
+    }
   </style>
 </head>
 <body>
@@ -287,18 +649,24 @@
   <main class="app">
     <nav class="top-nav">
       <div>
-        <a href="/api/chat-ui/">Home</a>
+        <a href="/api/chat-ui/?mode={{ mode|default:'simple' }}">Home</a>
       </div>
-      <div class="auth-pill">
-        {% if request.session.chat_ui_auth_username %}
-          Signed in: {{ request.session.chat_ui_auth_username }}
-        {% else %}
-          Not signed in
+      <div class="nav-actions">
+        {% if active_conversation_id %}
+          <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}">Start New Conversation</a>
         {% endif %}
+        <div class="auth-pill">
+          {% if request.session.chat_ui_auth_username %}
+            Signed in: {{ request.session.chat_ui_auth_username }}
+          {% else %}
+            Not signed in
+          {% endif %}
+        </div>
       </div>
     </nav>
 
     <section class="hero">
+      <div class="eyebrow">Daily Companion</div>
       <h1>Bhagwat Gita Guide</h1>
       <p>
         A modern preview of your production experience. Ask life questions, get grounded verse guidance,
@@ -315,6 +683,21 @@
 
     <section class="layout">
       <aside class="stack">
+        <div class="panel today-card">
+          <div class="today-kicker">Today</div>
+          <p class="today-verse">
+            "Steady effort matters more than anxious attachment to outcomes."
+          </p>
+          <p class="today-note">
+            Let today be about one sincere action, one calmer response, and one
+            moment of reflection before reacting.
+          </p>
+          <div class="today-footer">
+            <span>Bhagavad Gita 2.47 to 2.48</span>
+            <span>Mode: {{ mode|default:"simple" }}</span>
+          </div>
+        </div>
+
         <div class="panel">
           <h2>Account</h2>
           {% if request.session.chat_ui_auth_username %}
@@ -328,6 +711,11 @@
               <button type="submit" class="btn-ghost">Logout</button>
             </form>
           {% else %}
+            <p class="hint">
+              Guest mode keeps this chat temporary inside the current browser
+              session. It is not saved to any user account and disappears when
+              you start fresh or log out.
+            </p>
             <div class="split">
               <form method="post" class="quick-submit">
                 {% csrf_token %}
@@ -363,8 +751,9 @@
               <form method="post" class="chip-form quick-submit">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="ask">
-                <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
                 <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                <input type="hidden" name="conversation_id" value="{{ active_conversation_id|default:'' }}">
                 <input type="hidden" name="message" value="{{ prompt }}">
                 <button type="submit" class="chip-btn">{{ prompt }}</button>
               </form>
@@ -373,51 +762,56 @@
         </div>
 
         <div class="panel">
-          <h2>Ask</h2>
-          <form method="post" class="quick-submit">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="ask">
-            <label for="user_id">User ID</label>
-            <input id="user_id" name="user_id" value="{{ user_id|default:'demo-user' }}" />
-
-            <label for="mode">Mode</label>
-            <select id="mode" name="mode">
+          <h2>Chat Settings</h2>
+          {% if request.session.chat_ui_auth_username %}
+            <div class="quota">
+              Your saved chats stay under <strong>{{ request.session.chat_ui_auth_username }}</strong>.
+            </div>
+          {% else %}
+            <div class="quota">
+              Guest chat is temporary. Sign in to save thread history and access it later.
+            </div>
+          {% endif %}
+          <form method="get">
+            <label for="sidebar_mode">Mode</label>
+            <select id="sidebar_mode" name="mode">
               <option value="simple" {% if mode == "simple" %}selected{% endif %}>Simple</option>
               <option value="deep" {% if mode == "deep" %}selected{% endif %}>Deep</option>
             </select>
-
-            <label for="message">Message</label>
-            <textarea id="message" name="message" rows="4" placeholder="Type your concern...">{{ message|default:'' }}</textarea>
-
-            <button type="submit">Ask for Guidance</button>
+            {% if active_conversation_id %}
+              <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
+            {% endif %}
+            <button type="submit">Update Global Mode</button>
           </form>
         </div>
 
-        <div class="panel">
-          <h2>Plan and Quota</h2>
-          <form method="post" class="quick-submit">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="plan">
-            <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
-            <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-            <input type="hidden" name="message" value="{{ message|default:'' }}">
-            <label for="selected_plan">Plan (chat-ui quota test)</label>
-            <select id="selected_plan" name="selected_plan">
-              <option value="free" {% if selected_plan == "free" %}selected{% endif %}>Free</option>
-              <option value="pro" {% if selected_plan == "pro" %}selected{% endif %}>Pro</option>
-            </select>
-            <button type="submit" class="btn-secondary">Update Plan</button>
-          </form>
+        {% if request.session.chat_ui_auth_username %}
+          <div class="panel">
+            <h2>Plan and Quota</h2>
+            <form method="post" class="quick-submit">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="plan">
+              <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+              <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+              <input type="hidden" name="message" value="{{ message|default:'' }}">
+              <label for="selected_plan">Plan (chat-ui quota test)</label>
+              <select id="selected_plan" name="selected_plan">
+                <option value="free" {% if selected_plan == "free" %}selected{% endif %}>Free</option>
+                <option value="pro" {% if selected_plan == "pro" %}selected{% endif %}>Pro</option>
+              </select>
+              <button type="submit" class="btn-secondary">Update Plan</button>
+            </form>
 
-          {% if quota_snapshot %}
-            <div class="quota">
-              <strong>Quota snapshot</strong><br>
-              plan={{ quota_snapshot.plan }},
-              used={{ quota_snapshot.used_today }}/{{ quota_snapshot.daily_limit }},
-              remaining={{ quota_snapshot.remaining_today }}
-            </div>
-          {% endif %}
-        </div>
+            {% if quota_snapshot %}
+              <div class="quota">
+                <strong>Quota snapshot</strong><br>
+                plan={{ quota_snapshot.plan }},
+                used={{ quota_snapshot.used_today }}/{{ quota_snapshot.daily_limit }},
+                remaining={{ quota_snapshot.remaining_today }}
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
 
         {% if recent_questions %}
           <div class="panel">
@@ -427,11 +821,53 @@
                 <form method="post" class="chip-form quick-submit">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="ask">
-                  <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                  <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
                   <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                  <input type="hidden" name="conversation_id" value="{{ active_conversation_id|default:'' }}">
                   <input type="hidden" name="message" value="{{ question }}">
                   <button type="submit" class="chip-btn">{{ question }}</button>
                 </form>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if conversations %}
+          <div class="panel">
+            <h2>Conversations</h2>
+            <div class="conversation-list">
+              {% for item in conversations %}
+                <div class="conversation-card {% if active_conversation_id == item.id %}active{% endif %}">
+                  <div class="conversation-card-top">
+                    <a
+                      href="/api/chat-ui/?conversation_id={{ item.id }}&mode={{ mode|default:'simple' }}"
+                      class="conversation-link"
+                      title="{{ item.updated_at_display }}"
+                    >
+                      <span class="conversation-title">{{ item.title }}</span>
+                      <span class="conversation-preview">{{ item.preview }}</span>
+                      <span class="conversation-meta">
+                        <span>{{ item.message_count_label }}</span>
+                        <span>Updated {{ item.updated_label }}</span>
+                      </span>
+                    </a>
+                    <form method="post" class="quick-submit">
+                      {% csrf_token %}
+                      <input type="hidden" name="action" value="delete_conversation">
+                      <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+                      <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                      <input type="hidden" name="conversation_id" value="{{ item.id }}">
+                      <input type="hidden" name="active_conversation_id" value="{{ active_conversation_id|default:'' }}">
+                      <button
+                        type="submit"
+                        class="conversation-delete"
+                        title="Delete conversation updated {{ item.updated_at_display }}"
+                      >
+                        Delete
+                      </button>
+                    </form>
+                  </div>
+                </div>
               {% endfor %}
             </div>
           </div>
@@ -450,110 +886,184 @@
       </aside>
 
       <section class="stack">
-        {% if response_data %}
-          <div class="panel">
-            <h2>Guidance</h2>
-            <div class="section">{{ response_data.guidance }}</div>
-          </div>
-
-          <div class="split">
-            <div class="panel">
-              <h3>Meaning</h3>
-              <div class="section">{{ response_data.meaning }}</div>
-            </div>
-            <div class="panel">
-              <h3>Reflection</h3>
-              <div class="section">{{ response_data.reflection }}</div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3>Actions</h3>
-            <div class="section">
-              <ul>
-                {% for action in response_data.actions %}
-                  <li>{{ action }}</li>
-                {% empty %}
-                  <li>No action items returned.</li>
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
-
-          <div class="panel">
-            <h3>Verses Used</h3>
-            <div class="section">
-              {% for verse in response_data.verses %}
-                <div class="verse-item">
-                  <div><strong>{{ verse.reference }}</strong></div>
-                  <div>{{ verse.translation }}</div>
-                  {% if verse.themes %}
-                    <div class="muted">Themes: {{ verse.themes|join:", " }}</div>
+        <div class="panel chat-shell">
+          <div class="conversation-panel-head">
+            <div>
+              <h2>{% if conversation_messages %}Conversation{% else %}Start Chatting{% endif %}</h2>
+              <p class="conversation-panel-meta">
+                {% if conversation_messages %}
+                  {{ conversation_messages|length }} messages in this thread
+                {% else %}
+                  {% if request.session.chat_ui_auth_username %}
+                    Open a saved thread or send your first message below.
+                  {% else %}
+                    Guest replies stay in this browser session until you reset or sign in.
                   {% endif %}
-                </div>
-              {% empty %}
-                <div>No verses returned.</div>
-              {% endfor %}
+                {% endif %}
+              </p>
+            </div>
+            <div class="nav-actions">
+              <span class="auth-pill">Mode: {{ mode|default:"simple" }}</span>
+              {% if active_conversation_id %}
+                <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}" class="chip-btn" style="text-decoration: none;">Start New</a>
+              {% endif %}
             </div>
           </div>
 
+          <div class="chat-scroll-area">
+            <div class="transcript" data-transcript>
+              {% if conversation_messages %}
+                {% for item in conversation_messages %}
+                  <div
+                    class="chat-bubble {{ item.role }}{% if response_data and forloop.last and item.role != 'user' %} typing-live{% endif %}"
+                    {% if response_data and forloop.last and item.role != 'user' %}
+                      data-typing-target="latest-reply"
+                    {% endif %}
+                  >
+                    <span class="chat-role">
+                      {% if item.role == "user" %}You{% else %}Guide{% endif %}
+                    </span>
+                    {% if response_data and forloop.last and item.role != 'user' %}
+                      <div class="assistant-stack">
+                        <div class="reply-main">
+                          <span class="typing-text">{{ item.content }}</span><span class="typing-cursor" aria-hidden="true">|</span>
+                        </div>
+                        <div class="reply-grid">
+                          <div class="reply-section warm">
+                            <h4>Meaning</h4>
+                            {{ response_data.meaning }}
+                          </div>
+                          <div class="reply-section cool">
+                            <h4>Reflection</h4>
+                            {{ response_data.reflection }}
+                          </div>
+                          <div class="reply-section">
+                            <h4>Actions</h4>
+                            <ul class="reply-list">
+                              {% for action in response_data.actions %}
+                                <li>{{ action }}</li>
+                              {% empty %}
+                                <li>No action items returned.</li>
+                              {% endfor %}
+                            </ul>
+                          </div>
+                          <div class="reply-section">
+                            <h4>Verses Used</h4>
+                            {% for verse in response_data.verses %}
+                              <div class="verse-item">
+                                <div><strong>{{ verse.reference }}</strong></div>
+                                <div>{{ verse.translation }}</div>
+                                {% if verse.themes %}
+                                  <div class="muted">Themes: {{ verse.themes|join:", " }}</div>
+                                {% endif %}
+                              </div>
+                            {% empty %}
+                              <div>No verses returned.</div>
+                            {% endfor %}
+                          </div>
+                        </div>
+                      </div>
+                    {% else %}
+                      {{ item.content }}
+                    {% endif %}
+                  </div>
+                {% endfor %}
+              {% else %}
+                <div class="transcript-empty">
+                  Ask your first question to begin a grounded conversation with verse-based guidance, practical action steps, and reflection prompts.
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Composer at bottom of chat panel (standard chat UI pattern) -->
+          <div class="chat-bottom-composer">
+            <form method="post" class="quick-submit">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="ask">
+              <input type="hidden" name="conversation_id" value="{{ active_conversation_id|default:'' }}">
+              <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+              <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+              <textarea id="chat_message" name="message" rows="2" placeholder="Type your message...">{{ message|default:'' }}</textarea>
+              <div class="chat-composer-actions">
+                {% if active_conversation_id %}
+                  <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}" class="chip-btn" style="text-decoration: none;">New Thread</a>
+                {% endif %}
+                <button type="submit">Send</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {% if response_data %}
           {% if follow_up_prompts %}
             <div class="panel">
               <h3>Continue the conversation</h3>
               <div class="chips">
                 {% for followup in follow_up_prompts %}
-                  <form method="post" class="chip-form quick-submit">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="ask">
-                    <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
-                    <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-                    <input type="hidden" name="message" value="{{ followup.prompt }}">
-                    <input type="hidden" name="follow_up_intent" value="{{ followup.intent }}">
-                    <button type="submit" class="chip-btn">{{ followup.label }}</button>
+                <form method="post" class="chip-form quick-submit">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="ask">
+                  <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+                  <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                  <input type="hidden" name="conversation_id" value="{{ active_conversation_id|default:'' }}">
+                  <input type="hidden" name="message" value="{{ followup.prompt }}">
+                  <input type="hidden" name="follow_up_intent" value="{{ followup.intent }}">
+                  <button type="submit" class="chip-btn">{{ followup.label }}</button>
                   </form>
                 {% endfor %}
               </div>
             </div>
           {% endif %}
 
-          <div class="split">
-            <div class="panel">
-              <h3>Was this helpful?</h3>
-              <form method="post" class="quick-submit">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="feedback">
-                <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
-                <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-                <input type="hidden" name="message" value="{{ message|default:'' }}">
-                <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
-                <input type="hidden" name="response_mode" value="{{ response_data.response_mode|default:'fallback' }}">
-                <label for="note">Optional note</label>
-                <input id="note" name="note" placeholder="What worked or what to improve?" />
-                <button type="submit" name="helpful" value="true" class="btn-secondary">Helpful</button>
-                <button type="submit" name="helpful" value="false" class="btn-ghost">Not Helpful</button>
-              </form>
-            </div>
+          {% if request.session.chat_ui_auth_username %}
+            <div class="split">
+              <div class="panel">
+                <h3>Was this helpful?</h3>
+                <form method="post" class="quick-submit">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="feedback">
+                  <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+                  <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                  <input type="hidden" name="message" value="{{ message|default:'' }}">
+                  <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
+                  <input type="hidden" name="response_mode" value="{{ response_data.response_mode|default:'fallback' }}">
+                  <label for="note">Optional note</label>
+                  <input id="note" name="note" placeholder="What worked or what to improve?" />
+                  <button type="submit" name="helpful" value="true" class="btn-secondary">Helpful</button>
+                  <button type="submit" name="helpful" value="false" class="btn-ghost">Not Helpful</button>
+                </form>
+              </div>
 
-            <div class="panel">
-              <h3>Save this reflection</h3>
-              <form method="post" class="quick-submit">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="save">
-                <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
-                <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-                <input type="hidden" name="message" value="{{ message|default:'' }}">
-                <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
-                <input type="hidden" name="guidance" value="{{ response_data.guidance }}">
-                <input type="hidden" name="meaning" value="{{ response_data.meaning }}">
-                <input type="hidden" name="reflection" value="{{ response_data.reflection }}">
-                <input type="hidden" name="actions" value="{{ response_data.actions|join:'|' }}">
-                <input type="hidden" name="verse_references" value="{{ response_data.verse_references|join:'|' }}">
-                <label for="save-note">Optional bookmark note</label>
-                <input id="save-note" name="note" placeholder="Why did you save this?" />
-                <button type="submit">Save Reflection</button>
-              </form>
+              <div class="panel">
+                <h3>Save this reflection</h3>
+                <form method="post" class="quick-submit">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="save">
+                  <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+                  <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                  <input type="hidden" name="message" value="{{ message|default:'' }}">
+                  <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
+                  <input type="hidden" name="guidance" value="{{ response_data.guidance }}">
+                  <input type="hidden" name="meaning" value="{{ response_data.meaning }}">
+                  <input type="hidden" name="reflection" value="{{ response_data.reflection }}">
+                  <input type="hidden" name="actions" value="{{ response_data.actions|join:'|' }}">
+                  <input type="hidden" name="verse_references" value="{{ response_data.verse_references|join:'|' }}">
+                  <label for="save-note">Optional bookmark note</label>
+                  <input id="save-note" name="note" placeholder="Why did you save this?" />
+                  <button type="submit">Save Reflection</button>
+                </form>
+              </div>
             </div>
-          </div>
+          {% else %}
+            <div class="panel">
+              <h3>Temporary guest reply</h3>
+              <div class="section">
+                This response is only stored in the current browser session so you can continue the conversation for now.
+                Sign in if you want thread history, saved reflections, feedback tracking, and quota settings tied to your account.
+              </div>
+            </div>
+          {% endif %}
         {% else %}
           <div class="panel">
             <h2>Guidance</h2>
@@ -567,14 +1077,274 @@
   </main>
 
   <script>
-    (function () {
+    window.initChatUi = function initChatUi() {
+      function scrollTranscriptToLatest() {
+        const transcript = document.querySelector("[data-transcript]");
+        if (transcript) {
+          transcript.scrollTop = transcript.scrollHeight;
+        }
+      }
+
+      function scrollTranscriptToLatestReplyStart() {
+        const transcript = document.querySelector("[data-transcript]");
+        if (!transcript) {
+          return;
+        }
+
+        const assistantBubbles = transcript.querySelectorAll(".chat-bubble.assistant");
+        const latestAssistant = assistantBubbles[assistantBubbles.length - 1];
+        if (!latestAssistant) {
+          scrollTranscriptToLatest();
+          return;
+        }
+
+        const topOffset = latestAssistant.offsetTop - 12;
+        transcript.scrollTop = Math.max(topOffset, 0);
+      }
+
+      function scrollToUserBubbleInTranscript() {
+        // Scroll inside the transcript container to show the user's newest message
+        const transcript = document.querySelector("[data-transcript]");
+        if (!transcript) {
+          return;
+        }
+
+        const userBubbles = transcript.querySelectorAll(".chat-bubble.user");
+        const latestUser = userBubbles[userBubbles.length - 1];
+        if (latestUser) {
+          const topOffset = latestUser.offsetTop - 12;
+          transcript.scrollTop = Math.max(topOffset, 0);
+          // Also bring the transcript into the viewport
+          latestUser.scrollIntoView({ behavior: "auto", block: "nearest" });
+        }
+      }
+
+      function scrollToLatestAssistantInTranscript() {
+        // Scroll inside the transcript container so the newest assistant reply is visible
+        const transcript = document.querySelector("[data-transcript]");
+        if (!transcript) {
+          return;
+        }
+
+        const assistantBubbles = transcript.querySelectorAll(".chat-bubble.assistant");
+        const latestAssistant = assistantBubbles[assistantBubbles.length - 1];
+        if (latestAssistant) {
+          const topOffset = latestAssistant.offsetTop - 12;
+          transcript.scrollTop = Math.max(topOffset, 0);
+          // Also bring the assistant bubble into the page viewport
+          latestAssistant.scrollIntoView({ behavior: "auto", block: "nearest" });
+        } else {
+          scrollTranscriptToLatest();
+        }
+      }
+
       const forms = document.querySelectorAll(".quick-submit");
       forms.forEach((form) => {
+        if (form.dataset.quickBound === "true") {
+          return;
+        }
+        form.dataset.quickBound = "true";
         form.addEventListener("submit", () => {
           form.classList.add("loading");
         });
       });
-    })();
+
+      function animateTyping(container, speed) {
+        if (!container) {
+          return;
+        }
+
+        const textNode = container.querySelector(".typing-text");
+        const cursorNode = container.querySelector(".typing-cursor");
+        if (!textNode || !cursorNode) {
+          return;
+        }
+
+        const fullText = textNode.textContent || "";
+        textNode.textContent = "";
+        let index = 0;
+
+        // Only animate the newest assistant output so revisiting a thread
+        // keeps older history instantly readable for the user.
+        function tick() {
+          if (index >= fullText.length) {
+            textNode.textContent = fullText;
+            cursorNode.remove();
+            container.classList.remove("typing-live");
+            return;
+          }
+
+          const step = fullText[index] === " " ? 1 : Math.min(2, fullText.length - index);
+          textNode.textContent += fullText.slice(index, index + step);
+          index += step;
+          window.setTimeout(
+            tick,
+            fullText[index - 1] === " " ? speed / 2 : speed,
+          );
+        }
+
+        tick();
+      }
+
+      animateTyping(
+        document.querySelector('[data-typing-target="latest-reply"]'),
+        18,
+      );
+      animateTyping(
+        document.querySelector('[data-typing-target="guidance-panel"]'),
+        11,
+      );
+
+      function buildBubble(role, contentHtml) {
+        const bubble = document.createElement("div");
+        bubble.className = `chat-bubble ${role}`;
+
+        const label = document.createElement("span");
+        label.className = "chat-role";
+        label.textContent = role === "user" ? "You" : "Guide";
+        bubble.appendChild(label);
+
+        const content = document.createElement("div");
+        content.innerHTML = contentHtml;
+        bubble.appendChild(content);
+        return bubble;
+      }
+
+      function ensureTranscript() {
+        let transcript = document.querySelector("[data-transcript]");
+        if (transcript) {
+          return transcript;
+        }
+
+        const chatShell = document.querySelector(".chat-shell");
+        if (!chatShell) {
+          return null;
+        }
+
+        const scrollArea = chatShell.querySelector(".chat-scroll-area");
+        if (!scrollArea) {
+          return null;
+        }
+
+        transcript = document.createElement("div");
+        transcript.className = "transcript";
+        transcript.setAttribute("data-transcript", "");
+        scrollArea.appendChild(transcript);
+        return transcript;
+      }
+
+      async function handleLiveAsk(form) {
+        const transcript = ensureTranscript();
+        if (!transcript) {
+          form.submit();
+          return;
+        }
+
+        const formData = new FormData(form);
+        const action = String(formData.get("action") || "");
+        if (action !== "ask") {
+          form.submit();
+          return;
+        }
+
+        const message = String(formData.get("message") || "").trim();
+        if (!message) {
+          form.submit();
+          return;
+        }
+
+        form.classList.add("loading");
+
+        const emptyState = transcript.querySelector(".transcript-empty");
+        if (emptyState) {
+          emptyState.remove();
+        }
+
+        // Show the user's new message immediately so the chat feels live,
+        // then keep a thinking bubble in place until the server reply arrives.
+        const userBubble = buildBubble(
+          "user",
+          message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"),
+        );
+        userBubble.setAttribute("data-live-user", "true");
+        transcript.appendChild(userBubble);
+        const thinkingBubble = buildBubble(
+          "assistant",
+          '<div class="thinking-bubble"><span>Thinking</span><span class="thinking-dots"><span></span><span></span><span></span></span></div>',
+        );
+        transcript.appendChild(thinkingBubble);
+
+        // Clear the textarea immediately after sending
+        const textarea = form.querySelector("textarea[name='message']");
+        if (textarea) {
+          textarea.value = "";
+        }
+
+        // Scroll to show the user's message and thinking animation in the transcript
+        scrollToUserBubbleInTranscript();
+
+        try {
+          // Use getAttribute because form.action is shadowed by the <input name="action"> element
+          const formAction = form.getAttribute("action") || window.location.href;
+          const response = await fetch(formAction, {
+            method: "POST",
+            body: formData,
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          });
+          const html = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const nextApp = doc.querySelector("main.app");
+          const currentApp = document.querySelector("main.app");
+
+          if (!nextApp || !currentApp) {
+            window.location.reload();
+            return;
+          }
+
+          currentApp.replaceWith(nextApp);
+          window.history.replaceState({}, "", window.location.href);
+          if (typeof window.initChatUi === "function") {
+            window.initChatUi();
+          }
+          // After DOM replacement, wait for rendering then scroll to show the new reply
+          window.setTimeout(() => {
+            scrollToLatestAssistantInTranscript();
+          }, 50);
+        } catch (error) {
+          thinkingBubble.remove();
+          form.classList.remove("loading");
+          const fallbackMessage = document.createElement("div");
+          fallbackMessage.className = "message error";
+          fallbackMessage.textContent = "The live reply failed to load. Please try again.";
+          const app = document.querySelector("main.app");
+          if (app) {
+            app.prepend(fallbackMessage);
+          }
+        }
+      }
+
+      document.querySelectorAll("form.quick-submit").forEach((form) => {
+        if (form.dataset.liveAskBound === "true") {
+          return;
+        }
+        form.dataset.liveAskBound = "true";
+        form.addEventListener("submit", (event) => {
+          const actionInput = form.querySelector('input[name="action"]');
+          if (!actionInput || actionInput.value !== "ask") {
+            return;
+          }
+          event.preventDefault();
+          handleLiveAsk(form);
+        });
+      });
+
+      scrollTranscriptToLatestReplyStart();
+    };
+
+    window.initChatUi();
   </script>
 </body>
 </html>

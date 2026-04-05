@@ -14,19 +14,27 @@ and give feedback on whether the answer was useful.
 ## Quick Start (Browser)
 
 1. Open the app at `http://127.0.0.1:8000/api/chat-ui/`.
-2. Enter:
-   - `user_id` (any short identifier, for example `demo-user`)
-   - `mode` (`simple` or `deep`)
-   - your message
-3. Optional: click any starter prompt chip to begin quickly.
-4. Submit and review:
+2. If you are logged out, chat in guest mode:
+   - choose `mode` (`simple` or `deep`)
+   - enter your message
+   - guest chat stays temporary in the current browser session only
+3. If you want saved history, register or log in first.
+4. Optional: click any starter prompt chip to begin quickly.
+5. Submit and review:
    - guidance
    - meaning
    - actions
    - reflection
    - verses used
-5. Optional: continue with follow-up chips or recent-question chips.
-6. Mark answer as `Helpful` or `Not Helpful`.
+   - continue directly from the in-chat message box above the transcript
+6. Optional: continue with follow-up chips or recent-question chips.
+7. When logged in, mark answer as `Helpful` or `Not Helpful`.
+8. When logged in, use the `Conversations` sidebar to reopen an older thread, or click
+   `Start New Conversation` to begin a separate thread.
+9. Each saved thread card shows message count and last-updated time. Use
+   `Delete` on a card to remove that conversation.
+10. The sidebar `Mode` selector is global for the whole chat UI. Whatever mode
+    you select there will be used for the next message in any conversation.
 
 ## Quick Start (API)
 
@@ -104,15 +112,34 @@ POST /api/auth/plan/
 }
 ```
 
-### Chat UI quota test
+### Chat UI account modes
 
-On `GET /api/chat-ui/`, you can use the plan selector to toggle `free`
-or `pro` for an existing username and validate the quota behavior.
+On `GET /api/chat-ui/`:
+- logged-out users get a temporary guest chat that is not saved to any user
+- logged-in users get saved conversation history scoped to their own account
+- only logged-in users can use the plan selector, feedback form, saved
+  reflections, and conversation sidebar/history
 
 `chat-ui` also includes:
+- a `Today` card in the sidebar for a daily spiritual framing moment
 - starter prompts for first-time users
 - follow-up prompt chips after each response
+- a primary in-chat composer above the transcript for direct back-and-forth
+- asking from chat now updates the conversation in place without a full page reload
+- a thinking animation appears in the thread while waiting for the reply
+- sending a message keeps the page focused on the active conversation panel
+- the assistant's structured reply rendered inside the conversation itself
+- newest assistant replies animate into the chat with a typing effect
 - recent question shortcuts (up to 3)
+- a sidebar list of recent conversations for the signed-in user
+- one global sidebar mode selector shared across all conversations
+- per-thread message counts and updated timestamps in the sidebar
+- thread deletion directly from the sidebar
+- `Start New Conversation` for beginning a separate thread
+
+When the app uses the LLM path, the latest message is treated as the main
+question. Recent thread history is used only as supporting context so the
+reply stays relevant to the current message while still feeling continuous.
 
 For product analytics review (developer/admin use), see Django Admin
 `Ask events` for asks/day, fallback rate, helpful rate, and quota blocks.

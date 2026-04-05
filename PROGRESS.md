@@ -123,10 +123,29 @@ Last updated: 2026-04-04
   - `/api/auth/plan/` added for local plan switch testing
   - `/api/chat-ui/` now supports plan switch + quota snapshot display
 - UX pass v1 completed for `chat-ui`:
+  - sidebar `Today` card added for daily spiritual framing
   - starter prompt chips for first-time onboarding
+  - primary in-chat composer added above the transcript
+  - chat asks now update in place without a full page refresh
+  - thinking animation now appears while waiting for the reply
+  - latest structured assistant reply now stays inside the conversation
   - structured response rendering (guidance/meaning/actions/reflection/verses)
   - follow-up prompt chips after each answer
+  - newest assistant reply now animates in with a typing effect
   - recent question shortcuts (session-backed, max 3)
+- Threaded conversation UX pass completed for `chat-ui`:
+  - logged-out chat now stays temporary in session and is not persisted to DB
+  - logged-in users only see their own saved conversation history
+  - sidebar mode selector now acts as a global mode for the next message in
+    any thread
+  - separate conversation threads now persist in the database
+  - chat-ui shows a sidebar list of recent conversations
+  - sidebar cards now show message counts and last-updated timestamps
+  - active or older threads can be deleted from the sidebar
+  - `Start New Conversation` begins a separate thread instead of continuing
+    the active one
+  - LLM prompt now uses recent thread history as supporting context while
+    still answering the latest user message as the primary query
 - Admin analytics dashboard v1 completed:
   - new `AskEvent` telemetry model for ask attempts/outcomes
   - events logged from `/api/ask/` and `chat-ui` ask path

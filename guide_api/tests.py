@@ -8,8 +8,10 @@ from django.core.management.base import CommandError
 from django.utils import timezone
 from guide_api.models import (
     AskEvent,
+    Conversation,
     EngagementEvent,
     FollowUpEvent,
+    Message,
     ResponseFeedback,
     SavedReflection,
     UserEngagementProfile,
@@ -28,6 +30,20 @@ class GuideApiTests(APITestCase):
             password="demo-pass-123",
         )
         self.client.force_authenticate(user=self.user)
+
+    def _login_chat_ui(self, username="demo-user", password="demo-pass-123"):
+        """Authenticate the manual chat UI with a browser session."""
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "login",
+                "login_username": username,
+                "login_password": password,
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        return response
 
     def test_health_endpoint(self):
         response = self.client.get("/api/health/")
@@ -347,18 +363,56 @@ class GuideApiTests(APITestCase):
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
         self.assertContains(logout_response, "Logged out.")
 
+    def test_chat_ui_login_immediately_loads_users_own_conversation_list(self):
+        other_user = User.objects.create_user(
+            username="other-user",
+            password="other-pass-123",
+        )
+        other_conversation = Conversation.objects.create(
+            user_id=other_user.username,
+        )
+        Message.objects.create(
+            conversation=other_conversation,
+            role=Message.ROLE_USER,
+            content="Other user's thread",
+        )
+        own_conversation = Conversation.objects.create(user_id=self.user.username)
+        Message.objects.create(
+            conversation=own_conversation,
+            role=Message.ROLE_USER,
+            content="My saved thread",
+        )
+
+        self.client.force_authenticate(user=None)
+        login_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "login",
+                "login_username": "demo-user",
+                "login_password": "demo-pass-123",
+            },
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertContains(login_response, "Logged in as demo-user.")
+        self.assertEqual(len(login_response.context["conversations"]), 1)
+        self.assertEqual(
+            login_response.context["conversations"][0]["title"],
+            "My saved thread",
+        )
+        self.assertContains(login_response, "Conversations")
+        self.assertNotContains(login_response, "Other user's thread")
+
     def test_chat_ui_renders_structured_response_sections(self):
+        self.client.force_authenticate(user=None)
         response = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "ask",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about my career growth.",
             },
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertContains(response, "Guidance")
         self.assertContains(response, "Meaning")
         self.assertContains(response, "Actions")
         self.assertContains(response, "Reflection")
@@ -371,13 +425,189 @@ class GuideApiTests(APITestCase):
             ).count(),
             1,
         )
+        self.assertContains(response, "Conversation")
+        self.assertContains(response, "You")
+        self.assertContains(response, "Guide")
+        self.assertEqual(Conversation.objects.count(), 0)
+        self.assertEqual(response.context["conversations"], [])
+        self.assertContains(response, "Temporary guest reply")
+        # Composer is now at the bottom with "Send" button
+        self.assertContains(response, "Send")
+
+    def test_chat_ui_continues_existing_conversation_when_id_is_posted(self):
+        self._login_chat_ui()
+        first = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        conversation_id = first.context["response_data"]["conversation_id"]
+
+        second = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "conversation_id": str(conversation_id),
+                "message": "Give me one step for today.",
+            },
+        )
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertContains(second, "Give me one step for today.")
+        self.assertEqual(
+            len(second.context["conversation_messages"]),
+            4,
+        )
+
+    def test_chat_ui_new_query_resets_visible_conversation(self):
+        self.client.force_authenticate(user=None)
+        self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+
+        reset = self.client.get("/api/chat-ui/?new=1")
+        self.assertEqual(reset.status_code, status.HTTP_200_OK)
+        self.assertEqual(reset.context["active_conversation_id"], "")
+        self.assertEqual(reset.context["conversation_messages"], [])
+        self.assertNotContains(reset, "Start New</a>")
+        self.assertEqual(len(reset.context["conversations"]), 0)
+
+    def test_chat_ui_guest_chat_stays_temporary_in_session(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(Conversation.objects.count(), 0)
+        self.assertEqual(response.context["active_conversation_id"], "")
+        self.assertContains(response, "Guest chat is temporary")
+
+    def test_chat_ui_new_conversation_creates_separate_thread(self):
+        self._login_chat_ui()
+        first = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        first_conversation_id = first.context["response_data"]["conversation_id"]
+
+        second = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "conversation_id": "",
+                "message": "I get angry quickly in relationships.",
+            },
+        )
+        second_conversation_id = second.context["response_data"]["conversation_id"]
+
+        self.assertNotEqual(first_conversation_id, second_conversation_id)
+        self.assertContains(second, "Conversations")
+        self.assertEqual(len(second.context["conversations"]), 2)
+        self.assertContains(second, "Updated just now")
+
+    def test_chat_ui_sidebar_shows_thread_metadata(self):
+        self._login_chat_ui()
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        conversation = response.context["conversations"][0]
+        self.assertEqual(
+            conversation["title"],
+            "I feel anxious about my career growth.",
+        )
+        self.assertEqual(conversation["message_count_label"], "2 messages")
+        self.assertContains(response, "Updated just now")
+        self.assertContains(response, "Delete")
+
+    def test_chat_ui_can_open_specific_older_conversation(self):
+        self._login_chat_ui()
+        first = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        first_conversation_id = first.context["response_data"]["conversation_id"]
+
+        self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "conversation_id": "",
+                "message": "I feel stuck and directionless.",
+            },
+        )
+
+        response = self.client.get(
+            f"/api/chat-ui/?conversation_id={first_conversation_id}",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.context["active_conversation_id"],
+            first_conversation_id,
+        )
+        self.assertContains(response, "I feel anxious about my career growth.")
+
+    def test_chat_ui_can_delete_active_conversation(self):
+        self._login_chat_ui()
+        created = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        conversation_id = created.context["response_data"]["conversation_id"]
+
+        deleted = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "delete_conversation",
+                "conversation_id": str(conversation_id),
+                "active_conversation_id": str(conversation_id),
+            },
+        )
+        self.assertEqual(deleted.status_code, status.HTTP_200_OK)
+        self.assertContains(deleted, "Conversation deleted.")
+        self.assertEqual(deleted.context["active_conversation_id"], "")
+        self.assertEqual(deleted.context["conversation_messages"], [])
+        self.assertEqual(len(deleted.context["conversations"]), 0)
 
     def test_chat_ui_plan_update_for_existing_username(self):
+        self._login_chat_ui()
         response = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "plan",
-                "user_id": "demo-user",
                 "selected_plan": "pro",
             },
         )
@@ -386,11 +616,11 @@ class GuideApiTests(APITestCase):
 
     @override_settings(ASK_LIMIT_FREE_DAILY=1)
     def test_chat_ui_enforces_quota_for_existing_username(self):
+        self._login_chat_ui()
         first = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "ask",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about career growth.",
             },
@@ -399,7 +629,6 @@ class GuideApiTests(APITestCase):
             "/api/chat-ui/",
             data={
                 "action": "ask",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about career growth.",
             },
@@ -409,12 +638,12 @@ class GuideApiTests(APITestCase):
         self.assertContains(second, "Daily ask limit reached")
 
     def test_chat_ui_tracks_recent_questions_up_to_three(self):
+        self.client.force_authenticate(user=None)
         for idx in range(1, 5):
             self.client.post(
                 "/api/chat-ui/",
                 data={
                     "action": "ask",
-                    "user_id": "demo-user",
                     "mode": "simple",
                     "message": f"recent question {idx}",
                 },
@@ -425,6 +654,57 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "recent question 4")
         self.assertContains(response, "recent question 3")
         self.assertContains(response, "recent question 2")
+
+    def test_chat_ui_logged_in_user_only_sees_own_history(self):
+        other_user = User.objects.create_user(
+            username="other-user",
+            password="other-pass-123",
+        )
+        other_conversation = Conversation.objects.create(
+            user_id=other_user.username,
+        )
+        Message.objects.create(
+            conversation=other_conversation,
+            role=Message.ROLE_USER,
+            content="Other user's thread",
+        )
+        own_conversation = Conversation.objects.create(user_id=self.user.username)
+        Message.objects.create(
+            conversation=own_conversation,
+            role=Message.ROLE_USER,
+            content="My own thread",
+        )
+
+        self._login_chat_ui()
+        response = self.client.get("/api/chat-ui/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [item["title"] for item in response.context["conversations"]]
+        self.assertIn("My own thread", titles)
+        self.assertNotIn("Other user's thread", titles)
+
+    def test_chat_ui_mode_selection_persists_across_threads(self):
+        self._login_chat_ui()
+        selected = self.client.get("/api/chat-ui/?mode=deep")
+        self.assertEqual(selected.status_code, status.HTTP_200_OK)
+        self.assertEqual(selected.context["mode"], "deep")
+
+        asked = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "deep",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        self.assertEqual(asked.status_code, status.HTTP_200_OK)
+        self.assertEqual(asked.context["mode"], "deep")
+        conversation_id = asked.context["response_data"]["conversation_id"]
+
+        reopened = self.client.get(
+            f"/api/chat-ui/?conversation_id={conversation_id}&mode=deep",
+        )
+        self.assertEqual(reopened.status_code, status.HTTP_200_OK)
+        self.assertEqual(reopened.context["mode"], "deep")
 
     def test_feedback_api_saves_entry(self):
         payload = {
@@ -524,28 +804,28 @@ class GuideApiTests(APITestCase):
         )
 
     def test_chat_ui_feedback_flow(self):
+        self._login_chat_ui()
         ask_response = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "ask",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about my career growth.",
             },
         )
         self.assertEqual(ask_response.status_code, status.HTTP_200_OK)
         self.assertEqual(ResponseFeedback.objects.count(), 0)
+        conversation_id = ask_response.context["response_data"]["conversation_id"]
 
         feedback_response = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "feedback",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about my career growth.",
                 "helpful": "true",
                 "response_mode": "fallback",
-                "conversation_id": "1",
+                "conversation_id": str(conversation_id),
                 "note": "Useful",
             },
         )
@@ -553,25 +833,25 @@ class GuideApiTests(APITestCase):
         self.assertEqual(ResponseFeedback.objects.count(), 1)
 
     def test_chat_ui_save_reflection_flow(self):
+        self._login_chat_ui()
         ask_response = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "ask",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about my career growth.",
             },
         )
         self.assertEqual(ask_response.status_code, status.HTTP_200_OK)
+        conversation_id = ask_response.context["response_data"]["conversation_id"]
 
         save_response = self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "save",
-                "user_id": "demo-user",
                 "mode": "simple",
                 "message": "I feel anxious about my career growth.",
-                "conversation_id": "1",
+                "conversation_id": str(conversation_id),
                 "guidance": "Do your duty without attachment.",
                 "meaning": "Focus on effort.",
                 "actions": "Work consistently|Let go of outcome anxiety",

@@ -1,11 +1,13 @@
 """HTTP views for chat, retrieval evaluation, and feedback flows."""
 
 from datetime import timedelta
+from types import SimpleNamespace
 
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.timesince import timesince
 from django.views import View
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
@@ -74,18 +76,27 @@ def _run_guidance_flow(
         content=message,
     )
 
+    conversation_messages = list(conversation.messages.order_by("created_at"))
     retrieval = retrieve_verses_with_trace(
         message=message,
         limit=4 if mode == "deep" else 3,
     )
     verses = retrieval.verses
-    guidance = build_guidance(message, verses)
+    guidance = build_guidance(
+        message,
+        verses,
+        conversation_messages=conversation_messages,
+    )
 
     Message.objects.create(
         conversation=conversation,
         role=Message.ROLE_ASSISTANT,
         content=guidance.guidance,
     )
+
+    # Update conversation's updated_at timestamp so it appears at top of list
+    conversation.save()
+
     return conversation, verses, guidance, retrieval
 
 
@@ -868,7 +879,18 @@ class ChatUIView(View):
 
     def get(self, request):
         """Render empty chat form."""
+        authenticated_username = self._chat_ui_authenticated_username(request)
         default_user_id = self._default_user_id(request)
+        start_fresh = request.GET.get("new", "").strip() == "1"
+        mode = self._chat_ui_mode(request.GET.get("mode", "simple"))
+        active_conversation = None
+        if authenticated_username and not start_fresh:
+            active_conversation = self._chat_ui_conversation(
+                default_user_id,
+                request.GET.get("conversation_id"),
+            )
+        if not authenticated_username and start_fresh:
+            self._clear_guest_conversation(request)
         return render(
             request,
             self.template_name,
@@ -880,18 +902,37 @@ class ChatUIView(View):
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
                 "follow_up_prompts": [],
-                "saved_reflections": self._saved_reflections_for_user(
-                    request,
-                    default_user_id,
+                "saved_reflections": (
+                    self._saved_reflections_for_user(
+                        request,
+                        default_user_id,
+                    )
+                    if authenticated_username
+                    else []
+                ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": (
+                    self._conversation_messages(active_conversation)
+                    if authenticated_username
+                    else self._guest_conversation_messages(request)
+                ),
+                "conversations": (
+                    self._conversation_list(default_user_id)
+                    if authenticated_username
+                    else []
                 ),
                 "user_id": default_user_id,
-                "mode": "simple",
+                "is_guest_chat": not authenticated_username,
+                "mode": mode,
                 "message": "",
             },
         )
 
     def post(self, request):
         """Handle ask or feedback submit action from HTML form."""
+        authenticated_username = self._chat_ui_authenticated_username(request)
         action = request.POST.get("action", "ask").strip()
         if action == "register":
             return self._handle_register(request)
@@ -905,13 +946,19 @@ class ChatUIView(View):
             return self._handle_plan_update(request)
         if action == "save":
             return self._handle_save_reflection(request)
+        if action == "delete_conversation":
+            return self._handle_delete_conversation(request)
 
         starter_prompts = self._starter_prompts()
         recent_questions = self._recent_questions(request)
-
-        user_id = (
-            request.POST.get("user_id", self._default_user_id(request)).strip()
-            or self._default_user_id(request)
+        user_id = authenticated_username or "guest"
+        active_conversation = (
+            self._chat_ui_conversation(
+                user_id,
+                request.POST.get("conversation_id"),
+            )
+            if authenticated_username
+            else None
         )
         message = request.POST.get("message", "").strip()
         mode = request.POST.get("mode", "simple")
@@ -928,7 +975,21 @@ class ChatUIView(View):
                     "response_data": None,
                     "error": "Please enter a message to continue.",
                     "feedback_message": "",
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": (
+                        self._conversation_messages(active_conversation)
+                        if authenticated_username
+                        else self._guest_conversation_messages(request)
+                    ),
+                    "conversations": (
+                        self._conversation_list(user_id)
+                        if authenticated_username
+                        else []
+                    ),
                     "user_id": user_id,
+                    "is_guest_chat": not authenticated_username,
                     "mode": mode,
                     "message": message,
                     "starter_prompts": starter_prompts,
@@ -957,7 +1018,21 @@ class ChatUIView(View):
                         "immediately."
                     ),
                     "feedback_message": "",
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": (
+                        self._conversation_messages(active_conversation)
+                        if authenticated_username
+                        else self._guest_conversation_messages(request)
+                    ),
+                    "conversations": (
+                        self._conversation_list(user_id)
+                        if authenticated_username
+                        else []
+                    ),
                     "user_id": user_id,
+                    "is_guest_chat": not authenticated_username,
                     "mode": mode,
                     "message": message,
                     "starter_prompts": starter_prompts,
@@ -966,7 +1041,11 @@ class ChatUIView(View):
                 },
             )
 
-        quota = self._resolve_chat_ui_quota(user_id)
+        quota = (
+            self._resolve_chat_ui_quota(user_id)
+            if authenticated_username
+            else None
+        )
         if quota and quota["usage"].ask_count >= quota["daily_limit"]:
             _log_ask_event(
                 user_id=user_id,
@@ -986,7 +1065,21 @@ class ChatUIView(View):
                         "Switch to Pro or try tomorrow."
                     ),
                     "feedback_message": "",
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": (
+                        self._conversation_messages(active_conversation)
+                        if authenticated_username
+                        else self._guest_conversation_messages(request)
+                    ),
+                    "conversations": (
+                        self._conversation_list(user_id)
+                        if authenticated_username
+                        else []
+                    ),
                     "user_id": user_id,
+                    "is_guest_chat": not authenticated_username,
                     "mode": mode,
                     "message": message,
                     "selected_plan": quota["subscription"].plan,
@@ -1002,13 +1095,30 @@ class ChatUIView(View):
                 },
             )
 
-        conversation, verses, guidance, retrieval = _run_guidance_flow(
-            user_id=user_id,
-            message=message,
-            mode=mode,
-        )
+        if authenticated_username:
+            conversation, verses, guidance, retrieval = _run_guidance_flow(
+                user_id=user_id,
+                message=message,
+                mode=mode,
+                conversation_id=(
+                    active_conversation.id if active_conversation else None
+                ),
+            )
+            conversation_messages = self._conversation_messages(conversation)
+            active_conversation_id = conversation.id
+            conversations = self._conversation_list(user_id)
+        else:
+            verses, guidance, retrieval = self._run_guest_guidance_flow(
+                request,
+                message=message,
+                mode=mode,
+            )
+            conversation = None
+            conversation_messages = self._guest_conversation_messages(request)
+            active_conversation_id = ""
+            conversations = []
         response_data = {
-            "conversation_id": conversation.id,
+            "conversation_id": active_conversation_id,
             "guidance": guidance.guidance,
             "verses": VerseSerializer(verses, many=True).data,
             "meaning": guidance.meaning,
@@ -1086,9 +1196,13 @@ class ChatUIView(View):
                 "response_data": response_data,
                 "error": "",
                 "feedback_message": "",
+                "active_conversation_id": active_conversation_id,
+                "conversation_messages": conversation_messages,
+                "conversations": conversations,
                 "user_id": user_id,
+                "is_guest_chat": not authenticated_username,
                 "mode": mode,
-                "message": message,
+                "message": "",  # Clear the input after a successful ask
                 "selected_plan": (
                     response_data.get("plan")
                     if response_data.get("plan")
@@ -1106,19 +1220,44 @@ class ChatUIView(View):
                 "starter_prompts": starter_prompts,
                 "recent_questions": updated_recent_questions,
                 "follow_up_prompts": response_data.get("follow_ups", []),
-                "saved_reflections": self._saved_reflections_for_user(
-                    request,
-                    user_id,
+                "saved_reflections": (
+                    self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    )
+                    if authenticated_username
+                    else []
                 ),
             },
         )
 
     def _handle_feedback(self, request):
         """Persist feedback submitted via manual chat UI."""
-        user_id = (
-            request.POST.get("user_id", self._default_user_id(request)).strip()
-            or self._default_user_id(request)
-        )
+        user_id = self._chat_ui_authenticated_username(request)
+        if not user_id:
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": None,
+                    "error": (
+                        "Login is required before saving feedback to your "
+                        "account."
+                    ),
+                    "feedback_message": "",
+                    "user_id": self._default_user_id(request),
+                    "is_guest_chat": True,
+                    "mode": request.POST.get("mode", "simple"),
+                    "message": request.POST.get("message", ""),
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "conversation_messages": self._guest_conversation_messages(
+                        request,
+                    ),
+                    "conversations": [],
+                },
+            )
         message = request.POST.get("message", "").strip()
         mode = request.POST.get("mode", "simple").strip()
         response_mode = request.POST.get("response_mode", "fallback").strip()
@@ -1181,10 +1320,32 @@ class ChatUIView(View):
 
     def _handle_save_reflection(self, request):
         """Save current response into bookmarks for existing usernames."""
-        user_id = (
-            request.POST.get("user_id", self._default_user_id(request)).strip()
-            or self._default_user_id(request)
-        )
+        user_id = self._chat_ui_authenticated_username(request)
+        if not user_id:
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": None,
+                    "error": (
+                        "Saving reflections requires login so bookmarks stay "
+                        "attached to your account."
+                    ),
+                    "feedback_message": "",
+                    "user_id": self._default_user_id(request),
+                    "is_guest_chat": True,
+                    "mode": request.POST.get("mode", "simple"),
+                    "message": request.POST.get("message", ""),
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "saved_reflections": [],
+                    "conversation_messages": self._guest_conversation_messages(
+                        request,
+                    ),
+                    "conversations": [],
+                },
+            )
         user_model = get_user_model()
         user = user_model.objects.filter(username=user_id).first()
         if user is None:
@@ -1273,6 +1434,256 @@ class ChatUIView(View):
             for row in rows
         ]
 
+    @staticmethod
+    def _conversation_messages(conversation) -> list[dict]:
+        """Return current conversation as simple role/content rows."""
+        if conversation is None:
+            return []
+        return [
+            {
+                "role": message.role,
+                "content": message.content,
+                "created_at": message.created_at.isoformat(),
+            }
+            for message in conversation.messages.all()
+        ]
+
+    @staticmethod
+    def _chat_ui_conversation(user_id: str, conversation_id=None):
+        """Resolve requested conversation or fall back to latest thread."""
+        if conversation_id is not None and str(conversation_id).strip() == "":
+            # An explicit blank id means "start a new thread" rather than
+            # silently reopening the most recent saved conversation.
+            return None
+        queryset = (
+            Conversation.objects.filter(user_id=user_id)
+            .prefetch_related("messages")
+            .order_by("-updated_at")
+        )
+        if conversation_id and str(conversation_id).isdigit():
+            conversation = queryset.filter(id=int(conversation_id)).first()
+            if conversation is not None:
+                return conversation
+        return queryset.first()
+
+    @staticmethod
+    def _conversation_list(user_id: str) -> list[dict]:
+        """Return recent conversations for sidebar navigation."""
+        rows = (
+            Conversation.objects.filter(user_id=user_id)
+            .prefetch_related("messages")
+            .order_by("-updated_at")[:12]
+        )
+        items = []
+        for row in rows:
+            messages = list(row.messages.all())
+            title = ChatUIView._conversation_title(messages, row.id)
+            last_message = messages[-1].content.strip() if messages else ""
+            items.append(
+                {
+                    "id": row.id,
+                    "title": title,
+                    "preview": ChatUIView._truncate_text(
+                        last_message or "No messages yet.",
+                        84,
+                    ),
+                    "message_count": len(messages),
+                    "message_count_label": ChatUIView._message_count_label(
+                        len(messages),
+                    ),
+                    "updated_label": ChatUIView._relative_timestamp(
+                        row.updated_at,
+                    ),
+                    "updated_at_display": timezone.localtime(
+                        row.updated_at,
+                    ).strftime("%d %b %Y, %I:%M %p"),
+                }
+            )
+        return items
+
+    def _run_guest_guidance_flow(self, request, *, message: str, mode: str):
+        """Generate a guest-mode answer without persisting any DB history."""
+        guest_messages = self._guest_conversation_objects(request)
+        conversation_messages = guest_messages + [
+            SimpleNamespace(role=Message.ROLE_USER, content=message)
+        ]
+        retrieval = retrieve_verses_with_trace(
+            message=message,
+            limit=4 if mode == "deep" else 3,
+        )
+        verses = retrieval.verses
+        guidance = build_guidance(
+            message,
+            verses,
+            conversation_messages=conversation_messages,
+        )
+        self._append_guest_exchange(
+            request,
+            user_message=message,
+            assistant_message=guidance.guidance,
+        )
+        return verses, guidance, retrieval
+
+    def _handle_delete_conversation(self, request):
+        """Delete a sidebar thread without resetting the whole chat UI."""
+        current_mode = self._chat_ui_mode(request.POST.get("mode", "simple"))
+        user_id = self._chat_ui_authenticated_username(request)
+        if not user_id:
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": None,
+                    "error": "Guest chats are temporary, so there is no saved history to delete.",
+                    "feedback_message": "",
+                    "selected_plan": "free",
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "saved_reflections": [],
+                    "active_conversation_id": "",
+                    "conversation_messages": self._guest_conversation_messages(
+                        request,
+                    ),
+                    "conversations": [],
+                    "user_id": self._default_user_id(request),
+                    "is_guest_chat": True,
+                    "mode": current_mode,
+                    "message": "",
+                },
+            )
+        delete_id = request.POST.get("conversation_id", "").strip()
+        active_id = request.POST.get("active_conversation_id", "").strip()
+        active_conversation = self._chat_ui_conversation(user_id, active_id)
+
+        if not delete_id.isdigit():
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": None,
+                    "error": "Could not find that conversation to delete.",
+                    "feedback_message": "",
+                    "selected_plan": "free",
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "saved_reflections": self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    ),
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": self._conversation_messages(
+                        active_conversation,
+                    ),
+                    "conversations": self._conversation_list(user_id),
+                    "user_id": user_id,
+                    "mode": current_mode,
+                    "message": "",
+                },
+            )
+
+        conversation = Conversation.objects.filter(
+            id=int(delete_id),
+            user_id=user_id,
+        ).first()
+        if conversation is None:
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": None,
+                    "error": "Could not find that conversation to delete.",
+                    "feedback_message": "",
+                    "selected_plan": "free",
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "saved_reflections": self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    ),
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": self._conversation_messages(
+                        active_conversation,
+                    ),
+                    "conversations": self._conversation_list(user_id),
+                    "user_id": user_id,
+                    "mode": current_mode,
+                    "message": "",
+                },
+            )
+
+        was_active = active_id.isdigit() and int(active_id) == conversation.id
+        conversation.delete()
+        if was_active:
+            active_conversation = None
+
+        # Sidebar thread deletion should only change thread state, not wipe
+        # out unrelated controls like saved reflections or the plan panel.
+        return render(
+            request,
+            self.template_name,
+            {
+                "response_data": None,
+                "error": "",
+                "feedback_message": "Conversation deleted.",
+                "selected_plan": "free",
+                "starter_prompts": self._starter_prompts(),
+                "recent_questions": self._recent_questions(request),
+                "follow_up_prompts": [],
+                "saved_reflections": self._saved_reflections_for_user(
+                    request,
+                    user_id,
+                ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": self._conversation_messages(
+                    active_conversation,
+                ),
+                "conversations": self._conversation_list(user_id),
+                "user_id": user_id,
+                "is_guest_chat": False,
+                "mode": current_mode,
+                "message": "",
+            },
+        )
+
+    @staticmethod
+    def _conversation_title(messages: list[Message], conversation_id: int) -> str:
+        """Build a stable sidebar label from the first user-authored prompt."""
+        for message in messages:
+            if message.role == Message.ROLE_USER and message.content:
+                return ChatUIView._truncate_text(message.content, 60)
+        return f"Conversation {conversation_id}"
+
+    @staticmethod
+    def _truncate_text(value: str, limit: int) -> str:
+        """Collapse whitespace before trimming for compact UI cards."""
+        normalized = " ".join(value.split())
+        if len(normalized) <= limit:
+            return normalized
+        return f"{normalized[: limit - 3].rstrip()}..."
+
+    @staticmethod
+    def _message_count_label(message_count: int) -> str:
+        """Return a singular/plural sidebar count label."""
+        suffix = "message" if message_count == 1 else "messages"
+        return f"{message_count} {suffix}"
+
+    @staticmethod
+    def _relative_timestamp(value) -> str:
+        """Return short relative timestamps for conversation cards."""
+        now = timezone.now()
+        if value >= now - timedelta(seconds=60):
+            return "just now"
+        return f"{timesince(value, now).split(',')[0]} ago"
+
     def _resolve_chat_ui_quota(self, user_id: str):
         """Return quota context when chat-ui user maps to a real auth user."""
         user_model = get_user_model()
@@ -1288,10 +1699,32 @@ class ChatUIView(View):
 
     def _handle_plan_update(self, request):
         """Allow chat-ui testers to switch plan for known usernames."""
-        user_id = (
-            request.POST.get("user_id", self._default_user_id(request)).strip()
-            or self._default_user_id(request)
-        )
+        user_id = self._chat_ui_authenticated_username(request)
+        if not user_id:
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": None,
+                    "error": (
+                        "Plan updates require login so quota changes apply "
+                        "only to your own account."
+                    ),
+                    "feedback_message": "",
+                    "user_id": self._default_user_id(request),
+                    "is_guest_chat": True,
+                    "mode": request.POST.get("mode", "simple"),
+                    "message": request.POST.get("message", ""),
+                    "selected_plan": request.POST.get("selected_plan", "free"),
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "conversation_messages": self._guest_conversation_messages(
+                        request,
+                    ),
+                    "conversations": [],
+                },
+            )
         selected_plan = request.POST.get("selected_plan", "free").strip()
         if selected_plan not in {
             UserSubscription.PLAN_FREE,
@@ -1411,6 +1844,10 @@ class ChatUIView(View):
         token, _ = Token.objects.get_or_create(user=user)
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
+        self._clear_guest_conversation(request)
+        # Hydrate sidebar history immediately after auth so the signed-in user
+        # sees their own saved chat list without needing to send a new message.
+        active_conversation = self._chat_ui_conversation(user.username)
         return render(
             request,
             self.template_name,
@@ -1421,6 +1858,7 @@ class ChatUIView(View):
                     f"Registered and logged in as {user.username}."
                 ),
                 "user_id": user.username,
+                "is_guest_chat": False,
                 "mode": "simple",
                 "message": "",
                 "starter_prompts": self._starter_prompts(),
@@ -1430,6 +1868,13 @@ class ChatUIView(View):
                     request,
                     user.username,
                 ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": self._conversation_messages(
+                    active_conversation,
+                ),
+                "conversations": self._conversation_list(user.username),
             },
         )
 
@@ -1461,6 +1906,10 @@ class ChatUIView(View):
         token, _ = Token.objects.get_or_create(user=user)
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
+        self._clear_guest_conversation(request)
+        # Show the user's existing threads right after login so account
+        # ownership feels obvious and they can reopen history immediately.
+        active_conversation = self._chat_ui_conversation(user.username)
         return render(
             request,
             self.template_name,
@@ -1469,6 +1918,7 @@ class ChatUIView(View):
                 "error": "",
                 "feedback_message": f"Logged in as {user.username}.",
                 "user_id": user.username,
+                "is_guest_chat": False,
                 "mode": "simple",
                 "message": "",
                 "starter_prompts": self._starter_prompts(),
@@ -1478,6 +1928,13 @@ class ChatUIView(View):
                     request,
                     user.username,
                 ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": self._conversation_messages(
+                    active_conversation,
+                ),
+                "conversations": self._conversation_list(user.username),
             },
         )
 
@@ -1488,6 +1945,7 @@ class ChatUIView(View):
             Token.objects.filter(key=token_key).delete()
         request.session.pop("chat_ui_auth_username", None)
         request.session.pop("chat_ui_auth_token", None)
+        self._clear_guest_conversation(request)
         return render(
             request,
             self.template_name,
@@ -1495,23 +1953,81 @@ class ChatUIView(View):
                 "response_data": None,
                 "error": "",
                 "feedback_message": "Logged out.",
-                "user_id": "demo-user",
+                "user_id": "guest",
+                "is_guest_chat": True,
                 "mode": "simple",
                 "message": "",
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
                 "follow_up_prompts": [],
-                "saved_reflections": self._saved_reflections_for_user(
-                    request,
-                    "demo-user",
-                ),
+                "saved_reflections": [],
+                "conversation_messages": [],
+                "conversations": [],
             },
         )
 
     @staticmethod
     def _default_user_id(request) -> str:
         """Resolve default chat-ui user from session fallback."""
-        return str(request.session.get("chat_ui_auth_username", "demo-user"))
+        return str(request.session.get("chat_ui_auth_username", "guest"))
+
+    @staticmethod
+    def _chat_ui_mode(value: str) -> str:
+        """Normalize chat-ui mode so sidebar selection is globally stable."""
+        return value if value in {"simple", "deep"} else "simple"
+
+    @staticmethod
+    def _chat_ui_authenticated_username(request) -> str:
+        """Return the logged-in chat-ui username, or blank for guest mode."""
+        return str(request.session.get("chat_ui_auth_username", "")).strip()
+
+    @staticmethod
+    def _guest_conversation_messages(request) -> list[dict]:
+        """Return the temporary guest transcript stored only in session."""
+        return list(request.session.get("chat_ui_guest_messages", []))
+
+    @staticmethod
+    def _guest_conversation_objects(request) -> list[SimpleNamespace]:
+        """Convert guest transcript dicts into prompt-friendly message objects."""
+        return [
+            SimpleNamespace(
+                role=item.get("role", ""),
+                content=item.get("content", ""),
+            )
+            for item in request.session.get("chat_ui_guest_messages", [])
+        ]
+
+    @staticmethod
+    def _append_guest_exchange(
+        request,
+        *,
+        user_message: str,
+        assistant_message: str,
+    ) -> None:
+        """Persist only a short-lived guest transcript in the browser session."""
+        guest_messages = list(request.session.get("chat_ui_guest_messages", []))
+        timestamp = timezone.now().isoformat()
+        guest_messages.extend(
+            [
+                {
+                    "role": Message.ROLE_USER,
+                    "content": user_message,
+                    "created_at": timestamp,
+                },
+                {
+                    "role": Message.ROLE_ASSISTANT,
+                    "content": assistant_message,
+                    "created_at": timestamp,
+                },
+            ]
+        )
+        request.session["chat_ui_guest_messages"] = guest_messages[-12:]
+        request.session.modified = True
+
+    @staticmethod
+    def _clear_guest_conversation(request) -> None:
+        """Drop the temporary guest transcript from the current session."""
+        request.session.pop("chat_ui_guest_messages", None)
 
     @staticmethod
     def _starter_prompts() -> list[str]:

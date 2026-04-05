@@ -70,7 +70,8 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - `GET|POST saved-reflections/`, `DELETE saved-reflections/<id>/`
 - `GET daily-verse/`, history under `history/me/`, `history/<user_id>/` (owner)
 - `POST eval/retrieval/` — retrieval trace / benchmark (no generation)
-- `GET|POST chat-ui/` — browser test UI (forms, CSRF, session-backed UX)
+- `GET|POST chat-ui/` — browser test UI (forms, CSRF, session-backed UX,
+  separate threads, and sidebar conversation selection)
 
 ---
 
@@ -86,6 +87,14 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - Prefer **additive** API changes for mobile clients; avoid breaking field renames without version bump.
 - **Safety:** Risky prompts are blocked before generation; events logged (`AskEvent` and related).
 - **Fallback:** Without `OPENAI_API_KEY` or on failure, app uses deterministic local guidance (`response_mode` reflects this).
+- **Conversation-aware guidance:** On the LLM path, the latest user message is
+  the primary task. Recent thread history is passed as supporting context only.
+- **Chat UI thread management:** Sidebar cards show compact metadata (title,
+  message count, updated time) and can delete a thread without affecting
+  unrelated saved reflections.
+- **Chat UI ownership model:** Signed-in users only see their own saved
+  threads. Logged-out chat uses a session-only guest transcript and does not
+  create `Conversation` rows or account-bound feedback/bookmarks.
 - **Retrieval:** Hybrid + semantic path; tuning via `eval_retrieval` and `data/retrieval_eval_cases.json`.
 - **Style:** Match existing code; keep lines PEP8-friendly (~79 chars) where the repo already does; run `make test` after non-trivial edits.
 
@@ -99,7 +108,7 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, engagement/streak/reminder **preferences** (storage only), chat-ui UX, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists.
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists.
 
 **Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today).
 

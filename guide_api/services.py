@@ -542,6 +542,22 @@ def _serialize_verses_for_prompt(verses: list[Verse]) -> str:
     return "\n".join(lines)
 
 
+def _serialize_conversation_context(conversation_messages) -> str:
+    """Serialize recent thread context for conversation-aware guidance."""
+    if not conversation_messages:
+        return ""
+
+    lines = []
+    for message in conversation_messages[-6:]:
+        role = getattr(message, "role", "")
+        content = getattr(message, "content", "")
+        if not content:
+            continue
+        speaker = "User" if role == "user" else "Guide"
+        lines.append(f"{speaker}: {content}")
+    return "\n".join(lines)
+
+
 def _extract_references(text: str) -> set[str]:
     """Extract chapter.verse references from free-form text."""
     return set(re.findall(r"\b\d{1,2}\.\d{1,3}\b", text))
@@ -576,26 +592,41 @@ def _is_grounded_response(
     return bool(all_refs) and all_refs.issubset(allowed_references)
 
 
-def build_guidance(message: str, verses: list[Verse]) -> GuidanceResult:
+def build_guidance(
+    message: str,
+    verses: list[Verse],
+    conversation_messages=None,
+) -> GuidanceResult:
     """Generate grounded guidance via OpenAI with strict fallback path."""
     if not settings.OPENAI_API_KEY:
         return _build_fallback_guidance(verses)
 
     allowed_refs = _verse_reference_set(verses)
     verses_context = _serialize_verses_for_prompt(verses)
+    conversation_context = _serialize_conversation_context(
+        conversation_messages,
+    )
     system_prompt = (
         "You are a Bhagavad Gita guidance assistant. Return valid JSON only "
         "with keys: "
         "guidance, meaning, actions, reflection, verse_references. "
         "Do not claim to be Krishna. Be calm and practical. "
         "Use only the provided verses and keep advice safe and "
-        "non-medical/non-legal."
+        "non-medical/non-legal. Always answer the user's latest message "
+        "as the primary task. Use conversation history only as supporting "
+        "context for continuity, not as the main question to answer."
     )
     user_prompt = (
         f"User problem:\n{message}\n\n"
+        f"Recent conversation context:\n{conversation_context or 'None'}\n\n"
         f"Available verse context:\n{verses_context}\n\n"
         "Requirements:\n"
-        "- first line must directly address the user's specific problem\n"
+        "- answer the latest user problem above, not the older history\n"
+        "- first line must directly address the user's latest specific problem\n"
+        "- when recent conversation context exists, use it only to better "
+        "understand the latest problem and maintain continuity\n"
+        "- do not drift back to older unresolved topics unless the latest "
+        "message clearly asks to revisit them\n"
         "- guidance: 2-4 sentences\n"
         "- meaning: 1-2 sentences\n"
         "- actions: array of 2-3 concrete actions\n"

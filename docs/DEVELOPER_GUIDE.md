@@ -77,7 +77,8 @@ Use this map to understand the exact call chain for each endpoint.
    - `Conversation` load/create for current authenticated user
    - store user `Message`
    - retrieve verses with `retrieve_verses_with_trace()`
-   - build response with `build_guidance()`
+   - build response with `build_guidance()` using the latest user message as
+     the primary task and recent thread history as supporting context
    - store assistant `Message`
 8. Increment daily usage counter
 9. Serialize verses with `VerseSerializer`
@@ -125,14 +126,30 @@ Use this map to understand the exact call chain for each endpoint.
 1. `guide_api/urls.py` -> `ChatUIView`
 2. `guide_api/views.py` -> `ChatUIView.get()/post()`
 3. `POST`:
-   - `action=ask` -> same core flow as API ask via `_run_guidance_flow()`
-     - for known usernames, applies same quota counters as API
-   - `action=plan` -> update plan (`free`/`pro`) for known usernames
+   - `action=ask`
+     - logged-in: same core flow as API ask via `_run_guidance_flow()`
+     - logged-out: uses session-only guest transcript via
+       `_run_guest_guidance_flow()` and does not persist `Conversation` rows
+   - `action=plan` -> update plan (`free`/`pro`) for signed-in user only
    - `action=feedback` -> `_handle_feedback()`
 4. Session-assisted UX supports:
+   - a sidebar `Today` card for daily-companion framing
    - starter prompts for first-time onboarding
+   - primary in-chat composer in the conversation column
+   - ask submits progressively update the transcript without a full reload
+   - temporary thinking bubble shown while the server response is loading
+   - latest structured assistant reply rendered inside the transcript bubble
    - follow-up prompt chips after answers
+   - progressive typing animation for the newest assistant reply in chat-ui
    - recent question shortcuts (max 3)
+   - guest chat that is temporary and not tagged to any user
+   - separate saved conversation threads with sidebar navigation for the
+     signed-in user only
+   - one sidebar mode selector shared across all conversation threads
+   - per-thread sidebar metadata (title, message count, updated time)
+   - thread deletion from the sidebar
+   - explicit `?new=1` reset for a fresh visible thread
+   - continued asks on a selected thread via `conversation_id`
 5. Renders server-side template for manual testing.
 
 ### `GET/POST /api/saved-reflections/` and `DELETE /api/saved-reflections/<id>/`
@@ -198,8 +215,19 @@ Key functions in `guide_api/services.py`:
    - `retrieve_verses()` (compat wrapper returning only verses)
 3. Guidance:
    - `build_guidance()` (LLM path + output validation)
+     - answers the latest user message as the primary query
+     - uses recent conversation history only as supporting context
    - `_build_fallback_guidance()` (deterministic fallback)
-4. Grounding validation:
+4. Chat UI thread helpers:
+   - `_chat_ui_authenticated_username()` is the source of truth for account
+     ownership in chat-ui
+   - `_guest_conversation_*()` stores a temporary transcript in session only
+   - `_chat_ui_conversation()` treats blank `conversation_id` as an
+     explicit request for a fresh thread
+   - `_conversation_list()` prepares compact sidebar cards
+   - `_handle_delete_conversation()` removes one thread while preserving
+     the rest of the chat-ui page state
+5. Grounding validation:
    - `_parse_json_payload()`
    - `_is_grounded_response()`
    - `_extract_references()`

@@ -99,7 +99,8 @@ Versioning:
 - `DELETE /api/saved-reflections/<reflection_id>/` (auth required)
 - `GET/POST /api/chat-ui/` (manual browser testing page)
   - includes starter prompts, structured response sections, follow-up chips,
-    and recent question shortcuts
+    recent question shortcuts, separate conversation threads, and a sidebar
+    conversation list
 - Admin analytics dashboard:
   - open `Ask events` in Django admin for asks/day, fallback rate, helpful
     rate, and quota block counters
@@ -112,6 +113,10 @@ Authentication:
 - `auth/plan` lets you switch `free`/`pro` for local quota testing.
 - list endpoints support `limit` and `offset` query params for pagination.
 - engagement profile powers mobile streak and reminder preferences.
+- chat-ui supports separate threads and selecting older conversations by
+  `conversation_id`
+- LLM guidance uses recent conversation history only as supporting context
+  and still answers the latest user message as the main query
 
 Auth smoke flow (requires server running):
 
@@ -307,9 +312,24 @@ Error shape (non-breaking, additive):
 - OpenAI-based response generation with fallback mode
 - Verse-grounding validation against retrieved references
 - UX pass v1 on `chat-ui`:
+  - sidebar `Today` card for daily spiritual framing
   - starter prompt onboarding
+  - latest structured answer rendered inside the conversation thread
+  - primary in-chat composer for direct back-and-forth messaging
+  - in-place chat updates and thinking animation while waiting for reply
   - structured rendering (guidance/meaning/actions/reflection/verses)
   - follow-up prompt chips and recent-question shortcuts
+  - progressive typing effect for the newest assistant reply
+- Threaded conversation pass on `chat-ui`:
+  - logged-out chat stays session-temporary and is not tagged to any user
+  - signed-in users only see and manage their own saved threads
+  - one sidebar mode selector controls the next message across all threads
+  - separate conversation threads with sidebar selection
+  - `Start New Conversation` resets the active visible thread
+  - sidebar cards show message counts and last-updated timestamps
+  - threads can be deleted directly from the sidebar
+  - recent thread history is sent to the LLM as supporting context for the
+    latest user message
 - Ask analytics event tracking + admin dashboard counters.
 - Saved reflections/bookmarks API (mobile-ready CRUD surface).
 - Contextual follow-up prompts API and analytics events.
