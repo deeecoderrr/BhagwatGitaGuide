@@ -1,0 +1,202 @@
+[
+  {
+    "prompt": "I feel anxious about my career and future growth.",
+    "expected_references": ["2.47", "3.19", "6.5"]
+  },
+  {
+    "prompt": "I keep overthinking my job performance every night.",
+    "expected_references": ["2.47", "6.26", "18.58"]
+  },
+  {
+    "prompt": "I am worried that I will fail and disappoint everyone.",
+    "expected_references": ["2.48", "2.50", "18.66"]
+  },
+  {
+    "prompt": "I feel stressed before every meeting at work.",
+    "expected_references": ["2.48", "6.35", "18.58"]
+  },
+  {
+    "prompt": "My mind keeps jumping between fear and hope.",
+    "expected_references": ["6.26", "6.35", "2.14"]
+  },
+  {
+    "prompt": "I am anxious and unable to sleep because of uncertainty.",
+    "expected_references": ["2.14", "2.48", "6.26"]
+  },
+  {
+    "prompt": "I cannot focus because I am always worrying about outcomes.",
+    "expected_references": ["2.47", "3.19", "6.12"]
+  },
+  {
+    "prompt": "I feel panic about whether my hard work will pay off.",
+    "expected_references": ["2.47", "2.48", "3.30"]
+  },
+  {
+    "prompt": "I am mentally restless and tired from constant worry.",
+    "expected_references": ["6.34", "6.35", "6.12"]
+  },
+  {
+    "prompt": "My fear of results is stopping me from taking action.",
+    "expected_references": ["2.47", "3.19", "18.58"]
+  },
+  {
+    "prompt": "I get angry quickly with my family members.",
+    "expected_references": ["2.63", "3.37", "16.21"]
+  },
+  {
+    "prompt": "I say hurtful words when frustrated and regret it later.",
+    "expected_references": ["2.63", "16.21", "6.26"]
+  },
+  {
+    "prompt": "I cannot control my rage in small situations.",
+    "expected_references": ["3.37", "2.63", "6.35"]
+  },
+  {
+    "prompt": "My anger is ruining my relationships at home.",
+    "expected_references": ["2.62", "2.63", "16.21"]
+  },
+  {
+    "prompt": "I become irritated whenever someone disagrees with me.",
+    "expected_references": ["2.63", "3.37", "18.58"]
+  },
+  {
+    "prompt": "I react first and think later when I am upset.",
+    "expected_references": ["2.63", "6.26", "6.35"]
+  },
+  {
+    "prompt": "I feel consumed by anger and cannot think clearly.",
+    "expected_references": ["2.63", "16.21", "6.34"]
+  },
+  {
+    "prompt": "My temper has become a habit and I want to change.",
+    "expected_references": ["3.37", "6.35", "18.58"]
+  },
+  {
+    "prompt": "I am frustrated and always blaming others.",
+    "expected_references": ["3.27", "3.30", "2.63"]
+  },
+  {
+    "prompt": "I feel anger when my expectations are not met.",
+    "expected_references": ["2.62", "2.63", "3.37"]
+  },
+  {
+    "prompt": "I feel lost and cannot find my life purpose.",
+    "expected_references": ["3.35", "18.66", "6.26"]
+  },
+  {
+    "prompt": "I do not know what path I should choose in life.",
+    "expected_references": ["3.35", "18.47", "18.66"]
+  },
+  {
+    "prompt": "I feel empty even after achieving goals.",
+    "expected_references": ["2.71", "12.13", "18.66"]
+  },
+  {
+    "prompt": "I am confused between what I want and what is right.",
+    "expected_references": ["3.35", "18.47", "2.50"]
+  },
+  {
+    "prompt": "I have directionless days and no meaning in my work.",
+    "expected_references": ["3.19", "3.35", "18.58"]
+  },
+  {
+    "prompt": "I keep asking what my duty truly is.",
+    "expected_references": ["2.31", "3.35", "18.47"]
+  },
+  {
+    "prompt": "I feel spiritually disconnected and uncertain.",
+    "expected_references": ["9.22", "18.66", "12.15"]
+  },
+  {
+    "prompt": "I feel hopeless and cannot see any meaningful direction.",
+    "expected_references": ["18.58", "18.66", "6.5"]
+  },
+  {
+    "prompt": "I am torn between comfort and responsibility.",
+    "expected_references": ["2.31", "3.19", "3.35"]
+  },
+  {
+    "prompt": "I want a purpose-driven life but feel stuck.",
+    "expected_references": ["3.19", "18.47", "18.58"]
+  },
+  {
+    "prompt": "I get distracted and cannot stay disciplined in my routine.",
+    "expected_references": ["6.35", "6.26", "18.58"]
+  },
+  {
+    "prompt": "I start habits but cannot maintain consistency.",
+    "expected_references": ["6.35", "6.12", "18.58"]
+  },
+  {
+    "prompt": "My mind wanders whenever I sit to focus.",
+    "expected_references": ["6.26", "6.34", "6.35"]
+  },
+  {
+    "prompt": "I procrastinate even on important tasks.",
+    "expected_references": ["3.19", "2.47", "6.5"]
+  },
+  {
+    "prompt": "I cannot build a steady routine for study and work.",
+    "expected_references": ["6.12", "6.35", "18.58"]
+  },
+  {
+    "prompt": "I feel lazy and delay everything until the last minute.",
+    "expected_references": ["3.8", "3.19", "6.5"]
+  },
+  {
+    "prompt": "I lose focus after a few minutes of effort.",
+    "expected_references": ["6.26", "6.12", "6.35"]
+  },
+  {
+    "prompt": "I need discipline but my impulses take over.",
+    "expected_references": ["3.37", "6.35", "18.58"]
+  },
+  {
+    "prompt": "I cannot control my senses and keep getting distracted.",
+    "expected_references": ["2.58", "2.60", "6.26"]
+  },
+  {
+    "prompt": "I want to become consistent and mentally stable.",
+    "expected_references": ["6.35", "6.12", "2.48"]
+  },
+  {
+    "prompt": "I compare myself with others and feel jealous.",
+    "expected_references": ["2.62", "2.63", "16.21"]
+  },
+  {
+    "prompt": "I feel hurt seeing my friends succeed faster than me.",
+    "expected_references": ["2.47", "2.48", "3.30"]
+  },
+  {
+    "prompt": "I keep chasing what others have and lose my peace.",
+    "expected_references": ["2.62", "2.71", "16.21"]
+  },
+  {
+    "prompt": "Social comparison makes me feel inferior every day.",
+    "expected_references": ["2.48", "12.15", "2.71"]
+  },
+  {
+    "prompt": "I am jealous of my colleague's promotion.",
+    "expected_references": ["3.30", "2.62", "2.47"]
+  },
+  {
+    "prompt": "I feel envy when others get appreciation.",
+    "expected_references": ["12.13", "12.15", "2.63"]
+  },
+  {
+    "prompt": "My self-worth depends on doing better than others.",
+    "expected_references": ["2.48", "2.50", "2.71"]
+  },
+  {
+    "prompt": "I cannot stop craving recognition and praise.",
+    "expected_references": ["2.47", "3.19", "16.21"]
+  },
+  {
+    "prompt": "Comparison is making me bitter and insecure.",
+    "expected_references": ["2.62", "2.63", "12.13"]
+  },
+  {
+    "prompt": "I am unhappy because I always measure myself against others.",
+    "expected_references": ["2.48", "2.71", "12.15"]
+  }
+]

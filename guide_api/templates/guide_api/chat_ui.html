@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bhagwat Gita Guide - Chat UI</title>
+  <style>
+    :root {
+      --bg-a: #0b1220;
+      --bg-b: #131e33;
+      --bg-c: #2a1747;
+      --surface: rgba(255, 255, 255, 0.08);
+      --surface-strong: rgba(255, 255, 255, 0.12);
+      --border: rgba(255, 255, 255, 0.16);
+      --text: #ecf2ff;
+      --muted: #bfd0ef;
+      --accent: #8b5cf6;
+      --accent-2: #22d3ee;
+      --danger-bg: rgba(255, 67, 101, 0.2);
+      --danger-border: rgba(255, 67, 101, 0.45);
+      --success-bg: rgba(45, 212, 191, 0.2);
+      --success-border: rgba(45, 212, 191, 0.45);
+      --shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, "Segoe UI", Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 10% 10%, #1b2f54 0%, transparent 35%),
+                  radial-gradient(circle at 90% 20%, #3a1d63 0%, transparent 30%),
+                  radial-gradient(circle at 30% 80%, #153e54 0%, transparent 30%),
+                  linear-gradient(130deg, var(--bg-a), var(--bg-b) 45%, var(--bg-c));
+      overflow-x: hidden;
+    }
+
+    .bg-orb {
+      position: fixed;
+      border-radius: 999px;
+      filter: blur(30px);
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+      animation: float 10s ease-in-out infinite;
+    }
+    .bg-orb.orb-1 { width: 280px; height: 280px; background: #5b4bff; top: -80px; right: -50px; }
+    .bg-orb.orb-2 { width: 240px; height: 240px; background: #0ea5e9; bottom: 80px; left: -60px; animation-delay: -2s; }
+    .bg-orb.orb-3 { width: 180px; height: 180px; background: #ec4899; top: 45%; right: 15%; animation-delay: -4s; }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(20px); }
+    }
+
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+
+    .hero {
+      border: 1px solid var(--border);
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(34, 211, 238, 0.14));
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      margin-bottom: 14px;
+    }
+    .hero h1 { margin: 0 0 10px; font-size: clamp(24px, 3vw, 34px); letter-spacing: 0.2px; }
+    .hero p { margin: 0; color: var(--muted); line-height: 1.5; max-width: 720px; }
+
+    .top-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: var(--surface);
+      backdrop-filter: blur(10px);
+    }
+    .top-nav a {
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .auth-pill {
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--muted);
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      padding: 16px;
+    }
+
+    .panel h2,
+    .panel h3 {
+      margin: 2px 0 12px;
+      font-size: 16px;
+      letter-spacing: 0.2px;
+    }
+
+    .hint { color: var(--muted); font-size: 14px; line-height: 1.45; margin-bottom: 12px; }
+
+    form { margin: 0; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(5, 10, 22, 0.35);
+      color: var(--text);
+      outline: none;
+      transition: border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: rgba(34, 211, 238, 0.9);
+      box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+    }
+
+    textarea { min-height: 110px; resize: vertical; line-height: 1.5; }
+
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      color: white;
+      background: linear-gradient(135deg, #7c3aed, #2563eb);
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    button:hover { transform: translateY(-1px); filter: brightness(1.05); }
+    button:active { transform: translateY(0); }
+
+    .btn-secondary { background: linear-gradient(135deg, #0ea5e9, #06b6d4); }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 10px 0 8px;
+    }
+
+    .chip-form { display: inline; }
+
+    .chip-btn {
+      margin: 0;
+      font-size: 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      padding: 8px 12px;
+    }
+
+    .stack { display: grid; gap: 12px; }
+
+    .message {
+      border-radius: 12px;
+      border: 1px solid transparent;
+      padding: 10px 12px;
+      font-size: 14px;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+    .message.error {
+      border-color: var(--danger-border);
+      background: var(--danger-bg);
+      color: #ffd4dc;
+    }
+    .message.success {
+      border-color: var(--success-border);
+      background: var(--success-bg);
+      color: #d6fff7;
+    }
+
+    .quota {
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    .section {
+      border: 1px solid var(--border);
+      background: rgba(8, 14, 28, 0.35);
+      border-radius: 12px;
+      padding: 14px;
+      line-height: 1.6;
+    }
+
+    .section h4 { margin: 0 0 8px; font-size: 14px; color: var(--muted); }
+
+    .verse-item {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+    }
+    .verse-item:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: 0; }
+
+    .muted { color: var(--muted); font-size: 13px; }
+
+    .mini-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .mini-list li { margin-bottom: 4px; }
+
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .loading button[type="submit"] {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    @media (max-width: 980px) {
+      .layout { grid-template-columns: 1fr; }
+      .split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <div>
+        <a href="/api/chat-ui/">Home</a>
+      </div>
+      <div class="auth-pill">
+        {% if request.session.chat_ui_auth_username %}
+          Signed in: {{ request.session.chat_ui_auth_username }}
+        {% else %}
+          Not signed in
+        {% endif %}
+      </div>
+    </nav>
+
+    <section class="hero">
+      <h1>Bhagwat Gita Guide</h1>
+      <p>
+        A modern preview of your production experience. Ask life questions, get grounded verse guidance,
+        save reflections, and continue with smart follow-ups.
+      </p>
+    </section>
+
+    {% if error %}
+      <div class="message error">{{ error }}</div>
+    {% endif %}
+    {% if feedback_message %}
+      <div class="message success">{{ feedback_message }}</div>
+    {% endif %}
+
+    <section class="layout">
+      <aside class="stack">
+        <div class="panel">
+          <h2>Account</h2>
+          {% if request.session.chat_ui_auth_username %}
+            <p class="hint">
+              Logged in as <strong>{{ request.session.chat_ui_auth_username }}</strong>.
+              Use this account for quota, saved reflections, and engagement.
+            </p>
+            <form method="post" class="quick-submit">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="logout">
+              <button type="submit" class="btn-ghost">Logout</button>
+            </form>
+          {% else %}
+            <div class="split">
+              <form method="post" class="quick-submit">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="register">
+                <label for="register_username">Register username</label>
+                <input id="register_username" name="register_username" placeholder="new username" />
+                <label for="register_password">Register password</label>
+                <input id="register_password" name="register_password" type="password" placeholder="min 8 chars" />
+                <button type="submit">Register</button>
+              </form>
+              <form method="post" class="quick-submit">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="login">
+                <label for="login_username">Login username</label>
+                <input id="login_username" name="login_username" placeholder="username" />
+                <label for="login_password">Login password</label>
+                <input id="login_password" name="login_password" type="password" placeholder="password" />
+                <button type="submit" class="btn-secondary">Login</button>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+
+        <div class="panel">
+          <h2>How this helps</h2>
+          <p class="hint">
+            This assistant gives spiritual guidance for daily life concerns and is not a replacement
+            for crisis, medical, or legal support.
+          </p>
+          <h3>Try a starter prompt</h3>
+          <div class="chips">
+            {% for prompt in starter_prompts %}
+              <form method="post" class="chip-form quick-submit">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="ask">
+                <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                <input type="hidden" name="message" value="{{ prompt }}">
+                <button type="submit" class="chip-btn">{{ prompt }}</button>
+              </form>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Ask</h2>
+          <form method="post" class="quick-submit">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ask">
+            <label for="user_id">User ID</label>
+            <input id="user_id" name="user_id" value="{{ user_id|default:'demo-user' }}" />
+
+            <label for="mode">Mode</label>
+            <select id="mode" name="mode">
+              <option value="simple" {% if mode == "simple" %}selected{% endif %}>Simple</option>
+              <option value="deep" {% if mode == "deep" %}selected{% endif %}>Deep</option>
+            </select>
+
+            <label for="message">Message</label>
+            <textarea id="message" name="message" rows="4" placeholder="Type your concern...">{{ message|default:'' }}</textarea>
+
+            <button type="submit">Ask for Guidance</button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h2>Plan and Quota</h2>
+          <form method="post" class="quick-submit">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="plan">
+            <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+            <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+            <input type="hidden" name="message" value="{{ message|default:'' }}">
+            <label for="selected_plan">Plan (chat-ui quota test)</label>
+            <select id="selected_plan" name="selected_plan">
+              <option value="free" {% if selected_plan == "free" %}selected{% endif %}>Free</option>
+              <option value="pro" {% if selected_plan == "pro" %}selected{% endif %}>Pro</option>
+            </select>
+            <button type="submit" class="btn-secondary">Update Plan</button>
+          </form>
+
+          {% if quota_snapshot %}
+            <div class="quota">
+              <strong>Quota snapshot</strong><br>
+              plan={{ quota_snapshot.plan }},
+              used={{ quota_snapshot.used_today }}/{{ quota_snapshot.daily_limit }},
+              remaining={{ quota_snapshot.remaining_today }}
+            </div>
+          {% endif %}
+        </div>
+
+        {% if recent_questions %}
+          <div class="panel">
+            <h2>Recent questions</h2>
+            <div class="chips">
+              {% for question in recent_questions %}
+                <form method="post" class="chip-form quick-submit">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="ask">
+                  <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                  <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                  <input type="hidden" name="message" value="{{ question }}">
+                  <button type="submit" class="chip-btn">{{ question }}</button>
+                </form>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if saved_reflections %}
+          <div class="panel">
+            <h2>Saved reflections</h2>
+            <ul class="mini-list">
+              {% for item in saved_reflections %}
+                <li>{{ item.message }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+      </aside>
+
+      <section class="stack">
+        {% if response_data %}
+          <div class="panel">
+            <h2>Guidance</h2>
+            <div class="section">{{ response_data.guidance }}</div>
+          </div>
+
+          <div class="split">
+            <div class="panel">
+              <h3>Meaning</h3>
+              <div class="section">{{ response_data.meaning }}</div>
+            </div>
+            <div class="panel">
+              <h3>Reflection</h3>
+              <div class="section">{{ response_data.reflection }}</div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Actions</h3>
+            <div class="section">
+              <ul>
+                {% for action in response_data.actions %}
+                  <li>{{ action }}</li>
+                {% empty %}
+                  <li>No action items returned.</li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h3>Verses Used</h3>
+            <div class="section">
+              {% for verse in response_data.verses %}
+                <div class="verse-item">
+                  <div><strong>{{ verse.reference }}</strong></div>
+                  <div>{{ verse.translation }}</div>
+                  {% if verse.themes %}
+                    <div class="muted">Themes: {{ verse.themes|join:", " }}</div>
+                  {% endif %}
+                </div>
+              {% empty %}
+                <div>No verses returned.</div>
+              {% endfor %}
+            </div>
+          </div>
+
+          {% if follow_up_prompts %}
+            <div class="panel">
+              <h3>Continue the conversation</h3>
+              <div class="chips">
+                {% for followup in follow_up_prompts %}
+                  <form method="post" class="chip-form quick-submit">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="ask">
+                    <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                    <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                    <input type="hidden" name="message" value="{{ followup.prompt }}">
+                    <input type="hidden" name="follow_up_intent" value="{{ followup.intent }}">
+                    <button type="submit" class="chip-btn">{{ followup.label }}</button>
+                  </form>
+                {% endfor %}
+              </div>
+            </div>
+          {% endif %}
+
+          <div class="split">
+            <div class="panel">
+              <h3>Was this helpful?</h3>
+              <form method="post" class="quick-submit">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="feedback">
+                <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                <input type="hidden" name="message" value="{{ message|default:'' }}">
+                <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
+                <input type="hidden" name="response_mode" value="{{ response_data.response_mode|default:'fallback' }}">
+                <label for="note">Optional note</label>
+                <input id="note" name="note" placeholder="What worked or what to improve?" />
+                <button type="submit" name="helpful" value="true" class="btn-secondary">Helpful</button>
+                <button type="submit" name="helpful" value="false" class="btn-ghost">Not Helpful</button>
+              </form>
+            </div>
+
+            <div class="panel">
+              <h3>Save this reflection</h3>
+              <form method="post" class="quick-submit">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="user_id" value="{{ user_id|default:'demo-user' }}">
+                <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                <input type="hidden" name="message" value="{{ message|default:'' }}">
+                <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
+                <input type="hidden" name="guidance" value="{{ response_data.guidance }}">
+                <input type="hidden" name="meaning" value="{{ response_data.meaning }}">
+                <input type="hidden" name="reflection" value="{{ response_data.reflection }}">
+                <input type="hidden" name="actions" value="{{ response_data.actions|join:'|' }}">
+                <input type="hidden" name="verse_references" value="{{ response_data.verse_references|join:'|' }}">
+                <label for="save-note">Optional bookmark note</label>
+                <input id="save-note" name="note" placeholder="Why did you save this?" />
+                <button type="submit">Save Reflection</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <div class="panel">
+            <h2>Guidance</h2>
+            <div class="section">
+              Ask your first question to see guidance, verses, actions, and reflection in a clean modern layout.
+            </div>
+          </div>
+        {% endif %}
+      </section>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const forms = document.querySelectorAll(".quick-submit");
+      forms.forEach((form) => {
+        form.addEventListener("submit", () => {
+          form.classList.add("loading");
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{% extends "admin/change_list.html" %}
+
+{% block content_title %}
+  {{ block.super }}
+  {% if analytics_summary %}
+    <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Asks Today</strong><br>
+        {{ analytics_summary.asks_today }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Asks (7d)</strong><br>
+        {{ analytics_summary.asks_7d }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Fallback Rate (7d)</strong><br>
+        {{ analytics_summary.fallback_rate_7d }}%
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Helpful Rate (7d)</strong><br>
+        {{ analytics_summary.helpful_rate_7d }}%
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Quota Blocks (7d)</strong><br>
+        {{ analytics_summary.quota_blocks_7d }}
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
