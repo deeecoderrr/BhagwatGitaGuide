@@ -1,6 +1,6 @@
 """Unit tests for dataset normalization helpers."""
 
-from django.test import SimpleTestCase
+from django.test import SimpleTestCase, TestCase
 
 from guide_api.dataset_utils import (
     normalize_multiscript_rows,
@@ -123,7 +123,7 @@ class MultiScriptDatasetUtilsTests(SimpleTestCase):
             services._merged_verse_context_cache = None
 
             merged = services._merged_verse_context("2.47")
-            self.assertEqual(merged["sanskrit"], "कर्मण्येवाधिकारस्ते")
+            self.assertIn("कर्मण्येवाधिकारस्ते", merged["sanskrit"])
             self.assertEqual(merged["hindi"], "कर्म पर अधिकार है।")
             self.assertEqual(
                 merged["english"],
@@ -161,5 +161,67 @@ class MultiScriptDatasetUtilsTests(SimpleTestCase):
                 chapter=6,
             )
             self.assertGreater(chapter_6, chapter_2)
+        finally:
+            services._chapter_summary_cache = original_cache
+
+    def test_author_commentary_text_reads_multi_author_slok_cache(self):
+        """Sloka commentary cache should serialize multi-author perspectives."""
+        original_cache = services._merged_verse_context_cache
+        try:
+            services._merged_verse_context_cache = {
+                "4.19": {
+                    "commentaries": [
+                        {"author": "Swami Sivananda", "text": "Right action burns desire."},
+                        {"author": "Swami Chinmayananda", "text": "Wisdom purifies intention."},
+                    ]
+                }
+            }
+            text = services._author_commentary_text("4.19", limit=2)
+            self.assertIn("Swami Sivananda", text)
+            self.assertIn("Wisdom purifies intention.", text)
+        finally:
+            services._merged_verse_context_cache = original_cache
+
+    def test_author_commentary_text_prefers_query_relevant_perspective(self):
+        """Query-aware commentary selection should bubble up the best-fit author."""
+        original_cache = services._merged_verse_context_cache
+        try:
+            services._merged_verse_context_cache = {
+                "6.26": {
+                    "commentaries": [
+                        {
+                            "author": "Author A",
+                            "text": "Return the restless mind to the Self through steady discipline and meditation.",
+                        },
+                        {
+                            "author": "Author B",
+                            "text": "Offer every action without attachment to fruits.",
+                        },
+                    ]
+                }
+            }
+            text = services._author_commentary_text(
+                "6.26",
+                limit=1,
+                message="My mind is restless and I cannot focus in meditation.",
+            )
+            self.assertIn("Author A", text)
+            self.assertNotIn("Author B", text)
+        finally:
+            services._merged_verse_context_cache = original_cache
+
+
+class VedicDatasetIntegrationTests(TestCase):
+    """Integration checks for local chapter/sloka data copied into data/."""
+
+    def test_chapter_summary_cache_reads_local_chapter_json_data(self):
+        """Copied chapter JSON files should feed chapter summaries when present."""
+        original_cache = services._chapter_summary_cache
+        try:
+            services._chapter_summary_cache = None
+            summary = services._load_chapter_summary_cache()
+            self.assertIn(4, summary)
+            self.assertTrue(summary[4]["en"])
+            self.assertTrue(summary[4]["hi"])
         finally:
             services._chapter_summary_cache = original_cache

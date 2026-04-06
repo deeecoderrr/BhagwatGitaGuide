@@ -121,6 +121,20 @@ Last updated: 2026-04-06
   - retrieval reranker now uses that chapter-level context to better route
     broad or abstract user questions toward the right chapter before final
     verse selection
+- Vedic multi-author commentary integration completed:
+  - local `data/slok/` verse JSON files now load as per-verse commentary
+    enrichment keyed by `chapter.verse`
+  - local `data/chapter/` JSON files now feed chapter summaries when present
+  - retrieval scoring, sparse matching, prompt serialization, and embedding
+    text now include compact multi-author commentary perspectives
+  - canonical verse selection remains verse-first; author commentary is used
+    as supporting context, not as a replacement source of truth
+- Query-aware author perspective selection completed:
+  - per-verse author commentary is now ranked against the user's actual query
+  - prompt context now prefers the most relevant commentator angles instead of
+    taking the first few available entries
+  - this improves the Krishna-to-Arjuna explanation layer while preserving the
+    same verse-grounded retrieval contract
 - Theme tagging command added:
   - `python manage.py tag_gita_themes`
   - supports `--dry-run` and `--overwrite`

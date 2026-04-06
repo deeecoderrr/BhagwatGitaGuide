@@ -24,6 +24,7 @@ _verse_quote_cache: dict[str, dict[str, str]] | None = None
 _verse_additional_angle_cache: dict[str, list[dict[str, str]]] | None = None
 _merged_verse_context_cache: dict[str, dict[str, object]] | None = None
 _chapter_summary_cache: dict[int, dict[str, object]] | None = None
+_vedic_slok_cache: dict[str, dict[str, object]] | None = None
 
 RISK_KEYWORDS = {
     "suicide",
@@ -524,11 +525,12 @@ def _local_query_verse_relevance(*, message: str, verse: Verse) -> int:
     ref = _verse_reference(verse)
     row = _merged_verse_context(ref)
     angle_text = _additional_angle_text(ref)
+    commentary_text = _author_commentary_text(ref, message=message)
     verse_text = (
         f"{verse.translation} {verse.commentary} {' '.join(verse.themes)} "
         f"{row.get('sanskrit', '')} {row.get('hindi', '')} "
         f"{row.get('english', '')} {row.get('word_meaning', '')} "
-        f"{angle_text}"
+        f"{angle_text} {commentary_text}"
     )
     verse_tokens = _tokenize(verse_text)
     token_overlap = len(query_tokens.intersection(verse_tokens))
@@ -623,6 +625,7 @@ def _sparse_lexical_score(*, message: str, verse: Verse) -> int:
     ref = _verse_reference(verse)
     row = _load_verse_quote_cache().get(ref, {})
     angle_text = _additional_angle_text(ref, limit=2)
+    commentary_text = _author_commentary_text(ref, limit=2, message=message)
     verse_text = " ".join(
         [
             verse.translation,
@@ -632,6 +635,7 @@ def _sparse_lexical_score(*, message: str, verse: Verse) -> int:
             row.get("hindi", ""),
             row.get("word_meaning", ""),
             angle_text,
+            commentary_text,
         ]
     )
     verse_tokens = _tokenize(verse_text)
@@ -1308,6 +1312,55 @@ def _load_additional_angle_cache() -> dict[str, list[dict[str, str]]]:
     return _verse_additional_angle_cache
 
 
+def _load_vedic_slok_cache() -> dict[str, dict[str, object]]:
+    """Load multi-author sloka commentary copied from the Vedic repo."""
+    global _vedic_slok_cache
+    if _vedic_slok_cache is not None:
+        return _vedic_slok_cache
+
+    _vedic_slok_cache = {}
+    slok_dir = Path(__file__).resolve().parents[1] / "data" / "slok"
+    if not slok_dir.exists():
+        return _vedic_slok_cache
+
+    commentary_fields = ("et", "ec", "ht", "hc", "sc")
+    try:
+        for path in sorted(slok_dir.glob("*.json")):
+            row = json.loads(path.read_text(encoding="utf-8"))
+            chapter = row.get("chapter")
+            verse = row.get("verse")
+            if not chapter or not verse:
+                continue
+            reference = f"{int(chapter)}.{int(verse)}"
+            commentaries: list[dict[str, str]] = []
+            for key, value in row.items():
+                if not isinstance(value, dict):
+                    continue
+                author = str(value.get("author", "")).strip()
+                parts = [
+                    str(value.get(field, "")).strip()
+                    for field in commentary_fields
+                ]
+                parts = [part for part in parts if part]
+                if not author or not parts:
+                    continue
+                commentaries.append(
+                    {
+                        "author": author,
+                        "text": " ".join(parts),
+                    }
+                )
+            _vedic_slok_cache[reference] = {
+                "speaker": str(row.get("speaker", "")).strip(),
+                "slok": str(row.get("slok", "")).strip(),
+                "transliteration": str(row.get("transliteration", "")).strip(),
+                "commentaries": commentaries,
+            }
+    except Exception as exc:
+        logger.warning("Vedic slok cache load failed: %s", exc)
+    return _vedic_slok_cache
+
+
 def _load_merged_verse_context_cache() -> dict[str, dict[str, object]]:
     """Merge canonical verse context and additional angles by reference."""
     global _merged_verse_context_cache
@@ -1316,22 +1369,32 @@ def _load_merged_verse_context_cache() -> dict[str, dict[str, object]]:
 
     quote_cache = _load_verse_quote_cache()
     additional_cache = _load_additional_angle_cache()
+    vedic_slok_cache = _load_vedic_slok_cache()
     merged: dict[str, dict[str, object]] = {}
 
-    references = set(quote_cache.keys()) | set(additional_cache.keys())
+    references = (
+        set(quote_cache.keys())
+        | set(additional_cache.keys())
+        | set(vedic_slok_cache.keys())
+    )
     for reference in references:
         quote_row = quote_cache.get(reference, {})
         angle_rows = additional_cache.get(reference, [])
+        vedic_row = vedic_slok_cache.get(reference, {})
 
         merged[reference] = {
-            "sanskrit": str(quote_row.get("sanskrit", "")).strip(),
+            "sanskrit": str(
+                quote_row.get("sanskrit", "") or vedic_row.get("slok", "")
+            ).strip(),
             "transliteration": str(
                 quote_row.get("transliteration", "")
+                or vedic_row.get("transliteration", "")
             ).strip(),
             "hindi": str(quote_row.get("hindi", "")).strip(),
             "english": str(quote_row.get("english", "")).strip(),
             "word_meaning": str(quote_row.get("word_meaning", "")).strip(),
             "angles": angle_rows,
+            "commentaries": list(vedic_row.get("commentaries", [])),
         }
 
         # Fill blanks from additional-angle source when canonical CSV does not
@@ -1372,6 +1435,43 @@ def _load_chapter_summary_cache() -> dict[int, dict[str, object]]:
     global _chapter_summary_cache
     if _chapter_summary_cache is not None:
         return _chapter_summary_cache
+
+    chapter_dir = Path(__file__).resolve().parents[1] / "data" / "chapter"
+    if chapter_dir.exists():
+        file_summaries: dict[int, dict[str, object]] = {}
+        try:
+            for path in sorted(chapter_dir.glob("*.json")):
+                row = json.loads(path.read_text(encoding="utf-8"))
+                chapter = row.get("chapter_number")
+                if not chapter:
+                    continue
+                meaning = row.get("meaning", {}) if isinstance(row.get("meaning"), dict) else {}
+                summary = row.get("summary", {}) if isinstance(row.get("summary"), dict) else {}
+                file_summaries[int(chapter)] = {
+                    "en": str(summary.get("en", "") or meaning.get("en", "")).strip(),
+                    "hi": str(summary.get("hi", "") or meaning.get("hi", "")).strip(),
+                }
+        except Exception as exc:
+            logger.warning("Chapter summary cache load failed: %s", exc)
+        if file_summaries:
+            ensure_seed_verses()
+            verses = list(Verse.objects.all().only("chapter", "verse", "themes"))
+            chapter_theme_counts: dict[int, dict[str, int]] = {}
+            for verse in verses:
+                counts = chapter_theme_counts.setdefault(verse.chapter, {})
+                for theme in verse.themes:
+                    counts[theme] = counts.get(theme, 0) + 1
+            for chapter, payload in file_summaries.items():
+                counts = chapter_theme_counts.get(chapter, {})
+                payload["themes"] = [
+                    theme
+                    for theme, _ in sorted(
+                        counts.items(),
+                        key=lambda item: (-item[1], item[0]),
+                    )[:4]
+                ]
+            _chapter_summary_cache = file_summaries
+            return _chapter_summary_cache
 
     ensure_seed_verses()
     verses = list(Verse.objects.all().only("chapter", "verse", "themes"))
@@ -1442,6 +1542,56 @@ def _chapter_summary_match_score(*, message: str, chapter: int) -> int:
         for theme in query_themes
     )
     return (theme_overlap * 5) + (token_overlap * 2) + (prior_overlap * 3)
+
+
+def _author_commentary_entries(reference: str) -> list[dict[str, str]]:
+    """Return normalized multi-author commentary rows for one reference."""
+    rows = _merged_verse_context(reference).get("commentaries", [])
+    return list(rows) if isinstance(rows, list) else []
+
+
+def _author_commentary_match_score(*, message: str, entry: dict[str, str]) -> int:
+    """Score one author perspective against the user's query."""
+    text = str(entry.get("text", "")).strip()
+    if not text:
+        return 0
+
+    query_tokens = _tokenize(message)
+    query_themes = infer_themes_from_text(message)
+    commentary_tokens = _tokenize(text)
+    commentary_themes = infer_themes_from_text(text)
+    token_overlap = len(query_tokens.intersection(commentary_tokens))
+    theme_overlap = len(query_themes.intersection(commentary_themes))
+    return (theme_overlap * 4) + (token_overlap * 2)
+
+
+def _author_commentary_text(
+    reference: str,
+    limit: int = 3,
+    *,
+    message: str = "",
+) -> str:
+    """Serialize the most query-relevant author commentary snippets."""
+    rows = _author_commentary_entries(reference)
+    if message:
+        rows = sorted(
+            rows,
+            key=lambda entry: (
+                -_author_commentary_match_score(
+                    message=message,
+                    entry=entry,
+                ),
+                str(entry.get("author", "")).lower(),
+            ),
+        )
+    rows = rows[:limit]
+    snippets = []
+    for row in rows:
+        author = str(row.get("author", "")).strip()
+        text = str(row.get("text", "")).strip()
+        if author and text:
+            snippets.append(f"{author}: {text}")
+    return " || ".join(snippets)
 
 
 def _additional_angle_text(reference: str, limit: int = 2) -> str:
@@ -1642,20 +1792,22 @@ def _verse_reference_set(verses: list[Verse]) -> set[str]:
     return {f"{verse.chapter}.{verse.verse}" for verse in verses}
 
 
-def _serialize_verses_for_prompt(verses: list[Verse]) -> str:
+def _serialize_verses_for_prompt(verses: list[Verse], *, message: str = "") -> str:
     """Serialize retrieved verses into compact prompt context text."""
     lines = []
     for verse in verses:
         ref = _verse_reference(verse)
         row = _merged_verse_context(ref)
         angle = _additional_angle_text(ref)
+        commentary = _author_commentary_text(ref, limit=2, message=message)
         lines.append(
             (
                 f"{verse.chapter}.{verse.verse}: {verse.translation} "
                 f"(themes: {', '.join(verse.themes)}) "
                 f"(hindi_meaning: {row.get('hindi', '')[:120]}) "
                 f"(word_meaning: {row.get('word_meaning', '')[:120]}) "
-                f"(additional_angles: {angle[:220]})"
+                f"(additional_angles: {angle[:220]}) "
+                f"(author_commentary: {commentary[:260]})"
             )
         )
     return "\n".join(lines)
@@ -1727,7 +1879,7 @@ def build_guidance(
         )
 
     allowed_refs = _verse_reference_set(verses)
-    verses_context = _serialize_verses_for_prompt(verses)
+    verses_context = _serialize_verses_for_prompt(verses, message=message)
     primary_verse = verses[0] if verses else None
     primary_reference = _verse_reference(primary_verse) if primary_verse else ""
     primary_chapter_context = _chapter_perspective(
@@ -1778,6 +1930,9 @@ def build_guidance(
         "translation in guidance or meaning\n"
         "- do not merely summarize the verse; interpret Krishna's intention "
         "for Arjuna and then bridge it to the user's dilemma\n"
+        "- if author commentary perspectives are present in the verse context, "
+        "use them only to better understand the verse, not to override the verse "
+        "itself or cite authors in place of Krishna's teaching\n"
         "- if the user asks a practical or emotional question, show how the "
         "battlefield teaching becomes a life principle for that modern context\n"
         "- for decision dilemmas (e.g., option A vs option B), give one clear "

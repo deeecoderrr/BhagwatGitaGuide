@@ -6,7 +6,11 @@ from django.core.management.base import BaseCommand, CommandError
 from openai import OpenAI
 
 from guide_api.models import Verse
-from guide_api.services import _additional_angle_text, _merged_verse_context
+from guide_api.services import (
+    _additional_angle_text,
+    _author_commentary_text,
+    _merged_verse_context,
+)
 
 
 def _embedding_text(verse: Verse) -> str:
@@ -15,6 +19,7 @@ def _embedding_text(verse: Verse) -> str:
     ref = f"{verse.chapter}.{verse.verse}"
     row = _merged_verse_context(ref)
     additional_angles = _additional_angle_text(ref, limit=3)
+    commentary_text = _author_commentary_text(ref, limit=3)
     return (
         f"Chapter {verse.chapter} Verse {verse.verse}\n"
         f"Sanskrit: {row.get('sanskrit', '')}\n"
@@ -23,6 +28,7 @@ def _embedding_text(verse: Verse) -> str:
         f"English Meaning: {row.get('english', '')}\n"
         f"Word Meaning: {row.get('word_meaning', '')}\n"
         f"Additional Angles: {additional_angles}\n"
+        f"Author Commentary Perspectives: {commentary_text}\n"
         f"Translation: {verse.translation}\n"
         f"Commentary: {verse.commentary}\n"
         f"Themes: {themes}"
