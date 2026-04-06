@@ -4,7 +4,7 @@ VENV_PIP := .venv/bin/pip
 API_BASE ?= http://127.0.0.1:8000/api
 CURL_OPTS := --connect-timeout 3 --max-time 15
 
-.PHONY: setup setup-lock install install-lock run migrate makemigrations test lock convert-gita-csv import-gita tag-gita-themes embed-gita-verses eval-retrieval auth-flow auth-flow-benchmark auth-flow-benchmark-summary clean
+.PHONY: setup setup-lock install install-lock run migrate makemigrations test lock convert-gita-csv ingest-gita-multiscript import-gita tag-gita-themes embed-gita-verses setup-pgvector-index sync-pgvector-embeddings eval-retrieval auth-flow auth-flow-benchmark auth-flow-benchmark-summary clean
 
 setup:
 	$(PYTHON) -m venv .venv
@@ -41,6 +41,10 @@ convert-gita-csv:
 	@if [ -z "$(INPUT)" ]; then echo "Usage: make convert-gita-csv INPUT=data/Bhagwad_Gita.csv"; exit 1; fi
 	$(VENV_PY) scripts/convert_kaggle_gita_csv.py --input "$(INPUT)" --output data/gita_700.json
 
+ingest-gita-multiscript:
+	@if [ -z "$(INPUT)" ]; then echo "Usage: make ingest-gita-multiscript INPUT=/path/bhagavad-gita.xlsx"; exit 1; fi
+	$(VENV_PY) manage.py ingest_gita_multiscript --input "$(INPUT)"
+
 import-gita:
 	@if [ -z "$(FILE)" ]; then echo "Usage: make import-gita FILE=data/gita_700.json"; exit 1; fi
 	$(VENV_PY) manage.py import_gita --file "$(FILE)"
@@ -50,6 +54,12 @@ tag-gita-themes:
 
 embed-gita-verses:
 	$(VENV_PY) manage.py embed_gita_verses
+
+setup-pgvector-index:
+	$(VENV_PY) manage.py setup_pgvector_index
+
+sync-pgvector-embeddings:
+	$(VENV_PY) manage.py sync_pgvector_embeddings
 
 eval-retrieval:
 	$(VENV_PY) manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode pipeline

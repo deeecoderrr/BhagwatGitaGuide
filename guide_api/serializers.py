@@ -31,6 +31,10 @@ class AskRequestSerializer(serializers.Serializer):
 
     user_id = serializers.CharField(max_length=64, required=False)
     message = serializers.CharField()
+    language = serializers.ChoiceField(
+        choices=["en", "hi"],
+        default="en",
+    )
     mode = serializers.ChoiceField(
         choices=["simple", "deep"],
         default="simple",
@@ -134,6 +138,10 @@ class FollowUpRequestSerializer(serializers.Serializer):
     """Validate contextual follow-up generation requests."""
 
     message = serializers.CharField()
+    language = serializers.ChoiceField(
+        choices=["en", "hi"],
+        default="en",
+    )
     mode = serializers.ChoiceField(
         choices=["simple", "deep"],
         default="simple",

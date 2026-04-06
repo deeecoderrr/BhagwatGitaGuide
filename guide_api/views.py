@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -56,6 +57,7 @@ def _run_guidance_flow(
     user_id: str,
     message: str,
     mode: str,
+    language: str = "en",
     conversation_id: int | None = None,
 ):
     """Run end-to-end ask pipeline and persist conversation messages."""
@@ -86,6 +88,7 @@ def _run_guidance_flow(
         message,
         verses,
         conversation_messages=conversation_messages,
+        language=language,
     )
 
     Message.objects.create(
@@ -144,37 +147,69 @@ def _build_contextual_follow_ups(
     *,
     message: str,
     mode: str,
+    language: str = "en",
     query_themes: list[str],
 ) -> list[dict]:
     """Build deterministic, mobile-friendly follow-up prompts."""
     primary_theme = query_themes[0] if query_themes else "life"
+    normalized_language = "hi" if language == "hi" else "en"
     label_prefix = primary_theme.replace("_", " ").title()
-    return [
-        {
-            "label": f"{label_prefix}: 3-step plan",
-            "prompt": (
-                "Give me a practical 3-step plan for the next 24 hours "
-                f"for this issue: {message}"
-            ),
-            "intent": "action_plan",
-        },
-        {
-            "label": f"{label_prefix}: deeper meaning",
-            "prompt": (
-                "Explain one key verse in simpler words and how I should "
-                "apply it today."
-            ),
-            "intent": "deeper_meaning",
-        },
-        {
-            "label": "Self-reflection",
-            "prompt": (
-                "Ask me one reflection question and one journaling prompt "
-                "based on this guidance."
-            ),
-            "intent": "self_reflection",
-        },
-    ][: 2 if mode == "simple" else 3]
+
+    if normalized_language == "hi":
+        prompts = [
+            {
+                "label": f"{label_prefix}: 3-स्टेप योजना",
+                "prompt": (
+                    "अगले 24 घंटों के लिए इस समस्या पर एक व्यावहारिक 3-स्टेप "
+                    f"योजना दीजिए: {message}"
+                ),
+                "intent": "action_plan",
+            },
+            {
+                "label": f"{label_prefix}: गहरा अर्थ",
+                "prompt": (
+                    "एक मुख्य श्लोक को सरल हिंदी में समझाइए और बताइए कि "
+                    "मैं इसे आज कैसे लागू करूं।"
+                ),
+                "intent": "deeper_meaning",
+            },
+            {
+                "label": "आत्म-चिंतन",
+                "prompt": (
+                    "इस मार्गदर्शन के आधार पर एक चिंतन प्रश्न और एक "
+                    "जर्नलिंग प्रॉम्प्ट पूछिए।"
+                ),
+                "intent": "self_reflection",
+            },
+        ]
+    else:
+        prompts = [
+            {
+                "label": f"{label_prefix}: 3-step plan",
+                "prompt": (
+                    "Give me a practical 3-step plan for the next 24 hours "
+                    f"for this issue: {message}"
+                ),
+                "intent": "action_plan",
+            },
+            {
+                "label": f"{label_prefix}: deeper meaning",
+                "prompt": (
+                    "Explain one key verse in simpler words and how I should "
+                    "apply it today."
+                ),
+                "intent": "deeper_meaning",
+            },
+            {
+                "label": "Self-reflection",
+                "prompt": (
+                    "Ask me one reflection question and one journaling prompt "
+                    "based on this guidance."
+                ),
+                "intent": "self_reflection",
+            },
+        ]
+    return prompts[: 2 if mode == "simple" else 3]
 
 
 def _log_follow_up_events(
@@ -502,6 +537,7 @@ class AskView(APIView):
             user_id=request.user.get_username(),
             message=data["message"],
             mode=data["mode"],
+            language=data["language"],
             conversation_id=data.get("conversation_id"),
         )
         usage.ask_count += 1
@@ -527,6 +563,7 @@ class AskView(APIView):
             "verse_references": [
                 f"{verse.chapter}.{verse.verse}" for verse in verses
             ],
+            "language": data["language"],
             "plan": subscription.plan,
             "daily_limit": daily_limit,
             "used_today": usage.ask_count,
@@ -536,6 +573,7 @@ class AskView(APIView):
         follow_ups = _build_contextual_follow_ups(
             message=data["message"],
             mode=data["mode"],
+            language=data["language"],
             query_themes=retrieval.query_themes,
         )
         response_data["follow_ups"] = follow_ups
@@ -574,6 +612,7 @@ class FollowUpGenerateView(APIView):
         follow_ups = _build_contextual_follow_ups(
             message=data["message"],
             mode=data["mode"],
+            language=data["language"],
             query_themes=retrieval.query_themes,
         )
         _log_follow_up_events(
@@ -586,6 +625,7 @@ class FollowUpGenerateView(APIView):
         return Response(
             {
                 "mode": data["mode"],
+                "language": data["language"],
                 "query_themes": retrieval.query_themes,
                 "follow_ups": follow_ups,
             }
@@ -883,6 +923,21 @@ class ChatUIView(View):
         default_user_id = self._default_user_id(request)
         start_fresh = request.GET.get("new", "").strip() == "1"
         mode = self._chat_ui_mode(request.GET.get("mode", "simple"))
+        language = self._chat_ui_language(request.GET.get("language", "en"))
+        if request.GET.get("fragment", "").strip() == "conversations":
+            if not authenticated_username:
+                return JsonResponse(
+                    {"items": [], "has_more": False, "next_offset": None},
+                )
+            limit = self._conversation_limit(request.GET.get("limit", "3"))
+            offset = self._conversation_offset(request.GET.get("offset", "0"))
+            return JsonResponse(
+                self._conversation_page(
+                    default_user_id,
+                    limit=limit,
+                    offset=offset,
+                ),
+            )
         active_conversation = None
         if authenticated_username and not start_fresh:
             active_conversation = self._chat_ui_conversation(
@@ -891,6 +946,11 @@ class ChatUIView(View):
             )
         if not authenticated_username and start_fresh:
             self._clear_guest_conversation(request)
+        conversation_page = (
+            self._conversation_page(default_user_id, limit=3, offset=0)
+            if authenticated_username
+            else {"items": [], "has_more": False, "next_offset": None}
+        )
         return render(
             request,
             self.template_name,
@@ -919,13 +979,14 @@ class ChatUIView(View):
                     else self._guest_conversation_messages(request)
                 ),
                 "conversations": (
-                    self._conversation_list(default_user_id)
-                    if authenticated_username
-                    else []
+                    conversation_page["items"]
                 ),
+                "conversations_has_more": conversation_page["has_more"],
+                "conversations_next_offset": conversation_page["next_offset"],
                 "user_id": default_user_id,
                 "is_guest_chat": not authenticated_username,
                 "mode": mode,
+                "language": language,
                 "message": "",
             },
         )
@@ -962,6 +1023,7 @@ class ChatUIView(View):
         )
         message = request.POST.get("message", "").strip()
         mode = request.POST.get("mode", "simple")
+        language = self._chat_ui_language(request.POST.get("language", "en"))
         follow_up_intent = request.POST.get("follow_up_intent", "").strip()
 
         if mode not in {"simple", "deep"}:
@@ -991,6 +1053,7 @@ class ChatUIView(View):
                     "user_id": user_id,
                     "is_guest_chat": not authenticated_username,
                     "mode": mode,
+                    "language": language,
                     "message": message,
                     "starter_prompts": starter_prompts,
                     "recent_questions": recent_questions,
@@ -1034,6 +1097,7 @@ class ChatUIView(View):
                     "user_id": user_id,
                     "is_guest_chat": not authenticated_username,
                     "mode": mode,
+                    "language": language,
                     "message": message,
                     "starter_prompts": starter_prompts,
                     "recent_questions": recent_questions,
@@ -1100,23 +1164,35 @@ class ChatUIView(View):
                 user_id=user_id,
                 message=message,
                 mode=mode,
+                language=language,
                 conversation_id=(
                     active_conversation.id if active_conversation else None
                 ),
             )
             conversation_messages = self._conversation_messages(conversation)
             active_conversation_id = conversation.id
-            conversations = self._conversation_list(user_id)
+            conversation_page = self._conversation_page(
+                user_id,
+                limit=3,
+                offset=0,
+            )
+            conversations = conversation_page["items"]
         else:
             verses, guidance, retrieval = self._run_guest_guidance_flow(
                 request,
                 message=message,
                 mode=mode,
+                language=language,
             )
             conversation = None
             conversation_messages = self._guest_conversation_messages(request)
             active_conversation_id = ""
             conversations = []
+            conversation_page = {
+                "items": [],
+                "has_more": False,
+                "next_offset": None,
+            }
         response_data = {
             "conversation_id": active_conversation_id,
             "guidance": guidance.guidance,
@@ -1127,10 +1203,12 @@ class ChatUIView(View):
             "verse_references": [
                 f"{verse.chapter}.{verse.verse}" for verse in verses
             ],
+            "language": language,
         }
         follow_ups = _build_contextual_follow_ups(
             message=message,
             mode=mode,
+            language=language,
             query_themes=retrieval.query_themes,
         )
         response_data["follow_ups"] = follow_ups
@@ -1199,9 +1277,12 @@ class ChatUIView(View):
                 "active_conversation_id": active_conversation_id,
                 "conversation_messages": conversation_messages,
                 "conversations": conversations,
+                "conversations_has_more": conversation_page["has_more"],
+                "conversations_next_offset": conversation_page["next_offset"],
                 "user_id": user_id,
                 "is_guest_chat": not authenticated_username,
                 "mode": mode,
+                "language": language,
                 "message": "",  # Clear the input after a successful ask
                 "selected_plan": (
                     response_data.get("plan")
@@ -1234,6 +1315,9 @@ class ChatUIView(View):
     def _handle_feedback(self, request):
         """Persist feedback submitted via manual chat UI."""
         user_id = self._chat_ui_authenticated_username(request)
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         if not user_id:
             return render(
                 request,
@@ -1248,6 +1332,7 @@ class ChatUIView(View):
                     "user_id": self._default_user_id(request),
                     "is_guest_chat": True,
                     "mode": request.POST.get("mode", "simple"),
+                    "language": current_language,
                     "message": request.POST.get("message", ""),
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1267,6 +1352,10 @@ class ChatUIView(View):
 
         helpful = helpful_value == "true"
         if helpful_value not in {"true", "false"}:
+            active_conversation = self._chat_ui_conversation(
+                user_id,
+                conversation_id,
+            )
             return render(
                 request,
                 self.template_name,
@@ -1276,7 +1365,22 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": user_id,
                     "mode": mode,
+                    "language": current_language,
                     "message": message,
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": [],
+                    "saved_reflections": self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    ),
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": self._conversation_messages(
+                        active_conversation,
+                    ),
+                    "conversations": self._conversation_list(user_id),
                 },
             )
 
@@ -1302,6 +1406,10 @@ class ChatUIView(View):
             note=note,
         )
 
+        active_conversation = self._chat_ui_conversation(
+            user_id,
+            conversation_id,
+        )
         return render(
             request,
             self.template_name,
@@ -1311,16 +1419,31 @@ class ChatUIView(View):
                 "feedback_message": "Thank you. Your feedback was saved.",
                 "user_id": user_id,
                 "mode": mode,
+                "language": current_language,
                 "message": message,
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
                 "follow_up_prompts": [],
+                "saved_reflections": self._saved_reflections_for_user(
+                    request,
+                    user_id,
+                ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": self._conversation_messages(
+                    active_conversation,
+                ),
+                "conversations": self._conversation_list(user_id),
             },
         )
 
     def _handle_save_reflection(self, request):
         """Save current response into bookmarks for existing usernames."""
         user_id = self._chat_ui_authenticated_username(request)
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         if not user_id:
             return render(
                 request,
@@ -1335,6 +1458,7 @@ class ChatUIView(View):
                     "user_id": self._default_user_id(request),
                     "is_guest_chat": True,
                     "mode": request.POST.get("mode", "simple"),
+                    "language": current_language,
                     "message": request.POST.get("message", ""),
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1361,6 +1485,7 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": user_id,
                     "mode": request.POST.get("mode", "simple"),
+                    "language": current_language,
                     "message": request.POST.get("message", ""),
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1397,6 +1522,10 @@ class ChatUIView(View):
             verse_references=verse_references,
             note=request.POST.get("note", "").strip(),
         )
+        active_conversation = self._chat_ui_conversation(
+            user_id,
+            conversation_id,
+        )
         return render(
             request,
             self.template_name,
@@ -1406,6 +1535,7 @@ class ChatUIView(View):
                 "feedback_message": "Reflection saved.",
                 "user_id": user_id,
                 "mode": request.POST.get("mode", "simple"),
+                "language": current_language,
                 "message": request.POST.get("message", ""),
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
@@ -1414,8 +1544,77 @@ class ChatUIView(View):
                     request,
                     user_id,
                 ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": self._conversation_messages(
+                    active_conversation,
+                ),
+                "conversations": self._conversation_list(user_id),
             },
         )
+
+    @staticmethod
+    def _conversation_limit(raw_value: str) -> int:
+        """Parse sidebar page size with a fixed, safe cap."""
+        try:
+            value = int(str(raw_value).strip())
+        except ValueError:
+            return 3
+        if value <= 0:
+            return 3
+        return min(value, 10)
+
+    @staticmethod
+    def _conversation_offset(raw_value: str) -> int:
+        """Parse sidebar offset for incremental loading."""
+        try:
+            value = int(str(raw_value).strip())
+        except ValueError:
+            return 0
+        return max(value, 0)
+
+    @staticmethod
+    def _conversation_page(user_id: str, *, limit: int, offset: int) -> dict:
+        """Return one conversation page for sidebar infinite scroll."""
+        queryset = (
+            Conversation.objects.filter(user_id=user_id)
+            .prefetch_related("messages")
+            .order_by("-updated_at")
+        )
+        total = queryset.count()
+        rows = list(queryset[offset:offset + limit])
+        items = []
+        for row in rows:
+            messages = list(row.messages.all())
+            title = ChatUIView._conversation_title(messages, row.id)
+            last_message = messages[-1].content.strip() if messages else ""
+            items.append(
+                {
+                    "id": row.id,
+                    "title": title,
+                    "preview": ChatUIView._truncate_text(
+                        last_message or "No messages yet.",
+                        84,
+                    ),
+                    "message_count": len(messages),
+                    "message_count_label": ChatUIView._message_count_label(
+                        len(messages),
+                    ),
+                    "updated_label": ChatUIView._relative_timestamp(
+                        row.updated_at,
+                    ),
+                    "updated_at_display": timezone.localtime(
+                        row.updated_at,
+                    ).strftime("%d %b %Y, %I:%M %p"),
+                }
+            )
+        has_more = (offset + limit) < total
+        return {
+            "items": items,
+            "has_more": has_more,
+            "next_offset": (offset + limit) if has_more else None,
+        }
 
     @staticmethod
     def _saved_reflections_for_user(request, user_id: str) -> list[dict]:
@@ -1468,40 +1667,21 @@ class ChatUIView(View):
 
     @staticmethod
     def _conversation_list(user_id: str) -> list[dict]:
-        """Return recent conversations for sidebar navigation."""
-        rows = (
-            Conversation.objects.filter(user_id=user_id)
-            .prefetch_related("messages")
-            .order_by("-updated_at")[:12]
-        )
-        items = []
-        for row in rows:
-            messages = list(row.messages.all())
-            title = ChatUIView._conversation_title(messages, row.id)
-            last_message = messages[-1].content.strip() if messages else ""
-            items.append(
-                {
-                    "id": row.id,
-                    "title": title,
-                    "preview": ChatUIView._truncate_text(
-                        last_message or "No messages yet.",
-                        84,
-                    ),
-                    "message_count": len(messages),
-                    "message_count_label": ChatUIView._message_count_label(
-                        len(messages),
-                    ),
-                    "updated_label": ChatUIView._relative_timestamp(
-                        row.updated_at,
-                    ),
-                    "updated_at_display": timezone.localtime(
-                        row.updated_at,
-                    ).strftime("%d %b %Y, %I:%M %p"),
-                }
-            )
-        return items
+        """Return first page of conversations for backward-compatible calls."""
+        return ChatUIView._conversation_page(
+            user_id,
+            limit=3,
+            offset=0,
+        )["items"]
 
-    def _run_guest_guidance_flow(self, request, *, message: str, mode: str):
+    def _run_guest_guidance_flow(
+        self,
+        request,
+        *,
+        message: str,
+        mode: str,
+        language: str = "en",
+    ):
         """Generate a guest-mode answer without persisting any DB history."""
         guest_messages = self._guest_conversation_objects(request)
         conversation_messages = guest_messages + [
@@ -1516,6 +1696,7 @@ class ChatUIView(View):
             message,
             verses,
             conversation_messages=conversation_messages,
+            language=language,
         )
         self._append_guest_exchange(
             request,
@@ -1527,6 +1708,9 @@ class ChatUIView(View):
     def _handle_delete_conversation(self, request):
         """Delete a sidebar thread without resetting the whole chat UI."""
         current_mode = self._chat_ui_mode(request.POST.get("mode", "simple"))
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         user_id = self._chat_ui_authenticated_username(request)
         if not user_id:
             return render(
@@ -1549,6 +1733,7 @@ class ChatUIView(View):
                     "user_id": self._default_user_id(request),
                     "is_guest_chat": True,
                     "mode": current_mode,
+                    "language": current_language,
                     "message": "",
                 },
             )
@@ -1581,6 +1766,7 @@ class ChatUIView(View):
                     "conversations": self._conversation_list(user_id),
                     "user_id": user_id,
                     "mode": current_mode,
+                    "language": current_language,
                     "message": "",
                 },
             )
@@ -1614,6 +1800,7 @@ class ChatUIView(View):
                     "conversations": self._conversation_list(user_id),
                     "user_id": user_id,
                     "mode": current_mode,
+                    "language": current_language,
                     "message": "",
                 },
             )
@@ -1650,6 +1837,7 @@ class ChatUIView(View):
                 "user_id": user_id,
                 "is_guest_chat": False,
                 "mode": current_mode,
+                "language": current_language,
                 "message": "",
             },
         )
@@ -1700,6 +1888,9 @@ class ChatUIView(View):
     def _handle_plan_update(self, request):
         """Allow chat-ui testers to switch plan for known usernames."""
         user_id = self._chat_ui_authenticated_username(request)
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         if not user_id:
             return render(
                 request,
@@ -1714,6 +1905,7 @@ class ChatUIView(View):
                     "user_id": self._default_user_id(request),
                     "is_guest_chat": True,
                     "mode": request.POST.get("mode", "simple"),
+                    "language": current_language,
                     "message": request.POST.get("message", ""),
                     "selected_plan": request.POST.get("selected_plan", "free"),
                     "starter_prompts": self._starter_prompts(),
@@ -1733,6 +1925,7 @@ class ChatUIView(View):
             selected_plan = UserSubscription.PLAN_FREE
         quota = self._resolve_chat_ui_quota(user_id)
         if quota is None:
+            active_conversation = self._chat_ui_conversation(user_id)
             return render(
                 request,
                 self.template_name,
@@ -1745,11 +1938,23 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": user_id,
                     "mode": request.POST.get("mode", "simple"),
+                    "language": current_language,
                     "message": request.POST.get("message", ""),
                     "selected_plan": selected_plan,
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
                     "follow_up_prompts": [],
+                    "saved_reflections": self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    ),
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": self._conversation_messages(
+                        active_conversation,
+                    ),
+                    "conversations": self._conversation_list(user_id),
                 },
             )
 
@@ -1757,6 +1962,7 @@ class ChatUIView(View):
         subscription.plan = selected_plan
         subscription.save(update_fields=["plan", "updated_at"])
         refreshed = self._resolve_chat_ui_quota(user_id)
+        active_conversation = self._chat_ui_conversation(user_id)
         return render(
             request,
             self.template_name,
@@ -1766,6 +1972,7 @@ class ChatUIView(View):
                 "feedback_message": f"Plan updated to {selected_plan}.",
                 "user_id": user_id,
                 "mode": request.POST.get("mode", "simple"),
+                "language": current_language,
                 "message": request.POST.get("message", ""),
                 "selected_plan": selected_plan,
                 "quota_snapshot": {
@@ -1781,6 +1988,17 @@ class ChatUIView(View):
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
                 "follow_up_prompts": [],
+                "saved_reflections": self._saved_reflections_for_user(
+                    request,
+                    user_id,
+                ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": self._conversation_messages(
+                    active_conversation,
+                ),
+                "conversations": self._conversation_list(user_id),
             },
         )
 
@@ -1788,6 +2006,9 @@ class ChatUIView(View):
         """Register user from chat-ui panel and persist session token."""
         username = str(request.POST.get("register_username", "")).strip()
         password = str(request.POST.get("register_password", "")).strip()
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         if not username or not password:
             return render(
                 request,
@@ -1798,6 +2019,7 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": self._default_user_id(request),
                     "mode": "simple",
+                    "language": current_language,
                     "message": "",
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1814,6 +2036,7 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": self._default_user_id(request),
                     "mode": "simple",
+                    "language": current_language,
                     "message": "",
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1831,6 +2054,7 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": self._default_user_id(request),
                     "mode": "simple",
+                    "language": current_language,
                     "message": "",
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1860,6 +2084,7 @@ class ChatUIView(View):
                 "user_id": user.username,
                 "is_guest_chat": False,
                 "mode": "simple",
+                "language": current_language,
                 "message": "",
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
@@ -1882,6 +2107,9 @@ class ChatUIView(View):
         """Authenticate user from chat-ui and persist auth session values."""
         username = str(request.POST.get("login_username", "")).strip()
         password = str(request.POST.get("login_password", "")).strip()
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         user = authenticate(
             request=request,
             username=username,
@@ -1897,6 +2125,7 @@ class ChatUIView(View):
                     "feedback_message": "",
                     "user_id": self._default_user_id(request),
                     "mode": "simple",
+                    "language": current_language,
                     "message": "",
                     "starter_prompts": self._starter_prompts(),
                     "recent_questions": self._recent_questions(request),
@@ -1920,6 +2149,7 @@ class ChatUIView(View):
                 "user_id": user.username,
                 "is_guest_chat": False,
                 "mode": "simple",
+                "language": current_language,
                 "message": "",
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
@@ -1940,6 +2170,9 @@ class ChatUIView(View):
 
     def _handle_logout(self, request):
         """Logout chat-ui user by clearing stored session token."""
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
         token_key = request.session.get("chat_ui_auth_token")
         if token_key:
             Token.objects.filter(key=token_key).delete()
@@ -1956,6 +2189,7 @@ class ChatUIView(View):
                 "user_id": "guest",
                 "is_guest_chat": True,
                 "mode": "simple",
+                "language": current_language,
                 "message": "",
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
@@ -1975,6 +2209,11 @@ class ChatUIView(View):
     def _chat_ui_mode(value: str) -> str:
         """Normalize chat-ui mode so sidebar selection is globally stable."""
         return value if value in {"simple", "deep"} else "simple"
+
+    @staticmethod
+    def _chat_ui_language(value: str) -> str:
+        """Normalize chat-ui language selector to supported values."""
+        return value if value in {"en", "hi"} else "en"
 
     @staticmethod
     def _chat_ui_authenticated_username(request) -> str:

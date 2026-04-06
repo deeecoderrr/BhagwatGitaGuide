@@ -1,6 +1,6 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-04
+Last updated: 2026-04-06
 
 ## Completed
 
@@ -54,6 +54,73 @@ Last updated: 2026-04-04
 - Kaggle integration prep added:
   - CSV conversion script: `scripts/convert_kaggle_gita_csv.py`
   - Makefile shortcut: `make convert-gita-csv INPUT=data/Bhagwad_Gita.csv`
+- Kaggle multi-script ingestion upgrade completed:
+  - new command: `python manage.py ingest_gita_multiscript --input ...`
+  - supports both CSV and XLSX source files (XLSX via `openpyxl`)
+  - normalizes and deduplicates by `chapter.verse`
+  - merges additive source rows into `data/gita_additional_angles.json`
+  - keeps canonical `data/Bhagwad_Gita.csv` and `data/gita_700.json` intact
+    by default
+  - optional canonical refresh still available via `--update-canonical`
+- Retrieval embeddings refreshed after additive-angle ingestion:
+  - `python manage.py embed_gita_verses --overwrite --batch-size 50`
+  - completed for all 701 verses using `text-embedding-3-small`
+- Retrieval tuning pass after additive-angle ingestion:
+  - added deterministic semantic-vs-hybrid local strength selection
+  - tightened confidence gate to avoid weak semantic matches
+  - expanded curated priors for anger/comparison/discipline verses
+  - eval improved from `0.74` to `0.80` hit rate on 50-case pipeline set
+- Multilingual retrieval-eval expansion completed:
+  - added `data/retrieval_eval_cases_user_mix.json` (30 mixed Hindi,
+    Hinglish, and English prompts)
+  - expanded theme keywords for multilingual phrasing in retrieval detector
+  - new mixed set benchmark: `0.8333` hit rate (`25/30`)
+  - baseline 50-case pipeline set remained stable at `0.80`
+- Dual-corpus retrieval experiment completed (safe fallback):
+  - implemented additive-angle candidate retrieval + deterministic rerank helper
+  - benchmarked impact on both eval sets
+  - left dual-rerank disabled in runtime path after observing mixed
+    trade-offs, preserving current best profile (`0.80` baseline, `0.8333`
+    mixed set)
+- pgvector migration phase-1 scaffolding completed (non-breaking):
+  - added PostgreSQL `DATABASE_URL` parsing in settings (SQLite remains default)
+  - added guarded runtime semantic path for pgvector when enabled
+    (`ENABLE_PGVECTOR_RETRIEVAL=true`)
+  - added management commands:
+    - `setup_pgvector_index` (extension/table/ivfflat index)
+    - `sync_pgvector_embeddings` (Verse JSON embeddings -> pgvector table)
+  - embedding job can optionally chain sync via `embed_gita_verses --sync-pgvector`
+- Retrieval reranker pass completed:
+  - widened semantic/hybrid candidate pool before final selection
+  - added deterministic user-context reranker for action/decision and
+    emotional/reactivity queries
+  - baseline pipeline set remained at `0.82` (`41/50`)
+  - mixed real-user set improved to `0.8667` (`26/30`)
+- Sparse lexical fusion pass completed:
+  - added lightweight exact-token sparse retriever and fused it into the
+    final candidate merge stage
+  - preserved baseline pipeline performance at `0.80` on the 50-case set
+  - preserved mixed real-user performance at `0.8667` (`26/30`)
+- Guidance-generation prompt refinement completed:
+  - strengthened LLM prompt to explicitly explain:
+    - what Krishna was addressing in Arjuna
+    - the timeless principle of the verse
+    - how that principle applies to the user's modern situation
+  - improved fallback wording to mirror the same Krishna-to-Arjuna-to-user
+    bridge structure
+- Merged verse-context runtime layer completed:
+  - merged `gita_700.json`-backed canonical verse data and
+    `gita_additional_angles.json` additive data by `chapter.verse`
+  - runtime retrieval/prompt/quote/embedding context now reads from the
+    merged per-reference view instead of treating them as separate sources
+  - re-embedded all 701 verses after the merge-layer update
+- Derived chapter-summary retrieval boost completed:
+  - no separate chapter-summary JSON file required
+  - chapter summaries are derived in-memory from existing chapter-perspective
+    text plus per-chapter verse theme distribution
+  - retrieval reranker now uses that chapter-level context to better route
+    broad or abstract user questions toward the right chapter before final
+    verse selection
 - Theme tagging command added:
   - `python manage.py tag_gita_themes`
   - supports `--dry-run` and `--overwrite`
@@ -146,6 +213,47 @@ Last updated: 2026-04-04
     the active one
   - LLM prompt now uses recent thread history as supporting context while
     still answering the latest user message as the primary query
+- Frontend motion and visual polish pass completed for `chat-ui`:
+  - upgraded typography with display/body font pairing for stronger hierarchy
+  - integrated `Animate.css` for lightweight hero entrance effects
+  - integrated `AOS` for scroll-triggered panel reveals
+  - integrated `GSAP` for subtle page and list choreography
+  - integrated `VanillaTilt` on highlight/sidebar cards as progressive enhancement
+  - kept chat live-submit behavior and typing/thinking interactions intact
+- Multi-language support v1 completed (`en`, `hi`):
+  - `POST /api/ask/` accepts `language` and returns it in response payload
+  - `POST /api/follow-ups/` accepts `language` for localized prompt labels
+  - chat-ui now has a global language selector shared across conversations
+  - guidance generation + deterministic fallback support Hindi output
+  - tests added for Hindi API ask and chat-ui language persistence
+- Multi-language UX stabilization completed:
+  - language switch now updates chat-ui in place without full-page reload
+  - conversation sidebar state now remains visible on language changes
+  - primary chat-ui labels/buttons/headings now localize for Hindi mode
+- Hindi UI localization sweep completed:
+  - translated remaining chat-ui microtexts (helper copy, form labels,
+    placeholders, empty states, and guest/help panels)
+  - localized live-chat client fallback error message for Hindi mode
+- Conversation sidebar paging UX completed:
+  - sidebar now renders first 3 recent conversations initially
+  - conversation list has its own scroll container to avoid page overgrowth
+  - older conversations now load incrementally on sidebar scroll
+- Divine experience pass completed:
+  - upgraded guidance tone to be calmer, devotional, and guru-like
+  - improved fallback guidance wording for spiritually grounding responses
+  - replaced text-only waiting state with a Sudarshan-Chakra style loader
+  - added heaven-like visual polish (stardust + golden shimmer accents)
+- Relevance gate + cost-safe retrieval hardening completed:
+  - added deterministic relevance confidence check before guidance generation
+  - when retrieval confidence is low, switched to local curated verse fallback
+    (no runtime web search and no extra LLM calls)
+  - introduced `retrieval_mode=curated_fallback` for weak-match recoveries
+- Multilingual corpus utilization enhancement completed:
+  - retrieval relevance scoring now incorporates Sanskrit/Hindi/English and
+    word-meaning metadata from local `Bhagwad_Gita.csv`
+  - prompt context now includes compact Hindi/word-meaning angle snippets
+  - embedding input now includes Sanskrit, transliteration, Hindi meaning,
+    English meaning, and word meanings for stronger multilingual recall
 - Admin analytics dashboard v1 completed:
   - new `AskEvent` telemetry model for ask attempts/outcomes
   - events logged from `/api/ask/` and `chat-ui` ask path

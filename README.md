@@ -49,9 +49,12 @@ make run          # start Django server
 make test         # run test suite
 make lock         # refresh requirements.lock.txt from current venv
 make convert-gita-csv INPUT=data/Bhagwad_Gita.csv  # convert Kaggle CSV to JSON
+make ingest-gita-multiscript INPUT=/path/bhagavad-gita.xlsx  # add supplemental angles from multi-script CSV/XLSX
 make import-gita FILE=data/gita_700.json  # import full verse dataset
 make tag-gita-themes  # auto-tag themes using verse text
 make embed-gita-verses  # generate OpenAI embeddings for semantic retrieval
+make setup-pgvector-index  # create pgvector extension/table/index (PostgreSQL)
+make sync-pgvector-embeddings  # sync Verse.embedding -> pgvector table
 make eval-retrieval  # run retrieval eval on labeled prompts
 make auth-flow USERNAME=demo-user PASSWORD=demo-pass-123  # auth + ask + history smoke flow
 make auth-flow-benchmark USERNAME=demo-user PASSWORD=demo-pass-123  # auth + retrieval benchmark + ask
@@ -71,6 +74,12 @@ cp .env.example .env
 Quota variables:
 - `ASK_LIMIT_FREE_DAILY` default `10`
 - `ASK_LIMIT_PRO_DAILY` default `1000`
+
+pgvector phase-1 variables (optional):
+- `ENABLE_PGVECTOR_RETRIEVAL` default `false`
+- `PGVECTOR_TABLE` default `guide_api_verse_embedding_index`
+- `PGVECTOR_EMBEDDING_DIM` default `1536`
+- `PGVECTOR_PROBES` default `10`
 
 ## API Endpoints
 
@@ -101,6 +110,8 @@ Versioning:
   - includes starter prompts, structured response sections, follow-up chips,
     recent question shortcuts, separate conversation threads, and a sidebar
     conversation list
+  - includes progressive animation effects via `Animate.css`, `AOS`, `GSAP`,
+    and `VanillaTilt` layered on top of existing live-chat behavior
 - Admin analytics dashboard:
   - open `Ask events` in Django admin for asks/day, fallback rate, helpful
     rate, and quota block counters
@@ -109,6 +120,8 @@ Authentication:
 - Uses Django/DRF authentication (session or basic auth).
 - Also supports token auth via `Authorization: Token <token>`.
 - `ask`, `history`, and `feedback` endpoints are tied to authenticated user.
+- `ask` and `follow-ups` accept `language` (`en` or `hi`) and default to
+  `en` when omitted.
 - `ask` applies plan quota checks and returns `429` when daily limit is reached.
 - `auth/plan` lets you switch `free`/`pro` for local quota testing.
 - list endpoints support `limit` and `offset` query params for pagination.
@@ -167,6 +180,30 @@ python manage.py import_gita --file data/gita_700.json --dry-run
 python manage.py import_gita --file data/gita_700.json
 ```
 
+### Kaggle Multi-Script CSV/XLSX Ingestion
+
+If you downloaded the Kaggle multi-script bundle (CSV or XLSX), run:
+
+```bash
+python manage.py ingest_gita_multiscript \
+  --input "/Users/deecoderr/Downloads/archive (1)/bhagavad-gita.xlsx"
+```
+
+What this does in one step:
+- normalizes columns and deduplicates by `chapter.verse`
+- merges data into `data/gita_additional_angles.json` (additive source cache)
+- keeps existing canonical files untouched by default (`Bhagwad_Gita.csv`, `gita_700.json`)
+
+If you explicitly want to refresh canonical files as well:
+
+```bash
+python manage.py ingest_gita_multiscript \
+  --input "/Users/deecoderr/Downloads/archive (1)/bhagavad-gita.xlsx" \
+  --update-canonical \
+  --import-db \
+  --overwrite
+```
+
 After import, auto-tag themes for better retrieval:
 
 ```bash
@@ -186,16 +223,46 @@ Optional flags:
 python manage.py embed_gita_verses --limit 100
 python manage.py embed_gita_verses --overwrite
 python manage.py embed_gita_verses --batch-size 25
+python manage.py embed_gita_verses --sync-pgvector
+```
+
+### PostgreSQL + pgvector (Phase 1, safe rollout)
+
+Current app still works fully on SQLite. pgvector path is optional and only
+activates when:
+- database backend is PostgreSQL
+- `ENABLE_PGVECTOR_RETRIEVAL=true`
+- pgvector index table is set up and synced
+
+Setup steps:
+
+```bash
+# 1) point app to PostgreSQL
+export DATABASE_URL="postgresql://user:pass@host:5432/dbname"
+
+# 2) create extension + index table
+python manage.py setup_pgvector_index
+
+# 3) ensure Verse.embedding is populated
+python manage.py embed_gita_verses --overwrite
+
+# 4) sync embeddings to pgvector table
+python manage.py sync_pgvector_embeddings
+
+# 5) enable runtime pgvector retrieval
+export ENABLE_PGVECTOR_RETRIEVAL=true
 ```
 
 Run retrieval quality evaluation:
 
 ```bash
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode pipeline
+python manage.py eval_retrieval --file data/retrieval_eval_cases_user_mix.json --mode pipeline
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode hybrid
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode semantic
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode pipeline --strict
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode hybrid --report-misses
+python manage.py eval_retrieval --file data/retrieval_eval_cases_user_mix.json --mode pipeline --report-misses
 ```
 
 ### `POST /api/ask/` sample body
@@ -203,7 +270,8 @@ python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode hyb
 ```json
 {
   "message": "I feel anxious about my career growth.",
-  "mode": "simple"
+  "mode": "simple",
+  "language": "en"
 }
 ```
 
@@ -235,7 +303,8 @@ python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode hyb
 ```json
 {
   "message": "I feel anxious about my career growth.",
-  "mode": "simple"
+  "mode": "simple",
+  "language": "en"
 }
 ```
 
@@ -290,6 +359,9 @@ In `benchmark` mode, response includes side-by-side traces:
   "query_themes": ["anxiety", "career"]
 }
 ```
+
+`retrieval_mode` may also be `curated_fallback` when deterministic
+confidence checks detect weak initial verse relevance.
 
 Error shape (non-breaking, additive):
 

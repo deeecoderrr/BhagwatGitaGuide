@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -36,6 +37,9 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     "testserver",
+    ".ngrok-free.app",  # Allow ngrok tunnels for local testing
+    ".ngrok.io",
+    ".trycloudflare.com",  # Allow cloudflared tunnels for local testing
 ]
 extra_hosts = os.getenv("ALLOWED_HOSTS", "")
 if extra_hosts:
@@ -44,6 +48,13 @@ if extra_hosts:
     )
 
 CSRF_TRUSTED_ORIGINS = []
+# Allow ngrok origins in debug mode for local internet-accessible testing
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend([
+        "https://*.ngrok-free.app",
+        "https://*.ngrok.io",
+        "https://*.trycloudflare.com",
+    ])
 extra_csrf_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 if extra_csrf_origins:
     CSRF_TRUSTED_ORIGINS.extend(
@@ -103,12 +114,31 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+def _postgres_db_from_url(url: str) -> dict:
+    """Parse DATABASE_URL postgres DSN into Django DATABASES shape."""
+    parsed = urlparse(url)
+    return {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote((parsed.path or "").lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "localhost",
+        "PORT": str(parsed.port or "5432"),
     }
-}
+
+
+database_url = os.getenv("DATABASE_URL", "").strip()
+if database_url.startswith(("postgres://", "postgresql://")):
+    DATABASES = {
+        "default": _postgres_db_from_url(database_url),
+    }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -174,6 +204,20 @@ ENABLE_SEMANTIC_RETRIEVAL = os.getenv(
     "ENABLE_SEMANTIC_RETRIEVAL",
     "true",
 ).lower() == "true"
+ENABLE_PGVECTOR_RETRIEVAL = os.getenv(
+    "ENABLE_PGVECTOR_RETRIEVAL",
+    "false",
+).lower() == "true"
+PGVECTOR_TABLE = os.getenv(
+    "PGVECTOR_TABLE",
+    "guide_api_verse_embedding_index",
+)
+PGVECTOR_EMBEDDING_DIM = int(
+    os.getenv("PGVECTOR_EMBEDDING_DIM", "1536"),
+)
+PGVECTOR_PROBES = int(
+    os.getenv("PGVECTOR_PROBES", "10"),
+)
 ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "10"))
 ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "1000"))
 

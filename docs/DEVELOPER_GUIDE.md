@@ -70,6 +70,7 @@ Use this map to understand the exact call chain for each endpoint.
 1. `guide_api/urls.py` -> `AskView`
 2. `guide_api/views.py` -> `AskView.post()`
 3. Input validation with `AskRequestSerializer`
+   - supports `language=en|hi` (defaults to `en`)
 4. Resolve identity from `request.user` (not request body)
 5. Safety check via `is_risky_prompt()`
 6. Quota check via `UserSubscription` + `DailyAskUsage`
@@ -79,6 +80,7 @@ Use this map to understand the exact call chain for each endpoint.
    - retrieve verses with `retrieve_verses_with_trace()`
    - build response with `build_guidance()` using the latest user message as
      the primary task and recent thread history as supporting context
+   - guidance generation honors requested output language (`en`/`hi`)
    - store assistant `Message`
 8. Increment daily usage counter
 9. Serialize verses with `VerseSerializer`
@@ -94,6 +96,8 @@ Use this map to understand the exact call chain for each endpoint.
    - `mode=benchmark` -> both:
      - `retrieve_semantic_verses_with_trace()`
      - `retrieve_hybrid_verses_with_trace()`
+   - guidance path adds a deterministic confidence gate and can return
+     `retrieval_mode=curated_fallback` when initial retrieval is weak
 5. Response formatting via `_serialize_trace()`
 6. Returns retrieval trace only (no LLM generation).
 
@@ -146,10 +150,13 @@ Use this map to understand the exact call chain for each endpoint.
    - separate saved conversation threads with sidebar navigation for the
      signed-in user only
    - one sidebar mode selector shared across all conversation threads
+   - one sidebar language selector (`en`/`hi`) shared across all threads
    - per-thread sidebar metadata (title, message count, updated time)
    - thread deletion from the sidebar
    - explicit `?new=1` reset for a fresh visible thread
    - continued asks on a selected thread via `conversation_id`
+   - progressive enhancement motion stack in template:
+     `Animate.css`, `AOS`, `GSAP`, `VanillaTilt` (chat works if unavailable)
 5. Renders server-side template for manual testing.
 
 ### `GET/POST /api/saved-reflections/` and `DELETE /api/saved-reflections/<id>/`
@@ -164,7 +171,7 @@ Use this map to understand the exact call chain for each endpoint.
 ### `POST /api/follow-ups/`
 
 1. Requires authenticated user
-2. Accepts `message` and `mode`
+2. Accepts `message`, `mode`, and `language` (`en`/`hi`)
 3. Runs retrieval context detection to infer themes
 4. Returns deterministic follow-up prompt objects:
    - `label`
@@ -318,10 +325,10 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A[Kaggle CSV: data/Bhagwad_Gita.csv]
-    B[scripts/convert_kaggle_gita_csv.py]
-    C[JSON: data/gita_700.json]
-    D[manage.py import_gita]
+    A[Kaggle multi-script CSV/XLSX]
+    B[manage.py ingest_gita_multiscript]
+    C[data/gita_additional_angles.json]
+    D[Optional canonical update + import]
     E[(Verse table)]
     F[manage.py tag_gita_themes]
     G[themes updated]
@@ -329,14 +336,15 @@ flowchart LR
     I[embedding vectors stored]
     J[Runtime retrieval]
 
-    A --> B --> C --> D --> E
+    A --> B --> C --> J
+    B --> D --> E
     E --> F --> G --> H --> I --> J
 ```
 
 Data pipeline commands (typical order):
 
-1. `python scripts/convert_kaggle_gita_csv.py --input data/Bhagwad_Gita.csv --output data/gita_700.json`
-2. `python manage.py import_gita --file data/gita_700.json`
+1. `python manage.py ingest_gita_multiscript --input /path/bhagavad-gita.xlsx`
+2. `python manage.py import_gita --file data/gita_700.json` (optional legacy step)
 3. `python manage.py tag_gita_themes`
 4. `python manage.py embed_gita_verses`
 
@@ -352,24 +360,31 @@ python manage.py runserver
 
 ## Useful Commands
 
-```bash
-make test
-make import-gita FILE=data/gita_700.json
-make tag-gita-themes
-make embed-gita-verses
-make eval-retrieval
-```
+ ```bash
+ make test
+ make ingest-gita-multiscript INPUT=/path/bhagavad-gita.xlsx
+ make import-gita FILE=data/gita_700.json
+ make tag-gita-themes
+ make embed-gita-verses
+ make setup-pgvector-index
+ make sync-pgvector-embeddings
+ make eval-retrieval
+ ```
 
 ## Data Preparation Pipeline
 
-1. Convert Kaggle CSV:
-   - `python scripts/convert_kaggle_gita_csv.py --input data/Bhagwad_Gita.csv --output data/gita_700.json`
-2. Import verses:
+1. Ingest Kaggle multi-script CSV/XLSX:
+   - `python manage.py ingest_gita_multiscript --input /path/bhagavad-gita.xlsx`
+   - merges into `data/gita_additional_angles.json` without replacing canonical files
+2. Import verses (legacy/manual path):
    - `python manage.py import_gita --file data/gita_700.json`
 3. Tag themes:
    - `python manage.py tag_gita_themes`
 4. Create embeddings:
    - `python manage.py embed_gita_verses`
+5. Optional pgvector index sync (PostgreSQL):
+   - `python manage.py setup_pgvector_index`
+   - `python manage.py sync_pgvector_embeddings`
 
 ## Retrieval Debugging
 
@@ -386,10 +401,12 @@ Offline retrieval evaluation command:
 
 ```bash
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode pipeline
+python manage.py eval_retrieval --file data/retrieval_eval_cases_user_mix.json --mode pipeline
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode hybrid
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode semantic
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode pipeline --strict
 python manage.py eval_retrieval --file data/retrieval_eval_cases.json --mode hybrid --report-misses
+python manage.py eval_retrieval --file data/retrieval_eval_cases_user_mix.json --mode pipeline --report-misses
 ```
 
 Eval dataset format (`data/retrieval_eval_cases.json`):
@@ -410,8 +427,16 @@ Current starter dataset includes 50 prompts across core topics:
 - discipline/focus
 - comparison/envy
 
+Additional mixed-language eval set is available at:
+- `data/retrieval_eval_cases_user_mix.json` (Hindi + Hinglish + English)
+
 Current baseline (hybrid mode, 50-case set):
 - hit_rate improved from `0.20` -> `0.54` (v2) -> `0.66` (v3) -> `0.78` (v5)
+
+pgvector phase-1:
+- semantic retrieval can use pgvector when PostgreSQL is configured
+- rollout is guarded by `ENABLE_PGVECTOR_RETRIEVAL=true`
+- default runtime path remains SQLite-safe
 
 ## Safety and Grounding Rules
 

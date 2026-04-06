@@ -4,4 +4,6 @@ django-cors-headers
 drf-spectacular
 python-dotenv
 psycopg[binary]
+pgvector
 openai
+openpyxl

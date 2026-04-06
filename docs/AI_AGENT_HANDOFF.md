@@ -28,7 +28,11 @@ python manage.py runserver
 make test
 ```
 
-Useful `Makefile` targets: `make run`, `make test`, `make setup`, `import-gita`, `tag-gita-themes`, `embed-gita-verses`, `eval-retrieval`, `auth-flow USERNAME=... PASSWORD=...`.
+Useful `Makefile` targets: `make run`, `make test`, `make setup`,
+`ingest-gita-multiscript INPUT=/path/bhagavad-gita.xlsx`, `import-gita`,
+`tag-gita-themes`, `embed-gita-verses`, `setup-pgvector-index`,
+`sync-pgvector-embeddings`, `eval-retrieval`,
+`auth-flow USERNAME=... PASSWORD=...`.
 
 ---
 
@@ -44,8 +48,8 @@ Useful `Makefile` targets: `make run`, `make test`, `make setup`, `import-gita`,
 | Manual web UI | `guide_api/templates/guide_api/chat_ui.html` |
 | Project URLs (includes `/api/v1/` alias) | `config/urls.py` |
 | Settings / env | `config/settings.py`, `.env.example` |
-| Verse data / eval | `data/gita_700.json`, `data/retrieval_eval_cases.json` |
-| Management commands | `guide_api/management/commands/` (`import_gita`, `tag_gita_themes`, `embed_gita_verses`, `eval_retrieval`, …) |
+| Verse data / eval | `data/gita_700.json`, `data/Bhagwad_Gita.csv`, `data/gita_additional_angles.json`, `data/retrieval_eval_cases.json` |
+| Management commands | `guide_api/management/commands/` (`ingest_gita_multiscript`, `import_gita`, `tag_gita_themes`, `embed_gita_verses`, `setup_pgvector_index`, `sync_pgvector_embeddings`, `eval_retrieval`, …) |
 | Tests | `guide_api/tests.py` |
 
 Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavior in `docs/USER_GUIDE.md`. Build status and roadmap: `PROGRESS.md`, `README.md`.
@@ -58,6 +62,8 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - **Errors:** Standardized envelope with `error.code`, `error.message`, and `detail` where applicable.
 - **List endpoints:** Support `?limit=&offset=` where documented (e.g. feedback, saved-reflections).
 - **Quota:** `POST /api/ask/` enforces daily limits (`ASK_LIMIT_FREE_DAILY`, `ASK_LIMIT_PRO_DAILY`); may return `429`. Plan mock: `POST /api/auth/plan/`.
+- **Language:** `POST /api/ask/` and `POST /api/follow-ups/` accept
+  `language=en|hi` (defaults to `en`).
 
 **Important routes** (under both `/api/` and `/api/v1/`):
 
@@ -92,6 +98,8 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - **Chat UI thread management:** Sidebar cards show compact metadata (title,
   message count, updated time) and can delete a thread without affecting
   unrelated saved reflections.
+- **Chat UI global settings:** Sidebar language selector (`en`/`hi`) and mode
+  selector apply to the next message across all threads.
 - **Chat UI ownership model:** Signed-in users only see their own saved
   threads. Logged-out chat uses a session-only guest transcript and does not
   create `Conversation` rows or account-bound feedback/bookmarks.
@@ -108,7 +116,7 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists.
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, and bilingual guidance selection (`en`/`hi`) across API + chat-ui.
 
 **Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today).
 

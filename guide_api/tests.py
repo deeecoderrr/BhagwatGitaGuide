@@ -225,7 +225,7 @@ class GuideApiTests(APITestCase):
         self.assertIn(response.data["response_mode"], {"llm", "fallback"})
         self.assertIn(
             response.data["retrieval_mode"],
-            {"semantic", "hybrid", "hybrid_fallback"},
+            {"semantic", "hybrid", "hybrid_fallback", "curated_fallback"},
         )
         self.assertIn("retrieval_scores", response.data)
         self.assertIn("retrieved_references", response.data)
@@ -239,6 +239,22 @@ class GuideApiTests(APITestCase):
                 outcome=AskEvent.OUTCOME_SERVED,
             ).count(),
             1,
+        )
+
+    def test_ask_endpoint_supports_hindi_language(self):
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "मुझे करियर को लेकर चिंता हो रही है।",
+                "mode": "simple",
+                "language": "hi",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["language"], "hi")
+        self.assertTrue(
+            any("\u0900" <= ch <= "\u097F" for ch in response.data["guidance"])
         )
         self.assertEqual(
             FollowUpEvent.objects.filter(
@@ -705,6 +721,41 @@ class GuideApiTests(APITestCase):
         )
         self.assertEqual(reopened.status_code, status.HTTP_200_OK)
         self.assertEqual(reopened.context["mode"], "deep")
+
+    def test_chat_ui_language_selection_persists_across_threads(self):
+        self._login_chat_ui()
+        selected = self.client.get("/api/chat-ui/?language=hi")
+        self.assertEqual(selected.status_code, status.HTTP_200_OK)
+        self.assertEqual(selected.context["language"], "hi")
+
+        asked = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "language": "hi",
+                "message": "मुझे चिंता हो रही है।",
+            },
+        )
+        self.assertEqual(asked.status_code, status.HTTP_200_OK)
+        self.assertEqual(asked.context["language"], "hi")
+        self.assertEqual(asked.context["response_data"]["language"], "hi")
+
+    def test_chat_ui_language_switch_keeps_conversation_sidebar(self):
+        self._login_chat_ui()
+        self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "language": "en",
+                "message": "I feel anxious.",
+            },
+        )
+        switched = self.client.get("/api/chat-ui/?language=hi")
+        self.assertEqual(switched.status_code, status.HTTP_200_OK)
+        self.assertEqual(switched.context["language"], "hi")
+        self.assertTrue(len(switched.context["conversations"]) >= 1)
 
     def test_feedback_api_saves_entry(self):
         payload = {

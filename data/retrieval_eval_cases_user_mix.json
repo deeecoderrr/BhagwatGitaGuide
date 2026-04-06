@@ -1,0 +1,122 @@
+[
+  {
+    "prompt": "Mujhe career aur future ko leke bahut anxiety ho rahi hai.",
+    "expected_references": ["2.47", "3.19", "6.5"]
+  },
+  {
+    "prompt": "Job performance ke pressure se raat ko neend nahi aati.",
+    "expected_references": ["2.47", "6.26", "18.58"]
+  },
+  {
+    "prompt": "Main result ke darr ki wajah se action hi nahi le pa raha.",
+    "expected_references": ["2.47", "3.19", "18.58"]
+  },
+  {
+    "prompt": "Mera dimaag hamesha outcome soch kar restless rehta hai.",
+    "expected_references": ["2.48", "6.35", "6.26"]
+  },
+  {
+    "prompt": "Career mein uncertainty hai, kaunsa step loon samajh nahi aa raha.",
+    "expected_references": ["2.31", "3.35", "3.19"]
+  },
+  {
+    "prompt": "Mujhe ghar par jaldi gussa aa jata hai aur baad mein regret hota hai.",
+    "expected_references": ["2.63", "3.37", "16.21"]
+  },
+  {
+    "prompt": "Frustration mein main hurtful baatein bol deta hoon.",
+    "expected_references": ["2.63", "16.21", "6.26"]
+  },
+  {
+    "prompt": "I react impulsively when I am angry and then feel guilty.",
+    "expected_references": ["2.63", "6.35", "3.37"]
+  },
+  {
+    "prompt": "Mujhe choti choti baat pe irritation ho jati hai.",
+    "expected_references": ["2.62", "2.63", "3.37"]
+  },
+  {
+    "prompt": "मैं गुस्से में अपने परिवार को गलत बोल देता/देती हूँ।",
+    "expected_references": ["2.63", "16.21", "6.26"]
+  },
+  {
+    "prompt": "I feel stuck and directionless despite working hard.",
+    "expected_references": ["3.35", "18.47", "18.66"]
+  },
+  {
+    "prompt": "मुझे समझ नहीं आता जीवन में सही मार्ग कौन सा है।",
+    "expected_references": ["3.35", "18.47", "18.66"]
+  },
+  {
+    "prompt": "I feel empty even after achieving milestones.",
+    "expected_references": ["2.71", "12.13", "18.66"]
+  },
+  {
+    "prompt": "Duty aur comfort ke beech main confuse hoon.",
+    "expected_references": ["2.31", "3.19", "3.35"]
+  },
+  {
+    "prompt": "I want purpose but I keep feeling hopeless.",
+    "expected_references": ["18.58", "18.66", "6.5"]
+  },
+  {
+    "prompt": "Main routine bana leta hoon par continue nahi kar pata.",
+    "expected_references": ["6.35", "6.12", "18.58"]
+  },
+  {
+    "prompt": "I procrastinate and delay important work till deadline.",
+    "expected_references": ["3.19", "3.8", "6.5"]
+  },
+  {
+    "prompt": "Study ke time mind bahut bhatakta hai, focus nahi hota.",
+    "expected_references": ["6.26", "6.34", "6.35"]
+  },
+  {
+    "prompt": "I cannot control my senses and keep getting distracted by phone.",
+    "expected_references": ["2.58", "2.60", "6.26"]
+  },
+  {
+    "prompt": "मुझे अनुशासन चाहिए लेकिन आदतें टूट जाती हैं।",
+    "expected_references": ["6.12", "6.35", "18.58"]
+  },
+  {
+    "prompt": "I compare myself with my friends and feel inferior.",
+    "expected_references": ["2.48", "12.15", "2.71"]
+  },
+  {
+    "prompt": "Mujhe dusron ki success dekh ke jalan hoti hai.",
+    "expected_references": ["2.62", "2.63", "12.13"]
+  },
+  {
+    "prompt": "Social media comparison se self-worth down ho jati hai.",
+    "expected_references": ["2.48", "2.50", "2.71"]
+  },
+  {
+    "prompt": "I crave recognition and praise all the time.",
+    "expected_references": ["2.47", "3.19", "16.21"]
+  },
+  {
+    "prompt": "I feel bitter when others get appreciation quickly.",
+    "expected_references": ["12.13", "12.15", "2.63"]
+  },
+  {
+    "prompt": "रिश्तों में मैं जल्दी प्रतिक्रिया दे देता/देती हूँ, शांति कैसे रखूँ?",
+    "expected_references": ["12.13", "12.15", "6.26"]
+  },
+  {
+    "prompt": "Mera मन हमेशा future ko लेकर tension mein rehta hai.",
+    "expected_references": ["2.48", "6.26", "6.35"]
+  },
+  {
+    "prompt": "I am confused whether to continue job or start business.",
+    "expected_references": ["2.47", "3.19", "18.47"]
+  },
+  {
+    "prompt": "Main kaam karta hoon par result ke stress se toot jata hoon.",
+    "expected_references": ["2.47", "2.48", "18.58"]
+  },
+  {
+    "prompt": "मैं बार-बार दूसरों से तुलना करके दुखी हो जाता/जाती हूँ।",
+    "expected_references": ["2.71", "12.15", "2.48"]
+  }
+]

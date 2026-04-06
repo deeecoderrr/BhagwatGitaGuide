@@ -16,6 +16,7 @@ and give feedback on whether the answer was useful.
 1. Open the app at `http://127.0.0.1:8000/api/chat-ui/`.
 2. If you are logged out, chat in guest mode:
    - choose `mode` (`simple` or `deep`)
+   - choose `language` (`English` or `Hindi`)
    - enter your message
    - guest chat stays temporary in the current browser session only
 3. If you want saved history, register or log in first.
@@ -33,8 +34,11 @@ and give feedback on whether the answer was useful.
    `Start New Conversation` to begin a separate thread.
 9. Each saved thread card shows message count and last-updated time. Use
    `Delete` on a card to remove that conversation.
-10. The sidebar `Mode` selector is global for the whole chat UI. Whatever mode
-    you select there will be used for the next message in any conversation.
+10. The sidebar `Mode` and `Language` selectors are global for the whole chat
+    UI. Whatever you select there will be used for the next message in any
+    conversation.
+11. The chat UI uses smooth animations and transitions; if a CDN is blocked,
+    core chat functionality still works without the visual effects.
 
 ## Quick Start (API)
 
@@ -93,7 +97,8 @@ make auth-flow-benchmark-summary USERNAME=demo-user PASSWORD=demo-pass-123
 ```json
 {
   "message": "I am anxious about my career growth.",
-  "mode": "simple"
+  "mode": "simple",
+  "language": "en"
 }
 ```
 
@@ -133,6 +138,7 @@ On `GET /api/chat-ui/`:
 - recent question shortcuts (up to 3)
 - a sidebar list of recent conversations for the signed-in user
 - one global sidebar mode selector shared across all conversations
+- one global sidebar language selector shared across all conversations
 - per-thread message counts and updated timestamps in the sidebar
 - thread deletion directly from the sidebar
 - `Start New Conversation` for beginning a separate thread
@@ -181,6 +187,10 @@ List endpoints (`feedback`, `saved-reflections`) support pagination:
 Use this when Android/iOS needs fresh next-step prompts independent of
 the immediate `ask` call.
 
+`follow-ups` accepts the same language selector:
+- `language = en` (English)
+- `language = hi` (Hindi)
+
 ### Engagement profile (streak + reminders)
 
 - `GET /api/engagement/me/`
@@ -207,6 +217,8 @@ to seek professional or emergency support.
 
 - Empty/less relevant answers:
   - run theme tagging and embeddings (developer task)
+  - refresh dataset from latest Kaggle multi-script file:
+    `python manage.py ingest_gita_multiscript --input /path/bhagavad-gita.xlsx`
   - use `deep` mode for slightly broader retrieval
 - Seeing fallback often:
   - check `OPENAI_API_KEY`
