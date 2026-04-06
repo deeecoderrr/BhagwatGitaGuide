@@ -31,19 +31,34 @@ from guide_api.models import (
 )
 from guide_api.serializers import (
     AskRequestSerializer,
+    ChapterDetailSerializer,
+    ChapterListSerializer,
+    CommentarySerializer,
     EngagementProfileUpdateSerializer,
     FollowUpRequestSerializer,
     LoginRequestSerializer,
+    MantraRequestSerializer,
     MessageSerializer,
     PlanUpdateRequestSerializer,
+    QuoteArtRequestSerializer,
+    QuoteArtResponseSerializer,
     RegisterRequestSerializer,
     RetrievalEvalRequestSerializer,
     SavedReflectionCreateSerializer,
     SavedReflectionSerializer,
+    VerseDetailSerializer,
     VerseSerializer,
 )
 from guide_api.services import (
     build_guidance,
+    generate_quote_art_data,
+    get_all_chapters,
+    get_chapter_detail,
+    get_chapter_verses,
+    get_featured_quotes,
+    get_mantra_for_mood,
+    get_quote_art_styles,
+    get_verse_detail,
     is_risky_prompt,
     retrieve_hybrid_verses_with_trace,
     retrieve_verses,
@@ -700,6 +715,121 @@ class DailyVerseView(APIView):
                 ),
             }
         )
+
+
+class ChapterListView(APIView):
+    """List all 18 chapters with metadata for browsing screen."""
+
+    def get(self, request):
+        """Return all chapters with name, verse count, and translations."""
+        chapters = get_all_chapters()
+        return Response({"chapters": chapters, "total": len(chapters)})
+
+
+class ChapterDetailView(APIView):
+    """Get full detail for a single chapter including summary."""
+
+    def get(self, request, chapter_number: int):
+        """Return chapter metadata, summary, and verse list."""
+        chapter = get_chapter_detail(chapter_number)
+        if chapter is None:
+            return _error_response(
+                message=f"Chapter {chapter_number} not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="chapter_not_found",
+            )
+
+        verses = get_chapter_verses(chapter_number)
+        return Response({
+            "chapter": chapter,
+            "verses": verses,
+        })
+
+
+class VerseDetailView(APIView):
+    """Get full detail for a single verse with all commentaries."""
+
+    def get(self, request, chapter: int, verse: int):
+        """Return verse with sanskrit, translations, and multi-author commentary."""
+        verse_data = get_verse_detail(chapter, verse)
+        if verse_data is None:
+            return _error_response(
+                message=f"Verse {chapter}.{verse} not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="verse_not_found",
+            )
+        return Response(verse_data)
+
+
+class MantraView(APIView):
+    """Generate a mantra/verse recommendation based on mood."""
+
+    def post(self, request):
+        """Return a verse as mantra for the requested mood."""
+        serializer = MantraRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        mantra = get_mantra_for_mood(
+            mood=data["mood"],
+            language=data["language"],
+        )
+        if mantra is None:
+            return _error_response(
+                message="Could not find a suitable mantra.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="mantra_not_found",
+            )
+        return Response(mantra)
+
+
+class QuoteArtStylesView(APIView):
+    """List available quote art styles for UI selection."""
+
+    def get(self, request):
+        """Return all quote art style options."""
+        styles = get_quote_art_styles()
+        return Response({"styles": styles})
+
+
+class QuoteArtView(APIView):
+    """Generate shareable quote art data from a Gita verse."""
+
+    def post(self, request):
+        """Generate quote art data for mobile rendering."""
+        serializer = QuoteArtRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        art_data = generate_quote_art_data(
+            verse_reference=data["verse_reference"],
+            style=data["style"],
+            language=data["language"],
+            custom_quote=data.get("custom_quote"),
+        )
+        if art_data is None:
+            return _error_response(
+                message="Verse not found or invalid reference format.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="verse_not_found",
+            )
+
+        response_serializer = QuoteArtResponseSerializer(data=art_data)
+        response_serializer.is_valid(raise_exception=True)
+        return Response(response_serializer.validated_data)
+
+
+class FeaturedQuotesView(APIView):
+    """Return featured verse quotes for art creation suggestions."""
+
+    def get(self, request):
+        """Suggest popular verses for quote art creation."""
+        language = request.query_params.get("language", "en")
+        limit = int(request.query_params.get("limit", "5"))
+        limit = min(max(1, limit), 10)  # Clamp between 1-10
+
+        quotes = get_featured_quotes(language=language, limit=limit)
+        return Response({"quotes": quotes})
 
 
 class ConversationHistoryView(APIView):
@@ -1649,8 +1779,11 @@ class ChatUIView(View):
 
     @staticmethod
     def _chat_ui_conversation(user_id: str, conversation_id=None):
-        """Resolve requested conversation or fall back to latest thread."""
-        if conversation_id is not None and str(conversation_id).strip() == "":
+        """Resolve requested conversation or return None for landing page."""
+        if conversation_id is None:
+            # No conversation_id in URL means show landing page, not latest
+            return None
+        if str(conversation_id).strip() == "":
             # An explicit blank id means "start a new thread" rather than
             # silently reopening the most recent saved conversation.
             return None
@@ -1663,7 +1796,7 @@ class ChatUIView(View):
             conversation = queryset.filter(id=int(conversation_id)).first()
             if conversation is not None:
                 return conversation
-        return queryset.first()
+        return None
 
     @staticmethod
     def _conversation_list(user_id: str) -> list[dict]:

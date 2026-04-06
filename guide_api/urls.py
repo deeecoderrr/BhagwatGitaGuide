@@ -5,20 +5,27 @@ from django.urls import path
 from guide_api.views import (
     AskView,
     ChatUIView,
+    ChapterDetailView,
+    ChapterListView,
     ConversationHistoryView,
     DailyVerseView,
     EngagementProfileView,
+    FeaturedQuotesView,
     FeedbackView,
     FollowUpGenerateView,
     HealthView,
     LoginView,
     LogoutView,
+    MantraView,
     MeView,
     PlanUpdateView,
+    QuoteArtStylesView,
+    QuoteArtView,
     RegisterView,
     RetrievalEvalView,
     SavedReflectionDetailView,
     SavedReflectionListCreateView,
+    VerseDetailView,
 )
 
 urlpatterns = [
@@ -35,12 +42,29 @@ urlpatterns = [
     ),
     path("ask/", AskView.as_view(), name="ask"),
     path("follow-ups/", FollowUpGenerateView.as_view(), name="follow-ups"),
+    path("mantra/", MantraView.as_view(), name="mantra"),
+    # Quote art generation
+    path("quote-art/styles/", QuoteArtStylesView.as_view(), name="quote-art-styles"),
+    path("quote-art/generate/", QuoteArtView.as_view(), name="quote-art-generate"),
+    path("quote-art/featured/", FeaturedQuotesView.as_view(), name="quote-art-featured"),
     path(
         "eval/retrieval/",
         RetrievalEvalView.as_view(),
         name="eval-retrieval",
     ),
     path("daily-verse/", DailyVerseView.as_view(), name="daily-verse"),
+    # Chapter and verse browsing
+    path("chapters/", ChapterListView.as_view(), name="chapters"),
+    path(
+        "chapters/<int:chapter_number>/",
+        ChapterDetailView.as_view(),
+        name="chapter-detail",
+    ),
+    path(
+        "verses/<int:chapter>.<int:verse>/",
+        VerseDetailView.as_view(),
+        name="verse-detail",
+    ),
     path("history/me/", ConversationHistoryView.as_view(), {"user_id": "me"}),
     path(
         "history/<str:user_id>/",

@@ -1102,3 +1102,111 @@ class GuideApiTests(APITestCase):
         self.assertIn("Miss report:", result)
         self.assertIn("themes:", result)
         self.assertIn("top_missing_refs:", result)
+
+    def test_chapters_list_returns_chapters(self):
+        """Test chapter listing endpoint returns all chapters."""
+        response = self.client.get("/api/chapters/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("chapters", response.data)
+        self.assertIn("total", response.data)
+        # Should have 18 chapters if data is loaded
+        if response.data["total"] > 0:
+            first = response.data["chapters"][0]
+            self.assertIn("chapter_number", first)
+            self.assertIn("name", first)
+            self.assertIn("verses_count", first)
+
+    def test_chapter_detail_returns_chapter_and_verses(self):
+        """Test chapter detail endpoint returns chapter info and verse list."""
+        response = self.client.get("/api/chapters/2/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("chapter", response.data)
+        self.assertIn("verses", response.data)
+
+    def test_chapter_detail_404_for_invalid_chapter(self):
+        """Test chapter detail returns 404 for non-existent chapter."""
+        response = self.client.get("/api/chapters/99/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["error"]["code"], "chapter_not_found")
+
+    def test_verse_detail_returns_full_verse_data(self):
+        """Test verse detail endpoint returns all verse information."""
+        # Ensure verse exists
+        from guide_api.models import Verse
+        verse, _ = Verse.objects.get_or_create(
+            chapter=2,
+            verse=47,
+            defaults={
+                "translation": "Focus on action, not results.",
+                "commentary": "Key verse on karma yoga.",
+                "themes": ["discipline", "purpose"],
+            },
+        )
+        response = self.client.get("/api/verses/2.47/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["reference"], "2.47")
+        self.assertEqual(response.data["chapter"], 2)
+        self.assertEqual(response.data["verse"], 47)
+        self.assertIn("translation", response.data)
+        self.assertIn("commentaries", response.data)
+
+    def test_verse_detail_404_for_invalid_verse(self):
+        """Test verse detail returns 404 for non-existent verse."""
+        response = self.client.get("/api/verses/99.999/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["error"]["code"], "verse_not_found")
+
+    def test_mantra_endpoint_returns_verse_for_mood(self):
+        """Test mantra endpoint returns appropriate verse."""
+        # Create all verses that might be selected for 'calm' mood
+        from guide_api.models import Verse
+        for ref in ["2.48", "2.70", "6.35", "12.15"]:
+            ch, v = ref.split(".")
+            Verse.objects.get_or_create(
+                chapter=int(ch),
+                verse=int(v),
+                defaults={
+                    "translation": "Be steadfast in yoga.",
+                    "commentary": "Equanimity teaching.",
+                    "themes": ["calm", "discipline"],
+                },
+            )
+        response = self.client.post(
+            "/api/mantra/",
+            {"mood": "calm", "language": "en"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("reference", response.data)
+        self.assertIn("mood", response.data)
+        self.assertIn("meaning", response.data)
+        self.assertEqual(response.data["mood"], "calm")
+
+    def test_mantra_endpoint_supports_hindi(self):
+        """Test mantra endpoint returns Hindi content when requested."""
+        from guide_api.models import Verse
+        # Create all verses that might be selected for 'peace' mood
+        for ref in ["2.66", "2.71", "5.29", "12.12"]:
+            ch, v = ref.split(".")
+            Verse.objects.get_or_create(
+                chapter=int(ch),
+                verse=int(v),
+                defaults={
+                    "translation": "Be steadfast in yoga.",
+                    "commentary": "Peace teaching.",
+                    "themes": ["peace"],
+                },
+            )
+        response = self.client.post(
+            "/api/mantra/",
+            {"mood": "peace", "language": "hi"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["language"], "hi")
+
+    def test_chapters_v1_alias_works(self):
+        """Test chapter listing works via /api/v1/ alias."""
+        response = self.client.get("/api/v1/chapters/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("chapters", response.data)

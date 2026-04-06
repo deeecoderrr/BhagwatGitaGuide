@@ -158,3 +158,130 @@ class EngagementProfileUpdateSerializer(serializers.Serializer):
         choices=["push", "email", "none"],
         required=False,
     )
+
+
+class ChapterListSerializer(serializers.Serializer):
+    """Serialize chapter metadata for chapter listing screen."""
+
+    chapter_number = serializers.IntegerField()
+    name = serializers.CharField()
+    translation = serializers.CharField()
+    transliteration = serializers.CharField()
+    verses_count = serializers.IntegerField()
+    meaning_en = serializers.CharField()
+    meaning_hi = serializers.CharField()
+
+
+class ChapterDetailSerializer(serializers.Serializer):
+    """Serialize full chapter detail with summary."""
+
+    chapter_number = serializers.IntegerField()
+    name = serializers.CharField()
+    translation = serializers.CharField()
+    transliteration = serializers.CharField()
+    verses_count = serializers.IntegerField()
+    meaning_en = serializers.CharField()
+    meaning_hi = serializers.CharField()
+    summary_en = serializers.CharField()
+    summary_hi = serializers.CharField()
+
+
+class CommentarySerializer(serializers.Serializer):
+    """Serialize individual author commentary."""
+
+    author = serializers.CharField()
+    text = serializers.CharField()
+    language = serializers.CharField()
+
+
+class VerseDetailSerializer(serializers.Serializer):
+    """Full verse detail with sanskrit, translations, and commentaries."""
+
+    reference = serializers.CharField()
+    chapter = serializers.IntegerField()
+    verse = serializers.IntegerField()
+    speaker = serializers.CharField()
+    slok = serializers.CharField()  # Sanskrit
+    transliteration = serializers.CharField()
+    translation = serializers.CharField()
+    themes = serializers.ListField(child=serializers.CharField())
+    hindi_meaning = serializers.CharField()
+    english_meaning = serializers.CharField()
+    word_meaning = serializers.CharField()
+    commentaries = CommentarySerializer(many=True)
+
+
+class MantraRequestSerializer(serializers.Serializer):
+    """Validate mantra generation request."""
+
+    mood = serializers.ChoiceField(
+        choices=["calm", "focus", "courage", "peace", "strength", "clarity"],
+        default="peace",
+    )
+    language = serializers.ChoiceField(
+        choices=["en", "hi"],
+        default="en",
+    )
+
+
+class QuoteArtStyleSerializer(serializers.Serializer):
+    """Serialize available quote art style for UI display."""
+
+    id = serializers.CharField()
+    name = serializers.CharField()
+    description = serializers.CharField()
+    preview_colors = serializers.DictField()
+
+
+class QuoteArtRequestSerializer(serializers.Serializer):
+    """Validate quote art generation request."""
+
+    verse_reference = serializers.CharField(max_length=10)
+    style = serializers.ChoiceField(
+        choices=["divine", "minimal", "nature", "cosmic"],
+        default="divine",
+    )
+    language = serializers.ChoiceField(
+        choices=["en", "hi"],
+        default="en",
+    )
+    custom_quote = serializers.CharField(
+        max_length=500,
+        required=False,
+        allow_blank=True,
+    )
+
+
+class QuoteArtStyleConfigSerializer(serializers.Serializer):
+    """Serialize style configuration for rendering."""
+
+    id = serializers.CharField()
+    name = serializers.CharField()
+    background_color = serializers.CharField()
+    text_color = serializers.CharField()
+    accent_color = serializers.CharField()
+    font_style = serializers.CharField()
+    gradient = serializers.ListField(child=serializers.CharField())
+
+
+class QuoteArtResponseSerializer(serializers.Serializer):
+    """Serialize generated quote art data for mobile rendering."""
+
+    verse_reference = serializers.CharField()
+    chapter = serializers.IntegerField()
+    verse = serializers.IntegerField()
+    quote_text = serializers.CharField()
+    sanskrit_text = serializers.CharField()
+    transliteration = serializers.CharField()
+    language = serializers.CharField()
+    style = QuoteArtStyleConfigSerializer()
+    attribution = serializers.CharField()
+    share_text = serializers.CharField()
+
+
+class FeaturedQuoteSerializer(serializers.Serializer):
+    """Serialize featured quote for art suggestions."""
+
+    reference = serializers.CharField()
+    preview_quote = serializers.CharField()
+    sanskrit_preview = serializers.CharField()

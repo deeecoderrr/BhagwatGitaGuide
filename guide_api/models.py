@@ -318,3 +318,45 @@ class EngagementEvent(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class QuoteArt(models.Model):
+    """User-generated shareable quote art from Gita verses."""
+
+    STYLE_DIVINE = "divine"
+    STYLE_MINIMAL = "minimal"
+    STYLE_NATURE = "nature"
+    STYLE_COSMIC = "cosmic"
+    STYLE_CHOICES = (
+        (STYLE_DIVINE, "Divine - golden temple aesthetic"),
+        (STYLE_MINIMAL, "Minimal - clean modern design"),
+        (STYLE_NATURE, "Nature - forest and lotus imagery"),
+        (STYLE_COSMIC, "Cosmic - stars and universe theme"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="quote_arts",
+        null=True,
+        blank=True,
+    )
+    verse_reference = models.CharField(max_length=16)
+    quote_text = models.TextField()
+    quote_language = models.CharField(max_length=8, default="en")
+    style = models.CharField(
+        max_length=16,
+        choices=STYLE_CHOICES,
+        default=STYLE_DIVINE,
+    )
+    background_color = models.CharField(max_length=16, default="#1a1a2e")
+    text_color = models.CharField(max_length=16, default="#ffd700")
+    font_style = models.CharField(max_length=32, default="serif")
+    share_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"QuoteArt {self.verse_reference}"

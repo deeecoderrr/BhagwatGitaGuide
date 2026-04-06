@@ -72,6 +72,10 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - `GET|PATCH engagement/me/` — streak, reminder prefs (delivery not implemented yet)
 - `POST ask/` — main Q&A (structured JSON: guidance, meaning, actions, reflection, verse_references, follow_ups, engagement snapshot, quota fields)
 - `POST follow-ups/` — contextual follow-up prompts
+- `POST mantra/` — verse as mantra for mood (calm/focus/courage/peace/strength/clarity)
+- `GET chapters/` — list all 18 chapters with metadata for browsing
+- `GET chapters/<chapter_number>/` — chapter detail with verse list
+- `GET verses/<chapter>.<verse>/` — full verse detail with multi-author commentary
 - `GET|POST feedback/`
 - `GET|POST saved-reflections/`, `DELETE saved-reflections/<id>/`
 - `GET daily-verse/`, history under `history/me/`, `history/<user_id>/` (owner)

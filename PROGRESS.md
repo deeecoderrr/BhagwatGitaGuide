@@ -308,6 +308,46 @@ Last updated: 2026-04-06
   - `README.md` updated with auth + QA commands
   - `docs/USER_GUIDE.md` updated with auth usage and make targets
   - `docs/DEVELOPER_GUIDE.md` updated with endpoint map and sequence diagrams
+- Chapter and verse browsing API completed (mobile-ready):
+  - `GET /api/chapters/` - list all 18 chapters with metadata
+  - `GET /api/chapters/<chapter_number>/` - chapter detail with verse list
+  - `GET /api/verses/<chapter>.<verse>/` - full verse detail with:
+    - Sanskrit shloka, transliteration, speaker
+    - Hindi/English meanings and word meanings
+    - Multi-author Vedic commentaries from `data/slok/` JSON files
+  - chapter/verse endpoints work via `/api/v1/` alias
+- Mantra generation endpoint completed:
+  - `POST /api/mantra/` - returns verse as mantra for mood
+  - supports moods: calm, focus, courage, peace, strength, clarity
+  - bilingual (en/hi) output with recitation instruction
+- Tests added for all new browsing and mantra endpoints
+- Quote Art frontend integration completed:
+  - new `Quote Art` panel added to `/api/chat-ui/` sidebar
+  - 4 visual styles selectable: Divine, Minimal, Nature, Cosmic
+  - verse reference input with popular verse quick-select chips
+  - AJAX-based art generation via `/api/v1/quote-art/generate/`
+  - preview card displays styled verse with Sanskrit text
+  - copy-to-clipboard and native share (Web Share API) actions
+  - bilingual UI labels (en/hi) matching chat-ui language setting
+  - CSS matches divine theme aesthetic with gradient backgrounds
+- Gita Reader (Pro Feature) completed:
+  - new "Read Bhagavad Gita" panel visible only for Pro plan users
+  - full-screen modal reader with divine theme styling
+  - chapter grid view displaying all 18 chapters with metadata:
+    - chapter number, name (English & Hindi), verse count
+    - hover animations and VanillaTilt effects
+  - chapter detail view with summary and verse list
+  - verse detail view with full content:
+    - Sanskrit shloka in golden box
+    - transliteration
+    - English and Hindi meanings
+    - multi-author Vedic commentaries
+  - navigation breadcrumbs (Chapters → Chapter X → Verse)
+  - GSAP animations for smooth transitions between views
+  - verse actions: copy verse, create Quote Art
+  - "Create Art" button auto-fills Quote Art panel and generates
+  - keyboard support (ESC to close)
+  - bilingual labels (en/hi) matching user's language setting
 
 ## In Progress
 

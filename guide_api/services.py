@@ -2031,3 +2031,353 @@ def build_guidance(
             verses,
             language=language,
         )
+
+
+# --- Chapter and Verse Browsing APIs ---
+
+_chapter_metadata_cache: dict[int, dict[str, object]] | None = None
+
+
+def _load_chapter_metadata_cache() -> dict[int, dict[str, object]]:
+    """Load all chapter JSON files into a cache."""
+    global _chapter_metadata_cache
+    if _chapter_metadata_cache is not None:
+        return _chapter_metadata_cache
+
+    _chapter_metadata_cache = {}
+    chapter_dir = Path(__file__).resolve().parents[1] / "data" / "chapter"
+    if not chapter_dir.exists():
+        return _chapter_metadata_cache
+
+    try:
+        for path in sorted(chapter_dir.glob("*.json")):
+            row = json.loads(path.read_text(encoding="utf-8"))
+            chapter_num = row.get("chapter_number")
+            if not chapter_num:
+                continue
+            meaning = row.get("meaning", {}) if isinstance(row.get("meaning"), dict) else {}
+            summary = row.get("summary", {}) if isinstance(row.get("summary"), dict) else {}
+            _chapter_metadata_cache[int(chapter_num)] = {
+                "chapter_number": int(chapter_num),
+                "name": str(row.get("name", "")).strip(),
+                "translation": str(row.get("translation", "")).strip(),
+                "transliteration": str(row.get("transliteration", "")).strip(),
+                "verses_count": int(row.get("verses_count", 0)),
+                "meaning_en": str(meaning.get("en", "")).strip(),
+                "meaning_hi": str(meaning.get("hi", "")).strip(),
+                "summary_en": str(summary.get("en", "")).strip(),
+                "summary_hi": str(summary.get("hi", "")).strip(),
+            }
+    except Exception as exc:
+        logger.warning("Chapter metadata cache load failed: %s", exc)
+    return _chapter_metadata_cache
+
+
+def get_all_chapters() -> list[dict[str, object]]:
+    """Return list of all chapters with metadata for listing screen."""
+    cache = _load_chapter_metadata_cache()
+    return [cache[i] for i in sorted(cache.keys())]
+
+
+def get_chapter_detail(chapter_number: int) -> dict[str, object] | None:
+    """Return full chapter detail including summary."""
+    cache = _load_chapter_metadata_cache()
+    return cache.get(chapter_number)
+
+
+def get_chapter_verses(chapter_number: int) -> list[dict[str, object]]:
+    """Return all verses for a chapter with basic info."""
+    ensure_seed_verses()
+    verses = Verse.objects.filter(chapter=chapter_number).order_by("verse")
+    result = []
+    for verse in verses:
+        ref = _verse_reference(verse)
+        row = _merged_verse_context(ref)
+        vedic = _load_vedic_slok_cache().get(ref, {})
+        result.append({
+            "reference": ref,
+            "chapter": verse.chapter,
+            "verse": verse.verse,
+            "slok": str(vedic.get("slok", row.get("sanskrit", ""))).strip(),
+            "translation": verse.translation,
+            "speaker": str(vedic.get("speaker", "")).strip(),
+        })
+    return result
+
+
+def get_verse_detail(chapter: int, verse: int) -> dict[str, object] | None:
+    """Return full verse detail with all commentaries."""
+    ensure_seed_verses()
+    verse_obj = Verse.objects.filter(chapter=chapter, verse=verse).first()
+    if verse_obj is None:
+        return None
+
+    ref = _verse_reference(verse_obj)
+    row = _merged_verse_context(ref)
+    vedic = _load_vedic_slok_cache().get(ref, {})
+
+    # Build commentaries list from vedic cache
+    commentaries = []
+    for entry in vedic.get("commentaries", []):
+        author = str(entry.get("author", "")).strip()
+        text = str(entry.get("text", "")).strip()
+        if author and text:
+            # Detect language: if majority is Devanagari, mark as Hindi
+            hindi_chars = sum(1 for c in text if '\u0900' <= c <= '\u097F')
+            lang = "hi" if hindi_chars > len(text) * 0.3 else "en"
+            commentaries.append({
+                "author": author,
+                "text": text,
+                "language": lang,
+            })
+
+    return {
+        "reference": ref,
+        "chapter": verse_obj.chapter,
+        "verse": verse_obj.verse,
+        "speaker": str(vedic.get("speaker", "")).strip(),
+        "slok": str(vedic.get("slok", row.get("sanskrit", ""))).strip(),
+        "transliteration": str(
+            vedic.get("transliteration", row.get("transliteration", ""))
+        ).strip(),
+        "translation": verse_obj.translation,
+        "themes": verse_obj.themes,
+        "hindi_meaning": str(row.get("hindi", "")).strip(),
+        "english_meaning": str(row.get("english", "")).strip(),
+        "word_meaning": str(row.get("word_meaning", "")).strip(),
+        "commentaries": commentaries,
+    }
+
+
+# --- Mantra Generation ---
+
+MOOD_VERSE_MAP = {
+    "calm": ["2.48", "2.70", "6.35", "12.15"],
+    "focus": ["6.12", "6.26", "3.19", "2.47"],
+    "courage": ["2.3", "2.31", "2.37", "18.66"],
+    "peace": ["2.66", "2.71", "5.29", "12.12"],
+    "strength": ["3.30", "6.5", "18.58", "2.47"],
+    "clarity": ["2.50", "3.35", "18.63", "5.20"],
+}
+
+
+def get_mantra_for_mood(mood: str, language: str = "en") -> dict[str, object] | None:
+    """Return a suitable verse as a mantra for the given mood."""
+    import random
+
+    language = _normalize_language(language)
+    refs = MOOD_VERSE_MAP.get(mood, MOOD_VERSE_MAP["peace"])
+    ref = random.choice(refs)
+    parsed = _parse_reference(ref)
+    if not parsed:
+        return None
+
+    chapter, verse = parsed
+    verse_obj = Verse.objects.filter(chapter=chapter, verse=verse).first()
+    if verse_obj is None:
+        return None
+
+    row = _merged_verse_context(ref)
+    vedic = _load_vedic_slok_cache().get(ref, {})
+
+    if language == "hi":
+        meaning = row.get("hindi", "") or verse_obj.translation
+        intro = "इस मंत्र को दिन में तीन बार दोहराएं:"
+    else:
+        meaning = row.get("english", "") or verse_obj.translation
+        intro = "Repeat this mantra three times today:"
+
+    return {
+        "reference": ref,
+        "mood": mood,
+        "slok": str(vedic.get("slok", row.get("sanskrit", ""))).strip(),
+        "transliteration": str(
+            vedic.get("transliteration", row.get("transliteration", ""))
+        ).strip(),
+        "meaning": meaning.strip(),
+        "instruction": intro,
+        "language": language,
+    }
+
+
+# --- Quote Art Generation ---
+
+QUOTE_ART_STYLES = {
+    "divine": {
+        "name": "Divine",
+        "description": "Golden temple aesthetic with warm tones",
+        "background_color": "#1a1a2e",
+        "text_color": "#ffd700",
+        "accent_color": "#ff6b35",
+        "font_style": "serif",
+        "gradient": ["#1a1a2e", "#16213e", "#0f3460"],
+    },
+    "minimal": {
+        "name": "Minimal",
+        "description": "Clean modern design with subtle gradients",
+        "background_color": "#fafafa",
+        "text_color": "#2d3436",
+        "accent_color": "#6c5ce7",
+        "font_style": "sans-serif",
+        "gradient": ["#fafafa", "#f5f5f5", "#eeeeee"],
+    },
+    "nature": {
+        "name": "Nature",
+        "description": "Forest and lotus imagery with earthy tones",
+        "background_color": "#1b4332",
+        "text_color": "#d8f3dc",
+        "accent_color": "#95d5b2",
+        "font_style": "serif",
+        "gradient": ["#1b4332", "#2d6a4f", "#40916c"],
+    },
+    "cosmic": {
+        "name": "Cosmic",
+        "description": "Stars and universe with deep purple",
+        "background_color": "#0d0221",
+        "text_color": "#e0aaff",
+        "accent_color": "#c77dff",
+        "font_style": "sans-serif",
+        "gradient": ["#0d0221", "#240046", "#3c096c"],
+    },
+}
+
+
+def get_quote_art_styles() -> list[dict[str, str]]:
+    """Return available quote art styles for UI selection."""
+    return [
+        {
+            "id": style_id,
+            "name": style["name"],
+            "description": style["description"],
+            "preview_colors": {
+                "background": style["background_color"],
+                "text": style["text_color"],
+                "accent": style["accent_color"],
+            },
+        }
+        for style_id, style in QUOTE_ART_STYLES.items()
+    ]
+
+
+def generate_quote_art_data(
+    *,
+    verse_reference: str,
+    style: str = "divine",
+    language: str = "en",
+    custom_quote: str | None = None,
+) -> dict[str, object] | None:
+    """Generate quote art data for a verse reference."""
+    language = _normalize_language(language)
+    parsed = _parse_reference(verse_reference)
+    if not parsed:
+        return None
+
+    chapter, verse = parsed
+    verse_obj = Verse.objects.filter(chapter=chapter, verse=verse).first()
+    if verse_obj is None:
+        return None
+
+    ref = verse_reference
+    row = _merged_verse_context(ref)
+    vedic = _load_vedic_slok_cache().get(ref, {})
+
+    # Get quote text
+    if custom_quote:
+        quote_text = custom_quote.strip()
+    elif language == "hi":
+        quote_text = row.get("hindi", "") or verse_obj.translation
+    else:
+        quote_text = row.get("english", "") or verse_obj.translation
+
+    # Get Sanskrit shloka
+    sanskrit = str(vedic.get("slok", row.get("sanskrit", ""))).strip()
+
+    # Get style configuration
+    style_config = QUOTE_ART_STYLES.get(style, QUOTE_ART_STYLES["divine"])
+
+    # Build art data payload
+    return {
+        "verse_reference": ref,
+        "chapter": chapter,
+        "verse": verse,
+        "quote_text": quote_text.strip(),
+        "sanskrit_text": sanskrit,
+        "transliteration": str(
+            vedic.get("transliteration", row.get("transliteration", ""))
+        ).strip(),
+        "language": language,
+        "style": {
+            "id": style,
+            "name": style_config["name"],
+            "background_color": style_config["background_color"],
+            "text_color": style_config["text_color"],
+            "accent_color": style_config["accent_color"],
+            "font_style": style_config["font_style"],
+            "gradient": style_config["gradient"],
+        },
+        "attribution": f"Bhagavad Gita {ref}",
+        "share_text": _build_share_text(
+            reference=ref,
+            quote=quote_text,
+            language=language,
+        ),
+    }
+
+
+def _build_share_text(
+    *,
+    reference: str,
+    quote: str,
+    language: str,
+) -> str:
+    """Build shareable text for social media."""
+    # Truncate quote if too long for social sharing
+    max_quote_len = 200
+    truncated = quote[:max_quote_len] + "..." if len(quote) > max_quote_len else quote
+
+    if language == "hi":
+        return (
+            f'"{truncated}"\n\n'
+            f"— भगवद्गीता {reference}\n\n"
+            "#BhagavadGita #गीता #Krishna #Wisdom"
+        )
+    return (
+        f'"{truncated}"\n\n'
+        f"— Bhagavad Gita {reference}\n\n"
+        "#BhagavadGita #Krishna #Wisdom #SpiritualQuotes"
+    )
+
+
+def get_featured_quotes(language: str = "en", limit: int = 5) -> list[dict[str, object]]:
+    """Return featured verses for quote art suggestions."""
+    language = _normalize_language(language)
+    featured_refs = [
+        "2.47",  # Karma yoga - most famous
+        "2.14",  # Impermanence
+        "6.5",   # Be your own friend
+        "18.66", # Surrender
+        "2.48",  # Equanimity
+        "3.35",  # Swadharma
+        "6.35",  # Mind control
+        "12.13", # Compassion
+    ]
+
+    results = []
+    for ref in featured_refs[:limit]:
+        data = generate_quote_art_data(
+            verse_reference=ref,
+            style="divine",
+            language=language,
+        )
+        if data:
+            results.append({
+                "reference": ref,
+                "preview_quote": data["quote_text"][:100] + "..."
+                if len(data["quote_text"]) > 100
+                else data["quote_text"],
+                "sanskrit_preview": data["sanskrit_text"][:80] + "..."
+                if len(data["sanskrit_text"]) > 80
+                else data["sanskrit_text"],
+            })
+
+    return results

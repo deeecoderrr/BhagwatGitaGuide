@@ -183,6 +183,37 @@
       color: var(--muted);
     }
 
+    .nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text);
+      text-decoration: none;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.04);
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .nav-btn-secondary {
+      background: linear-gradient(145deg, rgba(245, 199, 107, 0.15), rgba(245, 199, 107, 0.05));
+      border-color: rgba(245, 199, 107, 0.4);
+      color: var(--divine-gold);
+    }
+
+    .nav-btn-secondary:hover {
+      background: linear-gradient(145deg, rgba(245, 199, 107, 0.25), rgba(245, 199, 107, 0.1));
+      border-color: var(--divine-gold);
+    }
+
     .layout {
       display: grid;
       grid-template-columns: 360px 1fr;
@@ -681,6 +712,189 @@
       background: rgba(255, 255, 255, 0.03);
     }
 
+    /* Landing Page */
+    .landing-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .landing-logo {
+      font-size: 48px;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 0 20px rgba(245, 199, 107, 0.4));
+      animation: landingPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes landingPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.05); opacity: 0.9; }
+    }
+
+    .landing-title {
+      font-family: var(--font-display);
+      font-size: 24px;
+      color: var(--divine-gold);
+      margin-bottom: 6px;
+    }
+
+    .landing-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      max-width: 400px;
+    }
+
+    .landing-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 20px;
+      width: 100%;
+      max-width: 520px;
+    }
+
+    @media (max-width: 600px) {
+      .landing-actions {
+        flex-direction: column;
+        max-width: 320px;
+      }
+    }
+
+    .landing-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px 20px;
+      border-radius: 16px;
+      cursor: pointer;
+      transition: all 250ms ease;
+      text-decoration: none;
+      border: 2px solid transparent;
+    }
+
+    .landing-card-chat {
+      background: linear-gradient(145deg, rgba(245, 199, 107, 0.15), rgba(245, 199, 107, 0.05));
+      border-color: rgba(245, 199, 107, 0.3);
+    }
+
+    .landing-card-chat:hover {
+      transform: translateY(-4px);
+      border-color: var(--divine-gold);
+      box-shadow: 0 8px 30px rgba(245, 199, 107, 0.25);
+    }
+
+    .landing-card-gita {
+      background: linear-gradient(145deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05));
+      border-color: rgba(139, 92, 246, 0.3);
+    }
+
+    .landing-card-gita:hover {
+      transform: translateY(-4px);
+      border-color: #8b5cf6;
+      box-shadow: 0 8px 30px rgba(139, 92, 246, 0.25);
+    }
+
+    .landing-card-icon {
+      font-size: 36px;
+      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+    }
+
+    .landing-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .landing-card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    .landing-card-chat .landing-card-title {
+      color: var(--divine-gold);
+    }
+
+    .landing-card-gita .landing-card-title {
+      color: #a78bfa;
+    }
+
+    /* Hide composer and header when on landing page */
+    .chat-shell.on-landing {
+      overflow: hidden;
+    }
+
+    .chat-shell.on-landing .conversation-panel-head {
+      display: none;
+    }
+
+    .chat-shell.on-landing .chat-bottom-composer {
+      display: none;
+    }
+
+    .chat-shell.on-landing .chat-scroll-area {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .chat-shell.on-landing .landing-page {
+      overflow: hidden;
+    }
+
+    /* Composer mode - shown after clicking Start Conversation */
+    .chat-shell.composer-mode .landing-page {
+      display: none;
+    }
+
+    .chat-shell.composer-mode .conversation-panel-head {
+      display: flex;
+    }
+
+    .chat-shell.composer-mode .chat-bottom-composer {
+      display: block;
+    }
+
+    .chat-shell.composer-mode .composer-prompt {
+      display: block !important;
+    }
+
+    /* Legacy button styles (kept for other uses) */
+    .landing-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 18px 24px;
+      border-radius: 16px;
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 200ms ease;
+      text-decoration: none;
+      border: none;
+    }
+
+    .landing-btn-primary {
+      background: linear-gradient(145deg, var(--divine-gold), #d4a84a);
+      color: var(--dark-bg);
+      box-shadow: 0 4px 20px rgba(245, 199, 107, 0.3);
+    }
+
+    .landing-btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(245, 199, 107, 0.4);
+    }
+
     .composer-divider {
       height: 1px;
       background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16), transparent);
@@ -861,6 +1075,661 @@
       0%, 100% { transform: rotate(20deg) translateX(0); }
       50% { transform: rotate(20deg) translateX(210%); }
     }
+
+    /* Quote Art Styles */
+    .quote-art-panel {
+      position: relative;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at bottom left, rgba(139, 92, 246, 0.18), transparent 40%),
+        linear-gradient(160deg, rgba(245, 199, 107, 0.10), rgba(200, 150, 255, 0.12));
+    }
+
+    .quote-art-panel::after {
+      content: "";
+      position: absolute;
+      inset: auto auto -40px -20px;
+      width: 100px;
+      height: 100px;
+      border-radius: 999px;
+      background: rgba(139, 92, 246, 0.12);
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .style-card {
+      position: relative;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: border-color 150ms ease, transform 150ms ease;
+      overflow: hidden;
+    }
+
+    .style-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 10px;
+      opacity: 0.4;
+      z-index: 0;
+    }
+
+    .style-card > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .style-card:hover {
+      transform: translateY(-2px);
+    }
+
+    .style-card.selected {
+      border-color: var(--divine-gold);
+    }
+
+    .style-card input[type="radio"] {
+      display: none;
+    }
+
+    .style-card-name {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .style-card-desc {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    .style-divine { background: linear-gradient(135deg, #1a1a2e, #16213e); color: #ffd700; }
+    .style-minimal { background: linear-gradient(135deg, #fafafa, #eeeeee); color: #2d3436; }
+    .style-nature { background: linear-gradient(135deg, #1b4332, #40916c); color: #d8f3dc; }
+    .style-cosmic { background: linear-gradient(135deg, #0d0221, #3c096c); color: #e0aaff; }
+
+    .quote-art-preview {
+      margin-top: 14px;
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .quote-art-preview.visible {
+      display: block;
+      animation: fadeSlideIn 300ms ease;
+    }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .quote-art-card {
+      padding: 20px;
+      text-align: center;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .quote-art-sanskrit {
+      font-size: 14px;
+      opacity: 0.85;
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .quote-art-text {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.6;
+    }
+
+    .quote-art-attribution {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-top: 8px;
+    }
+
+    .quote-art-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .quote-art-actions button {
+      margin: 0;
+      font-size: 12px;
+      padding: 8px 14px;
+    }
+
+    .featured-verses {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .featured-verse-chip {
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.06);
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .featured-verse-chip:hover {
+      background: rgba(139, 92, 246, 0.15);
+      border-color: rgba(139, 92, 246, 0.4);
+    }
+
+    /* Gita Reader Styles */
+    .gita-reader-btn {
+      width: 100%;
+      background: linear-gradient(135deg, #f5c76b 0%, #d4a64a 100%);
+      color: #1a1a2e;
+      font-weight: 700;
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0;
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+
+    .gita-reader-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(245, 199, 107, 0.35);
+    }
+
+    .gita-reader-btn .btn-icon {
+      font-size: 20px;
+    }
+
+    .gita-reader-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(8, 14, 30, 0.95);
+      z-index: 1000;
+      display: none;
+      opacity: 0;
+      transition: opacity 300ms ease;
+    }
+
+    .gita-reader-overlay.visible {
+      display: block;
+      opacity: 1;
+    }
+
+    .gita-reader-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 1001;
+      display: none;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .gita-reader-modal.visible {
+      display: block;
+      animation: modalSlideIn 400ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .reader-container {
+      max-width: 900px;
+      margin: 0 auto;
+      min-height: 100%;
+    }
+
+    .reader-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .reader-title {
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: clamp(20px, 3vw, 28px);
+      font-weight: 700;
+      color: var(--divine-gold);
+      margin: 0;
+    }
+
+    .reader-close-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      padding: 10px 16px;
+      color: var(--text);
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 150ms ease;
+    }
+
+    .reader-close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .reader-nav {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .reader-nav-item {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 8px 14px;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .reader-nav-item:hover {
+      background: rgba(245, 199, 107, 0.15);
+      border-color: rgba(245, 199, 107, 0.3);
+    }
+
+    .reader-nav-item.active {
+      background: rgba(245, 199, 107, 0.2);
+      border-color: var(--divine-gold);
+      color: var(--divine-gold);
+    }
+
+    .reader-content {
+      min-height: 400px;
+    }
+
+    /* Chapter Grid */
+    .chapter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+
+    .chapter-card {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px;
+      cursor: pointer;
+      transition: all 200ms ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chapter-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--divine-gold), transparent);
+      opacity: 0;
+      transition: opacity 200ms ease;
+    }
+
+    .chapter-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(245, 199, 107, 0.4);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .chapter-card:hover::before {
+      opacity: 1;
+    }
+
+    .chapter-number {
+      font-size: 14px;
+      color: var(--divine-gold);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .chapter-name {
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .chapter-name-hi {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .chapter-meta {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Verse List */
+    .verse-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 10px;
+    }
+
+    .verse-list-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 14px 12px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .verse-list-item:hover {
+      background: rgba(245, 199, 107, 0.15);
+      border-color: rgba(245, 199, 107, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .verse-list-ref {
+      font-weight: 700;
+      color: var(--divine-gold);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .verse-list-preview {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+
+    /* Verse Detail View */
+    .verse-detail {
+      animation: fadeSlideIn 300ms ease;
+    }
+
+    .verse-detail-header {
+      text-align: center;
+      padding: 24px;
+      background: linear-gradient(180deg, rgba(245, 199, 107, 0.12), transparent);
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+
+    .verse-detail-ref {
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--divine-gold);
+      margin-bottom: 8px;
+    }
+
+    .verse-detail-speaker {
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .verse-sanskrit-box {
+      background: linear-gradient(145deg, #1a1a2e, #0f1520);
+      border: 1px solid rgba(245, 199, 107, 0.25);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .verse-sanskrit {
+      font-size: 20px;
+      line-height: 1.8;
+      color: var(--divine-gold);
+      font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    .verse-transliteration {
+      font-size: 14px;
+      color: var(--muted);
+      font-style: italic;
+      line-height: 1.6;
+    }
+
+    .verse-meaning-section {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .verse-meaning-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .verse-meaning-label::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .verse-meaning-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .verse-meaning-text.hindi {
+      font-size: 16px;
+    }
+
+    .verse-commentaries {
+      margin-top: 24px;
+    }
+
+    .verse-commentaries-title {
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .commentary-item {
+      background: rgba(139, 92, 246, 0.08);
+      border: 1px solid rgba(139, 92, 246, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .commentary-author {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .commentary-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+
+    .verse-actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    .verse-action-btn {
+      margin: 0;
+      padding: 12px 20px;
+      font-size: 13px;
+      border-radius: 10px;
+    }
+
+    /* Loading State */
+    .reader-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      gap: 16px;
+    }
+
+    .reader-loading-text {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    /* Back button */
+    .reader-back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 10px 16px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      margin-bottom: 20px;
+      transition: all 150ms ease;
+    }
+
+    .reader-back-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Verse navigation top bar */
+    .verse-nav-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .verse-nav-arrows {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .verse-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      padding: 8px 14px;
+      color: var(--text);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .verse-nav-btn:hover:not(.disabled) {
+      background: var(--divine-gold);
+      color: var(--dark-bg);
+      border-color: var(--divine-gold);
+    }
+
+    .verse-nav-btn.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .verse-nav-current {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 0 8px;
+    }
+
+    /* Chapter detail header */
+    .chapter-detail-header {
+      background: linear-gradient(145deg, rgba(245, 199, 107, 0.1), transparent);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    .chapter-detail-number {
+      font-size: 14px;
+      color: var(--divine-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 8px;
+    }
+
+    .chapter-detail-name {
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .chapter-detail-translation {
+      font-size: 16px;
+      color: var(--muted);
+      font-style: italic;
+      margin-bottom: 12px;
+    }
+
+    .chapter-detail-summary {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.6;
+      max-width: 600px;
+      margin: 0 auto;
+    }
   </style>
 </head>
 <body>
@@ -877,8 +1746,18 @@
         </a>
       </div>
       <div class="nav-actions">
+        {% if request.session.chat_ui_auth_username %}
+          <button
+            type="button"
+            class="nav-btn nav-btn-secondary"
+            data-open-gita-reader
+            data-language="{{ language|default:'en' }}"
+          >
+            📖 {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
+          </button>
+        {% endif %}
         {% if active_conversation_id %}
-          <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}">
+          <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="nav-btn">
             {% if language == "hi" %}नई बातचीत शुरू करें{% else %}Start New Conversation{% endif %}
           </a>
         {% endif %}
@@ -1070,6 +1949,86 @@
           </div>
         </div>
 
+        <!-- Quote Art Panel -->
+        <div class="panel quote-art-panel" data-aos="fade-right" data-aos-delay="100" data-quote-art-panel>
+          <h2>{% if language == "hi" %}श्लोक कला{% else %}Quote Art{% endif %}</h2>
+          <p class="hint">
+            {% if language == "hi" %}
+              गीता के श्लोकों से सुंदर शेयर करने योग्य कला बनाएं।
+            {% else %}
+              Create beautiful shareable art from Gita verses.
+            {% endif %}
+          </p>
+
+          <h3>{% if language == "hi" %}शैली चुनें{% else %}Choose Style{% endif %}</h3>
+          <div class="style-grid" data-style-grid>
+            <label class="style-card style-divine selected" data-style="divine">
+              <input type="radio" name="quote_art_style" value="divine" checked>
+              <div class="style-card-name">{% if language == "hi" %}दिव्य{% else %}Divine{% endif %}</div>
+              <div class="style-card-desc">{% if language == "hi" %}सुनहरी मंदिर शैली{% else %}Golden temple aesthetic{% endif %}</div>
+            </label>
+            <label class="style-card style-minimal" data-style="minimal">
+              <input type="radio" name="quote_art_style" value="minimal">
+              <div class="style-card-name">{% if language == "hi" %}न्यूनतम{% else %}Minimal{% endif %}</div>
+              <div class="style-card-desc">{% if language == "hi" %}स्वच्छ आधुनिक डिज़ाइन{% else %}Clean modern design{% endif %}</div>
+            </label>
+            <label class="style-card style-nature" data-style="nature">
+              <input type="radio" name="quote_art_style" value="nature">
+              <div class="style-card-name">{% if language == "hi" %}प्रकृति{% else %}Nature{% endif %}</div>
+              <div class="style-card-desc">{% if language == "hi" %}वन और कमल{% else %}Forest and lotus{% endif %}</div>
+            </label>
+            <label class="style-card style-cosmic" data-style="cosmic">
+              <input type="radio" name="quote_art_style" value="cosmic">
+              <div class="style-card-name">{% if language == "hi" %}ब्रह्मांडीय{% else %}Cosmic{% endif %}</div>
+              <div class="style-card-desc">{% if language == "hi" %}तारे और ब्रह्मांड{% else %}Stars and universe{% endif %}</div>
+            </label>
+          </div>
+
+          <label for="quote_art_verse">{% if language == "hi" %}श्लोक संदर्भ{% else %}Verse Reference{% endif %}</label>
+          <input
+            type="text"
+            id="quote_art_verse"
+            name="verse_reference"
+            placeholder="{% if language == 'hi' %}उदा. 2.47 या 18.66{% else %}e.g. 2.47 or 18.66{% endif %}"
+            data-quote-art-verse
+          >
+
+          <h4 style="margin-top: 12px; font-size: 12px; color: var(--muted);">{% if language == "hi" %}लोकप्रिय श्लोक{% else %}Popular Verses{% endif %}</h4>
+          <div class="featured-verses" data-featured-verses>
+            <button type="button" class="featured-verse-chip" data-verse="2.47">2.47</button>
+            <button type="button" class="featured-verse-chip" data-verse="2.14">2.14</button>
+            <button type="button" class="featured-verse-chip" data-verse="6.5">6.5</button>
+            <button type="button" class="featured-verse-chip" data-verse="18.66">18.66</button>
+            <button type="button" class="featured-verse-chip" data-verse="2.48">2.48</button>
+          </div>
+
+          <button
+            type="button"
+            class="btn-secondary"
+            data-generate-quote-art
+            data-language="{{ language|default:'en' }}"
+          >
+            {% if language == "hi" %}कला बनाएं{% else %}Generate Art{% endif %}
+          </button>
+
+          <!-- Quote Art Preview -->
+          <div class="quote-art-preview" data-quote-art-preview>
+            <div class="quote-art-card" data-quote-art-card>
+              <div class="quote-art-sanskrit" data-quote-art-sanskrit></div>
+              <div class="quote-art-text" data-quote-art-text></div>
+              <div class="quote-art-attribution" data-quote-art-attribution></div>
+            </div>
+            <div class="quote-art-actions">
+              <button type="button" class="btn-ghost" data-copy-quote>
+                {% if language == "hi" %}कॉपी{% else %}Copy{% endif %}
+              </button>
+              <button type="button" class="btn-ghost" data-share-quote>
+                {% if language == "hi" %}शेयर{% else %}Share{% endif %}
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="panel" data-aos="fade-right" data-aos-delay="110">
           <h2>{% if language == "hi" %}चैट सेटिंग्स{% else %}Chat Settings{% endif %}</h2>
           {% if request.session.chat_ui_auth_username %}
@@ -1224,7 +2183,7 @@
       </aside>
 
       <section class="stack">
-        <div class="panel chat-shell" data-aos="fade-left" data-aos-delay="40">
+        <div class="panel chat-shell {% if not conversation_messages %}on-landing{% endif %}" data-aos="fade-left" data-aos-delay="40" data-chat-shell>
           <div class="conversation-panel-head">
             <div>
               <h2>
@@ -1330,7 +2289,53 @@
                   </div>
                 {% endfor %}
               {% else %}
-                <div class="transcript-empty">
+                <!-- Landing Page - shown when no conversation is active -->
+                <div class="landing-page">
+                  <div class="landing-logo">🙏</div>
+                  <h1 class="landing-title">{% if language == "hi" %}भगवद्गीता मार्गदर्शन{% else %}Bhagavad Gita Guide{% endif %}</h1>
+                  <p class="landing-subtitle">
+                    {% if language == "hi" %}
+                      प्राचीन ज्ञान के माध्यम से जीवन के प्रश्नों के उत्तर खोजें
+                    {% else %}
+                      Find answers to life's questions through ancient wisdom
+                    {% endif %}
+                  </p>
+
+                  <div class="landing-actions">
+                    <div class="landing-card landing-card-chat" data-start-conversation>
+                      <div class="landing-card-icon">✨</div>
+                      <div class="landing-card-title">
+                        {% if language == "hi" %}नई बातचीत{% else %}Start Conversation{% endif %}
+                      </div>
+                      <div class="landing-card-desc">
+                        {% if language == "hi" %}
+                          जीवन के प्रश्न पूछें और श्लोक-आधारित मार्गदर्शन पाएं
+                        {% else %}
+                          Ask life questions and get verse-based guidance
+                        {% endif %}
+                      </div>
+                    </div>
+
+                    {% if request.session.chat_ui_auth_username %}
+                      <div class="landing-card landing-card-gita" data-open-gita-reader data-language="{{ language|default:'en' }}">
+                        <div class="landing-card-icon">📖</div>
+                        <div class="landing-card-title">
+                          {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
+                        </div>
+                        <div class="landing-card-desc">
+                          {% if language == "hi" %}
+                            18 अध्याय और 700 श्लोक पढ़ें
+                          {% else %}
+                            Explore all 18 chapters and 700 verses
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endif %}
+                  </div>
+                </div>
+
+                <!-- Empty state for composer mode -->
+                <div class="transcript-empty composer-prompt" style="display: none;">
                   {% if language == "hi" %}
                     श्लोक-आधारित मार्गदर्शन, व्यावहारिक कदम और चिंतन प्रॉम्प्ट के साथ बातचीत शुरू करने के लिए अपना पहला प्रश्न पूछें।
                   {% else %}
@@ -1453,6 +2458,29 @@
       </section>
     </section>
   </main>
+
+  <!-- Gita Reader Modal -->
+  <div class="gita-reader-overlay" data-gita-reader-overlay></div>
+  <div class="gita-reader-modal" data-gita-reader-modal>
+    <div class="reader-container">
+      <div class="reader-header">
+        <h2 class="reader-title" data-reader-title>
+          {% if language == "hi" %}श्रीमद्भगवद्गीता{% else %}Shrimad Bhagavad Gita{% endif %}
+        </h2>
+        <button type="button" class="reader-close-btn" data-close-gita-reader>
+          {% if language == "hi" %}बंद करें{% else %}Close{% endif %} ✕
+        </button>
+      </div>
+      <div class="reader-nav" data-reader-nav>
+        <button type="button" class="reader-nav-item active" data-nav="chapters">
+          {% if language == "hi" %}अध्याय{% else %}Chapters{% endif %}
+        </button>
+      </div>
+      <div class="reader-content" data-reader-content>
+        <!-- Content loaded dynamically -->
+      </div>
+    </div>
+  </div>
 
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
@@ -1952,10 +2980,663 @@
         scrollRoot.addEventListener("scroll", maybeLoadMore);
       }
 
+      // Quote Art functionality
+      function initQuoteArt() {
+        const panel = document.querySelector('[data-quote-art-panel]');
+        if (!panel) return;
+
+        const styleCards = panel.querySelectorAll('.style-card');
+        const verseInput = panel.querySelector('[data-quote-art-verse]');
+        const generateBtn = panel.querySelector('[data-generate-quote-art]');
+        const previewContainer = panel.querySelector('[data-quote-art-preview]');
+        const previewCard = panel.querySelector('[data-quote-art-card]');
+        const sanskritEl = panel.querySelector('[data-quote-art-sanskrit]');
+        const textEl = panel.querySelector('[data-quote-art-text]');
+        const attributionEl = panel.querySelector('[data-quote-art-attribution]');
+        const copyBtn = panel.querySelector('[data-copy-quote]');
+        const shareBtn = panel.querySelector('[data-share-quote]');
+        const featuredChips = panel.querySelectorAll('.featured-verse-chip');
+
+        let currentArtData = null;
+
+        // Get CSRF token from cookie
+        function getCsrfToken() {
+          const name = 'csrftoken';
+          let cookieValue = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+              }
+            }
+          }
+          return cookieValue;
+        }
+
+        // Style selection
+        styleCards.forEach(card => {
+          card.addEventListener('click', () => {
+            styleCards.forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            card.querySelector('input[type="radio"]').checked = true;
+            // Regenerate if we have a verse
+            if (verseInput.value.trim() && currentArtData) {
+              generateQuoteArt();
+            }
+          });
+        });
+
+        // Featured verse chips
+        featuredChips.forEach(chip => {
+          chip.addEventListener('click', () => {
+            verseInput.value = chip.dataset.verse;
+            generateQuoteArt();
+          });
+        });
+
+        // Generate button
+        if (generateBtn) {
+          generateBtn.addEventListener('click', generateQuoteArt);
+        }
+
+        // Enter key in verse input
+        if (verseInput) {
+          verseInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              generateQuoteArt();
+            }
+          });
+        }
+
+        async function generateQuoteArt() {
+          const verse = verseInput.value.trim();
+          if (!verse) {
+            alert('Please enter a verse reference (e.g., 2.47)');
+            return;
+          }
+
+          const selectedStyle = panel.querySelector('.style-card.selected');
+          const style = selectedStyle ? selectedStyle.dataset.style : 'divine';
+          const language = generateBtn.dataset.language || 'en';
+
+          generateBtn.disabled = true;
+          generateBtn.textContent = language === 'hi' ? 'बना रहे हैं...' : 'Generating...';
+
+          try {
+            const csrfToken = getCsrfToken();
+            const headers = {
+              'Content-Type': 'application/json',
+            };
+            if (csrfToken) {
+              headers['X-CSRFToken'] = csrfToken;
+            }
+
+            const response = await fetch('/api/v1/quote-art/generate/', {
+              method: 'POST',
+              headers: headers,
+              body: JSON.stringify({
+                verse_reference: verse,
+                style: style,
+                language: language
+              })
+            });
+
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Failed to generate quote art');
+            }
+
+            const data = await response.json();
+            currentArtData = data;
+            displayQuoteArt(data);
+          } catch (error) {
+            alert(error.message || 'An error occurred while generating quote art');
+          } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = language === 'hi' ? 'कला बनाएं' : 'Generate Art';
+          }
+        }
+
+        function displayQuoteArt(data) {
+          const styleConfig = data.style;
+
+          // Apply style to preview card
+          previewCard.style.background = `linear-gradient(135deg, ${styleConfig.gradient.join(', ')})`;
+          previewCard.style.color = styleConfig.text_color;
+
+          // Set content
+          sanskritEl.textContent = data.sanskrit_text || '';
+          textEl.textContent = `"${data.quote_text}"`;
+          attributionEl.textContent = `— ${data.attribution}`;
+          attributionEl.style.color = styleConfig.accent_color;
+
+          // Show preview
+          previewContainer.classList.add('visible');
+
+          // Animate with GSAP if available
+          if (window.gsap) {
+            window.gsap.fromTo(previewContainer,
+              { opacity: 0, y: 12 },
+              { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }
+            );
+          }
+        }
+
+        // Copy functionality
+        if (copyBtn) {
+          copyBtn.addEventListener('click', () => {
+            if (!currentArtData) return;
+            navigator.clipboard.writeText(currentArtData.share_text).then(() => {
+              const originalText = copyBtn.textContent;
+              copyBtn.textContent = '✓';
+              setTimeout(() => {
+                copyBtn.textContent = originalText;
+              }, 1500);
+            });
+          });
+        }
+
+        // Share functionality
+        if (shareBtn) {
+          shareBtn.addEventListener('click', async () => {
+            if (!currentArtData) return;
+            if (navigator.share) {
+              try {
+                await navigator.share({
+                  title: currentArtData.attribution,
+                  text: currentArtData.share_text,
+                });
+              } catch (err) {
+                // User cancelled or share failed
+              }
+            } else {
+              // Fallback to copy
+              navigator.clipboard.writeText(currentArtData.share_text);
+              const originalText = shareBtn.textContent;
+              shareBtn.textContent = '✓ Copied';
+              setTimeout(() => {
+                shareBtn.textContent = originalText;
+              }, 1500);
+            }
+          });
+        }
+      }
+
+      // Gita Reader functionality
+      function initGitaReader() {
+        const openBtns = document.querySelectorAll('[data-open-gita-reader]');
+        const overlay = document.querySelector('[data-gita-reader-overlay]');
+        const modal = document.querySelector('[data-gita-reader-modal]');
+        const closeBtn = document.querySelector('[data-close-gita-reader]');
+        const content = document.querySelector('[data-reader-content]');
+        const nav = document.querySelector('[data-reader-nav]');
+        const titleEl = document.querySelector('[data-reader-title]');
+
+        if (openBtns.length === 0 || !modal) return;
+
+        const lang = openBtns[0].dataset.language || 'en';
+        let currentView = 'chapters';
+        let currentChapter = null;
+        let chaptersCache = null;
+        let currentVerses = [];  // Store verses for prev/next navigation
+        let currentVerseIndex = -1;  // Current verse index in currentVerses
+
+        // Labels
+        const labels = {
+          en: {
+            title: 'Shrimad Bhagavad Gita',
+            chapters: 'Chapters',
+            verses: 'Verses',
+            chapter: 'Chapter',
+            back: '← Back',
+            backToChapter: '← Back to Chapter',
+            prev: '← Prev',
+            next: 'Next →',
+            loading: 'Loading...',
+            speaker: 'Speaker',
+            sanskrit: 'Sanskrit',
+            transliteration: 'Transliteration',
+            english: 'English Meaning',
+            hindi: 'Hindi Meaning (हिंदी अर्थ)',
+            commentaries: 'Commentaries',
+            copyVerse: 'Copy Verse',
+            shareVerse: 'Share',
+            createArt: 'Create Art',
+            verseCount: 'verses',
+          },
+          hi: {
+            title: 'श्रीमद्भगवद्गीता',
+            chapters: 'अध्याय',
+            verses: 'श्लोक',
+            chapter: 'अध्याय',
+            back: '← वापस',
+            backToChapter: '← अध्याय पर वापस',
+            prev: '← पिछला',
+            next: 'अगला →',
+            loading: 'लोड हो रहा है...',
+            speaker: 'वक्ता',
+            sanskrit: 'संस्कृत',
+            transliteration: 'लिप्यंतरण',
+            english: 'अंग्रेज़ी अर्थ',
+            hindi: 'हिंदी अर्थ',
+            commentaries: 'टीकाएं',
+            copyVerse: 'श्लोक कॉपी करें',
+            shareVerse: 'शेयर करें',
+            createArt: 'कला बनाएं',
+            verseCount: 'श्लोक',
+          }
+        };
+        const t = labels[lang] || labels.en;
+
+        function openReader() {
+          overlay.classList.add('visible');
+          modal.classList.add('visible');
+          document.body.style.overflow = 'hidden';
+          loadChapters();
+        }
+
+        function closeReader() {
+          overlay.classList.remove('visible');
+          modal.classList.remove('visible');
+          document.body.style.overflow = '';
+        }
+
+        function showLoading() {
+          content.innerHTML = `
+            <div class="reader-loading">
+              <div class="chakra-loader"></div>
+              <div class="reader-loading-text">${t.loading}</div>
+            </div>
+          `;
+        }
+
+        function updateNav(view, chapterNum = null) {
+          currentView = view;
+          let navHTML = `<button type="button" class="reader-nav-item ${view === 'chapters' ? 'active' : ''}" data-nav="chapters">${t.chapters}</button>`;
+
+          if (chapterNum) {
+            navHTML += `<button type="button" class="reader-nav-item ${view === 'verses' ? 'active' : ''}" data-nav="verses">${t.chapter} ${chapterNum}</button>`;
+          }
+
+          nav.innerHTML = navHTML;
+
+          // Rebind nav events
+          nav.querySelectorAll('.reader-nav-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const navTarget = btn.dataset.nav;
+              if (navTarget === 'chapters') {
+                loadChapters();
+              } else if (navTarget === 'verses' && currentChapter) {
+                loadChapterDetail(currentChapter);
+              }
+            });
+          });
+        }
+
+        async function loadChapters() {
+          showLoading();
+          updateNav('chapters');
+          titleEl.textContent = t.title;
+
+          try {
+            if (chaptersCache) {
+              renderChapters(chaptersCache);
+              return;
+            }
+
+            const response = await fetch('/api/v1/chapters/');
+            const data = await response.json();
+            chaptersCache = data.chapters;
+            renderChapters(data.chapters);
+          } catch (error) {
+            content.innerHTML = `<div class="message error">Failed to load chapters.</div>`;
+          }
+        }
+
+        function renderChapters(chapters) {
+          let html = '<div class="chapter-grid">';
+
+          chapters.forEach(ch => {
+            html += `
+              <div class="chapter-card" data-chapter="${ch.chapter_number}">
+                <div class="chapter-number">${t.chapter} ${ch.chapter_number}</div>
+                <div class="chapter-name">${ch.translation || ''}</div>
+                <div class="chapter-name-hi">${ch.name || ''}</div>
+                <div class="chapter-meta">${ch.verses_count} ${t.verseCount}</div>
+              </div>
+            `;
+          });
+
+          html += '</div>';
+          content.innerHTML = html;
+
+          // Animate with GSAP
+          if (window.gsap) {
+            window.gsap.fromTo('.chapter-card',
+              { opacity: 0, y: 20 },
+              { opacity: 1, y: 0, duration: 0.4, stagger: 0.05, ease: 'power2.out' }
+            );
+          }
+
+          // Bind click events
+          content.querySelectorAll('.chapter-card').forEach(card => {
+            card.addEventListener('click', () => {
+              const chapterNum = parseInt(card.dataset.chapter);
+              loadChapterDetail(chapterNum);
+            });
+          });
+
+          // Add tilt effect
+          if (window.VanillaTilt) {
+            window.VanillaTilt.init(document.querySelectorAll('.chapter-card'), {
+              max: 5,
+              speed: 400,
+              glare: false,
+              scale: 1.02,
+            });
+          }
+        }
+
+        async function loadChapterDetail(chapterNum) {
+          showLoading();
+          currentChapter = chapterNum;
+          updateNav('verses', chapterNum);
+
+          try {
+            const response = await fetch(`/api/v1/chapters/${chapterNum}/`);
+            const data = await response.json();
+            renderChapterDetail(data);
+          } catch (error) {
+            content.innerHTML = `<div class="message error">Failed to load chapter.</div>`;
+          }
+        }
+
+        function renderChapterDetail(data) {
+          const ch = data.chapter;
+          const verses = data.verses;
+
+          // Store verses for prev/next navigation
+          currentVerses = verses;
+          currentVerseIndex = -1;
+
+          let html = `
+            <button type="button" class="reader-back-btn" data-back-to-chapters>
+              ${t.back}
+            </button>
+            <div class="chapter-detail-header">
+              <div class="chapter-detail-number">${t.chapter} ${ch.chapter_number}</div>
+              <div class="chapter-detail-name">${ch.translation || ''} ${ch.name ? '(' + ch.name + ')' : ''}</div>
+              <div class="chapter-detail-translation">${ch.transliteration || ''}</div>
+              <div class="chapter-detail-summary">${ch.summary_en || ''}</div>
+            </div>
+            <div class="verse-list">
+          `;
+
+          verses.forEach(v => {
+            const preview = v.translation ? v.translation.substring(0, 60) + '...' : '';
+            html += `
+              <div class="verse-list-item" data-verse-ref="${v.reference}">
+                <div class="verse-list-ref">${v.reference}</div>
+                <div class="verse-list-preview">${preview}</div>
+              </div>
+            `;
+          });
+
+          html += '</div>';
+          content.innerHTML = html;
+
+          // Animate
+          if (window.gsap) {
+            window.gsap.fromTo('.verse-list-item',
+              { opacity: 0, scale: 0.95 },
+              { opacity: 1, scale: 1, duration: 0.3, stagger: 0.02, ease: 'power2.out' }
+            );
+          }
+
+          // Bind events
+          content.querySelector('[data-back-to-chapters]').addEventListener('click', loadChapters);
+
+          content.querySelectorAll('.verse-list-item').forEach((item, idx) => {
+            item.addEventListener('click', () => {
+              const ref = item.dataset.verseRef;
+              currentVerseIndex = idx;  // Track which verse we clicked
+              loadVerseDetail(ref);
+            });
+          });
+        }
+
+        async function loadVerseDetail(reference) {
+          showLoading();
+          const [chapter, verse] = reference.split('.');
+
+          // Update verse index if we have cached verses
+          if (currentVerses.length > 0 && currentVerseIndex === -1) {
+            currentVerseIndex = currentVerses.findIndex(v => v.reference === reference);
+          }
+
+          try {
+            const response = await fetch(`/api/v1/verses/${chapter}.${verse}/`);
+            const data = await response.json();
+            renderVerseDetail(data);
+          } catch (error) {
+            content.innerHTML = `<div class="message error">Failed to load verse.</div>`;
+          }
+        }
+
+        function renderVerseDetail(verse) {
+          const hasPrev = currentVerseIndex > 0;
+          const hasNext = currentVerseIndex < currentVerses.length - 1;
+
+          let html = `
+            <div class="verse-nav-top">
+              <button type="button" class="reader-back-btn" data-back-to-chapter="${verse.chapter}">
+                ${t.backToChapter}
+              </button>
+              <div class="verse-nav-arrows">
+                <button type="button" class="verse-nav-btn ${!hasPrev ? 'disabled' : ''}" data-prev-verse ${!hasPrev ? 'disabled' : ''}>
+                  ${t.prev}
+                </button>
+                <span class="verse-nav-current">${verse.verse} / ${currentVerses.length || '?'}</span>
+                <button type="button" class="verse-nav-btn ${!hasNext ? 'disabled' : ''}" data-next-verse ${!hasNext ? 'disabled' : ''}>
+                  ${t.next}
+                </button>
+              </div>
+            </div>
+            <div class="verse-detail">
+              <div class="verse-detail-header">
+                <div class="verse-detail-ref">${t.chapter} ${verse.chapter}, ${t.verses} ${verse.verse}</div>
+                ${verse.speaker ? `<div class="verse-detail-speaker">${t.speaker}: ${verse.speaker}</div>` : ''}
+              </div>
+
+              <div class="verse-sanskrit-box">
+                <div class="verse-sanskrit">${verse.slok || ''}</div>
+                ${verse.transliteration ? `<div class="verse-transliteration">${verse.transliteration}</div>` : ''}
+              </div>
+          `;
+
+          // English meaning
+          if (verse.english_meaning || verse.translation) {
+            html += `
+              <div class="verse-meaning-section">
+                <div class="verse-meaning-label">${t.english}</div>
+                <div class="verse-meaning-text">${verse.english_meaning || verse.translation}</div>
+              </div>
+            `;
+          }
+
+          // Hindi meaning
+          if (verse.hindi_meaning) {
+            html += `
+              <div class="verse-meaning-section">
+                <div class="verse-meaning-label">${t.hindi}</div>
+                <div class="verse-meaning-text hindi">${verse.hindi_meaning}</div>
+              </div>
+            `;
+          }
+
+          // Commentaries
+          if (verse.commentaries && verse.commentaries.length > 0) {
+            html += `
+              <div class="verse-commentaries">
+                <div class="verse-commentaries-title">${t.commentaries}</div>
+            `;
+            verse.commentaries.forEach(c => {
+              html += `
+                <div class="commentary-item">
+                  <div class="commentary-author">${c.author}</div>
+                  <div class="commentary-text">${c.text}</div>
+                </div>
+              `;
+            });
+            html += '</div>';
+          }
+
+          // Actions
+          html += `
+              <div class="verse-actions">
+                <button type="button" class="verse-action-btn btn-ghost" data-copy-verse="${verse.reference}">
+                  ${t.copyVerse}
+                </button>
+                <button type="button" class="verse-action-btn btn-secondary" data-create-art="${verse.reference}">
+                  ${t.createArt}
+                </button>
+              </div>
+            </div>
+          `;
+
+          content.innerHTML = html;
+
+          // Animate
+          if (window.gsap) {
+            window.gsap.fromTo('.verse-detail',
+              { opacity: 0, y: 15 },
+              { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }
+            );
+            window.gsap.fromTo('.verse-sanskrit-box',
+              { opacity: 0, scale: 0.98 },
+              { opacity: 1, scale: 1, duration: 0.5, delay: 0.1, ease: 'power2.out' }
+            );
+            window.gsap.fromTo('.verse-meaning-section, .commentary-item',
+              { opacity: 0, x: -10 },
+              { opacity: 1, x: 0, duration: 0.35, stagger: 0.08, delay: 0.2, ease: 'power2.out' }
+            );
+          }
+
+          // Bind events
+          content.querySelector(`[data-back-to-chapter="${verse.chapter}"]`).addEventListener('click', () => {
+            loadChapterDetail(verse.chapter);
+          });
+
+          // Prev/Next verse navigation
+          const prevBtn = content.querySelector('[data-prev-verse]');
+          const nextBtn = content.querySelector('[data-next-verse]');
+
+          if (prevBtn && currentVerseIndex > 0) {
+            prevBtn.addEventListener('click', () => {
+              currentVerseIndex--;
+              const prevVerse = currentVerses[currentVerseIndex];
+              if (prevVerse) loadVerseDetail(prevVerse.reference);
+            });
+          }
+
+          if (nextBtn && currentVerseIndex < currentVerses.length - 1) {
+            nextBtn.addEventListener('click', () => {
+              currentVerseIndex++;
+              const nextVerse = currentVerses[currentVerseIndex];
+              if (nextVerse) loadVerseDetail(nextVerse.reference);
+            });
+          }
+
+          const copyBtn = content.querySelector('[data-copy-verse]');
+          if (copyBtn) {
+            copyBtn.addEventListener('click', () => {
+              const text = `${verse.slok}\n\n${verse.transliteration || ''}\n\n${verse.english_meaning || verse.translation}\n\n— Bhagavad Gita ${verse.reference}`;
+              navigator.clipboard.writeText(text).then(() => {
+                const original = copyBtn.textContent;
+                copyBtn.textContent = '✓';
+                setTimeout(() => { copyBtn.textContent = original; }, 1500);
+              });
+            });
+          }
+
+          const artBtn = content.querySelector('[data-create-art]');
+          if (artBtn) {
+            artBtn.addEventListener('click', () => {
+              closeReader();
+              // Fill in the Quote Art verse input
+              const verseInput = document.querySelector('[data-quote-art-verse]');
+              if (verseInput) {
+                verseInput.value = verse.reference;
+                verseInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Trigger generation
+                const generateBtn = document.querySelector('[data-generate-quote-art]');
+                if (generateBtn) {
+                  setTimeout(() => generateBtn.click(), 300);
+                }
+              }
+            });
+          }
+        }
+
+        // Event bindings
+        openBtns.forEach(btn => btn.addEventListener('click', openReader));
+        closeBtn.addEventListener('click', closeReader);
+        overlay.addEventListener('click', closeReader);
+
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && modal.classList.contains('visible')) {
+            closeReader();
+          }
+        });
+      }
+
+      // Landing page button handlers
+      function initLandingPage() {
+        // Start Conversation - switch to composer mode
+        const startConversationBtn = document.querySelector('[data-start-conversation]');
+        const chatShell = document.querySelector('[data-chat-shell]');
+
+        if (startConversationBtn && chatShell) {
+          startConversationBtn.addEventListener('click', () => {
+            // Remove landing mode, add composer mode
+            chatShell.classList.remove('on-landing');
+            chatShell.classList.add('composer-mode');
+
+            // Focus the textarea after transition
+            setTimeout(() => {
+              const textarea = document.querySelector('#chat_message');
+              if (textarea) {
+                textarea.focus();
+              }
+            }, 100);
+
+            // Animate the transition
+            if (window.gsap) {
+              window.gsap.fromTo('.chat-bottom-composer',
+                { opacity: 0, y: 20 },
+                { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+              );
+              window.gsap.fromTo('.conversation-panel-head',
+                { opacity: 0 },
+                { opacity: 1, duration: 0.3, ease: 'power2.out' }
+              );
+            }
+          });
+        }
+      }
+
       initAos();
       initGsapMotion();
       initTilt();
       initConversationScrollPaging();
+      initQuoteArt();
+      initGitaReader();
+      initLandingPage();
       scrollTranscriptToLatestReplyStart();
     };
 
