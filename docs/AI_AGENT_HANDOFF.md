@@ -133,7 +133,10 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 1. Read this file + `PROGRESS.md` “Next 3 Tasks” / “Deferred”.
 2. Run `make test` before and after substantive changes.
 3. Update `PROGRESS.md` when finishing a milestone (per project convention).
-4. If user-facing behavior changes, sync `docs/USER_GUIDE.md` or `docs/DEVELOPER_GUIDE.md` as appropriate.
+4. For major frontend redesign or UI/UX polish work, read
+   `docs/design-playbook.md` and follow the root `AGENTS.md` frontend redesign
+   protocol before editing templates/styles.
+5. If user-facing behavior changes, sync `docs/USER_GUIDE.md` or `docs/DEVELOPER_GUIDE.md` as appropriate.
 
 ---
 

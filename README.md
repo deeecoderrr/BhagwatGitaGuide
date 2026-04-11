@@ -72,8 +72,8 @@ cp .env.example .env
 - when empty, app falls back to deterministic local guidance
 
 Quota variables:
-- `ASK_LIMIT_FREE_DAILY` default `10`
-- `ASK_LIMIT_PRO_DAILY` default `1000`
+- `ASK_LIMIT_FREE_DAILY` default `5`
+- `ASK_LIMIT_PRO_DAILY` default `10000`
 
 pgvector phase-1 variables (optional):
 - `ENABLE_PGVECTOR_RETRIEVAL` default `false`

@@ -194,6 +194,21 @@ class CommentarySerializer(serializers.Serializer):
     language = serializers.CharField()
 
 
+class VerseSynthesisSerializer(serializers.Serializer):
+    """Serialize cached multilingual verse synthesis for the reader UI."""
+
+    generation_source = serializers.CharField()
+    overview_en = serializers.CharField()
+    overview_hi = serializers.CharField()
+    commentary_consensus_en = serializers.CharField()
+    commentary_consensus_hi = serializers.CharField()
+    life_application_en = serializers.CharField()
+    life_application_hi = serializers.CharField()
+    key_points_en = serializers.ListField(child=serializers.CharField())
+    key_points_hi = serializers.ListField(child=serializers.CharField())
+    cached = serializers.BooleanField()
+
+
 class VerseDetailSerializer(serializers.Serializer):
     """Full verse detail with sanskrit, translations, and commentaries."""
 
@@ -209,6 +224,7 @@ class VerseDetailSerializer(serializers.Serializer):
     english_meaning = serializers.CharField()
     word_meaning = serializers.CharField()
     commentaries = CommentarySerializer(many=True)
+    synthesis = VerseSynthesisSerializer()
 
 
 class MantraRequestSerializer(serializers.Serializer):

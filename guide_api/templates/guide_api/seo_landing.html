@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page_title }}</title>
+  <meta name="description" content="{{ meta_description }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-start: #0d2233;
+      --bg-end: #2a1840;
+      --panel: rgba(10, 18, 36, 0.78);
+      --panel-strong: rgba(16, 23, 44, 0.92);
+      --border: rgba(236, 193, 106, 0.22);
+      --text: #f8f2e8;
+      --muted: rgba(241, 232, 219, 0.78);
+      --gold: #f0c46a;
+      --blue: #7ed7ff;
+      --shadow: 0 20px 80px rgba(0, 0, 0, 0.28);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(78, 160, 255, 0.18), transparent 28%),
+        radial-gradient(circle at 82% 74%, rgba(204, 78, 167, 0.22), transparent 22%),
+        linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      min-height: 100vh;
+    }
+    .shell {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 64px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 26px;
+    }
+    .brand, .navlink, .cta-link {
+      text-decoration: none;
+      color: var(--text);
+    }
+    .brand {
+      font-family: "Sora", sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .navlink, .cta-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 12px 16px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+    .hero, .panel {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+    }
+    .hero {
+      padding: 36px;
+      display: grid;
+      grid-template-columns: 1.4fr .9fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--gold);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 18px;
+    }
+    h1, h2, h3 { font-family: "Sora", sans-serif; margin: 0; }
+    h1 {
+      font-size: clamp(32px, 5vw, 54px);
+      line-height: 1.05;
+      margin-bottom: 14px;
+    }
+    .hero p, .hint, .verse-copy, .body-copy {
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 17px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 22px;
+    }
+    .btn {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 14px 18px;
+      font-weight: 800;
+      font-family: inherit;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #f0c46a, #d79b37);
+      color: #1e1d1b;
+    }
+    .btn-secondary {
+      background: rgba(126, 215, 255, 0.12);
+      color: var(--blue);
+      border: 1px solid rgba(126, 215, 255, 0.24);
+    }
+    .hero-side {
+      padding: 24px;
+      border-radius: 24px;
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+    }
+    .hero-side ul {
+      margin: 16px 0 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 24px;
+    }
+    .panel {
+      padding: 28px;
+    }
+    .topic-list {
+      display: grid;
+      gap: 16px;
+    }
+    .topic-card {
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.03);
+      text-decoration: none;
+      color: var(--text);
+    }
+    .topic-card p { margin: 10px 0 0; color: var(--muted); }
+    .verse-list {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .verse-card {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 18px;
+    }
+    .verse-ref {
+      color: var(--gold);
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .mini-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .mini-nav a {
+      text-decoration: none;
+      color: var(--blue);
+      border: 1px solid rgba(126, 215, 255, 0.24);
+      background: rgba(126, 215, 255, 0.08);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+    }
+    .cta-form {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .cta-form textarea {
+      width: 100%;
+      min-height: 110px;
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      background: rgba(7, 14, 28, 0.92);
+      color: var(--text);
+      padding: 16px;
+      font: inherit;
+      resize: vertical;
+    }
+    .section-title {
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+    .footnote {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    @media (max-width: 900px) {
+      .hero, .grid { grid-template-columns: 1fr; }
+      .shell { width: min(100% - 24px, 1180px); }
+      .topbar { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <a class="brand" href="/">Bhagavad Gita Guide</a>
+      <div style="display:flex; gap:12px; flex-wrap:wrap;">
+        <a class="navlink" href="/api/chat-ui/?mode=simple&language=en">Open App</a>
+        <a class="navlink" href="/api/chat-ui/?mode=simple&language=en">Ask A Question</a>
+      </div>
+    </div>
+
+    <section class="hero">
+      <div>
+        <div class="eyebrow">{{ topic_label|default:"Focused Gita Guidance" }}</div>
+        <h1>{{ page_heading }}</h1>
+        <p>{{ page_intro }}</p>
+        {% if starter_question %}
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="{{ chat_url }}">Open The Full Guide</a>
+            <a class="btn btn-secondary" href="{{ chat_url_with_prefill }}">Use Example Question</a>
+          </div>
+        {% endif %}
+      </div>
+      <div class="hero-side">
+        {% if problem_points %}
+          <h2 class="section-title">Common situations</h2>
+          <ul>
+            {% for point in problem_points %}
+              <li>{{ point }}</li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <h2 class="section-title">Explore focused guides</h2>
+          <p class="body-copy">Start with a life area, see relevant Bhagavad Gita verses, then continue into the full app for your personal question.</p>
+        {% endif %}
+      </div>
+    </section>
+
+    {% if topics %}
+      <section class="panel">
+        <h2 class="section-title">Choose a focused guide</h2>
+        <div class="topic-list">
+          {% for topic in topics %}
+            <a class="topic-card" href="/{{ topic.slug }}/">
+              <h3>{{ topic.topic_label }}</h3>
+              <p>{{ topic.description }}</p>
+            </a>
+          {% endfor %}
+        </div>
+      </section>
+    {% else %}
+      <div class="grid">
+        <section class="panel">
+          <h2 class="section-title">Relevant Bhagavad Gita verses</h2>
+          <p class="hint">These verses are strong starting points for this topic. Open the full app to ask your exact question and get a verse-grounded answer.</p>
+          <div class="verse-list">
+            {% for verse in featured_verses %}
+              <div class="verse-card">
+                <div class="verse-ref">{{ verse.reference }}</div>
+                <div class="verse-copy">{{ verse.translation }}</div>
+                {% if verse.themes %}
+                  <div class="footnote">Themes: {{ verse.themes|join:", " }}</div>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2 class="section-title">Ask your exact situation</h2>
+          <p class="hint">The strongest experience is when you describe your real problem in your own words. The app will then try to find the most relevant verse, meaning, and next step.</p>
+          <form class="cta-form" method="post" action="/api/chat-ui/">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="ask">
+            <input type="hidden" name="mode" value="simple">
+            <input type="hidden" name="language" value="en">
+            <textarea name="message">{{ starter_question }}</textarea>
+            <button class="btn btn-primary" type="submit">Ask This In The App</button>
+          </form>
+          <div class="mini-nav">
+            {% for topic in other_topics %}
+              <a href="/{{ topic.slug }}/">{{ topic.topic_label }}</a>
+            {% endfor %}
+          </div>
+          <div class="footnote">These pages are for discovery and education. For a personalized answer, continue into the full chat experience.</div>
+        </section>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

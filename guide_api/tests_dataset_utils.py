@@ -178,7 +178,7 @@ class MultiScriptDatasetUtilsTests(SimpleTestCase):
             }
             text = services._author_commentary_text("4.19", limit=2)
             self.assertIn("Swami Sivananda", text)
-            self.assertIn("Wisdom purifies intention.", text)
+            self.assertIn("Wisdom purifies intention", text)
         finally:
             services._merged_verse_context_cache = original_cache
 
@@ -207,6 +207,27 @@ class MultiScriptDatasetUtilsTests(SimpleTestCase):
             )
             self.assertIn("Author A", text)
             self.assertNotIn("Author B", text)
+        finally:
+            services._merged_verse_context_cache = original_cache
+
+    def test_author_commentary_text_cleans_noisy_reference_and_glossary_dump(self):
+        """Commentary serialization should trim noisy raw reference/glossary fragments."""
+        original_cache = services._merged_verse_context_cache
+        try:
+            services._merged_verse_context_cache = {
+                "2.47": {
+                    "commentaries": [
+                        {
+                            "author": "Author A",
+                            "text": "।।2.47।। कर्म करने मात्र में तुम्हारा अधिकार है। 2.47 कर्मणि in work? एव only? अधिकारः right? ते thy? मा not?",
+                        }
+                    ]
+                }
+            }
+            text = services._author_commentary_text("2.47", limit=1)
+            self.assertIn("कर्म करने मात्र में तुम्हारा अधिकार है", text)
+            self.assertNotIn("कर्मणि in work?", text)
+            self.assertNotIn("।।2.47।।", text)
         finally:
             services._merged_verse_context_cache = original_cache
 

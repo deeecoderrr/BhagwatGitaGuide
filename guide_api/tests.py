@@ -11,6 +11,7 @@ from guide_api.models import (
     Conversation,
     EngagementEvent,
     FollowUpEvent,
+    GuestChatIdentity,
     Message,
     ResponseFeedback,
     SavedReflection,
@@ -49,6 +50,19 @@ class GuideApiTests(APITestCase):
         response = self.client.get("/api/health/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "ok")
+
+    def test_public_seo_index_page_loads(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Bhagavad Gita Guides For Real Life Problems")
+        self.assertContains(response, "bhagavad-gita-for-anxiety")
+
+    def test_public_seo_topic_page_loads(self):
+        response = self.client.get("/bhagavad-gita-for-anxiety/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Bhagavad Gita For Anxiety And Overthinking")
+        self.assertContains(response, "Relevant Bhagavad Gita verses")
+        self.assertContains(response, "Ask This In The App")
 
     def test_health_endpoint_v1_alias_works(self):
         response = self.client.get("/api/v1/health/")
@@ -230,6 +244,11 @@ class GuideApiTests(APITestCase):
         self.assertIn("retrieval_scores", response.data)
         self.assertIn("retrieved_references", response.data)
         self.assertIn("follow_ups", response.data)
+        self.assertIn("query_interpretation", response.data)
+        self.assertEqual(
+            response.data["query_interpretation"]["emotional_state"],
+            "anxious",
+        )
         self.assertIn("engagement", response.data)
         self.assertEqual(response.data["engagement"]["daily_streak"], 1)
         self.assertTrue(len(response.data["follow_ups"]) >= 2)
@@ -240,6 +259,24 @@ class GuideApiTests(APITestCase):
             ).count(),
             1,
         )
+
+    def test_ask_endpoint_handles_greeting_without_forcing_verses(self):
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "hye",
+                "mode": "simple",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["retrieved_references"], [])
+        self.assertEqual(
+            response.data["query_interpretation"]["life_domain"],
+            "conversation opening",
+        )
+        self.assertIn("Bhagavad Gita", response.data["guidance"])
+        self.assertTrue(len(response.data["actions"]) >= 2)
 
     def test_ask_endpoint_supports_hindi_language(self):
         response = self.client.post(
@@ -349,11 +386,22 @@ class GuideApiTests(APITestCase):
         self.assertIn("retrieval_mode", response.data["semantic"])
         self.assertIn("retrieval_mode", response.data["hybrid"])
 
+    def test_daily_verse_endpoint_returns_quote_and_meaning(self):
+        response = self.client.get("/api/daily-verse/?language=en")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("verse", response.data)
+        self.assertIn("quote", response.data)
+        self.assertIn("meaning", response.data)
+        self.assertTrue(response.data["verse"]["reference"])
+        self.assertTrue(response.data["quote"])
+        self.assertTrue(response.data["meaning"])
+
     def test_chat_ui_page_loads(self):
         response = self.client.get("/api/chat-ui/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "Try a starter prompt")
-        self.assertContains(response, "Account")
+        self.assertContains(response, "Save Your Journey")
+        self.assertContains(response, "Guest mode is temporary")
         self.assertContains(response, "Register")
         self.assertContains(response, "Login")
 
@@ -512,6 +560,52 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.context["active_conversation_id"], "")
         self.assertContains(response, "Guest chat is temporary")
 
+    def test_chat_ui_guest_limit_blocks_fourth_question(self):
+        self.client.force_authenticate(user=None)
+        landing = self.client.get("/api/chat-ui/")
+        self.assertEqual(landing.status_code, status.HTTP_200_OK)
+        guest_cookie = self.client.cookies["chat_ui_guest_id"].value
+
+        for idx in range(3):
+            response = self.client.post(
+                "/api/chat-ui/",
+                data={
+                    "action": "ask",
+                    "mode": "simple",
+                    "message": f"guest question {idx + 1}",
+                },
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        blocked = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "guest question 4",
+            },
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_200_OK)
+        self.assertContains(blocked, "used all 3 guest questions")
+        self.assertContains(blocked, "Sign up or log in")
+        identity = GuestChatIdentity.objects.get(guest_id=guest_cookie)
+        self.assertEqual(identity.total_asks, 3)
+
+    def test_chat_ui_guest_limit_persists_in_cookie_across_browser_restart(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/chat-ui/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        guest_cookie = self.client.cookies["chat_ui_guest_id"].value
+
+        browser_restart_client = self.client_class()
+        browser_restart_client.cookies["chat_ui_guest_id"] = guest_cookie
+        reopened = browser_restart_client.get("/api/chat-ui/")
+        self.assertEqual(reopened.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            reopened.context["guest_quota_snapshot"]["ask_limit"],
+            3,
+        )
+
     def test_chat_ui_new_conversation_creates_separate_thread(self):
         self._login_chat_ui()
         first = self.client.post(
@@ -653,9 +747,9 @@ class GuideApiTests(APITestCase):
         self.assertEqual(second.status_code, status.HTTP_200_OK)
         self.assertContains(second, "Daily ask limit reached")
 
-    def test_chat_ui_tracks_recent_questions_up_to_three(self):
+    def test_chat_ui_recent_prompts_surface_through_thread_list(self):
         self.client.force_authenticate(user=None)
-        for idx in range(1, 5):
+        for idx in range(1, 4):
             self.client.post(
                 "/api/chat-ui/",
                 data={
@@ -663,13 +757,12 @@ class GuideApiTests(APITestCase):
                     "mode": "simple",
                     "message": f"recent question {idx}",
                 },
-            )
+        )
         response = self.client.get("/api/chat-ui/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertContains(response, "Recent questions")
-        self.assertContains(response, "recent question 4")
         self.assertContains(response, "recent question 3")
         self.assertContains(response, "recent question 2")
+        self.assertContains(response, "recent question 1")
 
     def test_chat_ui_logged_in_user_only_sees_own_history(self):
         other_user = User.objects.create_user(
@@ -1149,6 +1242,10 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.data["verse"], 47)
         self.assertIn("translation", response.data)
         self.assertIn("commentaries", response.data)
+        self.assertIn("synthesis", response.data)
+        self.assertIn("generation_source", response.data["synthesis"])
+        self.assertIn("overview_en", response.data["synthesis"])
+        self.assertIn("overview_hi", response.data["synthesis"])
 
     def test_verse_detail_404_for_invalid_verse(self):
         """Test verse detail returns 404 for non-existent verse."""

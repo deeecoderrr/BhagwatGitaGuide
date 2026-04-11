@@ -1,7 +1,10 @@
 """HTTP views for chat, retrieval evaluation, and feedback flows."""
 
 from datetime import timedelta
+from random import Random
 from types import SimpleNamespace
+from urllib.parse import quote_plus
+from uuid import uuid4
 
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
@@ -11,7 +14,8 @@ from django.utils import timezone
 from django.utils.timesince import timesince
 from django.views import View
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
@@ -22,6 +26,7 @@ from guide_api.models import (
     DailyAskUsage,
     EngagementEvent,
     FollowUpEvent,
+    GuestChatIdentity,
     Message,
     ResponseFeedback,
     SavedReflection,
@@ -104,6 +109,7 @@ def _run_guidance_flow(
         verses,
         conversation_messages=conversation_messages,
         language=language,
+        query_interpretation=retrieval.query_interpretation,
     )
 
     Message.objects.create(
@@ -116,6 +122,177 @@ def _run_guidance_flow(
     conversation.save()
 
     return conversation, verses, guidance, retrieval
+
+
+SEO_LANDING_PAGES = {
+    "anxiety": {
+        "slug": "bhagavad-gita-for-anxiety",
+        "topic_label": "Anxiety",
+        "title": "Bhagavad Gita for Anxiety | Verse-Based Guidance for Fear and Overthinking",
+        "description": (
+            "Find Bhagavad Gita guidance for anxiety, fear, and overthinking with relevant verses, "
+            "practical meaning, and a clear next step."
+        ),
+        "hero_title": "Bhagavad Gita For Anxiety And Overthinking",
+        "hero_body": (
+            "If your mind is restless, fearful, or constantly running toward the future, the Gita offers "
+            "a calmer way to see the problem. This page helps you start with relevant teachings and then "
+            "ask your exact question inside the app."
+        ),
+        "problem_points": [
+            "future fear and uncertainty",
+            "overthinking every outcome",
+            "difficulty staying steady in the present",
+        ],
+        "verse_refs": ["2.48", "6.5", "2.14"],
+        "starter_question": "I feel anxious about my future and overthink everything. What does the Gita say?",
+    },
+    "career": {
+        "slug": "bhagavad-gita-for-career-confusion",
+        "topic_label": "Career Confusion",
+        "title": "Bhagavad Gita for Career Confusion | Guidance for Work, Purpose, and Direction",
+        "description": (
+            "Explore Bhagavad Gita guidance for career confusion, uncertainty, and purpose with relevant "
+            "verses and a practical next step."
+        ),
+        "hero_title": "Bhagavad Gita For Career Confusion And Direction",
+        "hero_body": (
+            "When you feel torn between pressure, purpose, and fear of failure, the Gita can help you "
+            "separate sincere action from anxious attachment. Start with these verses, then ask about your own situation."
+        ),
+        "problem_points": [
+            "uncertainty about what path to choose",
+            "fear of failure or comparison",
+            "working hard without inner clarity",
+        ],
+        "verse_refs": ["2.47", "3.35", "18.47"],
+        "starter_question": "I feel confused about my career path and future. What should I do next?",
+    },
+    "relationships": {
+        "slug": "bhagavad-gita-for-relationships",
+        "topic_label": "Relationships",
+        "title": "Bhagavad Gita for Relationships | Guidance for Anger, Attachment, and Love",
+        "description": (
+            "Get Bhagavad Gita guidance for relationship pain, anger, attachment, and emotional confusion with relevant verses."
+        ),
+        "hero_title": "Bhagavad Gita For Relationships And Emotional Balance",
+        "hero_body": (
+            "Relationships often bring attachment, hurt, anger, and confusion to the surface. The Gita helps "
+            "you respond with more clarity, steadiness, and self-mastery instead of impulse."
+        ),
+        "problem_points": [
+            "anger and reactivity in close relationships",
+            "attachment, hurt, and emotional dependence",
+            "difficulty responding with calm and clarity",
+        ],
+        "verse_refs": ["2.62", "2.63", "12.13"],
+        "starter_question": "I get hurt and angry in relationships. How can I respond better?",
+    },
+}
+
+
+def _fetch_curated_verses(reference_list: list[str]) -> list[SimpleNamespace]:
+    """Fetch a small stable verse list for SEO landing pages."""
+    verses = []
+    for ref in reference_list:
+        try:
+            chapter_text, verse_text = ref.split(".", 1)
+            verse = Verse.objects.filter(
+                chapter=int(chapter_text),
+                verse=int(verse_text),
+            ).first()
+        except (TypeError, ValueError):
+            verse = None
+
+        if verse is None:
+            verses.append(
+                SimpleNamespace(
+                    reference=ref,
+                    translation="Relevant Bhagavad Gita guidance for this life challenge.",
+                    themes=[],
+                )
+            )
+            continue
+
+        verses.append(
+            SimpleNamespace(
+                reference=ref,
+                translation=verse.translation,
+                themes=list(verse.themes or []),
+            )
+        )
+    return verses
+
+
+class SeoLandingIndexView(View):
+    """Public index for SEO-friendly Bhagavad Gita topic pages."""
+
+    template_name = "guide_api/seo_landing.html"
+
+    def get(self, request):
+        topics = []
+        for key, page in SEO_LANDING_PAGES.items():
+            topics.append(
+                {
+                    "key": key,
+                    "topic_label": page["topic_label"],
+                    "slug": page["slug"],
+                    "hero_title": page["hero_title"],
+                    "description": page["description"],
+                }
+            )
+        context = {
+            "page_title": "Bhagavad Gita Guides For Anxiety, Career, Relationships, and Real Life Questions",
+            "meta_description": (
+                "Explore focused Bhagavad Gita landing pages for anxiety, career confusion, relationships, "
+                "and other real-life challenges."
+            ),
+            "page_heading": "Bhagavad Gita Guides For Real Life Problems",
+            "page_intro": (
+                "Choose a focused guide below, explore relevant verses, and then continue into the full app "
+                "for a personalized answer."
+            ),
+            "topics": topics,
+        }
+        return render(request, self.template_name, context)
+
+
+class SeoLandingTopicView(View):
+    """Public SEO topic page that points users into the full chat experience."""
+
+    template_name = "guide_api/seo_landing.html"
+
+    def get(self, request, slug: str):
+        page = next(
+            (item for item in SEO_LANDING_PAGES.values() if item["slug"] == slug),
+            None,
+        )
+        if page is None:
+            return JsonResponse({"detail": "Not found."}, status=404)
+
+        starter_question = page["starter_question"]
+        chat_url = f"/api/chat-ui/?mode=simple&language=en"
+        context = {
+            "page_title": page["title"],
+            "meta_description": page["description"],
+            "page_heading": page["hero_title"],
+            "page_intro": page["hero_body"],
+            "topic_label": page["topic_label"],
+            "problem_points": page["problem_points"],
+            "featured_verses": _fetch_curated_verses(page["verse_refs"]),
+            "starter_question": starter_question,
+            "chat_url": chat_url,
+            "chat_url_with_prefill": f"{chat_url}&prefill={quote_plus(starter_question)}",
+            "other_topics": [
+                {
+                    "topic_label": item["topic_label"],
+                    "slug": item["slug"],
+                }
+                for item in SEO_LANDING_PAGES.values()
+                if item["slug"] != slug
+            ],
+        }
+        return render(request, self.template_name, context)
 
 
 def _get_user_plan_and_usage(user):
@@ -607,6 +784,7 @@ class AskView(APIView):
             ]
             response_data["retrieval_scores"] = retrieval.retrieval_scores
             response_data["query_themes"] = retrieval.query_themes
+            response_data["query_interpretation"] = retrieval.query_interpretation
         return Response(response_data)
 
 
@@ -700,19 +878,56 @@ class DailyVerseView(APIView):
     """Return a deterministic daily verse and short reflection."""
 
     def get(self, request):
-        """Serve first available verse or seed fallback if empty DB."""
-        verse = Verse.objects.order_by("chapter", "verse").first()
+        """Serve one date-seeded verse with language-aware meaning."""
+        language = str(request.query_params.get("language", "en")).strip()
+        if language not in {"en", "hi"}:
+            language = "en"
+
+        queryset = Verse.objects.order_by("chapter", "verse")
+        count = queryset.count()
+        if count > 0:
+            day_seed = timezone.localdate().isoformat()
+            verse = queryset[Random(day_seed).randrange(count)]
+        else:
+            verse = None
+
         if verse is None:
             verses = retrieve_verses("daily verse", limit=1)
             verse = verses[0]
+            detail = get_verse_detail(verse.chapter, verse.verse) or {}
+        else:
+            detail = get_verse_detail(verse.chapter, verse.verse) or {}
+
+        english_quote = str(detail.get("english_meaning", "")).strip()
+        hindi_quote = str(detail.get("slok", "")).strip()
+        english_meaning = (
+            str(detail.get("translation", "")).strip()
+            or verse.translation.strip()
+        )
+        hindi_meaning = str(detail.get("hindi_meaning", "")).strip()
+        commentary = str(verse.commentary or "").strip()
+        meaning = (
+            hindi_meaning
+            if language == "hi" and hindi_meaning
+            else commentary or english_meaning
+        )
+        quote = (
+            hindi_quote
+            if language == "hi" and hindi_quote
+            else english_quote or english_meaning
+        )
+        reflection = (
+            "आज इस श्लोक को अपने एक निर्णय, एक प्रतिक्रिया, और एक कर्म में उतारने का अभ्यास करें।"
+            if language == "hi"
+            else "Practice applying this verse today in one decision, one reaction, and one concrete action."
+        )
 
         return Response(
             {
                 "verse": VerseSerializer(verse).data,
-                "reflection": (
-                    "Do your work with sincerity today and release "
-                    "attachment to outcomes."
-                ),
+                "quote": quote,
+                "meaning": meaning,
+                "reflection": reflection,
             }
         )
 
@@ -1046,6 +1261,87 @@ class ChatUIView(View):
     """Simple server-rendered page for manual API testing."""
 
     template_name = "guide_api/chat_ui.html"
+    guest_cookie_name = "chat_ui_guest_id"
+    guest_cookie_age = 60 * 60 * 24 * 90
+    guest_ask_limit = 3
+
+    def dispatch(self, request, *args, **kwargs):
+        """Attach a durable guest identifier so guest caps survive restarts."""
+        request.chat_ui_guest_id = ""
+        if not self._chat_ui_authenticated_username(request):
+            request.chat_ui_guest_id = str(
+                request.COOKIES.get(self.guest_cookie_name, ""),
+            ).strip() or uuid4().hex
+            GuestChatIdentity.objects.get_or_create(
+                guest_id=request.chat_ui_guest_id,
+            )
+        response = super().dispatch(request, *args, **kwargs)
+        if request.chat_ui_guest_id:
+            response.set_cookie(
+                self.guest_cookie_name,
+                request.chat_ui_guest_id,
+                max_age=self.guest_cookie_age,
+                httponly=True,
+                samesite="Lax",
+                secure=not settings.DEBUG,
+            )
+        return response
+
+    def _render_chat_ui(self, request, context: dict):
+        """Render chat UI with guest quota state attached when needed."""
+        context.setdefault(
+            "guest_quota_snapshot",
+            (
+                self._guest_quota_snapshot(request)
+                if not self._chat_ui_authenticated_username(request)
+                else None
+            ),
+        )
+        return render(request, self.template_name, context)
+
+    def _guest_identity(self, request):
+        """Look up the persistent guest row for the current browser."""
+        guest_id = str(getattr(request, "chat_ui_guest_id", "")).strip()
+        if not guest_id:
+            return None
+        identity, created = GuestChatIdentity.objects.get_or_create(
+            guest_id=guest_id,
+        )
+        if not created:
+            identity.save(update_fields=["last_seen_at"])
+        return identity
+
+    def _guest_quota_snapshot(self, request) -> dict | None:
+        """Summarize guest chat availability for the current browser."""
+        identity = self._guest_identity(request)
+        if identity is None:
+            return None
+        limit = self.guest_ask_limit
+        used = identity.total_asks
+        return {
+            "ask_limit": limit,
+            "asks_used": used,
+            "remaining_asks": max(limit - used, 0),
+            "limit_reached": used >= limit,
+        }
+
+    def _consume_guest_conversation_slot(self, request) -> dict:
+        """Count each guest prompt against the persistent browser cap."""
+        identity = self._guest_identity(request)
+        if identity is None:
+            return {"allowed": True, "snapshot": None}
+        if identity.total_asks >= self.guest_ask_limit:
+            return {
+                "allowed": False,
+                "snapshot": self._guest_quota_snapshot(request),
+            }
+        update_fields = ["last_seen_at", "total_asks"]
+        identity.total_asks += 1
+        identity.save(update_fields=update_fields)
+        return {
+            "allowed": True,
+            "snapshot": self._guest_quota_snapshot(request),
+        }
 
     def get(self, request):
         """Render empty chat form."""
@@ -1081,9 +1377,8 @@ class ChatUIView(View):
             if authenticated_username
             else {"items": [], "has_more": False, "next_offset": None}
         )
-        return render(
+        return self._render_chat_ui(
             request,
-            self.template_name,
             {
                 "response_data": None,
                 "error": "",
@@ -1160,9 +1455,8 @@ class ChatUIView(View):
             mode = "simple"
 
         if not message:
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": "Please enter a message to continue.",
@@ -1199,9 +1493,8 @@ class ChatUIView(View):
                 outcome=AskEvent.OUTCOME_BLOCKED_SAFETY,
                 plan=UserSubscription.PLAN_FREE,
             )
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": (
@@ -1248,9 +1541,8 @@ class ChatUIView(View):
                 outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
                 plan=quota["subscription"].plan,
             )
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": (
@@ -1288,6 +1580,44 @@ class ChatUIView(View):
                     "follow_up_prompts": [],
                 },
             )
+
+        guest_quota_snapshot = None
+        if not authenticated_username:
+            guest_quota_result = self._consume_guest_conversation_slot(request)
+            guest_quota_snapshot = guest_quota_result["snapshot"]
+            if not guest_quota_result["allowed"]:
+                _log_ask_event(
+                    user_id=user_id,
+                    source=AskEvent.SOURCE_CHAT_UI,
+                    mode=mode,
+                    outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
+                    plan=UserSubscription.PLAN_FREE,
+                )
+                return self._render_chat_ui(
+                    request,
+                    {
+                        "response_data": None,
+                        "error": (
+                            "You have already used all 3 guest questions "
+                            "in this browser. Sign up or log in to continue."
+                        ),
+                        "feedback_message": "",
+                        "active_conversation_id": "",
+                        "conversation_messages": self._guest_conversation_messages(
+                            request,
+                        ),
+                        "conversations": [],
+                        "user_id": user_id,
+                        "is_guest_chat": True,
+                        "mode": mode,
+                        "language": language,
+                        "message": message,
+                        "starter_prompts": starter_prompts,
+                        "recent_questions": recent_questions,
+                        "follow_up_prompts": [],
+                        "guest_quota_snapshot": guest_quota_snapshot,
+                    },
+                )
 
         if authenticated_username:
             conversation, verses, guidance, retrieval = _run_guidance_flow(
@@ -1397,9 +1727,8 @@ class ChatUIView(View):
         self._store_recent_question(request, message)
         updated_recent_questions = self._recent_questions(request)
 
-        return render(
+        return self._render_chat_ui(
             request,
-            self.template_name,
             {
                 "response_data": response_data,
                 "error": "",
@@ -1439,6 +1768,7 @@ class ChatUIView(View):
                     if authenticated_username
                     else []
                 ),
+                "guest_quota_snapshot": guest_quota_snapshot,
             },
         )
 
@@ -1830,6 +2160,7 @@ class ChatUIView(View):
             verses,
             conversation_messages=conversation_messages,
             language=language,
+            query_interpretation=retrieval.query_interpretation,
         )
         self._append_guest_exchange(
             request,
@@ -2405,10 +2736,10 @@ class ChatUIView(View):
     def _starter_prompts() -> list[str]:
         """Return curated first-question prompts for quick onboarding."""
         return [
-            "I feel anxious about my career growth and future.",
-            "I get angry quickly in relationships. How can I respond better?",
-            "I feel stuck and directionless. How do I find purpose?",
-            "I procrastinate and lose discipline. What should I do daily?",
+            "I feel anxious about my career growth and future. What should I do?",
+            "I get angry quickly in relationships. How can I respond with more control?",
+            "I feel stuck and directionless. How do I find purpose and direction?",
+            "I procrastinate and lose discipline. What daily practice should I start?",
         ]
 
     @staticmethod
@@ -2439,3 +2770,314 @@ class ChatUIView(View):
             existing = []
         updated = [message] + [item for item in existing if item != message]
         request.session["chat_ui_recent_questions"] = updated[:3]
+
+
+# =============================================================================
+# Payment Views - Razorpay Integration
+# =============================================================================
+
+
+def _get_user_from_session(request):
+    """Get authenticated user from session token (for chat-ui auth)."""
+    # In DRF APIView, access session from the underlying Django request
+    session = getattr(request, 'session', None)
+    if session is None:
+        session = getattr(request, '_request', request).session
+
+    # First try by username (more reliable)
+    username = session.get("chat_ui_auth_username")
+    if username:
+        User = get_user_model()
+        try:
+            return User.objects.get(username=username)
+        except User.DoesNotExist:
+            pass
+
+    # Fallback to token
+        return None
+
+
+class CsrfExemptSessionAuth(SessionAuthentication):
+    """Session auth without CSRF enforcement for API calls."""
+    def enforce_csrf(self, request):
+        return  # Skip CSRF check - we handle it differently
+
+
+class CreateOrderView(APIView):
+    """Create a Razorpay order for subscription payment."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = [CsrfExemptSessionAuth]
+
+    def post(self, request) -> Response:
+        import razorpay
+
+        # Get user - first try DRF auth, then session lookup
+        user = None
+        if request.user and request.user.is_authenticated:
+            user = request.user
+        else:
+            user = _get_user_from_session(request)
+
+        if not user:
+            return Response(
+                {"error": "Please log in to subscribe"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        key_id = settings.RAZORPAY_KEY_ID
+        key_secret = settings.RAZORPAY_KEY_SECRET
+
+        if not key_id or not key_secret:
+            return Response(
+                {"error": "Payment gateway not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        # Determine currency based on request or default to INR
+        currency = request.data.get("currency", "INR").upper()
+        if currency == "INR":
+            amount = settings.SUBSCRIPTION_PRICE_INR
+        else:
+            currency = "USD"
+            amount = settings.SUBSCRIPTION_PRICE_USD
+
+        client = razorpay.Client(auth=(key_id, key_secret))
+
+        try:
+            order_data = {
+                "amount": amount,
+                "currency": currency,
+                "receipt": f"sub_{user.id}_{timezone.now().timestamp()}",
+                "notes": {
+                    "user_id": str(user.id),
+                    "plan": UserSubscription.PLAN_PRO,
+                },
+            }
+            order = client.order.create(data=order_data)
+
+            # Store order_id in subscription record
+            subscription, _ = UserSubscription.objects.get_or_create(
+                user=user,
+                defaults={"plan": UserSubscription.PLAN_FREE},
+            )
+            subscription.razorpay_order_id = order["id"]
+            subscription.payment_currency = currency
+            subscription.save()
+
+            return Response({
+                "order_id": order["id"],
+                "amount": amount,
+                "currency": currency,
+                "key_id": key_id,
+                "user_email": user.email,
+                "user_name": user.get_full_name() or user.username,
+            })
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class VerifyPaymentView(APIView):
+    """Verify Razorpay payment signature and activate subscription."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = [CsrfExemptSessionAuth]
+
+    def post(self, request) -> Response:
+        import hmac
+        import hashlib
+
+        # Get user - first try DRF auth, then session lookup
+        user = None
+        if request.user and request.user.is_authenticated:
+            user = request.user
+        else:
+            user = _get_user_from_session(request)
+
+        if not user:
+            return Response(
+                {"error": "Please log in to verify payment"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        key_id = settings.RAZORPAY_KEY_ID
+        key_secret = settings.RAZORPAY_KEY_SECRET
+
+        if not key_id or not key_secret:
+            return Response(
+                {"error": "Payment gateway not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        razorpay_order_id = request.data.get("razorpay_order_id")
+        razorpay_payment_id = request.data.get("razorpay_payment_id")
+        razorpay_signature = request.data.get("razorpay_signature")
+
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            return Response(
+                {"error": "Missing payment verification parameters"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Verify signature
+        msg = f"{razorpay_order_id}|{razorpay_payment_id}"
+        generated_signature = hmac.new(
+            key_secret.encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if generated_signature != razorpay_signature:
+            return Response(
+                {"error": "Invalid payment signature"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Activate subscription
+        try:
+            subscription = UserSubscription.objects.get(user=user)
+            if subscription.razorpay_order_id != razorpay_order_id:
+                return Response(
+                    {"error": "Order ID mismatch"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            subscription.plan = UserSubscription.PLAN_PRO
+            subscription.is_active = True
+            subscription.subscription_end_date = timezone.now() + timedelta(days=30)
+            subscription.save()
+
+            return Response({
+                "success": True,
+                "message": "Subscription activated successfully",
+                "plan": subscription.plan,
+                "valid_until": subscription.subscription_end_date.isoformat(),
+            })
+
+        except UserSubscription.DoesNotExist:
+            return Response(
+                {"error": "Subscription not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+
+class RazorpayWebhookView(APIView):
+    """Handle Razorpay webhook callbacks for payment events."""
+
+    # Webhooks don't use normal authentication
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request) -> Response:
+        import hmac
+        import hashlib
+        import json
+
+        webhook_secret = settings.RAZORPAY_WEBHOOK_SECRET
+
+        if not webhook_secret:
+            return Response(
+                {"error": "Webhook not configured"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        # Verify webhook signature
+        webhook_signature = request.headers.get("X-Razorpay-Signature", "")
+        webhook_body = request.body.decode()
+
+        expected_signature = hmac.new(
+            webhook_secret.encode(),
+            webhook_body.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        if expected_signature != webhook_signature:
+            return Response(
+                {"error": "Invalid webhook signature"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Process webhook event
+        try:
+            payload = json.loads(webhook_body)
+            event = payload.get("event")
+
+            if event == "payment.captured":
+                payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
+                order_id = payment_entity.get("order_id")
+
+                if order_id:
+                    try:
+                        subscription = UserSubscription.objects.get(razorpay_order_id=order_id)
+                        subscription.plan = UserSubscription.PLAN_PRO
+                        subscription.is_active = True
+                        subscription.subscription_end_date = timezone.now() + timedelta(days=30)
+                        subscription.save()
+                    except UserSubscription.DoesNotExist:
+                        pass  # Order not found, ignore
+
+            elif event == "payment.failed":
+                # Log failed payment for monitoring
+                pass
+
+            return Response({"status": "ok"})
+
+        except json.JSONDecodeError:
+            return Response(
+                {"error": "Invalid JSON"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class SubscriptionStatusView(APIView):
+    """Get current user's subscription status."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = [CsrfExemptSessionAuth]
+
+    def get(self, request) -> Response:
+        # Get user - first try DRF auth, then session lookup
+        user = None
+        if request.user and request.user.is_authenticated:
+            user = request.user
+        else:
+            user = _get_user_from_session(request)
+
+        if not user:
+            return Response(
+                {"error": "Please log in to view subscription status"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        subscription, created = UserSubscription.objects.get_or_create(
+            user=user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+
+        is_pro = (
+            subscription.plan == UserSubscription.PLAN_PRO
+            and subscription.is_active
+            and (
+                subscription.subscription_end_date is None
+                or subscription.subscription_end_date > timezone.now()
+            )
+        )
+
+        return Response({
+            "plan": subscription.plan,
+            "is_active": subscription.is_active,
+            "is_pro": is_pro,
+            "subscription_end_date": (
+                subscription.subscription_end_date.isoformat()
+                if subscription.subscription_end_date
+                else None
+            ),
+            "pricing": {
+                "INR": settings.SUBSCRIPTION_PRICE_INR,
+                "USD": settings.SUBSCRIPTION_PRICE_USD,
+            },
+        })

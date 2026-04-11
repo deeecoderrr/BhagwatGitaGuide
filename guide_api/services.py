@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import csv
+import hashlib
 import json
 import logging
 import math
@@ -12,14 +13,16 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import connection
+from django.db.utils import OperationalError, ProgrammingError
 from openai import OpenAI
 
 from guide_api.data.default_verses import DEFAULT_VERSES
-from guide_api.models import Verse
+from guide_api.models import Verse, VerseSynthesis
 
 logger = logging.getLogger(__name__)
 _seed_synced = False
 SUPPORTED_LANGUAGE_CODES = {"en", "hi"}
+VERSE_SYNTHESIS_SCHEMA_VERSION = "v2"
 _verse_quote_cache: dict[str, dict[str, str]] | None = None
 _verse_additional_angle_cache: dict[str, list[dict[str, str]]] | None = None
 _merged_verse_context_cache: dict[str, dict[str, object]] | None = None
@@ -196,6 +199,62 @@ THEME_KEYWORDS = {
         "हीन",
         "मान-सम्मान",
     },
+    "mortality": {
+        "war",
+        "death",
+        "die",
+        "dying",
+        "dead",
+        "destroy",
+        "destruction",
+        "kill",
+        "killed",
+        "mortal",
+        "mortality",
+        "will i die",
+        "afterlife",
+        "soul",
+        "immortal",
+        "rebirth",
+        "safe",
+        "safety",
+        "protect",
+        "protection",
+        "survive",
+        "survival",
+        "weapon",
+        "weapons",
+        "violence",
+        "conflict",
+        "battle",
+        "battlefield",
+        "world war",
+        "nuclear",
+        "bomb",
+        "end of world",
+        "apocalypse",
+        "doomsday",
+        "mrityu",
+        "maut",
+        "marna",
+        "yuddh",
+        "jung",
+        "atma",
+        "aatma",
+        "punarjanm",
+        "suraksha",
+        "मृत्यु",
+        "मौत",
+        "मरना",
+        "युद्ध",
+        "जंग",
+        "नाश",
+        "विनाश",
+        "आत्मा",
+        "पुनर्जन्म",
+        "सुरक्षा",
+        "हथियार",
+    },
 }
 STOPWORDS = {
     "a",
@@ -263,6 +322,18 @@ THEME_REFERENCE_PRIORS = {
         "12.15",
         "16.21",
     },
+    "mortality": {
+        "2.20",
+        "2.22",
+        "2.23",
+        "2.27",
+        "2.47",
+        "2.62",
+        "2.63",
+        "2.14",
+        "6.5",
+        "18.66",
+    },
 }
 
 THEME_CHAPTER_PRIORS = {
@@ -272,6 +343,7 @@ THEME_CHAPTER_PRIORS = {
     "discipline": {3, 6, 18},
     "purpose": {2, 3, 18},
     "comparison": {2, 12, 16},
+    "mortality": {2, 6, 11, 18},
 }
 
 ACTION_OR_DECISION_TERMS = {
@@ -316,7 +388,37 @@ EMOTION_REACTIVITY_TERMS = {
     "डर",
 }
 
+MORTALITY_OR_WAR_TERMS = {
+    "war",
+    "death",
+    "die",
+    "dying",
+    "dead",
+    "destroy",
+    "destruction",
+    "kill",
+    "killed",
+    "mortal",
+    "immortal",
+    "soul",
+    "weapon",
+    "battle",
+    "conflict",
+    "world war",
+    "nuclear",
+    "apocalypse",
+    "safe",
+    "safety",
+    "survive",
+    "मृत्यु",
+    "मौत",
+    "युद्ध",
+    "नाश",
+}
+
 UNIVERSAL_CURATED_REFERENCES = [
+    "2.20",
+    "2.23",
     "2.47",
     "2.48",
     "3.19",
@@ -389,6 +491,7 @@ THEME_LABELS_EN = {
     "discipline": "discipline and focus",
     "purpose": "purpose and direction",
     "comparison": "comparison and inner worth",
+    "mortality": "death, war, and the immortal Self",
 }
 
 THEME_LABELS_HI = {
@@ -399,6 +502,7 @@ THEME_LABELS_HI = {
     "discipline": "अनुशासन और एकाग्रता",
     "purpose": "उद्देश्य और दिशा",
     "comparison": "तुलना और आत्म-मूल्य",
+    "mortality": "मृत्यु, युद्ध, और अविनाशी आत्मा",
 }
 
 
@@ -422,6 +526,60 @@ class RetrievalResult:
     query_themes: list[str]
     query_tokens: list[str]
     retrieval_scores: list[dict]
+    query_interpretation: dict[str, object] | None = None
+
+
+@dataclass
+class QueryInterpretation:
+    """Structured local interpretation used before retrieval and prompting."""
+
+    emotional_state: str
+    life_domain: str
+    likely_principles: list[str]
+    search_terms: list[str]
+    match_strictness: str
+    confidence: float
+
+    def as_dict(self) -> dict[str, object]:
+        """Expose interpretation in a stable JSON-friendly shape."""
+        return {
+            "emotional_state": self.emotional_state,
+            "life_domain": self.life_domain,
+            "likely_principles": self.likely_principles,
+            "search_terms": self.search_terms,
+            "match_strictness": self.match_strictness,
+            "confidence": round(self.confidence, 2),
+        }
+
+
+GREETING_PATTERNS = {
+    "hi",
+    "hii",
+    "hiii",
+    "hie",
+    "hye",
+    "hey",
+    "hello",
+    "namaste",
+    "namaskar",
+    "radhe radhe",
+    "hare krishna",
+    "good morning",
+    "good evening",
+    "good afternoon",
+}
+
+
+def _is_greeting_like(message: str) -> bool:
+    """Detect short greeting-only messages that do not present a real issue yet."""
+    normalized = re.sub(r"[^a-zA-Z\s]", " ", message.lower()).strip()
+    normalized = re.sub(r"\s+", " ", normalized)
+    if not normalized:
+        return False
+    if normalized in GREETING_PATTERNS:
+        return True
+    tokens = normalized.split()
+    return len(tokens) <= 3 and normalized in GREETING_PATTERNS
 
 
 def is_risky_prompt(message: str) -> bool:
@@ -452,6 +610,114 @@ def ensure_seed_verses() -> None:
 def detect_themes(message: str) -> set[str]:
     """Public wrapper used by retrieval pipeline for theme detection."""
     return infer_themes_from_text(message)
+
+
+def interpret_query(message: str) -> QueryInterpretation:
+    """Map a plain-language problem into a retrieval-friendly Gita framing."""
+    themes = sorted(infer_themes_from_text(message))
+    tokens = sorted(_tokenize(message))
+
+    if _is_greeting_like(message):
+        emotional_state = "open"
+        life_domain = "conversation opening"
+        likely_principles = [
+            "begin with calm presence",
+            "invite the real concern gently",
+            "offer a safe reflective space",
+        ]
+        match_strictness = "none"
+    elif "mortality" in themes:
+        emotional_state = "fearful"
+        life_domain = "existential safety"
+        likely_principles = [
+            "the Self is not destroyed with the body",
+            "act steadily instead of collapsing into panic",
+            "grief should be met with higher understanding",
+        ]
+        match_strictness = "direct"
+    elif "anxiety" in themes:
+        emotional_state = "anxious"
+        life_domain = "inner stability"
+        likely_principles = [
+            "equanimity amid uncertainty",
+            "focus on action rather than results",
+            "steady the mind before deciding",
+        ]
+        match_strictness = "direct"
+    elif "anger" in themes:
+        emotional_state = "reactive"
+        life_domain = "self-mastery"
+        likely_principles = [
+            "break the chain from desire to anger",
+            "respond with steadiness rather than impulse",
+            "discipline the senses and mind",
+        ]
+        match_strictness = "direct"
+    elif "relationships" in themes:
+        emotional_state = "tender"
+        life_domain = "relationships"
+        likely_principles = [
+            "compassion without attachment",
+            "clarity in duty and speech",
+            "balance care with self-mastery",
+        ]
+        match_strictness = "interpretive"
+    elif "career" in themes:
+        emotional_state = "uncertain"
+        life_domain = "work and vocation"
+        likely_principles = [
+            "act according to dharma",
+            "work without anxious attachment to outcomes",
+            "clarity grows through sincere action",
+        ]
+        match_strictness = "interpretive"
+    elif "discipline" in themes:
+        emotional_state = "scattered"
+        life_domain = "habit and discipline"
+        likely_principles = [
+            "steady practice strengthens the mind",
+            "self-mastery comes from repetition and restraint",
+            "small disciplined action matters more than intensity",
+        ]
+        match_strictness = "direct"
+    elif "purpose" in themes:
+        emotional_state = "confused"
+        life_domain = "meaning and direction"
+        likely_principles = [
+            "clarity comes through right action",
+            "dharma is discovered through sincerity and steadiness",
+            "confusion lifts when one sees with wisdom",
+        ]
+        match_strictness = "interpretive"
+    elif "comparison" in themes:
+        emotional_state = "self-doubting"
+        life_domain = "self-worth"
+        likely_principles = [
+            "do not measure yourself through others",
+            "return attention to your own path and duty",
+            "inner worth is steadier than praise or blame",
+        ]
+        match_strictness = "interpretive"
+    else:
+        emotional_state = "seeking"
+        life_domain = "daily life"
+        likely_principles = [
+            "steady action",
+            "clarity before reaction",
+            "inner alignment with dharma",
+        ]
+        match_strictness = "exploratory"
+
+    search_terms = list(dict.fromkeys([*themes, *tokens[:8], *likely_principles[:2]]))
+    confidence = min(0.45 + (0.12 * len(themes)), 0.9) if themes else 0.38
+    return QueryInterpretation(
+        emotional_state=emotional_state,
+        life_domain=life_domain,
+        likely_principles=likely_principles,
+        search_terms=search_terms[:10],
+        match_strictness=match_strictness,
+        confidence=confidence,
+    )
 
 
 def infer_themes_from_text(text: str) -> set[str]:
@@ -564,6 +830,11 @@ def _retrieval_confidence_high(*, message: str, verses: list[Verse]) -> bool:
         for verse in verses
     )
 
+    # When no themes are detected, apply a tighter score requirement so
+    # marginal semantic-only matches fall back to curated retrieval.
+    if not query_themes:
+        return top_score >= 6 and best_score >= 8
+
     # Use stricter confidence thresholds so weak semantic-only matches fall back
     # to deterministic hybrid/curated retrieval more often.
     return top_score >= 8 or best_score >= 10
@@ -604,6 +875,13 @@ def _bridge_rerank_score(*, message: str, verse: Verse) -> int:
     if any(term in lowered for term in EMOTION_REACTIVITY_TERMS):
         if ref in {"2.48", "2.63", "3.37", "6.26", "6.35", "16.21"}:
             score += 10
+
+    # Boost Self-immortality and war-origin verses for death/war queries.
+    if any(term in lowered for term in MORTALITY_OR_WAR_TERMS):
+        if ref in {"2.20", "2.22", "2.23", "2.27", "2.14", "18.66"}:
+            score += 12
+        if ref in {"2.62", "2.63"}:
+            score += 8
 
     angle_text = _additional_angle_text(ref, limit=2).lower()
     if angle_text and any(token in angle_text for token in lowered.split()):
@@ -817,9 +1095,37 @@ def _curated_fallback_verses(*, message: str, limit: int) -> list[Verse]:
     return [verse for _, verse in scored[:limit]]
 
 
+def _fetch_verses_by_references(refs: list[str]) -> list[Verse]:
+    """Look up Verse objects from chapter.verse reference strings."""
+    ensure_seed_verses()
+    verses: list[Verse] = []
+    seen: set[str] = set()
+    for ref in refs:
+        ref = ref.strip()
+        if ref in seen:
+            continue
+        parsed = _parse_reference(ref)
+        if not parsed:
+            continue
+        chapter, verse_num = parsed
+        obj = Verse.objects.filter(chapter=chapter, verse=verse_num).first()
+        if obj is not None:
+            seen.add(ref)
+            verses.append(obj)
+    return verses
+
+
 def _verse_reference(verse: Verse) -> str:
     """Format verse primary key as chapter.verse string."""
     return f"{verse.chapter}.{verse.verse}"
+
+
+def _safe_get_verse_synthesis_record(verse: Verse) -> VerseSynthesis | None:
+    """Return cached synthesis record when the table exists; otherwise degrade safely."""
+    try:
+        return VerseSynthesis.objects.filter(verse=verse).first()
+    except (OperationalError, ProgrammingError):
+        return None
 
 
 def _cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
@@ -1155,6 +1461,16 @@ def _dual_corpus_rerank(
 
 def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
     """Preferred retrieval strategy: semantic first, hybrid fallback."""
+    interpretation = interpret_query(message)
+    if _is_greeting_like(message):
+        return RetrievalResult(
+            verses=[],
+            retrieval_mode="greeting",
+            query_themes=[],
+            query_tokens=sorted(list(_tokenize(message))),
+            retrieval_scores=[],
+            query_interpretation=interpretation.as_dict(),
+        )
     candidate_limit = _candidate_pool_limit(limit)
     semantic = retrieve_semantic_verses_with_trace(
         message=message,
@@ -1196,10 +1512,12 @@ def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
     # If initial retrieval is weak for the exact query, switch to a local
     # curated fallback verse shortlist (no extra LLM calls, no web calls).
     if _retrieval_confidence_high(message=message, verses=retrieval.verses):
+        retrieval.query_interpretation = interpretation.as_dict()
         return retrieval
 
     fallback_verses = _curated_fallback_verses(message=message, limit=limit)
     if not fallback_verses:
+        retrieval.query_interpretation = interpretation.as_dict()
         return retrieval
 
     return RetrievalResult(
@@ -1217,6 +1535,7 @@ def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
             }
             for verse in fallback_verses
         ],
+        query_interpretation=interpretation.as_dict(),
     )
 
 
@@ -1550,6 +1869,81 @@ def _author_commentary_entries(reference: str) -> list[dict[str, str]]:
     return list(rows) if isinstance(rows, list) else []
 
 
+def _detect_text_language(text: str) -> str:
+    """Roughly detect whether text is Hindi/Devanagari or English-dominant."""
+    normalized = str(text).strip()
+    if not normalized:
+        return "en"
+    hindi_chars = sum(1 for c in normalized if "\u0900" <= c <= "\u097F")
+    return "hi" if hindi_chars > len(normalized) * 0.2 else "en"
+
+
+def _clean_commentary_text(text: str, *, max_chars: int = 280) -> str:
+    """Trim raw commentary down to readable prose for synthesis and prompt use."""
+    cleaned = re.sub(r"\s+", " ", str(text or "")).strip()
+    cleaned = re.sub(r"।।\s*\d+\.\d+\s*।।", "", cleaned)
+    cleaned = re.sub(r"\b\d{1,2}\.\d{1,3}\b", "", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip(" -|:;,.")
+    if not cleaned:
+        return ""
+
+    fragments = re.split(r"(?<=[.!?।])\s+", cleaned)
+    selected: list[str] = []
+    for fragment in fragments:
+        fragment = fragment.strip(" -|:;,.")
+        if not fragment:
+            continue
+        digit_ratio = sum(ch.isdigit() for ch in fragment) / max(len(fragment), 1)
+        if digit_ratio > 0.18:
+            continue
+        if len(fragment) < 24:
+            continue
+        selected.append(fragment)
+        if sum(len(item) for item in selected) >= max_chars:
+            break
+
+    if selected:
+        cleaned = " ".join(selected)
+
+    if len(cleaned) > max_chars:
+        clipped = cleaned[:max_chars].rsplit(" ", 1)[0].strip()
+        cleaned = f"{clipped}..."
+    return cleaned.strip()
+
+
+def _preferred_commentary_entries(
+    reference: str,
+    *,
+    language: str = "en",
+    limit: int = 3,
+    message: str = "",
+) -> list[dict[str, str]]:
+    """Return the cleanest, most relevant commentary entries for one language."""
+    normalized_language = _normalize_language(language)
+    rows = []
+    for entry in _author_commentary_entries(reference):
+        cleaned_text = _clean_commentary_text(entry.get("text", ""))
+        if not cleaned_text:
+            continue
+        rows.append(
+            {
+                "author": str(entry.get("author", "")).strip(),
+                "text": cleaned_text,
+                "language": _detect_text_language(cleaned_text),
+            }
+        )
+
+    rows = sorted(
+        rows,
+        key=lambda entry: (
+            0 if entry.get("language") == normalized_language else 1,
+            -_author_commentary_match_score(message=message, entry=entry),
+            str(entry.get("author", "")).lower(),
+        ),
+    )
+    return rows[:limit]
+
+
 def _author_commentary_match_score(*, message: str, entry: dict[str, str]) -> int:
     """Score one author perspective against the user's query."""
     text = str(entry.get("text", "")).strip()
@@ -1572,19 +1966,12 @@ def _author_commentary_text(
     message: str = "",
 ) -> str:
     """Serialize the most query-relevant author commentary snippets."""
-    rows = _author_commentary_entries(reference)
-    if message:
-        rows = sorted(
-            rows,
-            key=lambda entry: (
-                -_author_commentary_match_score(
-                    message=message,
-                    entry=entry,
-                ),
-                str(entry.get("author", "")).lower(),
-            ),
-        )
-    rows = rows[:limit]
+    rows = _preferred_commentary_entries(
+        reference,
+        language="en",
+        limit=limit,
+        message=message,
+    )
     snippets = []
     for row in rows:
         author = str(row.get("author", "")).strip()
@@ -1715,6 +2102,83 @@ def _is_context_relevant_response(
     return len(overlap) >= 3
 
 
+def _build_mortality_fallback(
+    *,
+    message: str,
+    verses: list[Verse],
+    refs: str,
+    primary_ref: str,
+    primary_verse: Verse | None,
+    language: str,
+) -> GuidanceResult:
+    """Mortality/war-specific fallback when LLM is unavailable."""
+    if language == "hi":
+        guidance = (
+            "प्रिय साधक, तुम्हारे मन में युद्ध, विनाश और मृत्यु का भय है। "
+            "गीता इसी भय के बीच कही गई थी — कुरुक्षेत्र के रणक्षेत्र में, जहाँ "
+            "अर्जुन भी ठीक ऐसे ही भयभीत और हतप्रभ था। कृष्ण ने सबसे पहले "
+            "उसे बताया कि आत्मा अजर, अमर और अविनाशी है (2.20) — शस्त्र इसे "
+            "काट नहीं सकते, अग्नि जला नहीं सकती (2.23)। शरीर नश्वर है, पर "
+            "तुम्हारा सबसे गहरा अस्तित्व किसी युद्ध से नष्ट नहीं हो सकता। "
+            "कृष्ण कहते हैं: मा शुचः — शोक मत करो (18.66)। भय को अपने "
+            f"विवेक पर हावी न होने दो। इन श्लोकों से दिशा लो: {refs}।"
+        )
+        meaning = (
+            "गीता के अनुसार विनाश की जड़ बाहरी शस्त्रों में नहीं, बल्कि "
+            "आसक्ति, काम, क्रोध और मोह की आंतरिक शृंखला में है (2.62-63)। "
+            "तुम्हारे प्रसंग में इसका अर्थ है: भय स्वाभाविक है, पर भय ही सत्य "
+            "नहीं है। तुम्हारी आत्मा अविनाशी है और तुम्हारा कर्तव्य आज स्थिर रहना है।"
+        )
+        actions = [
+            "शांत बैठो, धीमी सांस लो, और स्वयं से कहो: 'यह भय गुज़रेगा, मैं स्पष्टता से कर्म करूंगा।'",
+            "गीता 2.20 और 2.23 पढ़ो — आत्मा की अमरता पर चिंतन करो।",
+            "केवल विश्वसनीय समाचार स्रोत देखो; भय बढ़ाने वाली सूचनाओं से दूर रहो।",
+        ]
+        reflection = "क्या मैं कल्पित विनाश में जी रहा हूँ, या इस क्षण में स्थिरता और विवेक के साथ?"
+    else:
+        guidance = (
+            "Dear seeker, your heart is gripped by fear of war, destruction, "
+            "and death. The Gita was spoken on exactly such a battlefield — "
+            "Kurukshetra — where Arjuna too was paralyzed by the same dread. "
+            "Krishna's very first teaching was this: the Self (atman) is never "
+            "born and never dies (2.20). Weapons cannot cut it, fire cannot "
+            "burn it (2.23). The body is mortal — death is certain for every "
+            "being born (2.27) — but your deepest reality is beyond "
+            "destruction. Krishna says: 'Ma shuchah' — do not despair "
+            "(18.66). Do not let fear crush your wisdom. "
+            f"Let these verses guide you: {refs}."
+        )
+        meaning = (
+            "According to the Gita, destruction begins not with weapons but "
+            "inside the mind — through the chain of attachment, desire, anger, "
+            "and delusion (2.62-63). In your context, this means: fear is "
+            "natural, but fear is not always truth. Your Self is indestructible, "
+            "and your duty right now is to stay steady, protect yourself wisely, "
+            "and act with clarity rather than panic."
+        )
+        actions = [
+            "Sit down, breathe slowly, and tell yourself: 'This fear is passing. I will act with clarity.'",
+            "Read Gita 2.20 and 2.23 — reflect on the immortality of the Self.",
+            "Limit news to trustworthy sources only; do not doom-scroll — that feeds the fear cycle described in 2.62-63.",
+        ]
+        reflection = (
+            "Am I living in imagined destruction, or can I meet this moment "
+            "with steadiness, faith, and wisdom?"
+        )
+    guidance = _guidance_with_primary_quote(
+        guidance=guidance,
+        primary_verse=primary_verse,
+        language=language,
+    )
+    return GuidanceResult(
+        guidance=guidance,
+        meaning=meaning,
+        actions=actions,
+        reflection=reflection,
+        response_mode="fallback",
+    )
+
+
 def _build_fallback_guidance(
     message: str,
     verses: list[Verse],
@@ -1723,6 +2187,41 @@ def _build_fallback_guidance(
 ) -> GuidanceResult:
     """Create deterministic, safe guidance when LLM is unavailable."""
     language = _normalize_language(language)
+    if _is_greeting_like(message):
+        if language == "hi":
+            return GuidanceResult(
+                guidance=(
+                    "नमस्ते। मैं यहाँ भगवद्गीता के आधार पर शांत, स्पष्ट और व्यावहारिक "
+                    "मार्गदर्शन देने के लिए हूँ।"
+                ),
+                meaning=(
+                    "आप अपनी स्थिति सरल शब्दों में लिखिए, और मैं सबसे प्रासंगिक "
+                    "शिक्षा, श्लोक और अगला कदम खोजने की कोशिश करूंगा।"
+                ),
+                actions=[
+                    "एक वाक्य में लिखिए: अभी आपको सबसे ज़्यादा किस बात की चिंता है?",
+                    "यदि चाहें, अपनी भावना और तात्कालिक प्रश्न भी साथ में लिखें।",
+                ],
+                reflection="इस समय आपके मन में सबसे मुख्य प्रश्न क्या है?",
+                response_mode="fallback",
+            )
+        return GuidanceResult(
+            guidance=(
+                "Hello. I’m here to offer calm, practical guidance rooted in the "
+                "Bhagavad Gita."
+            ),
+            meaning=(
+                "You can share your situation in simple words, and I’ll try to find "
+                "the most relevant teaching, verse, and next step."
+            ),
+            actions=[
+                "Write your issue in one sentence, using your own words.",
+                "If helpful, mention what you feel and what decision or pain is most present right now.",
+            ],
+            reflection="What is the one thing most active in your heart or mind right now?",
+            response_mode="fallback",
+        )
+
     refs = ", ".join(f"{verse.chapter}.{verse.verse}" for verse in verses)
     primary_verse = verses[0] if verses else None
     primary_ref = _verse_reference(primary_verse) if primary_verse else "2.47"
@@ -1730,6 +2229,21 @@ def _build_fallback_guidance(
         chapter=primary_verse.chapter if primary_verse else 2,
         language=language,
     )
+
+    # Detect mortality/war queries for a dedicated fallback template.
+    is_mortality = any(
+        term in message.lower() for term in MORTALITY_OR_WAR_TERMS
+    )
+
+    if is_mortality:
+        return _build_mortality_fallback(
+            message=message,
+            verses=verses,
+            refs=refs,
+            primary_ref=primary_ref,
+            primary_verse=primary_verse,
+            language=language,
+        )
 
     if language == "hi":
         guidance = (
@@ -1793,21 +2307,35 @@ def _verse_reference_set(verses: list[Verse]) -> set[str]:
 
 
 def _serialize_verses_for_prompt(verses: list[Verse], *, message: str = "") -> str:
-    """Serialize retrieved verses into compact prompt context text."""
+    """Serialize retrieved verses into rich prompt context text.
+
+    Provides the LLM with translations, meanings, multi-author commentary,
+    and additional interpretive angles so it can craft deeply informed guidance.
+    """
     lines = []
     for verse in verses:
         ref = _verse_reference(verse)
         row = _merged_verse_context(ref)
-        angle = _additional_angle_text(ref)
-        commentary = _author_commentary_text(ref, limit=2, message=message)
+        angle = _additional_angle_text(ref, limit=3)
+        commentary = _author_commentary_text(ref, limit=3, message=message)
+        synthesis = _safe_get_verse_synthesis_record(verse)
+        synthesis_text = ""
+        if synthesis is not None:
+            synthesis_text = (
+                f"(cached_overview_en: {synthesis.overview_en[:280]}) "
+                f"(cached_commentary_consensus_en: {synthesis.commentary_consensus_en[:280]}) "
+                f"(cached_life_application_en: {synthesis.life_application_en[:220]})"
+            )
         lines.append(
             (
                 f"{verse.chapter}.{verse.verse}: {verse.translation} "
                 f"(themes: {', '.join(verse.themes)}) "
-                f"(hindi_meaning: {row.get('hindi', '')[:120]}) "
-                f"(word_meaning: {row.get('word_meaning', '')[:120]}) "
-                f"(additional_angles: {angle[:220]}) "
-                f"(author_commentary: {commentary[:260]})"
+                f"(hindi_meaning: {row.get('hindi', '')[:200]}) "
+                f"(english_meaning: {row.get('english', '')[:200]}) "
+                f"(word_meaning: {row.get('word_meaning', '')[:200]}) "
+                f"(additional_angles: {angle[:400]}) "
+                f"(author_commentary: {commentary[:500]}) "
+                f"{synthesis_text}"
             )
         )
     return "\n".join(lines)
@@ -1863,19 +2391,163 @@ def _is_grounded_response(
     return bool(all_refs) and all_refs.issubset(allowed_references)
 
 
+def _validate_and_correct_verses(
+    message: str,
+    verses: list[Verse],
+) -> list[Verse]:
+    """Ask LLM whether retrieved verses are relevant; swap if not.
+
+    Returns original verses when:
+    - no API key configured
+    - LLM confirms verses are relevant
+    - LLM call fails (graceful degradation)
+    """
+    if not settings.OPENAI_API_KEY or not verses:
+        return verses
+
+    verse_summaries = []
+    for v in verses[:5]:
+        verse_summaries.append(
+            f"{v.chapter}.{v.verse}: {v.translation[:200]}"
+        )
+    verses_text = "\n".join(verse_summaries)
+
+    prompt = (
+        "You are a Bhagavad Gita verse-relevance evaluator.\n\n"
+        f"User question: {message}\n\n"
+        f"Retrieved verses:\n{verses_text}\n\n"
+        "Task:\n"
+        "1. Decide if the retrieved verses are relevant to the user's question.\n"
+        "2. If YES (at least 1 verse clearly addresses the user's concern), "
+        "respond with EXACTLY this JSON: {\"relevant\": true}\n"
+        "3. If NO (none of the retrieved verses meaningfully address the question), "
+        "respond with JSON: {\"relevant\": false, \"better_refs\": [\"chapter.verse\", ...]} "
+        "where better_refs contains 2-4 Bhagavad Gita verse references (e.g. \"2.47\") "
+        "that would genuinely address the user's concern. Only suggest verses you are "
+        "confident exist in the Bhagavad Gita (chapters 1-18).\n\n"
+        "Return ONLY the JSON object, no other text."
+    )
+
+    try:
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        response = client.responses.create(
+            model=settings.OPENAI_MODEL,
+            input=[{"role": "user", "content": prompt}],
+        )
+        payload = _parse_json_payload(response.output_text)
+
+        if payload.get("relevant", True):
+            return verses
+
+        better_refs = payload.get("better_refs", [])
+        if not isinstance(better_refs, list) or not better_refs:
+            return verses
+
+        # Sanitise refs — only allow valid chapter.verse format
+        sanitised = [
+            ref for ref in better_refs
+            if isinstance(ref, str) and _parse_reference(ref.strip())
+        ][:5]
+
+        if not sanitised:
+            return verses
+
+        corrected = _fetch_verses_by_references(sanitised)
+        if not corrected:
+            return verses
+
+        logger.info(
+            "Verse correction: swapped [%s] → [%s] for query: %s",
+            ", ".join(f"{v.chapter}.{v.verse}" for v in verses[:5]),
+            ", ".join(f"{v.chapter}.{v.verse}" for v in corrected),
+            message[:80],
+        )
+        return corrected
+
+    except Exception as exc:
+        logger.warning("Verse validation LLM call failed: %s", exc)
+        return verses
+
+
 def build_guidance(
     message: str,
     verses: list[Verse],
     conversation_messages=None,
     language: str = "en",
+    query_interpretation: dict[str, object] | None = None,
 ) -> GuidanceResult:
     """Generate grounded guidance via OpenAI with strict fallback path."""
     language = _normalize_language(language)
+    query_interpretation = query_interpretation or interpret_query(message).as_dict()
+    if _is_greeting_like(message):
+        return _build_fallback_guidance(
+            message,
+            verses=[],
+            language=language,
+        )
     if not settings.OPENAI_API_KEY:
         return _build_fallback_guidance(
             message,
             verses,
             language=language,
+        )
+
+    # Detect specific topic from user message
+    message_lower = message.lower()
+    detected_topic = "general life guidance"
+    topic_advice = ""
+
+    if any(word in message_lower for word in ["study", "studies", "exam", "school", "college", "learn", "education", "marks", "grades", "homework", "test"]):
+        detected_topic = "STUDIES AND EDUCATION"
+        topic_advice = (
+            "Give advice about: concentration techniques, study schedules, "
+            "overcoming procrastination, memory improvement, reducing exam anxiety, "
+            "finding motivation to study, dealing with difficult subjects. "
+            "Suggest specific study tips like Pomodoro technique, active recall, etc."
+        )
+    elif any(word in message_lower for word in ["relationship", "love", "breakup", "marriage", "partner", "girlfriend", "boyfriend", "spouse", "husband", "wife", "dating"]):
+        detected_topic = "RELATIONSHIPS AND LOVE"
+        topic_advice = (
+            "Give advice about: healthy attachment, communication, trust, "
+            "dealing with heartbreak, balancing love and personal growth, "
+            "understanding others' perspectives."
+        )
+    elif any(word in message_lower for word in ["anxiety", "stress", "worried", "fear", "panic", "nervous", "tension", "overwhelm"]):
+        detected_topic = "ANXIETY AND STRESS"
+        topic_advice = (
+            "Give advice about: calming techniques, breathing exercises, "
+            "staying present, reducing overthinking, acceptance practices."
+        )
+    elif any(word in message_lower for word in ["job", "career", "work", "office", "boss", "colleague", "profession", "salary", "promotion"]):
+        detected_topic = "CAREER AND WORK"
+        topic_advice = (
+            "Give advice about: finding purpose in work, dealing with workplace challenges, "
+            "balancing ambition with contentment, handling office politics."
+        )
+    elif any(word in message_lower for word in ["angry", "anger", "rage", "frustrated", "irritated", "annoyed"]):
+        detected_topic = "ANGER MANAGEMENT"
+        topic_advice = (
+            "Give advice about: controlling impulses, finding inner peace, "
+            "responding instead of reacting, understanding anger triggers."
+        )
+    elif any(word in message_lower for word in ["sad", "depressed", "lonely", "hopeless", "unhappy", "miserable"]):
+        detected_topic = "SADNESS AND EMOTIONAL PAIN"
+        topic_advice = (
+            "Give advice about: finding inner strength, accepting difficult emotions, "
+            "connecting with purpose, self-compassion practices."
+        )
+    elif any(word in message_lower for word in ["war", "death", "die", "dying", "destroy", "destruction", "kill", "weapon", "battle", "conflict", "world war", "nuclear", "safe", "safety", "apocalypse"]):
+        detected_topic = "WAR, DEATH, AND THE IMMORTAL SELF"
+        topic_advice = (
+            "Give advice about: why war and conflict happen according to the Gita "
+            "(attachment, desire, anger chain in 2.62-63), the immortality of the "
+            "Self (atman is never born and never dies, 2.20; weapons cannot cut it, "
+            "2.23), the temporary nature of pain and pleasure (2.14), that death of "
+            "the body is certain but the Self survives (2.27), and how to find "
+            "steadiness amid chaos (2.47, 18.66). Address their existential fear "
+            "compassionately. Do NOT give generic duty advice. Explain what the Gita "
+            "says about: 1) why destruction happens, 2) what is truly indestructible, "
+            "3) how to act with calm wisdom rather than panic."
         )
 
     allowed_refs = _verse_reference_set(verses)
@@ -1896,7 +2568,17 @@ def build_guidance(
         "Speak in a deeply compassionate, serene, guru-like voice inspired "
         "by Krishna's wisdom. Do not claim literal divine identity. "
         "Be calm, emotionally satisfying, and spiritually grounding. "
-        "Use only the provided verses and keep advice safe and "
+        "CRITICAL: Your advice must be DIRECTLY RELEVANT to the user's specific "
+        "problem. If they ask about studies, give study advice. If they ask about "
+        "relationships, give relationship advice. DO NOT default to generic "
+        "'do your duty' responses. Make your guidance PRACTICAL and ACTIONABLE "
+        "for their exact situation. "
+        "VERSE RELEVANCE: First evaluate whether the provided verses "
+        "truly address the user's concern. If they do, use them. If none of "
+        "the provided verses are relevant, you may reference other Bhagavad "
+        "Gita verses you know are more appropriate — include those in "
+        "verse_references. Prefer provided verses when they fit. "
+        "Keep advice safe and "
         "non-medical/non-legal. Always answer the user's latest message "
         "as the primary task. Use conversation history only as supporting "
         "context for continuity, not as the main question to answer. "
@@ -1905,6 +2587,9 @@ def build_guidance(
     )
     user_prompt = (
         f"language_code: {language}\n\n"
+        f"DETECTED TOPIC: {detected_topic}\n"
+        f"TOPIC-SPECIFIC GUIDANCE REQUIRED: {topic_advice}\n\n"
+        f"Structured query interpretation: {json.dumps(query_interpretation, ensure_ascii=False)}\n\n"
         f"User problem:\n{message}\n\n"
         f"Recent conversation context:\n{conversation_context or 'None'}\n\n"
         f"Primary verse candidate by retrieval rank: "
@@ -1913,23 +2598,32 @@ def build_guidance(
         f"{primary_chapter_context}\n\n"
         f"Available verse context:\n{verses_context}\n\n"
         "Requirements:\n"
+        f"- MANDATORY: This is about {detected_topic}. Your entire response MUST be "
+        f"specifically about {detected_topic.lower()}. DO NOT give generic duty advice.\n"
+        f"- {topic_advice}\n"
         "- answer the latest user problem above, not the older history\n"
-        "- first line must directly address the user's latest specific problem\n"
+        "- first line must directly address the user's exact situation using THEIR words\n"
+        "- give PRACTICAL, SPECIFIC advice for their exact problem:\n"
+        "  * For studies: concentration techniques, discipline, overcoming procrastination\n"
+        "  * For relationships: trust, communication, attachment vs love\n"
+        "  * For anxiety: calming techniques, present-moment focus\n"
+        "  * For work: prioritization, dealing with colleagues, finding purpose\n"
         "- use a soothing, reassuring, devotional-guru tone that increases "
         "the seeker's calmness and curiosity for the next step\n"
         "- structure the answer logic in this order: "
-        "1) what Krishna was addressing in Arjuna, "
-        "2) the timeless principle of that teaching, "
-        "3) how that same principle applies to the user's present situation\n"
-        "- explicitly explain why Krishna said the primary teaching to Arjuna "
-        "in that battlefield context, then validate how the same principle "
-        "applies to the user's current problem\n"
+        "1) acknowledge the user's specific struggle with empathy, "
+        "2) what Krishna taught about this type of challenge, "
+        "3) concrete steps the user can take TODAY for their specific situation\n"
+        "- explicitly connect Krishna's teaching to the user's exact problem, "
+        "not just quote verses generically\n"
+        "- use the structured query interpretation to decide whether the best verse match "
+        "is direct, interpretive, or exploratory, and shape the answer honestly\n"
         "- choose one most relevant verse as the primary anchor (prefer the "
         "first retrieved verse unless another is clearly more relevant)\n"
         "- include one short direct quote from the chosen primary verse "
         "translation in guidance or meaning\n"
         "- do not merely summarize the verse; interpret Krishna's intention "
-        "for Arjuna and then bridge it to the user's dilemma\n"
+        "and bridge it to the user's SPECIFIC dilemma\n"
         "- if author commentary perspectives are present in the verse context, "
         "use them only to better understand the verse, not to override the verse "
         "itself or cite authors in place of Krishna's teaching\n"
@@ -1946,11 +2640,15 @@ def build_guidance(
         "understand the latest problem and maintain continuity\n"
         "- do not drift back to older unresolved topics unless the latest "
         "message clearly asks to revisit them\n"
-        "- guidance: 2-4 sentences\n"
-        "- meaning: 1-2 sentences\n"
-        "- actions: array of 2-3 concrete actions\n"
-        "- reflection: one question\n"
-        "- verse_references: array using chapter.verse from context only\n"
+        "- guidance: 2-4 sentences, MUST mention user's specific topic\n"
+        "- meaning: 1-2 sentences explaining how this applies to THEIR situation\n"
+        "- actions: array of 2-3 concrete actions SPECIFIC to their problem "
+        "(e.g., for studies: 'Set a 25-minute focused study timer', "
+        "NOT generic 'do your duty')\n"
+        "- reflection: one question about THEIR specific situation\n"
+        "- verse_references: array of chapter.verse references. Prefer "
+        "verses from the provided context, but if none are relevant you may "
+        "include other Gita verse references you are confident about\n"
         "- write guidance/meaning/actions/reflection in the specified "
         "language_code\n"
     )
@@ -1987,6 +2685,16 @@ def build_guidance(
             for ref in references
             if str(ref).strip()
         ]
+
+        # Expand allowed refs: accept LLM-suggested refs that exist
+        # in our DB so the grounding check doesn't reject corrections.
+        extra_refs = {
+            ref for ref in references if ref not in allowed_refs
+        }
+        if extra_refs:
+            verified = _fetch_verses_by_references(list(extra_refs))
+            for v in verified:
+                allowed_refs.add(f"{v.chapter}.{v.verse}")
 
         if (
             not guidance
@@ -2131,6 +2839,8 @@ def get_verse_detail(chapter: int, verse: int) -> dict[str, object] | None:
                 "language": lang,
             })
 
+    synthesis = get_or_create_verse_synthesis(verse_obj)
+
     return {
         "reference": ref,
         "chapter": verse_obj.chapter,
@@ -2146,7 +2856,311 @@ def get_verse_detail(chapter: int, verse: int) -> dict[str, object] | None:
         "english_meaning": str(row.get("english", "")).strip(),
         "word_meaning": str(row.get("word_meaning", "")).strip(),
         "commentaries": commentaries,
+        "synthesis": synthesis,
     }
+
+
+def _verse_synthesis_source_text(verse: Verse) -> str:
+    """Build stable source text for verse synthesis generation and invalidation."""
+    ref = _verse_reference(verse)
+    row = _merged_verse_context(ref)
+    vedic = _load_vedic_slok_cache().get(ref, {})
+    commentary_lines = [
+        f"{entry.get('author', '').strip()}: {entry.get('text', '').strip()}"
+        for entry in _author_commentary_entries(ref)
+        if str(entry.get("author", "")).strip() and str(entry.get("text", "")).strip()
+    ]
+    angle_lines = [
+        " | ".join(
+            part
+            for part in [
+                str(item.get("source", "")).strip(),
+                str(item.get("english", "")).strip(),
+                str(item.get("hindi", "")).strip(),
+            ]
+            if part
+        )
+        for item in list(row.get("angles", []))
+    ]
+    parts = [
+        f"Reference: {ref}",
+        f"Sanskrit: {str(vedic.get('slok', row.get('sanskrit', ''))).strip()}",
+        f"Transliteration: {str(vedic.get('transliteration', row.get('transliteration', ''))).strip()}",
+        f"Translation: {verse.translation}",
+        f"English meaning: {str(row.get('english', '')).strip()}",
+        f"Hindi meaning: {str(row.get('hindi', '')).strip()}",
+        f"Word meaning: {str(row.get('word_meaning', '')).strip()}",
+        f"Themes: {', '.join(verse.themes)}",
+        f"Additional angles: {' || '.join(angle_lines)}",
+        f"Commentaries: {' || '.join(commentary_lines)}",
+    ]
+    return "\n".join(part for part in parts if part.strip())
+
+
+def _verse_synthesis_source_hash(verse: Verse) -> str:
+    """Create a deterministic hash of verse source material."""
+    return hashlib.sha256(
+        f"{VERSE_SYNTHESIS_SCHEMA_VERSION}\n{_verse_synthesis_source_text(verse)}".encode("utf-8"),
+    ).hexdigest()
+
+
+def _normalize_string_list(value: object, *, limit: int = 4) -> list[str]:
+    """Normalize list-like model output into compact string arrays."""
+    if not isinstance(value, list):
+        return []
+    return [
+        str(item).strip()
+        for item in value
+        if str(item).strip()
+    ][:limit]
+
+
+def _build_fallback_verse_synthesis_payload(verse: Verse) -> dict[str, object]:
+    """Create deterministic verse synthesis when no LLM call is available."""
+    ref = _verse_reference(verse)
+    row = _merged_verse_context(ref)
+    english_commentaries = _preferred_commentary_entries(
+        ref,
+        language="en",
+        limit=3,
+    )
+    hindi_commentaries = _preferred_commentary_entries(
+        ref,
+        language="hi",
+        limit=3,
+    )
+    author_names = ", ".join(
+        str(entry.get("author", "")).strip()
+        for entry in english_commentaries
+        if str(entry.get("author", "")).strip()
+    )
+    english = str(row.get("english", "")).strip() or verse.translation
+    hindi = str(row.get("hindi", "")).strip()
+    word_meaning = str(row.get("word_meaning", "")).strip()
+    commentary_focus_en = " ".join(
+        str(entry.get("text", "")).strip()
+        for entry in english_commentaries
+        if str(entry.get("text", "")).strip()
+    )[:300]
+    commentary_focus_hi = " ".join(
+        str(entry.get("text", "")).strip()
+        for entry in hindi_commentaries
+        if str(entry.get("text", "")).strip()
+    )[:300]
+    themes = ", ".join(verse.themes) if verse.themes else "daily life guidance"
+    compact_theme_text = (
+        ", ".join(verse.themes[:3]) if verse.themes else "daily life guidance"
+    )
+
+    overview_en = (
+        f"Bhagavad Gita {ref} teaches steadiness in action through {compact_theme_text}. "
+        f"Krishna's central message here is: {english}"
+    ).strip()
+    overview_hi = (
+        f"भगवद्गीता {ref} का मुख्य संदेश है: {hindi or english} "
+        f"यह श्लोक {(' और '.join(verse.themes[:2]) if verse.themes else 'दैनिक जीवन की दिशा')} में स्थिर बुद्धि सिखाता है।"
+    ).strip()
+    commentary_consensus_en = (
+        "Across the available commentaries, this verse is consistently read as a teaching "
+        "of inner discipline and selfless action, not passive withdrawal. "
+        f"{'Key voices here include ' + author_names + '. ' if author_names else ''}"
+        f"{commentary_focus_en or word_meaning or english}"
+    ).strip()
+    commentary_consensus_hi = (
+        "उपलब्ध टीकाओं का सम्मिलित संकेत यह है कि यह श्लोक केवल सिद्धांत नहीं, "
+        "निष्काम कर्म, भीतरी अनुशासन और शांत दृष्टि की साधना सिखाता है। "
+        f"{commentary_focus_hi or hindi or english}"
+    ).strip()
+    life_application_en = (
+        "In modern life, use this verse before any important step: focus on the sincerity "
+        "of your effort, loosen anxiety about results, and act from steadiness rather than panic."
+    )
+    life_application_hi = (
+        "आधुनिक जीवन में यह श्लोक हमें याद दिलाता है कि फल की चिंता से पहले कर्म की "
+        "शुद्धता पर ध्यान दें, और भय या उतावलेपन से नहीं बल्कि स्थिरता से कदम उठाएँ।"
+    )
+    key_points_en = [
+        english,
+        commentary_focus_en or "The commentaries emphasize steady, selfless action.",
+        "Use this verse as a practical checkpoint before acting under pressure.",
+    ]
+    key_points_hi = [
+        hindi or english,
+        commentary_focus_hi or "टीकाएं इस श्लोक को निष्काम कर्म और भीतर की स्थिरता से जोड़ती हैं।",
+        "इसे किसी भी महत्वपूर्ण कर्म से पहले आत्म-परीक्षण के सूत्र की तरह उपयोग किया जा सकता है।",
+    ]
+    return {
+        "overview_en": overview_en,
+        "overview_hi": overview_hi,
+        "commentary_consensus_en": commentary_consensus_en,
+        "commentary_consensus_hi": commentary_consensus_hi,
+        "life_application_en": life_application_en,
+        "life_application_hi": life_application_hi,
+        "key_points_en": key_points_en,
+        "key_points_hi": key_points_hi,
+    }
+
+
+def _validate_verse_synthesis_payload(
+    payload: dict[str, object],
+    *,
+    verse: Verse,
+) -> dict[str, object]:
+    """Normalize and complete verse synthesis payload from model output."""
+    fallback = _build_fallback_verse_synthesis_payload(verse)
+    cleaned = {
+        "overview_en": str(payload.get("overview_en", "")).strip(),
+        "overview_hi": str(payload.get("overview_hi", "")).strip(),
+        "commentary_consensus_en": str(payload.get("commentary_consensus_en", "")).strip(),
+        "commentary_consensus_hi": str(payload.get("commentary_consensus_hi", "")).strip(),
+        "life_application_en": str(payload.get("life_application_en", "")).strip(),
+        "life_application_hi": str(payload.get("life_application_hi", "")).strip(),
+        "key_points_en": _normalize_string_list(payload.get("key_points_en")),
+        "key_points_hi": _normalize_string_list(payload.get("key_points_hi")),
+    }
+    for key, fallback_value in fallback.items():
+        if isinstance(fallback_value, list):
+            if not cleaned[key]:
+                cleaned[key] = fallback_value
+        elif not cleaned[key]:
+            cleaned[key] = fallback_value
+    return cleaned
+
+
+def _verse_synthesis_embedding_text(record: VerseSynthesis) -> str:
+    """Serialize cached synthesis for semantic reuse."""
+    return (
+        f"Verse {record.verse.chapter}.{record.verse.verse}\n"
+        f"Overview EN: {record.overview_en}\n"
+        f"Overview HI: {record.overview_hi}\n"
+        f"Commentary Consensus EN: {record.commentary_consensus_en}\n"
+        f"Commentary Consensus HI: {record.commentary_consensus_hi}\n"
+        f"Life Application EN: {record.life_application_en}\n"
+        f"Life Application HI: {record.life_application_hi}\n"
+        f"Key Points EN: {' | '.join(record.key_points_en)}\n"
+        f"Key Points HI: {' | '.join(record.key_points_hi)}"
+    )
+
+
+def _refresh_verse_synthesis_embedding(record: VerseSynthesis) -> None:
+    """Attach an embedding to cached synthesis for later retrieval reuse."""
+    if not settings.OPENAI_API_KEY:
+        return
+    try:
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        response = client.embeddings.create(
+            model=settings.OPENAI_EMBEDDING_MODEL,
+            input=_verse_synthesis_embedding_text(record),
+        )
+        record.embedding = response.data[0].embedding
+        record.save(update_fields=["embedding", "updated_at"])
+    except Exception as exc:  # pragma: no cover - network failures
+        logger.warning("Verse synthesis embedding refresh failed: %s", exc)
+
+
+def _serialize_cached_verse_synthesis(
+    record: VerseSynthesis,
+    *,
+    cached: bool,
+) -> dict[str, object]:
+    """Expose stored synthesis in a stable API shape for the UI."""
+    return {
+        "generation_source": record.generation_source,
+        "overview_en": record.overview_en,
+        "overview_hi": record.overview_hi,
+        "commentary_consensus_en": record.commentary_consensus_en,
+        "commentary_consensus_hi": record.commentary_consensus_hi,
+        "life_application_en": record.life_application_en,
+        "life_application_hi": record.life_application_hi,
+        "key_points_en": list(record.key_points_en or []),
+        "key_points_hi": list(record.key_points_hi or []),
+        "cached": cached,
+    }
+
+
+def get_or_create_verse_synthesis(verse: Verse) -> dict[str, object]:
+    """Return cached multilingual verse synthesis, generating it once when needed."""
+    expected_hash = _verse_synthesis_source_hash(verse)
+    existing = _safe_get_verse_synthesis_record(verse)
+    if (
+        existing is not None
+        and existing.source_hash == expected_hash
+        and existing.overview_en
+        and existing.overview_hi
+    ):
+        return _serialize_cached_verse_synthesis(existing, cached=True)
+
+    payload = _build_fallback_verse_synthesis_payload(verse)
+    generation_source = VerseSynthesis.SOURCE_FALLBACK
+    if settings.OPENAI_API_KEY:
+        system_prompt = (
+            "You are a Bhagavad Gita verse synthesis assistant. "
+            "Return valid JSON only with keys: "
+            "overview_en, overview_hi, commentary_consensus_en, commentary_consensus_hi, "
+            "life_application_en, life_application_hi, key_points_en, key_points_hi. "
+            "Ground everything strictly in the supplied verse data, meanings, and "
+            "multi-author commentary. Interconnect the authors' perspectives into a "
+            "single coherent understanding without inventing claims."
+        )
+        user_prompt = (
+            f"Create a rich multilingual synthesis for Bhagavad Gita {verse.chapter}.{verse.verse}.\n\n"
+            "Requirements:\n"
+            "- overview_en: 2-3 sentences in English summarizing the verse's core wisdom\n"
+            "- overview_hi: 2-3 sentences in natural Hindi (Devanagari)\n"
+            "- commentary_consensus_en/hi: explain how the various commentaries connect, agree, "
+            "or add nuance\n"
+            "- life_application_en/hi: explain how a seeker can apply this verse in modern life\n"
+            "- key_points_en/hi: arrays of 3 short bullet-style insights\n"
+            "- keep Krishna's teaching central; use commentators only as interpretive support\n"
+            "- do not mention missing data or say 'based on the provided text'\n\n"
+            f"Verse source material:\n{_verse_synthesis_source_text(verse)}"
+        )
+        try:
+            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            response = client.responses.create(
+                model=settings.OPENAI_MODEL,
+                input=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            payload = _validate_verse_synthesis_payload(
+                _parse_json_payload(response.output_text),
+                verse=verse,
+            )
+            generation_source = VerseSynthesis.SOURCE_LLM
+        except Exception as exc:  # pragma: no cover - network failures
+            logger.warning("Verse synthesis generation failed: %s", exc)
+
+    try:
+        record = existing or VerseSynthesis(verse=verse)
+    except (OperationalError, ProgrammingError):
+        return _build_fallback_verse_synthesis_payload(verse) | {
+            "generation_source": VerseSynthesis.SOURCE_FALLBACK,
+            "cached": False,
+        }
+    record.source_hash = expected_hash
+    record.generation_source = generation_source
+    record.overview_en = str(payload.get("overview_en", "")).strip()
+    record.overview_hi = str(payload.get("overview_hi", "")).strip()
+    record.commentary_consensus_en = str(payload.get("commentary_consensus_en", "")).strip()
+    record.commentary_consensus_hi = str(payload.get("commentary_consensus_hi", "")).strip()
+    record.life_application_en = str(payload.get("life_application_en", "")).strip()
+    record.life_application_hi = str(payload.get("life_application_hi", "")).strip()
+    record.key_points_en = _normalize_string_list(payload.get("key_points_en"))
+    record.key_points_hi = _normalize_string_list(payload.get("key_points_hi"))
+    try:
+        record.save()
+    except (OperationalError, ProgrammingError):
+        return _build_fallback_verse_synthesis_payload(verse) | {
+            "generation_source": VerseSynthesis.SOURCE_FALLBACK,
+            "cached": False,
+        }
+
+    if settings.OPENAI_API_KEY and not record.embedding:
+        _refresh_verse_synthesis_embedding(record)
+
+    return _serialize_cached_verse_synthesis(record, cached=False)
 
 
 # --- Mantra Generation ---

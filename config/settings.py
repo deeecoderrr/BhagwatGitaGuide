@@ -218,8 +218,17 @@ PGVECTOR_EMBEDDING_DIM = int(
 PGVECTOR_PROBES = int(
     os.getenv("PGVECTOR_PROBES", "10"),
 )
-ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "10"))
-ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "1000"))
+ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "5"))
+ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "10000"))
+
+# Razorpay Payment Settings
+RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
+RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
+RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
+
+# Subscription Pricing (in paise for INR, cents for USD)
+SUBSCRIPTION_PRICE_INR = int(os.getenv("SUBSCRIPTION_PRICE_INR", "9900"))  # ₹99/month
+SUBSCRIPTION_PRICE_USD = int(os.getenv("SUBSCRIPTION_PRICE_USD", "299"))   # $2.99/month
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

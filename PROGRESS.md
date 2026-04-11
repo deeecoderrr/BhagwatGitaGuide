@@ -1,9 +1,24 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-06
+Last updated: 2026-04-09
 
 ## Completed
 
+- Cached multilingual verse synthesis added:
+  - new `VerseSynthesis` model stores per-verse integrated overview, commentary bridge,
+    life application, key points, and synthesis embedding
+  - verse detail API now generates this once on demand, saves it, and reuses it on later opens
+  - clicked verse references from chat now open directly into the Gita reader with this richer view
+  - future verse embedding refreshes now include any cached synthesis text automatically
+  - runtime now degrades safely if the `VerseSynthesis` migration has not been applied yet,
+    so chat and daily verse endpoints keep working until the DB is migrated
+  - fallback verse synthesis quality improved with cleaned, language-aware commentary snippets
+  - synthesis schema versioning now forces regeneration of older noisy cached summaries
+  - verse synthesis now records `generation_source` (`llm` or `fallback`) for easier debugging and quality verification
+- Guest homepage UX cleaned up:
+  - guest logged-out landing now uses a true single-column layout instead of reserving sidebar space
+  - hero simplifies for guests by removing the competing remembrance card
+  - guest register/login access is now surfaced in the main flow instead of the hidden sidebar
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:
@@ -135,6 +150,86 @@ Last updated: 2026-04-06
     taking the first few available entries
   - this improves the Krishna-to-Arjuna explanation layer while preserving the
     same verse-grounded retrieval contract
+- Repo-level frontend redesign automation guidance added:
+  - root `AGENTS.md` now defines a frontend redesign workflow for AI agents
+  - new `docs/design-playbook.md` maps app purpose to visual direction,
+    typography, color, motion, and UX constraints
+  - `docs/AI_AGENT_HANDOFF.md` now points future agents to the design playbook
+    before substantial UI work
+- Spiritually aligned chat-ui visual redesign pass completed:
+  - upgraded `chat_ui.html` with a stronger sacred design system and reusable
+    visual tokens
+  - improved hero framing, panel depth, navigation polish, conversation cards,
+    chat bubble styling, landing state, and composer prominence
+  - aligned the seeker-facing UI more closely with the Bhagavad Gita guidance
+    purpose while preserving existing chat functionality
+- Chat-ui appeal polish pass completed:
+  - improved hierarchy and cohesion for quote-art, plan/upgrade, and chat
+    composer sections
+  - added better micro-hierarchy with panel kickers, refined chips, polished
+    style cards, and more premium scroll/composer treatment
+  - preserved existing functionality while making the interface feel more
+    finished and visually unified
+- Immersive frontend motion pass completed:
+  - added ambient aurora layers, sacred grid, cursor aura, scroll progress, and
+    gentle parallax for a richer devotional atmosphere
+  - upgraded motion system with stronger GSAP entrances, floating orb motion,
+    sheen effects, and deeper visual layering across hero, panels, and chat
+  - preserved existing frontend functionality while making the UI feel more
+    alive, premium, and emotionally immersive
+- Internet-sourced SVG asset integration completed:
+  - added locally stored open-source Lucide SVG assets for section iconography
+    and UI accents under `guide_api/static/guide_api/assets/`
+  - integrated those assets into hero, landing cards, quote-art, conversation,
+    feedback, and saved-reflection surfaces
+  - attempted external sacred motif downloads, but kept only clean verified SVG
+    assets to avoid broken or checkpoint-blocked files in the app
+- Concept-aligned layout rearrangement completed:
+  - reordered sidebar content so spiritual guidance, thread memory, and core
+    seeker flows appear before account and support controls
+  - aligned component placement more closely with the app's primary concept:
+    sacred dialogue first, utilities second
+  - improved section framing with more intentional iconography and hierarchy
+- Inline SVG reliability fix completed:
+  - replaced small static icon image references in `chat_ui.html` with inline
+    SVG markup so icons render reliably without depending on static asset
+    loading
+  - resolved the broken icon placeholders appearing across the frontend
+- Premium hierarchy/layout pass completed:
+  - rebalanced the main two-column layout so the conversation area carries more
+    visual authority and the sidebar feels calmer
+  - grouped lower-priority tools such as quote art, settings, quota, saved
+    reflections, and account actions into expandable utility sections
+  - increased conversation readability with a stronger heading block, taller
+    chat shell, larger reply text, and a more prominent composer area
+- Sidebar visibility fix completed:
+  - removed the extra sticky/overflow scroll trap on the left column after it
+    started hiding lower sidebar sections beneath the conversations panel
+  - restored normal page flow so all left-side components remain reachable
+- Homepage left-rail simplification completed:
+  - when the user is signed out and no active conversation is open, the left
+    rail now stays focused on the Guidance Tone panel only
+  - preserved signed-in behavior so users still see their conversation list as
+    soon as they log in, even before sending a new message
+- Composer-focus transition refinement completed:
+  - once the user clicks `Start Conversation` from the landing state, the left
+    Guidance Tone rail is hidden client-side so the page shifts into a more
+    focused asking/composer experience
+- Top-nav clipping fix completed:
+  - removed sticky overlap behavior from the top navigation after it started
+    cutting into the hero/landing visuals during scroll
+- Compact top-nav pass completed:
+  - reduced top bar padding, pill size, and nav button sizing so the header
+    occupies less space and feels lighter above the hero section
+- Compact landing-state pass completed:
+  - reduced the namaste mark, landing title block, and the `Start Conversation`
+    / `Read Gita` action card sizes so the homepage landing section fits more
+    comfortably without feeling oversized
+- Daily signal automation completed:
+  - upgraded `/api/daily-verse/` from a fixed first-verse response to a
+    deterministic date-seeded verse selection across the full corpus
+  - the `Today's Signal` card now hydrates from that endpoint and displays the
+    day’s verse reference plus a language-aware meaning instead of static copy
 - Theme tagging command added:
   - `python manage.py tag_gita_themes`
   - supports `--dry-run` and `--overwrite`
@@ -348,6 +443,49 @@ Last updated: 2026-04-06
   - "Create Art" button auto-fills Quote Art panel and generates
   - keyboard support (ESC to close)
   - bilingual labels (en/hi) matching user's language setting
+- Mortality/war/death retrieval & guidance theme completed:
+  - added `mortality` theme to `THEME_KEYWORDS` with ~50 multilingual
+    keywords (war, death, die, destroy, weapon, soul, मृत्यु, युद्ध, etc.)
+  - added `THEME_REFERENCE_PRIORS["mortality"]` mapping to 2.20, 2.22, 2.23,
+    2.27, 2.47, 2.62, 2.63, 2.14, 6.5, 18.66
+  - added `THEME_CHAPTER_PRIORS["mortality"]` → {2, 6, 11, 18}
+  - added 2.20, 2.23 to `UNIVERSAL_CURATED_REFERENCES`
+  - added `MORTALITY_OR_WAR_TERMS` set and bridge reranker boost (+12 for
+    Self-immortality verses, +8 for war-origin verses)
+  - added `WAR, DEATH, AND THE IMMORTAL SELF` topic detection in
+    `build_guidance()` with detailed LLM prompt guidance
+  - added `_build_mortality_fallback()` with dedicated en/hi templates
+    covering: why war happens (2.62-63), immortality of Self (2.20, 2.23),
+    endurance (2.14), and Krishna's "do not despair" (18.66)
+  - tightened confidence gating for no-theme queries (score threshold
+    lowered to prevent marginal semantic results)
+  - added 5 mortality eval cases — 4 of 5 hit (2 perfect 3/3 matches)
+  - removed the redundant "Your Recent Curiosity" sidebar panel because the conversation list already covers recent context
+  - Guidance Tone moved out of the left rail and into the main chat flow below the composer
+  - landing state shows Guidance Tone expanded under the chat box
+  - active-thread state keeps Guidance Tone available as a compact accordion below the composer
+  - all 63 tests pass
+- LLM verse-relevance validation & correction layer completed:
+  - merged verse-relevance evaluation into the main guidance prompt instead
+    of using a separate LLM call — reduced total API calls from 3 to 2 per
+    question (embedding + guidance generation)
+  - system prompt now instructs the LLM to evaluate whether provided verses
+    address the user's concern and reference better Gita verses if not
+  - grounding check expanded: LLM-suggested verse references are verified
+    against the DB before acceptance
+  - added `_fetch_verses_by_references()` helper for reference→Verse lookup
+  - `_validate_and_correct_verses()` kept as a utility but no longer called
+    in the hot path
+- Commentary enrichment in guidance prompts completed:
+  - increased per-verse author commentary from 2 to 3 commentators
+  - increased commentary budget from 260 to 500 chars per verse
+  - added english_meaning field (200 chars) to prompt context
+  - increased hindi_meaning, word_meaning budgets from 120 to 200 chars
+  - increased additional_angles budget from 220 to 400 chars
+  - increased angle limit from 2 to 3 per verse
+  - the LLM now receives substantially richer multi-author scholarly
+    context for crafting deeply informed, tradition-grounded guidance
+  - all 71 tests pass
 
 ## In Progress
 
@@ -380,6 +518,17 @@ Last updated: 2026-04-06
 ## Deferred (Do Later)
 
 - Additional retrieval tuning iterations beyond current `0.78` hit rate (deferred).
+- Fixed guest-home `chat_ui.html` template nesting bug that caused `/api/chat-ui/` to fail with an unclosed `{% if %}` during render.
+- Hid guest register/login access for authenticated sessions so signed-in users only see it in true guest state.
+- Added persistent guest browser quota tracking with a `3`-conversation cap and signup wall after the limit is used.
+- Refined guest quota to count `3` guest questions per browser instead of thread count, matching the single-thread guest UX.
+- Added always-visible guest `Register` and `Login` entry points in the top nav that jump to and focus the working auth forms.
+- Switched guest nav auth actions from page scrolling to a real on-page login/register modal with tabbed forms.
+- Updated authenticated plan defaults to `5` asks/day on free and `10000` asks/day on Pro.
+- Added a deterministic structured query interpreter before retrieval/generation so responses now carry explicit emotional state, life domain, likely Gita principles, search terms, and match strictness.
+- Added a greeting-aware response path so simple messages like `hi` or `hye` no longer force irrelevant verses, and reordered reply panels to show practical actions before reflection.
+- Repositioned the chat landing page for growth with stronger SEO title/description, clearer “ask your problem” hero copy, sharper CTAs, more concrete composer guidance, and stronger starter prompts focused on real user pain points.
+- Added public SEO landing pages at `/`, `/bhagavad-gita-for-anxiety/`, `/bhagavad-gita-for-career-confusion/`, and `/bhagavad-gita-for-relationships/` with dedicated metadata, focused copy, curated verses, and direct CTAs into the app.
 
 ## How To Update This File
 

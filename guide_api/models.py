@@ -28,6 +28,47 @@ class Verse(models.Model):
         return f"{self.chapter}.{self.verse}"
 
 
+class VerseSynthesis(models.Model):
+    """Cached multilingual synthesis for a verse across meanings and commentaries."""
+
+    SOURCE_LLM = "llm"
+    SOURCE_FALLBACK = "fallback"
+    SOURCE_CHOICES = (
+        (SOURCE_LLM, "LLM"),
+        (SOURCE_FALLBACK, "Fallback"),
+    )
+
+    verse = models.OneToOneField(
+        Verse,
+        on_delete=models.CASCADE,
+        related_name="synthesis",
+    )
+    source_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    generation_source = models.CharField(
+        max_length=16,
+        choices=SOURCE_CHOICES,
+        default=SOURCE_FALLBACK,
+    )
+    overview_en = models.TextField(blank=True)
+    overview_hi = models.TextField(blank=True)
+    commentary_consensus_en = models.TextField(blank=True)
+    commentary_consensus_hi = models.TextField(blank=True)
+    life_application_en = models.TextField(blank=True)
+    life_application_hi = models.TextField(blank=True)
+    key_points_en = models.JSONField(default=list, blank=True)
+    key_points_hi = models.JSONField(default=list, blank=True)
+    embedding = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["verse__chapter", "verse__verse"]
+
+    def __str__(self) -> str:
+        """Human-friendly verse synthesis reference."""
+        return f"Synthesis {self.verse.chapter}.{self.verse.verse}"
+
+
 class Conversation(models.Model):
     """Logical chat session grouped by external user identifier."""
 
@@ -37,6 +78,23 @@ class Conversation(models.Model):
 
     class Meta:
         ordering = ["-updated_at"]
+
+
+class GuestChatIdentity(models.Model):
+    """Persistent browser-linked guest identity used for temporary chat caps."""
+
+    guest_id = models.CharField(max_length=64, unique=True, db_index=True)
+    conversations_started = models.PositiveIntegerField(default=0)
+    total_asks = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-last_seen_at"]
+
+    def __str__(self) -> str:
+        """Readable guest identity reference for admin/debug output."""
+        return f"Guest {self.guest_id}"
 
 
 class Message(models.Model):
@@ -116,6 +174,13 @@ class UserSubscription(models.Model):
         (PLAN_PRO, "Pro"),
     )
 
+    CURRENCY_INR = "INR"
+    CURRENCY_USD = "USD"
+    CURRENCY_CHOICES = (
+        (CURRENCY_INR, "Indian Rupee"),
+        (CURRENCY_USD, "US Dollar"),
+    )
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -129,6 +194,18 @@ class UserSubscription(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    # Razorpay payment fields
+    razorpay_customer_id = models.CharField(max_length=64, blank=True, null=True)
+    razorpay_subscription_id = models.CharField(max_length=64, blank=True, null=True)
+    razorpay_order_id = models.CharField(max_length=64, blank=True, null=True)
+    payment_currency = models.CharField(
+        max_length=3,
+        choices=CURRENCY_CHOICES,
+        blank=True,
+        null=True,
+    )
+    subscription_end_date = models.DateTimeField(blank=True, null=True)
 
     class Meta:
         ordering = ["-updated_at"]

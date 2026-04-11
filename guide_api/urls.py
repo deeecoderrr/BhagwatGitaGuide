@@ -8,6 +8,7 @@ from guide_api.views import (
     ChapterDetailView,
     ChapterListView,
     ConversationHistoryView,
+    CreateOrderView,
     DailyVerseView,
     EngagementProfileView,
     FeaturedQuotesView,
@@ -21,10 +22,13 @@ from guide_api.views import (
     PlanUpdateView,
     QuoteArtStylesView,
     QuoteArtView,
+    RazorpayWebhookView,
     RegisterView,
     RetrievalEvalView,
     SavedReflectionDetailView,
     SavedReflectionListCreateView,
+    SubscriptionStatusView,
+    VerifyPaymentView,
     VerseDetailView,
 )
 
@@ -83,4 +87,9 @@ urlpatterns = [
         name="saved-reflection-detail",
     ),
     path("chat-ui/", ChatUIView.as_view(), name="chat-ui"),
+    # Payment / Subscription endpoints
+    path("payments/create-order/", CreateOrderView.as_view(), name="create-order"),
+    path("payments/verify/", VerifyPaymentView.as_view(), name="verify-payment"),
+    path("payments/webhook/", RazorpayWebhookView.as_view(), name="razorpay-webhook"),
+    path("subscription/status/", SubscriptionStatusView.as_view(), name="subscription-status"),
 ]

@@ -198,5 +198,25 @@
   {
     "prompt": "I am unhappy because I always measure myself against others.",
     "expected_references": ["2.48", "2.71", "12.15"]
+  },
+  {
+    "prompt": "There is war going on in the world, everything will be destroyed, will I die?",
+    "expected_references": ["2.20", "2.23", "2.27"]
+  },
+  {
+    "prompt": "I am afraid of death and dying, what does the Gita say about the soul?",
+    "expected_references": ["2.20", "2.23", "18.66"]
+  },
+  {
+    "prompt": "Why does war and destruction happen according to Krishna?",
+    "expected_references": ["2.62", "2.63", "2.20"]
+  },
+  {
+    "prompt": "How can I be safe and protect myself during conflict and violence?",
+    "expected_references": ["2.14", "2.47", "18.66"]
+  },
+  {
+    "prompt": "Will the world be destroyed, is anything immortal?",
+    "expected_references": ["2.20", "2.23", "2.27"]
   }
 ]
