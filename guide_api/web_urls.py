@@ -2,10 +2,17 @@
 
 from django.urls import path
 
-from guide_api.views import SeoLandingIndexView, SeoLandingTopicView
+from guide_api.views import (
+    SeoLandingIndexView,
+    SeoLandingTopicView,
+    robots_txt_view,
+    sitemap_xml_view,
+)
 
 
 urlpatterns = [
+    path("robots.txt", robots_txt_view, name="robots-txt"),
+    path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),
     path("", SeoLandingIndexView.as_view(), name="seo-index"),
     path(
         "bhagavad-gita-for-anxiety/",

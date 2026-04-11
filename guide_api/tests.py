@@ -59,6 +59,20 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Bhagavad Gita Guides For Real Life Problems")
         self.assertContains(response, "bhagavad-gita-for-anxiety")
 
+    def test_robots_txt_exposes_sitemap(self):
+        response = self.client.get("/robots.txt")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("User-agent: *", response.content.decode())
+        self.assertIn("Sitemap:", response.content.decode())
+
+    def test_sitemap_xml_lists_public_routes(self):
+        response = self.client.get("/sitemap.xml")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        body = response.content.decode()
+        self.assertIn("<urlset", body)
+        self.assertIn("/bhagavad-gita-for-anxiety/", body)
+        self.assertIn("/api/chat-ui/", body)
+
     def test_public_seo_topic_page_loads(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -78,6 +92,20 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "चिंता और ओवरथिंकिंग के लिए भगवद गीता")
         self.assertContains(response, "आम स्थितियाँ")
+
+    def test_public_seo_index_includes_canonical_and_json_ld(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, 'rel="canonical"')
+        self.assertContains(response, 'application/ld+json')
+        self.assertContains(response, 'hreflang="hi"')
+
+    def test_public_seo_topic_includes_canonical_and_json_ld(self):
+        response = self.client.get("/bhagavad-gita-for-anxiety/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, 'rel="canonical"')
+        self.assertContains(response, 'application/ld+json')
+        self.assertContains(response, 'BreadcrumbList')
 
     def test_health_endpoint_v1_alias_works(self):
         response = self.client.get("/api/v1/health/")

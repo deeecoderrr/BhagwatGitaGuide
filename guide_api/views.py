@@ -1,6 +1,7 @@
 """HTTP views for chat, retrieval evaluation, and feedback flows."""
 
 from datetime import timedelta
+import json
 from random import Random
 from types import SimpleNamespace
 from urllib.parse import quote_plus
@@ -8,7 +9,7 @@ from uuid import uuid4
 
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -284,6 +285,48 @@ def _fetch_curated_verses(reference_list: list[str]) -> list[SimpleNamespace]:
     return verses
 
 
+def robots_txt_view(request):
+    """Serve robots policy with sitemap hint for search engines."""
+    base_url = request.build_absolute_uri("/").rstrip("/")
+    content = "\n".join(
+        [
+            "User-agent: *",
+            "Allow: /",
+            f"Sitemap: {base_url}/sitemap.xml",
+        ]
+    )
+    return HttpResponse(content, content_type="text/plain; charset=utf-8")
+
+
+def sitemap_xml_view(request):
+    """Serve a minimal sitemap.xml for homepage and SEO topic routes."""
+    base_url = request.build_absolute_uri("/").rstrip("/")
+    urls = [
+        "/",
+        "/bhagavad-gita-for-anxiety/",
+        "/bhagavad-gita-for-career-confusion/",
+        "/bhagavad-gita-for-relationships/",
+        "/api/chat-ui/",
+    ]
+    rows = [
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">",
+    ]
+    for path in urls:
+        rows.extend(
+            [
+                "  <url>",
+                f"    <loc>{base_url}{path}</loc>",
+                "  </url>",
+            ]
+        )
+    rows.append("</urlset>")
+    return HttpResponse(
+        "\n".join(rows),
+        content_type="application/xml; charset=utf-8",
+    )
+
+
 class SeoLandingIndexView(View):
     """Public index for SEO-friendly Bhagavad Gita topic pages."""
 
@@ -291,6 +334,15 @@ class SeoLandingIndexView(View):
 
     def get(self, request):
         language = "hi" if request.GET.get("language") == "hi" else "en"
+        path_url = request.build_absolute_uri(request.path)
+        canonical_url = (
+            f"{path_url}?language=hi"
+            if language == "hi"
+            else path_url
+        )
+        alternate_en_url = path_url
+        alternate_hi_url = f"{path_url}?language=hi"
+        site_url = request.build_absolute_uri("/")
         topics = []
         for key, page in SEO_LANDING_PAGES.items():
             topics.append(
@@ -328,6 +380,33 @@ class SeoLandingIndexView(View):
                 "for a personalized answer."
             )
         )
+        structured_data = json.dumps(
+            [
+                {
+                    "@context": "https://schema.org",
+                    "@type": "WebSite",
+                    "name": "Bhagavad Gita Guide",
+                    "url": site_url,
+                },
+                {
+                    "@context": "https://schema.org",
+                    "@type": "CollectionPage",
+                    "name": page_heading,
+                    "description": meta_description,
+                    "url": canonical_url,
+                    "inLanguage": "hi" if language == "hi" else "en",
+                    "hasPart": [
+                        {
+                            "@type": "WebPage",
+                            "name": topic["topic_label"],
+                            "url": f"{site_url.rstrip('/')}/{topic['slug']}/",
+                        }
+                        for topic in topics
+                    ],
+                },
+            ],
+            ensure_ascii=False,
+        )
         context = {
             "page_title": page_title,
             "meta_description": meta_description,
@@ -335,6 +414,11 @@ class SeoLandingIndexView(View):
             "page_intro": page_intro,
             "topics": topics,
             "language": language,
+            "canonical_url": canonical_url,
+            "alternate_en_url": alternate_en_url,
+            "alternate_hi_url": alternate_hi_url,
+            "og_type": "website",
+            "structured_data": structured_data,
         }
         return render(request, self.template_name, context)
 
@@ -346,6 +430,15 @@ class SeoLandingTopicView(View):
 
     def get(self, request, slug: str):
         language = "hi" if request.GET.get("language") == "hi" else "en"
+        path_url = request.build_absolute_uri(request.path)
+        canonical_url = (
+            f"{path_url}?language=hi"
+            if language == "hi"
+            else path_url
+        )
+        alternate_en_url = path_url
+        alternate_hi_url = f"{path_url}?language=hi"
+        site_url = request.build_absolute_uri("/")
         page = next(
             (item for item in SEO_LANDING_PAGES.values() if item["slug"] == slug),
             None,
@@ -355,9 +448,43 @@ class SeoLandingTopicView(View):
 
         starter_question = _seo_value(page, "starter_question", language)
         chat_url = f"/api/chat-ui/?mode=simple&language={language}"
+        breadcrumb_title = _seo_value(page, "topic_label", language)
+        page_title = _seo_value(page, "title", language)
+        meta_description = _seo_value(page, "description", language)
+        structured_data = json.dumps(
+            [
+                {
+                    "@context": "https://schema.org",
+                    "@type": "WebPage",
+                    "name": page_title,
+                    "description": meta_description,
+                    "url": canonical_url,
+                    "inLanguage": "hi" if language == "hi" else "en",
+                },
+                {
+                    "@context": "https://schema.org",
+                    "@type": "BreadcrumbList",
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": 1,
+                            "name": "Bhagavad Gita Guide",
+                            "item": alternate_en_url.replace(request.path, "/"),
+                        },
+                        {
+                            "@type": "ListItem",
+                            "position": 2,
+                            "name": breadcrumb_title,
+                            "item": canonical_url,
+                        },
+                    ],
+                },
+            ],
+            ensure_ascii=False,
+        )
         context = {
-            "page_title": _seo_value(page, "title", language),
-            "meta_description": _seo_value(page, "description", language),
+            "page_title": page_title,
+            "meta_description": meta_description,
             "page_heading": _seo_value(page, "hero_title", language),
             "page_intro": _seo_value(page, "hero_body", language),
             "topic_label": _seo_value(page, "topic_label", language),
@@ -375,6 +502,11 @@ class SeoLandingTopicView(View):
                 if item["slug"] != slug
             ],
             "language": language,
+            "canonical_url": canonical_url,
+            "alternate_en_url": alternate_en_url,
+            "alternate_hi_url": alternate_hi_url,
+            "og_type": "article",
+            "structured_data": structured_data,
         }
         return render(request, self.template_name, context)
 
