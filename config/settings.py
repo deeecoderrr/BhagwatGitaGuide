@@ -35,6 +35,9 @@ DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
 # Production security settings
 if not DEBUG:
+    # Fly terminates TLS at the edge and forwards requests to the app.
+    # Trust the forwarded scheme to avoid infinite https redirect loops.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
