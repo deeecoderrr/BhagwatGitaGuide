@@ -166,8 +166,10 @@ Use this map to understand the exact call chain for each endpoint.
      - logged-in: same core flow as API ask via `_run_guidance_flow()`
      - logged-out: uses session-only guest transcript via
        `_run_guest_guidance_flow()` and does not persist `Conversation` rows
-   - `action=plan` -> update plan (`free`/`pro`) for signed-in user only
+    - `action=plan` -> update plan (`free`/`pro`) for signed-in user only
+       (debug/local testing path; not intended for production entitlement)
    - `action=feedback` -> `_handle_feedback()`
+    - `action=support` -> `_handle_support_request()`
 4. Session-assisted UX supports:
    - a sidebar `Today` card for daily-companion framing
    - starter prompts for first-time onboarding
@@ -190,6 +192,19 @@ Use this map to understand the exact call chain for each endpoint.
    - progressive enhancement motion stack in template:
      `Animate.css`, `AOS`, `GSAP`, `VanillaTilt` (chat works if unavailable)
 5. Renders server-side template for manual testing.
+
+### `POST /api/support/`
+
+1. `guide_api/urls.py` -> `SupportRequestView`
+2. `guide_api/views.py` -> `SupportRequestView.post()`
+3. Validates payload using `SupportRequestSerializer`:
+   - `name`
+   - `email`
+   - `issue_type` (`payment|account|bug|other`)
+   - `message`
+4. Creates `SupportTicket` row linked to auth user when available,
+   otherwise stores as guest requester.
+5. Returns `201` with ticket receipt status.
 
 ### `GET/POST /api/saved-reflections/` and `DELETE /api/saved-reflections/<id>/`
 

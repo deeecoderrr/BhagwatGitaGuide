@@ -15,6 +15,7 @@ from guide_api.models import (
     Message,
     ResponseFeedback,
     SavedReflection,
+    SupportTicket,
     UserEngagementProfile,
     UserSubscription,
 )
@@ -880,6 +881,45 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.data["limit"], 2)
         self.assertEqual(response.data["offset"], 1)
         self.assertEqual(len(response.data["results"]), 2)
+
+    def test_support_api_saves_ticket(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/support/",
+            {
+                "name": "Seeker One",
+                "email": "seeker@example.com",
+                "issue_type": "payment",
+                "message": "My payment succeeded but Pro is not active.",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(SupportTicket.objects.count(), 1)
+        ticket = SupportTicket.objects.first()
+        self.assertEqual(ticket.issue_type, SupportTicket.ISSUE_PAYMENT)
+        self.assertEqual(ticket.requester_id, "guest")
+
+    def test_chat_ui_support_flow_saves_ticket(self):
+        self._login_chat_ui()
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "support",
+                "mode": "simple",
+                "language": "en",
+                "support_name": "Demo User",
+                "support_email": "demo@example.com",
+                "support_issue_type": "account",
+                "support_message": "Please help me recover my account.",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Support request submitted")
+        self.assertEqual(SupportTicket.objects.count(), 1)
+        ticket = SupportTicket.objects.first()
+        self.assertEqual(ticket.issue_type, SupportTicket.ISSUE_ACCOUNT)
+        self.assertEqual(ticket.requester_id, "demo-user")
 
     def test_saved_reflections_api_create_list_delete(self):
         create_response = self.client.post(

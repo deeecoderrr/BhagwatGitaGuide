@@ -87,6 +87,7 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - `GET chapters/<chapter_number>/` — chapter detail with verse list
 - `GET verses/<chapter>.<verse>/` — full verse detail with multi-author commentary
 - `GET|POST feedback/`
+- `POST support/` — guest/auth support ticket intake
 - `GET|POST saved-reflections/`, `DELETE saved-reflections/<id>/`
 - `GET daily-verse/`, history under `history/me/`, `history/<user_id>/` (owner)
 - `POST eval/retrieval/` — retrieval trace / benchmark (no generation)
@@ -117,6 +118,10 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 - **Chat UI ownership model:** Signed-in users only see their own saved
   threads. Logged-out chat uses a session-only guest transcript and does not
   create `Conversation` rows or account-bound feedback/bookmarks.
+- **Support flow:** chat-ui now includes a support panel and support form;
+  submissions persist as `SupportTicket` rows and are visible in Django admin.
+- **Plan test controls:** any plan-switch utilities are intended for local
+  debug/testing only, and should remain hidden in production UX.
 - **Retrieval:** Hybrid + semantic path; tuning via `eval_retrieval` and `data/retrieval_eval_cases.json`.
 - **Style:** Match existing code; keep lines PEP8-friendly (~79 chars) where the repo already does; run `make test` after non-trivial edits.
 
@@ -130,7 +135,7 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, and bilingual guidance selection (`en`/`hi`) across API + chat-ui.
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, and bilingual guidance selection (`en`/`hi`) across API + chat-ui.
 
 Deployment/ops snapshot:
 - live deployment on Fly is active

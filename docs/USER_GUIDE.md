@@ -170,6 +170,27 @@ For product analytics review (developer/admin use), see Django Admin
 }
 ```
 
+### Contact support
+
+If you need help with payments, account access, or app issues:
+
+1. Open chat UI and expand `Support` in the sidebar.
+2. Fill name, email, issue type, and message.
+3. Submit `Send Support Request`.
+
+You can also call API directly:
+
+- `POST /api/support/`
+
+```json
+{
+  "name": "Seeker Name",
+  "email": "you@example.com",
+  "issue_type": "payment",
+  "message": "My payment succeeded but Pro is not active yet."
+}
+```
+
 ### Save reflections/bookmarks
 
 - `POST /api/saved-reflections/`

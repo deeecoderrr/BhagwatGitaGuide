@@ -244,6 +244,7 @@ RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
 # Subscription Pricing (in paise for INR, cents for USD)
 SUBSCRIPTION_PRICE_INR = int(os.getenv("SUBSCRIPTION_PRICE_INR", "9900"))  # ₹99/month
 SUBSCRIPTION_PRICE_USD = int(os.getenv("SUBSCRIPTION_PRICE_USD", "299"))   # $2.99/month
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@askbhagavadgita.com")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [

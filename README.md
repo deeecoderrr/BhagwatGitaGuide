@@ -94,6 +94,8 @@ cp .env.example .env
 Quota variables:
 - `ASK_LIMIT_FREE_DAILY` default `5`
 - `ASK_LIMIT_PRO_DAILY` default `10000`
+- `SUPPORT_EMAIL` support contact shown in chat UI (default:
+  `support@askbhagavadgita.com`)
 
 pgvector phase-1 variables (optional):
 - `ENABLE_PGVECTOR_RETRIEVAL` default `false`
@@ -136,6 +138,7 @@ Versioning:
 - `GET /api/history/<user_id>/` (auth required, owner-only)
 - `GET /api/feedback/` (auth required)
 - `POST /api/feedback/` (auth required)
+- `POST /api/support/` (guest/auth support request intake)
 - `GET /api/saved-reflections/` (auth required)
 - `POST /api/saved-reflections/` (auth required)
 - `DELETE /api/saved-reflections/<reflection_id>/` (auth required)
@@ -156,7 +159,8 @@ Authentication:
 - `ask` and `follow-ups` accept `language` (`en` or `hi`) and default to
   `en` when omitted.
 - `ask` applies plan quota checks and returns `429` when daily limit is reached.
-- `auth/plan` lets you switch `free`/`pro` for local quota testing.
+- `auth/plan` and chat-ui plan switch controls are for local/debug testing only.
+  Production upgrades should flow through payment verification.
 - list endpoints support `limit` and `offset` query params for pagination.
 - engagement profile powers mobile streak and reminder preferences.
 - chat-ui supports separate threads and selecting older conversations by

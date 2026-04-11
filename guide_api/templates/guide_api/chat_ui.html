@@ -2011,6 +2011,28 @@
       margin-top: 0.65rem;
     }
 
+    .support-help {
+      margin-bottom: 0.8rem;
+      color: #54667d;
+      font-size: 0.88rem;
+      line-height: 1.55;
+    }
+
+    .support-help a {
+      color: #3b82f6;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .support-help a:hover {
+      text-decoration: underline;
+    }
+
+    .support-form textarea {
+      min-height: 98px;
+      resize: vertical;
+    }
+
     /* Gita Reader Styles */
     .gita-reader-btn {
       width: 100%;
@@ -3198,6 +3220,84 @@
             </details>
           </div>
         {% endif %}
+
+        <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="145">
+          <div class="panel-kicker">
+            <span class="asset-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <path d="M8 10h8" />
+                <path d="M8 7h8" />
+              </svg>
+            </span>
+            {% if language == "hi" %}सहायता{% else %}Support{% endif %}
+          </div>
+          <details class="section-accordion">
+            <summary>
+              <h2>{% if language == "hi" %}मदद चाहिए?{% else %}Need Help?{% endif %}</h2>
+            </summary>
+            <div class="section-accordion-body">
+              <p class="support-help">
+                {% if language == "hi" %}
+                  भुगतान, अकाउंट, या किसी तकनीकी समस्या के लिए हमें लिखें।
+                {% else %}
+                  For payment, account, or technical issues, contact us directly.
+                {% endif %}
+                <br>
+                <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+              </p>
+
+              <form method="post" class="quick-submit support-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="support">
+                <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                {% if active_conversation_id %}
+                  <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
+                {% endif %}
+
+                <label for="support_name">{% if language == "hi" %}आपका नाम{% else %}Your Name{% endif %}</label>
+                <input
+                  id="support_name"
+                  name="support_name"
+                  maxlength="100"
+                  value="{{ support_name|default:'' }}"
+                  placeholder="{% if language == 'hi' %}नाम लिखें{% else %}Enter your name{% endif %}"
+                  required
+                />
+
+                <label for="support_email">{% if language == "hi" %}ईमेल{% else %}Email{% endif %}</label>
+                <input
+                  id="support_email"
+                  name="support_email"
+                  type="email"
+                  value="{{ support_form_email|default:'' }}"
+                  placeholder="you@example.com"
+                  required
+                />
+
+                <label for="support_issue_type">{% if language == "hi" %}समस्या प्रकार{% else %}Issue Type{% endif %}</label>
+                <select id="support_issue_type" name="support_issue_type">
+                  <option value="payment" {% if support_issue_type == "payment" %}selected{% endif %}>{% if language == "hi" %}भुगतान{% else %}Payment{% endif %}</option>
+                  <option value="account" {% if support_issue_type == "account" %}selected{% endif %}>{% if language == "hi" %}अकाउंट{% else %}Account{% endif %}</option>
+                  <option value="bug" {% if support_issue_type == "bug" %}selected{% endif %}>{% if language == "hi" %}बग{% else %}Bug{% endif %}</option>
+                  <option value="other" {% if support_issue_type == "other" or not support_issue_type %}selected{% endif %}>{% if language == "hi" %}अन्य{% else %}Other{% endif %}</option>
+                </select>
+
+                <label for="support_message">{% if language == "hi" %}संदेश{% else %}Message{% endif %}</label>
+                <textarea
+                  id="support_message"
+                  name="support_message"
+                  maxlength="2000"
+                  placeholder="{% if language == 'hi' %}अपनी समस्या विस्तार से लिखें{% else %}Describe your issue in detail{% endif %}"
+                  required
+                >{{ support_message|default:'' }}</textarea>
+
+                <button type="submit">{% if language == "hi" %}सपोर्ट अनुरोध भेजें{% else %}Send Support Request{% endif %}</button>
+              </form>
+            </div>
+          </details>
+        </div>
 
         <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="150" {% if not request.session.chat_ui_auth_username %}id="guest-auth-target"{% endif %}>
           <div class="panel-kicker">

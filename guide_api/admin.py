@@ -14,6 +14,7 @@ from guide_api.models import (
     Message,
     ResponseFeedback,
     SavedReflection,
+    SupportTicket,
     UserEngagementProfile,
     UserSubscription,
     Verse,
@@ -186,3 +187,19 @@ class EngagementEventAdmin(admin.ModelAdmin):
     list_display = ("created_at", "user", "event_type")
     list_filter = ("event_type",)
     search_fields = ("user__username",)
+
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    """Support request queue for payment/account/user issue handling."""
+
+    list_display = (
+        "id",
+        "issue_type",
+        "name",
+        "email",
+        "status",
+        "created_at",
+    )
+    list_filter = ("issue_type", "status", "created_at")
+    search_fields = ("name", "email", "requester_id", "message")

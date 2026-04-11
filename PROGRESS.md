@@ -18,6 +18,13 @@ Last updated: 2026-04-11
   - documented free-cost runtime mode: auto-stop machines, zero always-on
     machines, optional OpenAI-disabled operation
 
+- User support contact flow completed:
+  - added `SupportTicket` model for guest and authenticated users
+  - added `POST /api/support/` for programmatic support submissions
+  - added chat-ui support panel with direct email and structured support form
+  - exposed support queue in Django admin with issue/status filters
+  - added tests for API and chat-ui support submission flows
+
 - Cached multilingual verse synthesis added:
   - new `VerseSynthesis` model stores per-verse integrated overview, commentary bridge,
     life application, key points, and synthesis embedding

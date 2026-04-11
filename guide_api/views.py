@@ -30,6 +30,7 @@ from guide_api.models import (
     Message,
     ResponseFeedback,
     SavedReflection,
+    SupportTicket,
     UserEngagementProfile,
     UserSubscription,
     Verse,
@@ -51,6 +52,7 @@ from guide_api.serializers import (
     RetrievalEvalRequestSerializer,
     SavedReflectionCreateSerializer,
     SavedReflectionSerializer,
+    SupportRequestSerializer,
     VerseDetailSerializer,
     VerseSerializer,
 )
@@ -1176,6 +1178,43 @@ class FeedbackView(APIView):
         )
 
 
+class SupportRequestView(APIView):
+    """Capture user support requests for payment/account/product issues."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Validate and persist support ticket from web or mobile clients."""
+        serializer = SupportRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        auth_user = (
+            request.user
+            if request.user and request.user.is_authenticated
+            else None
+        )
+
+        ticket = SupportTicket.objects.create(
+            user=auth_user,
+            requester_id=(auth_user.get_username() if auth_user else "guest"),
+            name=data["name"],
+            email=data["email"],
+            issue_type=data["issue_type"],
+            message=data["message"],
+        )
+        return Response(
+            {
+                "id": ticket.id,
+                "status": "received",
+                "message": (
+                    "Support request received. Our team will contact you soon."
+                ),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class SavedReflectionListCreateView(APIView):
     """Create and list saved reflections for authenticated users."""
 
@@ -1298,6 +1337,21 @@ class ChatUIView(View):
             ),
         )
         context.setdefault("debug", settings.DEBUG)
+        context.setdefault("support_email", settings.SUPPORT_EMAIL)
+        context.setdefault(
+            "support_name",
+            str(request.session.get("chat_ui_auth_username", "")).strip(),
+        )
+        context.setdefault(
+            "support_form_email",
+            (
+                request.user.email
+                if request.user and request.user.is_authenticated
+                else ""
+            ),
+        )
+        context.setdefault("support_issue_type", "other")
+        context.setdefault("support_message", "")
         return render(request, self.template_name, context)
 
     def _guest_identity(self, request):
@@ -1431,6 +1485,8 @@ class ChatUIView(View):
             return self._handle_feedback(request)
         if action == "plan":
             return self._handle_plan_update(request)
+        if action == "support":
+            return self._handle_support_request(request)
         if action == "save":
             return self._handle_save_reflection(request)
         if action == "delete_conversation":
@@ -2464,6 +2520,94 @@ class ChatUIView(View):
                     active_conversation,
                 ),
                 "conversations": self._conversation_list(user_id),
+            },
+        )
+
+    def _handle_support_request(self, request):
+        """Store support tickets from chat UI and return user confirmation."""
+        authenticated_username = self._chat_ui_authenticated_username(request)
+        user_id = authenticated_username or "guest"
+        current_mode = self._chat_ui_mode(request.POST.get("mode", "simple"))
+        current_language = self._chat_ui_language(
+            request.POST.get("language", "en"),
+        )
+        active_conversation = (
+            self._chat_ui_conversation(
+                user_id,
+                request.POST.get("conversation_id"),
+            )
+            if authenticated_username
+            else None
+        )
+        conversation_page = (
+            self._conversation_page(user_id, limit=3, offset=0)
+            if authenticated_username
+            else {"items": [], "has_more": False, "next_offset": None}
+        )
+
+        payload = {
+            "name": request.POST.get("support_name", "").strip(),
+            "email": request.POST.get("support_email", "").strip(),
+            "issue_type": request.POST.get("support_issue_type", "other").strip(),
+            "message": request.POST.get("support_message", "").strip(),
+        }
+        serializer = SupportRequestSerializer(data=payload)
+        if serializer.is_valid():
+            data = serializer.validated_data
+            auth_user = request.user if request.user.is_authenticated else None
+            SupportTicket.objects.create(
+                user=auth_user,
+                requester_id=(
+                    auth_user.get_username() if auth_user else user_id
+                ),
+                name=data["name"],
+                email=data["email"],
+                issue_type=data["issue_type"],
+                message=data["message"],
+            )
+            feedback_message = (
+                "Support request submitted. We will contact you soon."
+            )
+            error = ""
+        else:
+            feedback_message = ""
+            error = "Please complete all support fields with valid details."
+
+        return self._render_chat_ui(
+            request,
+            {
+                "response_data": None,
+                "error": error,
+                "feedback_message": feedback_message,
+                "selected_plan": "free",
+                "starter_prompts": self._starter_prompts(),
+                "recent_questions": self._recent_questions(request),
+                "follow_up_prompts": [],
+                "saved_reflections": (
+                    self._saved_reflections_for_user(request, user_id)
+                    if authenticated_username
+                    else []
+                ),
+                "active_conversation_id": (
+                    active_conversation.id if active_conversation else ""
+                ),
+                "conversation_messages": (
+                    self._conversation_messages(active_conversation)
+                    if authenticated_username
+                    else self._guest_conversation_messages(request)
+                ),
+                "conversations": conversation_page["items"],
+                "conversations_has_more": conversation_page["has_more"],
+                "conversations_next_offset": conversation_page["next_offset"],
+                "user_id": user_id,
+                "is_guest_chat": not authenticated_username,
+                "mode": current_mode,
+                "language": current_language,
+                "message": "",
+                "support_issue_type": payload["issue_type"],
+                "support_name": payload["name"],
+                "support_form_email": payload["email"],
+                "support_message": payload["message"],
             },
         )
 

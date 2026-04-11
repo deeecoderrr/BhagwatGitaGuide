@@ -397,6 +397,59 @@ class EngagementEvent(models.Model):
         ordering = ["-created_at"]
 
 
+class SupportTicket(models.Model):
+    """Support request submitted by guest or authenticated users."""
+
+    ISSUE_PAYMENT = "payment"
+    ISSUE_ACCOUNT = "account"
+    ISSUE_BUG = "bug"
+    ISSUE_OTHER = "other"
+    ISSUE_CHOICES = (
+        (ISSUE_PAYMENT, "Payment"),
+        (ISSUE_ACCOUNT, "Account"),
+        (ISSUE_BUG, "Bug"),
+        (ISSUE_OTHER, "Other"),
+    )
+
+    STATUS_OPEN = "open"
+    STATUS_RESOLVED = "resolved"
+    STATUS_CHOICES = (
+        (STATUS_OPEN, "Open"),
+        (STATUS_RESOLVED, "Resolved"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="support_tickets",
+    )
+    requester_id = models.CharField(max_length=64, blank=True, db_index=True)
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    issue_type = models.CharField(
+        max_length=16,
+        choices=ISSUE_CHOICES,
+        default=ISSUE_OTHER,
+    )
+    message = models.TextField()
+    status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_OPEN,
+    )
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        """Readable support ticket title for admin list."""
+        return f"Support {self.issue_type} ({self.email})"
+
+
 class QuoteArt(models.Model):
     """User-generated shareable quote art from Gita verses."""
 

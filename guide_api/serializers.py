@@ -160,6 +160,18 @@ class EngagementProfileUpdateSerializer(serializers.Serializer):
     )
 
 
+class SupportRequestSerializer(serializers.Serializer):
+    """Validate support requests submitted from API or chat UI."""
+
+    name = serializers.CharField(max_length=100)
+    email = serializers.EmailField()
+    issue_type = serializers.ChoiceField(
+        choices=["payment", "account", "bug", "other"],
+        default="other",
+    )
+    message = serializers.CharField(max_length=2000)
+
+
 class ChapterListSerializer(serializers.Serializer):
     """Serialize chapter metadata for chapter listing screen."""
 

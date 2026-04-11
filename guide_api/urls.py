@@ -27,6 +27,7 @@ from guide_api.views import (
     RetrievalEvalView,
     SavedReflectionDetailView,
     SavedReflectionListCreateView,
+    SupportRequestView,
     SubscriptionStatusView,
     VerifyPaymentView,
     VerseDetailView,
@@ -76,6 +77,7 @@ urlpatterns = [
         name="history",
     ),
     path("feedback/", FeedbackView.as_view(), name="feedback"),
+    path("support/", SupportRequestView.as_view(), name="support"),
     path(
         "saved-reflections/",
         SavedReflectionListCreateView.as_view(),
