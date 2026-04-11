@@ -15,6 +15,16 @@
 - OpenAI: chat (`OPENAI_MODEL`, default `gpt-4.1-mini`), embeddings (`OPENAI_EMBEDDING_MODEL`, default `text-embedding-3-small`)
 - Auth: session + basic + `Authorization: Token <token>` (DRF authtoken)
 
+### Production runtime (current)
+
+- Hosting: Fly.io
+- Primary app slug: `askbhagavadgita`
+- Production DB: Neon PostgreSQL (via `DATABASE_URL` Fly secret)
+- Free-cost mode currently supported via Fly auto-stop + zero min machines
+- `fly.toml` includes static mapping to `/code/staticfiles`
+- HTTPS proxy note: Django must trust forwarded proto header in production
+  (`SECURE_PROXY_SSL_HEADER`) to avoid redirect loops
+
 ---
 
 ## Setup and commands
@@ -122,6 +132,14 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 
 **Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, and bilingual guidance selection (`en`/`hi`) across API + chat-ui.
 
+Deployment/ops snapshot:
+- live deployment on Fly is active
+- Neon-backed Postgres connectivity verified in runtime shell
+- if app appears slow after idle, this is expected in free mode due to cold starts
+- if `/api/*` loops with repeated 301 redirects, re-check `SECURE_PROXY_SSL_HEADER`
+- if shell shows SQLite in production unexpectedly, validate Fly `DATABASE_URL`
+  secret value and redeploy
+
 **Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today).
 
 **See `PROGRESS.md` for the authoritative checklist** and “Next 3 Tasks” before large new scope.
@@ -140,4 +158,4 @@ Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavio
 
 ---
 
-*Last aligned with repo state: 2026-04-05. Regenerate or edit this file when major architecture or endpoints change.*
+*Last aligned with repo state: 2026-04-11. Regenerate or edit this file when major architecture or endpoints change.*

@@ -1288,7 +1288,7 @@ class ChatUIView(View):
         return response
 
     def _render_chat_ui(self, request, context: dict):
-        """Render chat UI with guest quota state attached when needed."""
+        """Render chat UI with guest quota state and debug flag attached when needed."""
         context.setdefault(
             "guest_quota_snapshot",
             (
@@ -1297,6 +1297,7 @@ class ChatUIView(View):
                 else None
             ),
         )
+        context.setdefault("debug", settings.DEBUG)
         return render(request, self.template_name, context)
 
     def _guest_identity(self, request):

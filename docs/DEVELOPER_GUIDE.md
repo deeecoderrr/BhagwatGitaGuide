@@ -28,6 +28,38 @@ Flow for `POST /api/ask/`:
 7. Increment daily usage counter and return quota fields
    (+ debug trace fields when `DEBUG=true`).
 
+## Production Deployment Notes (Fly + Neon)
+
+Current production posture:
+
+- App hosting: Fly.io
+- Current app slug: `askbhagavadgita`
+- Database: Neon PostgreSQL using `DATABASE_URL` from Fly secrets
+
+Operational notes:
+
+- `flyctl deploy` uses local working tree (Git push not required before deploy).
+- Runtime secrets must be set with `flyctl secrets set ...` (never commit).
+- In free-cost mode, `fly.toml` should keep:
+   - `auto_stop_machines = 'stop'`
+   - `min_machines_running = 0`
+- Cold-start latency after idle is expected in free-cost mode.
+
+Critical Django production setting behind Fly proxy:
+
+- `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")`
+- Without it, HTTPS redirect loops can occur (`301` to same URL repeatedly).
+
+Useful production commands:
+
+```bash
+flyctl status -a askbhagavadgita
+flyctl secrets list -a askbhagavadgita
+flyctl deploy -a askbhagavadgita
+flyctl ssh console -a askbhagavadgita -C "python manage.py migrate --noinput"
+flyctl ssh console -a askbhagavadgita -C "python manage.py shell -c \"from guide_api.models import Verse; print(Verse.objects.count())\""
+```
+
 ## Endpoint Walkthrough Index
 
 Use this map to understand the exact call chain for each endpoint.

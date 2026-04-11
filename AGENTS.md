@@ -17,6 +17,7 @@ Any AI assistant working in this repository should treat the following as **mand
 ## Quick facts
 
 - **Stack:** Django + DRF, SQLite locally, OpenAI for generation/embeddings (optional fallback without key).
+- **Production:** Fly.io app (`askbhagavadgita`) + Neon PostgreSQL via `DATABASE_URL`.
 - **Main code:** `guide_api/views.py`, `guide_api/services.py`, `guide_api/models.py`, `guide_api/tests.py`.
 
 ## Frontend Redesign Protocol

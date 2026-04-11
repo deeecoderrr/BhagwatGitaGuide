@@ -15,6 +15,26 @@ See `PROGRESS.md` for live build status and next milestones.
 - Django + Django REST Framework
 - SQLite for local development
 - Python 3.14
+- Production deploy: Fly.io app + Neon PostgreSQL
+
+## Production Deployment (Current)
+
+- Primary app slug: `askbhagavadgita`
+- Live URL: `https://askbhagavadgita.fly.dev/`
+- Legacy URL (if still retained): `https://bhagwatgitaguide.fly.dev/`
+- Runtime DB in production: Neon Postgres via Fly `DATABASE_URL` secret
+
+### Free-Cost Runtime Mode
+
+To stay in strict low-cost mode on Fly:
+
+- `auto_stop_machines = 'stop'`
+- `min_machines_running = 0`
+- `ENABLE_SEMANTIC_RETRIEVAL=false` (optional speed/cost trade-off)
+- `OPENAI_API_KEY=''` to disable paid LLM generation path entirely
+
+Note: in free mode, the first request after idle may be slower due to machine
+cold start.
 
 ## Quick Start
 
@@ -80,6 +100,19 @@ pgvector phase-1 variables (optional):
 - `PGVECTOR_TABLE` default `guide_api_verse_embedding_index`
 - `PGVECTOR_EMBEDDING_DIM` default `1536`
 - `PGVECTOR_PROBES` default `10`
+
+Production note:
+- Do not commit `DATABASE_URL` or API keys.
+- Set all secrets on Fly using `flyctl secrets set ...`.
+
+### Fly Quick Ops
+
+```bash
+flyctl status -a askbhagavadgita
+flyctl secrets list -a askbhagavadgita
+flyctl deploy -a askbhagavadgita
+flyctl ssh console -a askbhagavadgita -C "python manage.py migrate --noinput"
+```
 
 ## API Endpoints
 

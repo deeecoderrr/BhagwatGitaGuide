@@ -13,7 +13,9 @@ and give feedback on whether the answer was useful.
 
 ## Quick Start (Browser)
 
-1. Open the app at `http://127.0.0.1:8000/api/chat-ui/`.
+1. Open one of these:
+  - local: `http://127.0.0.1:8000/api/chat-ui/`
+  - live: `https://askbhagavadgita.fly.dev/api/chat-ui`
 2. If you are logged out, chat in guest mode:
    - choose `mode` (`simple` or `deep`)
    - choose `language` (`English` or `Hindi`)
@@ -215,6 +217,12 @@ to seek professional or emergency support.
 
 ## Troubleshooting
 
+- Live app feels slow on first request:
+  - in free hosting mode, the app machine may cold-start after idling
+  - first request can be slower; subsequent requests are usually faster
+- Live app shows redirect loop on `/api/*`:
+  - ask a developer to verify proxy HTTPS settings in production
+    (`SECURE_PROXY_SSL_HEADER`)
 - Empty/less relevant answers:
   - run theme tagging and embeddings (developer task)
   - refresh dataset from latest Kaggle multi-script file:
@@ -231,3 +239,7 @@ to seek professional or emergency support.
   - run `make migrate` once after auth/token updates
 - `register` returns `{"detail":"Username is already taken."}`:
   - expected for existing users; login still works
+
+## Live App URL
+
+- current production URL: `https://askbhagavadgita.fly.dev/`

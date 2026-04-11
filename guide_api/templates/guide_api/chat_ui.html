@@ -3176,6 +3176,7 @@
                   </div>
                 {% endif %}
 
+                {% if debug %}
                 <details class="dev-options">
                   <summary>{% if language == "hi" %}डेव/टेस्ट विकल्प{% else %}Dev/Test Options{% endif %}</summary>
                   <form method="post" class="quick-submit">
@@ -3192,6 +3193,7 @@
                     <button type="submit" class="btn-secondary">Update</button>
                   </form>
                 </details>
+                {% endif %}
               </div>
             </details>
           </div>

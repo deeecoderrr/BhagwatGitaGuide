@@ -1,8 +1,22 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-09
+Last updated: 2026-04-11
 
 ## Completed
+
+- Production deployment + runtime hardening completed:
+  - deployed app successfully on Fly.io
+  - production database connected to Neon PostgreSQL via `DATABASE_URL`
+  - migrations run successfully in production
+  - fixed HTTPS redirect loop in production by trusting proxy HTTPS header
+    (`SECURE_PROXY_SSL_HEADER`)
+  - fixed static serving path in Fly config (`/code/staticfiles`)
+  - removed baked secret from Docker image; runtime secrets now come from Fly
+    secrets only
+  - imported full canonical verse corpus into Neon-backed environment
+  - provisioned SEO-friendly Fly app slug `askbhagavadgita`
+  - documented free-cost runtime mode: auto-stop machines, zero always-on
+    machines, optional OpenAI-disabled operation
 
 - Cached multilingual verse synthesis added:
   - new `VerseSynthesis` model stores per-verse integrated overview, commentary bridge,
