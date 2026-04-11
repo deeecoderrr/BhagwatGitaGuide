@@ -130,67 +130,125 @@ SEO_LANDING_PAGES = {
     "anxiety": {
         "slug": "bhagavad-gita-for-anxiety",
         "topic_label": "Anxiety",
+        "topic_label_hi": "चिंता",
         "title": "Bhagavad Gita for Anxiety | Verse-Based Guidance for Fear and Overthinking",
+        "title_hi": "चिंता के लिए भगवद गीता | भय और ओवरथिंकिंग के लिए श्लोक-आधारित मार्गदर्शन",
         "description": (
             "Find Bhagavad Gita guidance for anxiety, fear, and overthinking with relevant verses, "
             "practical meaning, and a clear next step."
         ),
+        "description_hi": (
+            "चिंता, भय और ओवरथिंकिंग के लिए प्रासंगिक श्लोक, व्यावहारिक अर्थ और स्पष्ट अगले कदम के साथ "
+            "भगवद गीता मार्गदर्शन पाएँ।"
+        ),
         "hero_title": "Bhagavad Gita For Anxiety And Overthinking",
+        "hero_title_hi": "चिंता और ओवरथिंकिंग के लिए भगवद गीता",
         "hero_body": (
             "If your mind is restless, fearful, or constantly running toward the future, the Gita offers "
             "a calmer way to see the problem. This page helps you start with relevant teachings and then "
             "ask your exact question inside the app."
+        ),
+        "hero_body_hi": (
+            "यदि मन बेचैन है, भय में है, या लगातार भविष्य की ओर भाग रहा है, तो गीता समस्या को देखने का "
+            "एक शांत दृष्टिकोण देती है। यह पेज आपको प्रासंगिक शिक्षाओं से शुरुआत करने और फिर ऐप में अपना "
+            "सटीक प्रश्न पूछने में मदद करता है।"
         ),
         "problem_points": [
             "future fear and uncertainty",
             "overthinking every outcome",
             "difficulty staying steady in the present",
         ],
+        "problem_points_hi": [
+            "भविष्य का भय और अनिश्चितता",
+            "हर परिणाम के बारे में अधिक सोचना",
+            "वर्तमान में स्थिर रहना कठिन होना",
+        ],
         "verse_refs": ["2.48", "6.5", "2.14"],
         "starter_question": "I feel anxious about my future and overthink everything. What does the Gita say?",
+        "starter_question_hi": "मुझे अपने भविष्य को लेकर चिंता है और मैं हर बात को लेकर बहुत सोचता हूँ। गीता क्या कहती है?",
     },
     "career": {
         "slug": "bhagavad-gita-for-career-confusion",
         "topic_label": "Career Confusion",
+        "topic_label_hi": "करियर उलझन",
         "title": "Bhagavad Gita for Career Confusion | Guidance for Work, Purpose, and Direction",
+        "title_hi": "करियर उलझन के लिए भगवद गीता | काम, उद्देश्य और दिशा के लिए मार्गदर्शन",
         "description": (
             "Explore Bhagavad Gita guidance for career confusion, uncertainty, and purpose with relevant "
             "verses and a practical next step."
         ),
+        "description_hi": (
+            "करियर उलझन, अनिश्चितता और उद्देश्य के लिए प्रासंगिक श्लोकों और व्यावहारिक अगले कदम के साथ "
+            "भगवद गीता मार्गदर्शन देखें।"
+        ),
         "hero_title": "Bhagavad Gita For Career Confusion And Direction",
+        "hero_title_hi": "करियर उलझन और दिशा के लिए भगवद गीता",
         "hero_body": (
             "When you feel torn between pressure, purpose, and fear of failure, the Gita can help you "
             "separate sincere action from anxious attachment. Start with these verses, then ask about your own situation."
+        ),
+        "hero_body_hi": (
+            "जब आप दबाव, उद्देश्य और असफलता के भय के बीच उलझे हों, तो गीता आपको ईमानदार कर्म और चिंतित "
+            "आसक्ति के बीच अंतर समझने में मदद करती है। इन श्लोकों से शुरुआत करें, फिर अपनी स्थिति पूछें।"
         ),
         "problem_points": [
             "uncertainty about what path to choose",
             "fear of failure or comparison",
             "working hard without inner clarity",
         ],
+        "problem_points_hi": [
+            "कौन-सा रास्ता चुनें इस पर अनिश्चितता",
+            "असफलता या तुलना का भय",
+            "भीतर की स्पष्टता के बिना मेहनत करना",
+        ],
         "verse_refs": ["2.47", "3.35", "18.47"],
         "starter_question": "I feel confused about my career path and future. What should I do next?",
+        "starter_question_hi": "मैं अपने करियर और भविष्य को लेकर उलझन में हूँ। मुझे अगला कदम क्या लेना चाहिए?",
     },
     "relationships": {
         "slug": "bhagavad-gita-for-relationships",
         "topic_label": "Relationships",
+        "topic_label_hi": "रिश्ते",
         "title": "Bhagavad Gita for Relationships | Guidance for Anger, Attachment, and Love",
+        "title_hi": "रिश्तों के लिए भगवद गीता | क्रोध, आसक्ति और प्रेम के लिए मार्गदर्शन",
         "description": (
             "Get Bhagavad Gita guidance for relationship pain, anger, attachment, and emotional confusion with relevant verses."
         ),
+        "description_hi": (
+            "रिश्तों के दर्द, क्रोध, आसक्ति और भावनात्मक उलझन के लिए प्रासंगिक श्लोकों सहित भगवद गीता मार्गदर्शन पाएँ।"
+        ),
         "hero_title": "Bhagavad Gita For Relationships And Emotional Balance",
+        "hero_title_hi": "रिश्तों और भावनात्मक संतुलन के लिए भगवद गीता",
         "hero_body": (
             "Relationships often bring attachment, hurt, anger, and confusion to the surface. The Gita helps "
             "you respond with more clarity, steadiness, and self-mastery instead of impulse."
+        ),
+        "hero_body_hi": (
+            "रिश्ते अक्सर आसक्ति, चोट, क्रोध और उलझन को सतह पर ले आते हैं। गीता आपको आवेग के बजाय "
+            "अधिक स्पष्टता, स्थिरता और आत्म-नियंत्रण के साथ प्रतिक्रिया देना सिखाती है।"
         ),
         "problem_points": [
             "anger and reactivity in close relationships",
             "attachment, hurt, and emotional dependence",
             "difficulty responding with calm and clarity",
         ],
+        "problem_points_hi": [
+            "करीबी रिश्तों में क्रोध और तीखी प्रतिक्रिया",
+            "आसक्ति, चोट और भावनात्मक निर्भरता",
+            "शांत और स्पष्ट प्रतिक्रिया देने में कठिनाई",
+        ],
         "verse_refs": ["2.62", "2.63", "12.13"],
         "starter_question": "I get hurt and angry in relationships. How can I respond better?",
+        "starter_question_hi": "रिश्तों में मुझे चोट लगती है और गुस्सा आता है। मैं बेहतर प्रतिक्रिया कैसे दूँ?",
     },
 }
+
+
+def _seo_value(page: dict, key: str, language: str):
+    """Return Hindi variant when available, else fallback to default key."""
+    if language == "hi":
+        return page.get(f"{key}_hi", page.get(key))
+    return page.get(key)
 
 
 def _fetch_curated_verses(reference_list: list[str]) -> list[SimpleNamespace]:
@@ -232,29 +290,51 @@ class SeoLandingIndexView(View):
     template_name = "guide_api/seo_landing.html"
 
     def get(self, request):
+        language = "hi" if request.GET.get("language") == "hi" else "en"
         topics = []
         for key, page in SEO_LANDING_PAGES.items():
             topics.append(
                 {
                     "key": key,
-                    "topic_label": page["topic_label"],
+                    "topic_label": _seo_value(page, "topic_label", language),
                     "slug": page["slug"],
-                    "hero_title": page["hero_title"],
-                    "description": page["description"],
+                    "hero_title": _seo_value(page, "hero_title", language),
+                    "description": _seo_value(page, "description", language),
                 }
             )
-        context = {
-            "page_title": "Bhagavad Gita Guides For Anxiety, Career, Relationships, and Real Life Questions",
-            "meta_description": (
+        page_title = (
+            "भगवद गीता मार्गदर्शिकाएँ: चिंता, करियर, रिश्ते और जीवन के प्रश्न"
+            if language == "hi"
+            else "Bhagavad Gita Guides For Anxiety, Career, Relationships, and Real Life Questions"
+        )
+        meta_description = (
+            "चिंता, करियर उलझन, रिश्तों और अन्य जीवन चुनौतियों के लिए केंद्रित भगवद गीता पेज देखें।"
+            if language == "hi"
+            else (
                 "Explore focused Bhagavad Gita landing pages for anxiety, career confusion, relationships, "
                 "and other real-life challenges."
-            ),
-            "page_heading": "Bhagavad Gita Guides For Real Life Problems",
-            "page_intro": (
+            )
+        )
+        page_heading = (
+            "जीवन की वास्तविक समस्याओं के लिए भगवद गीता मार्गदर्शन"
+            if language == "hi"
+            else "Bhagavad Gita Guides For Real Life Problems"
+        )
+        page_intro = (
+            "नीचे एक केंद्रित मार्गदर्शिका चुनें, प्रासंगिक श्लोक देखें, और फिर व्यक्तिगत उत्तर के लिए ऐप में जाएँ।"
+            if language == "hi"
+            else (
                 "Choose a focused guide below, explore relevant verses, and then continue into the full app "
                 "for a personalized answer."
-            ),
+            )
+        )
+        context = {
+            "page_title": page_title,
+            "meta_description": meta_description,
+            "page_heading": page_heading,
+            "page_intro": page_intro,
             "topics": topics,
+            "language": language,
         }
         return render(request, self.template_name, context)
 
@@ -265,6 +345,7 @@ class SeoLandingTopicView(View):
     template_name = "guide_api/seo_landing.html"
 
     def get(self, request, slug: str):
+        language = "hi" if request.GET.get("language") == "hi" else "en"
         page = next(
             (item for item in SEO_LANDING_PAGES.values() if item["slug"] == slug),
             None,
@@ -272,27 +353,28 @@ class SeoLandingTopicView(View):
         if page is None:
             return JsonResponse({"detail": "Not found."}, status=404)
 
-        starter_question = page["starter_question"]
-        chat_url = f"/api/chat-ui/?mode=simple&language=en"
+        starter_question = _seo_value(page, "starter_question", language)
+        chat_url = f"/api/chat-ui/?mode=simple&language={language}"
         context = {
-            "page_title": page["title"],
-            "meta_description": page["description"],
-            "page_heading": page["hero_title"],
-            "page_intro": page["hero_body"],
-            "topic_label": page["topic_label"],
-            "problem_points": page["problem_points"],
+            "page_title": _seo_value(page, "title", language),
+            "meta_description": _seo_value(page, "description", language),
+            "page_heading": _seo_value(page, "hero_title", language),
+            "page_intro": _seo_value(page, "hero_body", language),
+            "topic_label": _seo_value(page, "topic_label", language),
+            "problem_points": _seo_value(page, "problem_points", language),
             "featured_verses": _fetch_curated_verses(page["verse_refs"]),
             "starter_question": starter_question,
             "chat_url": chat_url,
             "chat_url_with_prefill": f"{chat_url}&prefill={quote_plus(starter_question)}",
             "other_topics": [
                 {
-                    "topic_label": item["topic_label"],
+                    "topic_label": _seo_value(item, "topic_label", language),
                     "slug": item["slug"],
                 }
                 for item in SEO_LANDING_PAGES.values()
                 if item["slug"] != slug
             ],
+            "language": language,
         }
         return render(request, self.template_name, context)
 

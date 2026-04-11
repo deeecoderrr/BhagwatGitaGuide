@@ -8,6 +8,7 @@ See `PROGRESS.md` for live build status and next milestones.
 
 - User documentation: `docs/USER_GUIDE.md`
 - Developer documentation: `docs/DEVELOPER_GUIDE.md`
+- Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`
 - AI / coding-agent handoff: `AGENTS.md` (start here) and `docs/AI_AGENT_HANDOFF.md`
 
 ## Stack

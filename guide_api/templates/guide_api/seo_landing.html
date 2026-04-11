@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="{{ language|default:'en' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -62,6 +62,30 @@
       padding: 12px 16px;
       border-radius: 999px;
       font-weight: 700;
+    }
+    .nav-lang-form {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 999px;
+      padding: 8px 10px;
+    }
+    .nav-lang-form label {
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .nav-lang-form select {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(7, 14, 28, 0.92);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      padding: 8px 10px;
+      cursor: pointer;
     }
     .hero, .panel {
       border: 1px solid var(--border);
@@ -228,46 +252,71 @@
 <body>
   <div class="shell">
     <div class="topbar">
-      <a class="brand" href="/">Bhagavad Gita Guide</a>
+      <a class="brand" href="/?language={{ language|default:'en' }}">
+        {% if language == "hi" %}भगवद गीता गाइड{% else %}Bhagavad Gita Guide{% endif %}
+      </a>
       <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <a class="navlink" href="/api/chat-ui/?mode=simple&language=en">Open App</a>
-        <a class="navlink" href="/api/chat-ui/?mode=simple&language=en">Ask A Question</a>
+        <form method="get" class="nav-lang-form">
+          <label for="nav_language">{% if language == "hi" %}भाषा{% else %}Language{% endif %}</label>
+          <select id="nav_language" name="language" onchange="this.form.submit()">
+            <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
+            <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
+          </select>
+        </form>
+        <a class="navlink" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}">
+          {% if language == "hi" %}ऐप खोलें{% else %}Open App{% endif %}
+        </a>
+        <a class="navlink" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}">
+          {% if language == "hi" %}प्रश्न पूछें{% else %}Ask A Question{% endif %}
+        </a>
       </div>
     </div>
 
     <section class="hero">
       <div>
-        <div class="eyebrow">{{ topic_label|default:"Focused Gita Guidance" }}</div>
+        <div class="eyebrow">
+          {{ topic_label|default:"Focused Gita Guidance" }}
+        </div>
         <h1>{{ page_heading }}</h1>
         <p>{{ page_intro }}</p>
         {% if starter_question %}
           <div class="hero-actions">
-            <a class="btn btn-primary" href="{{ chat_url }}">Open The Full Guide</a>
-            <a class="btn btn-secondary" href="{{ chat_url_with_prefill }}">Use Example Question</a>
+            <a class="btn btn-primary" href="{{ chat_url }}">
+              {% if language == "hi" %}पूरा गाइड खोलें{% else %}Open The Full Guide{% endif %}
+            </a>
+            <a class="btn btn-secondary" href="{{ chat_url_with_prefill }}">
+              {% if language == "hi" %}उदाहरण प्रश्न उपयोग करें{% else %}Use Example Question{% endif %}
+            </a>
           </div>
         {% endif %}
       </div>
       <div class="hero-side">
         {% if problem_points %}
-          <h2 class="section-title">Common situations</h2>
+          <h2 class="section-title">{% if language == "hi" %}आम स्थितियाँ{% else %}Common situations{% endif %}</h2>
           <ul>
             {% for point in problem_points %}
               <li>{{ point }}</li>
             {% endfor %}
           </ul>
         {% else %}
-          <h2 class="section-title">Explore focused guides</h2>
-          <p class="body-copy">Start with a life area, see relevant Bhagavad Gita verses, then continue into the full app for your personal question.</p>
+          <h2 class="section-title">{% if language == "hi" %}केंद्रित गाइड खोजें{% else %}Explore focused guides{% endif %}</h2>
+          <p class="body-copy">
+            {% if language == "hi" %}
+              किसी जीवन-क्षेत्र से शुरुआत करें, प्रासंगिक भगवद गीता श्लोक देखें, फिर अपने व्यक्तिगत प्रश्न के लिए ऐप में जाएँ।
+            {% else %}
+              Start with a life area, see relevant Bhagavad Gita verses, then continue into the full app for your personal question.
+            {% endif %}
+          </p>
         {% endif %}
       </div>
     </section>
 
     {% if topics %}
       <section class="panel">
-        <h2 class="section-title">Choose a focused guide</h2>
+        <h2 class="section-title">{% if language == "hi" %}एक केंद्रित गाइड चुनें{% else %}Choose a focused guide{% endif %}</h2>
         <div class="topic-list">
           {% for topic in topics %}
-            <a class="topic-card" href="/{{ topic.slug }}/">
+            <a class="topic-card" href="/{{ topic.slug }}/?language={{ language|default:'en' }}">
               <h3>{{ topic.topic_label }}</h3>
               <p>{{ topic.description }}</p>
             </a>
@@ -277,15 +326,21 @@
     {% else %}
       <div class="grid">
         <section class="panel">
-          <h2 class="section-title">Relevant Bhagavad Gita verses</h2>
-          <p class="hint">These verses are strong starting points for this topic. Open the full app to ask your exact question and get a verse-grounded answer.</p>
+          <h2 class="section-title">{% if language == "hi" %}प्रासंगिक भगवद गीता श्लोक{% else %}Relevant Bhagavad Gita verses{% endif %}</h2>
+          <p class="hint">
+            {% if language == "hi" %}
+              ये श्लोक इस विषय के लिए मजबूत शुरुआत हैं। पूरा ऐप खोलें, अपना सटीक प्रश्न पूछें और श्लोक-आधारित उत्तर पाएँ।
+            {% else %}
+              These verses are strong starting points for this topic. Open the full app to ask your exact question and get a verse-grounded answer.
+            {% endif %}
+          </p>
           <div class="verse-list">
             {% for verse in featured_verses %}
               <div class="verse-card">
                 <div class="verse-ref">{{ verse.reference }}</div>
                 <div class="verse-copy">{{ verse.translation }}</div>
                 {% if verse.themes %}
-                  <div class="footnote">Themes: {{ verse.themes|join:", " }}</div>
+                  <div class="footnote">{% if language == "hi" %}विषय{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
                 {% endif %}
               </div>
             {% endfor %}
@@ -293,22 +348,36 @@
         </section>
 
         <section class="panel">
-          <h2 class="section-title">Ask your exact situation</h2>
-          <p class="hint">The strongest experience is when you describe your real problem in your own words. The app will then try to find the most relevant verse, meaning, and next step.</p>
+          <h2 class="section-title">{% if language == "hi" %}अपनी सटीक स्थिति पूछें{% else %}Ask your exact situation{% endif %}</h2>
+          <p class="hint">
+            {% if language == "hi" %}
+              सबसे अच्छा अनुभव तब मिलता है जब आप अपनी वास्तविक समस्या अपने शब्दों में लिखते हैं। ऐप तब सबसे प्रासंगिक श्लोक, अर्थ और अगला कदम खोजने की कोशिश करता है।
+            {% else %}
+              The strongest experience is when you describe your real problem in your own words. The app will then try to find the most relevant verse, meaning, and next step.
+            {% endif %}
+          </p>
           <form class="cta-form" method="post" action="/api/chat-ui/">
             {% csrf_token %}
             <input type="hidden" name="action" value="ask">
             <input type="hidden" name="mode" value="simple">
-            <input type="hidden" name="language" value="en">
+            <input type="hidden" name="language" value="{{ language|default:'en' }}">
             <textarea name="message">{{ starter_question }}</textarea>
-            <button class="btn btn-primary" type="submit">Ask This In The App</button>
+            <button class="btn btn-primary" type="submit">
+              {% if language == "hi" %}ऐप में यह प्रश्न पूछें{% else %}Ask This In The App{% endif %}
+            </button>
           </form>
           <div class="mini-nav">
             {% for topic in other_topics %}
-              <a href="/{{ topic.slug }}/">{{ topic.topic_label }}</a>
+              <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">{{ topic.topic_label }}</a>
             {% endfor %}
           </div>
-          <div class="footnote">These pages are for discovery and education. For a personalized answer, continue into the full chat experience.</div>
+          <div class="footnote">
+            {% if language == "hi" %}
+              ये पेज खोज और सीखने के लिए हैं। व्यक्तिगत उत्तर के लिए पूरे चैट अनुभव में जाएँ।
+            {% else %}
+              These pages are for discovery and education. For a personalized answer, continue into the full chat experience.
+            {% endif %}
+          </div>
         </section>
       </div>
     {% endif %}

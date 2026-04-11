@@ -63,6 +63,7 @@ Useful `Makefile` targets: `make run`, `make test`, `make setup`,
 | Tests | `guide_api/tests.py` |
 
 Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavior in `docs/USER_GUIDE.md`. Build status and roadmap: `PROGRESS.md`, `README.md`.
+Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 ---
 

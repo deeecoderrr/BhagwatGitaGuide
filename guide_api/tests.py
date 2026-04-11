@@ -55,15 +55,29 @@ class GuideApiTests(APITestCase):
     def test_public_seo_index_page_loads(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, 'id="nav_language"')
         self.assertContains(response, "Bhagavad Gita Guides For Real Life Problems")
         self.assertContains(response, "bhagavad-gita-for-anxiety")
 
     def test_public_seo_topic_page_loads(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, 'id="nav_language"')
         self.assertContains(response, "Bhagavad Gita For Anxiety And Overthinking")
         self.assertContains(response, "Relevant Bhagavad Gita verses")
         self.assertContains(response, "Ask This In The App")
+
+    def test_public_seo_index_page_switches_to_hindi(self):
+        response = self.client.get("/?language=hi")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "एक केंद्रित गाइड चुनें")
+        self.assertContains(response, "ऐप खोलें")
+
+    def test_public_seo_topic_page_switches_to_hindi(self):
+        response = self.client.get("/bhagavad-gita-for-anxiety/?language=hi")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "चिंता और ओवरथिंकिंग के लिए भगवद गीता")
+        self.assertContains(response, "आम स्थितियाँ")
 
     def test_health_endpoint_v1_alias_works(self):
         response = self.client.get("/api/v1/health/")
@@ -400,6 +414,7 @@ class GuideApiTests(APITestCase):
     def test_chat_ui_page_loads(self):
         response = self.client.get("/api/chat-ui/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, 'id="nav_language"')
         self.assertContains(response, "Try a starter prompt")
         self.assertContains(response, "Save Your Journey")
         self.assertContains(response, "Guest mode is temporary")

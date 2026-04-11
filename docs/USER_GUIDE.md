@@ -39,7 +39,10 @@ and give feedback on whether the answer was useful.
 10. The sidebar `Mode` and `Language` selectors are global for the whole chat
     UI. Whatever you select there will be used for the next message in any
     conversation.
-11. The chat UI uses smooth animations and transitions; if a CDN is blocked,
+11. A language selector is always available in the top navigation (including
+  guest pages before login), so you can switch between English and Hindi
+  from anywhere.
+12. The chat UI uses smooth animations and transitions; if a CDN is blocked,
     core chat functionality still works without the visual effects.
 
 ## Quick Start (API)

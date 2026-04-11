@@ -367,6 +367,29 @@
       margin: 0;
       display: inline-flex;
     }
+
+    .nav-language-form {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
+
+    .nav-language-label {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .nav-language-select {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font-size: 12px;
+      cursor: pointer;
+    }
     .auth-pill {
       border-radius: 999px;
       padding: 7px 11px;
@@ -2717,6 +2740,24 @@
         </a>
       </div>
       <div class="nav-actions">
+        <form method="get" class="nav-language-form">
+          <label class="nav-language-label" for="nav_language">
+            {% if language == "hi" %}भाषा{% else %}Language{% endif %}
+          </label>
+          <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+          {% if active_conversation_id %}
+            <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
+          {% endif %}
+          <select
+            id="nav_language"
+            name="language"
+            class="nav-language-select"
+            onchange="this.form.submit()"
+          >
+            <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
+            <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
+          </select>
+        </form>
         {% if request.session.chat_ui_auth_username %}
           <button
             type="button"
