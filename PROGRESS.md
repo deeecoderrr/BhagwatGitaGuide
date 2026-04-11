@@ -508,7 +508,33 @@ Last updated: 2026-04-11
     context for crafting deeply informed, tradition-grounded guidance
   - all 71 tests pass
 
-## In Progress
+- Global multilingual SEO presence completed:
+  - added global language selector (en/hi) visible on every page including guest/logged-out pages
+  - added public SEO landing pages at `/`, `/bhagavad-gita-for-anxiety/`, 
+    `/bhagavad-gita-for-career-confusion/`, `/bhagavad-gita-for-relationships/`
+    with dedicated metadata, focused copy, curated verses, and direct CTAs
+  - each SEO page fully localized in English and Hindi
+  - added `/robots.txt` endpoint with sitemap hint (allow all crawlers)
+  - added `/sitemap.xml` endpoint listing 5 key public URLs
+  - added canonical URL tags on all SEO pages
+  - added hreflang alternates (en/hi/x-default) for multi-language SEO
+  - added Open Graph and Twitter Card meta tags for social sharing
+  - added JSON-LD structured data (WebSite, CollectionPage, WebPage, BreadcrumbList)
+  - added Google Search Console verification meta-tag support (configurable via GOOGLE_SITE_VERIFICATION secret)
+  - added 3 new tests for SEO metadata, canonical, hreflang, and Google verification
+  - all 86 tests pass
+
+- Razorpay payment integration tested and validated:
+  - comprehensive test suite for payment flow (21 new tests):
+    - CreateOrderView: INR/USD flows, default currency, unauthenticated failure, gateway misconfiguration
+    - VerifyPaymentView: valid signature verification, invalid signature rejection, order ID mismatch, missing parameters, unauthenticated failure
+    - RazorpayWebhookView: payment.captured event handling, payment.failed event, invalid signature rejection, webhook misconfiguration, invalid JSON handling
+    - SubscriptionStatusView: free plan status, active pro plan, expired pro plan, unauthenticated failure
+    - End-to-end payment flow: complete order creation → payment verification → subscription activation cycle
+  - all payment endpoints verified working against mocked Razorpay client
+  - webhook signature verification validated with HMAC-SHA256
+  - subscription activation logic confirmed (plan upgrade, is_active, 30-day expiry)
+  - all 107 tests pass (86 existing + 21 new payment tests)
 
 - UX focus (current):
   - improve emotional clarity and response tone quality
@@ -528,13 +554,14 @@ Last updated: 2026-04-11
 - Track activation, repeat usage, and retention metrics.
 
 ### 4) Monetization Foundation (Later)
-- Stripe integration and plan gates.
+- Razorpay integration tested (next: connect payment button in chat-ui for users to upgrade).
+- Consider email follow-up for expired subscriptions.
 
 ## Next 3 Tasks (Recommended)
 
-1. Add push/email delivery service integration for reminder preferences.
-2. Add Stripe checkout and paid entitlement lifecycle hooks.
-3. Add automated nightly reminder job/worker for due users.
+1. Wire payment button UI in chat-ui to trigger order creation + checkout flow
+2. Add push/email delivery service integration for reminder preferences.
+3. Add automated subscription renewal/expiry notification job.
 
 ## Deferred (Do Later)
 
@@ -549,7 +576,7 @@ Last updated: 2026-04-11
 - Added a deterministic structured query interpreter before retrieval/generation so responses now carry explicit emotional state, life domain, likely Gita principles, search terms, and match strictness.
 - Added a greeting-aware response path so simple messages like `hi` or `hye` no longer force irrelevant verses, and reordered reply panels to show practical actions before reflection.
 - Repositioned the chat landing page for growth with stronger SEO title/description, clearer “ask your problem” hero copy, sharper CTAs, more concrete composer guidance, and stronger starter prompts focused on real user pain points.
-- Added public SEO landing pages at `/`, `/bhagavad-gita-for-anxiety/`, `/bhagavad-gita-for-career-confusion/`, and `/bhagavad-gita-for-relationships/` with dedicated metadata, focused copy, curated verses, and direct CTAs into the app.
+
 
 ## How To Update This File
 

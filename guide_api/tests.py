@@ -1400,3 +1400,626 @@ class GuideApiTests(APITestCase):
         response = self.client.get("/api/v1/chapters/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("chapters", response.data)
+
+
+# Razorpay Payment Integration Tests
+# =============================================================================
+
+
+@override_settings(
+    DEBUG=True,
+    OPENAI_API_KEY="",
+    RAZORPAY_KEY_ID="rzp_test_key_12345",
+    RAZORPAY_KEY_SECRET="secret_key_67890",
+    RAZORPAY_WEBHOOK_SECRET="webhook_secret_key",
+    SUBSCRIPTION_PRICE_INR=9900,
+    SUBSCRIPTION_PRICE_USD=299,
+)
+class PaymentIntegrationTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="payment-user",
+            email="paymentuser@test.com",
+            password="test-pass-123",
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_order_inr_flow(self):
+        """Test creating a Razorpay order for INR payment."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_test_123abc",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+            "receipt": "sub_test_receipt",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["order_id"], "order_test_123abc")
+        self.assertEqual(response.data["amount"], 9900)
+        self.assertEqual(response.data["currency"], "INR")
+        self.assertEqual(response.data["key_id"], "rzp_test_key_12345")
+        self.assertEqual(response.data["user_email"], "paymentuser@test.com")
+
+        # Verify order was stored in subscription
+        subscription = UserSubscription.objects.get(user=self.user)
+        self.assertEqual(subscription.razorpay_order_id, "order_test_123abc")
+        self.assertEqual(subscription.payment_currency, "INR")
+
+    def test_create_order_usd_flow(self):
+        """Test creating a Razorpay order for USD payment."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_usd_xyz789",
+            "entity": "order",
+            "amount": 299,
+            "currency": "USD",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "USD"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["order_id"], "order_usd_xyz789")
+        self.assertEqual(response.data["amount"], 299)
+        self.assertEqual(response.data["currency"], "USD")
+
+        # Verify order was stored in subscription
+        subscription = UserSubscription.objects.get(user=self.user)
+        self.assertEqual(subscription.razorpay_order_id, "order_usd_xyz789")
+        self.assertEqual(subscription.payment_currency, "USD")
+
+    def test_create_order_defaults_to_inr(self):
+        """Test creating an order without currency defaults to INR."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_default_inr",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["amount"], 9900)
+        self.assertEqual(response.data["currency"], "INR")
+
+    def test_create_order_unauthenticated_fails(self):
+        """Test order creation fails without authentication."""
+        self.client.force_authenticate(user=None)
+
+        from unittest.mock import patch
+
+        with patch("razorpay.Client"):
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("error", response.data)
+
+    def test_create_order_gateway_not_configured_fails(self):
+        """Test order creation fails when Razorpay credentials are not set."""
+        with override_settings(RAZORPAY_KEY_ID="", RAZORPAY_KEY_SECRET=""):
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+        self.assertIn("error", response.data)
+
+    def test_verify_payment_with_valid_signature(self):
+        """Test verifying payment with valid HMAC signature."""
+        import hmac
+        import hashlib
+
+        # Setup: Create an order first
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        subscription.razorpay_order_id = "order_test_456def"
+        subscription.save()
+
+        # Generate valid signature
+        order_id = "order_test_456def"
+        payment_id = "pay_test_789ghi"
+        key_secret = "secret_key_67890"
+        msg = f"{order_id}|{payment_id}"
+        generated_signature = hmac.new(
+            key_secret.encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Verify payment with valid signature
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": generated_signature,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+        self.assertIn("message", response.data)
+
+        # Verify subscription was activated
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_PRO)
+        self.assertTrue(subscription.is_active)
+        self.assertIsNotNone(subscription.subscription_end_date)
+        # Should be ~30 days from now
+        days_diff = (subscription.subscription_end_date - timezone.now()).days
+        self.assertGreaterEqual(days_diff, 29)
+        self.assertLessEqual(days_diff, 31)
+
+    def test_verify_payment_with_invalid_signature_fails(self):
+        """Test payment verification fails with invalid signature."""
+        # Setup: Create an order first (with is_active=False to test it doesn't change)
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+            is_active=False,
+        )
+        subscription.razorpay_order_id = "order_test_456def"
+        subscription.save()
+
+        # Attempt to verify with wrong signature
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": "order_test_456def",
+                "razorpay_payment_id": "pay_test_789ghi",
+                "razorpay_signature": "wrong_signature_xyz",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+        # Subscription should remain unchanged
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+        self.assertFalse(subscription.is_active)
+
+    def test_verify_payment_missing_parameters_fails(self):
+        """Test payment verification fails when required parameters are missing."""
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": "order_123",
+                # Missing payment_id and signature
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_verify_payment_order_id_mismatch_fails(self):
+        """Test verification fails when order_id doesn't match subscription."""
+        import hmac
+        import hashlib
+
+        # Setup: Create an order with a different ID
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        subscription.razorpay_order_id = "order_original_123"
+        subscription.save()
+
+        # Generate signature for different order_id
+        order_id = "order_wrong_456"
+        payment_id = "pay_test_789ghi"
+        key_secret = "secret_key_67890"
+        msg = f"{order_id}|{payment_id}"
+        generated_signature = hmac.new(
+            key_secret.encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Try to verify with mismatched order_id
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": generated_signature,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_verify_payment_unauthenticated_fails(self):
+        """Test payment verification fails without authentication."""
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": "order_test",
+                "razorpay_payment_id": "pay_test",
+                "razorpay_signature": "sig_test",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("error", response.data)
+
+    def test_razorpay_webhook_payment_captured_event(self):
+        """Test webhook correctly handles payment.captured event."""
+        import hmac
+        import hashlib
+        import json
+
+        # Setup: Create subscription with order_id
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        subscription.razorpay_order_id = "order_webhook_123"
+        subscription.save()
+
+        # Create webhook payload
+        webhook_body = json.dumps({
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_webhook_xyz",
+                        "order_id": "order_webhook_123",
+                        "status": "captured",
+                        "amount": 9900,
+                    }
+                }
+            },
+        })
+
+        # Generate valid webhook signature
+        webhook_secret = "webhook_secret_key"
+        webhook_signature = hmac.new(
+            webhook_secret.encode(),
+            webhook_body.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Remove authentication for webhook
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=webhook_signature,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Verify subscription was activated
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_PRO)
+        self.assertTrue(subscription.is_active)
+
+    def test_razorpay_webhook_payment_failed_event(self):
+        """Test webhook correctly handles payment.failed event."""
+        import hmac
+        import hashlib
+        import json
+
+        # Setup: Create subscription
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        subscription.razorpay_order_id = "order_failed_123"
+        subscription.save()
+
+        # Create webhook payload for failed payment
+        webhook_body = json.dumps({
+            "event": "payment.failed",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_failed_xyz",
+                        "order_id": "order_failed_123",
+                        "status": "failed",
+                    }
+                }
+            },
+        })
+
+        # Generate valid webhook signature
+        webhook_secret = "webhook_secret_key"
+        webhook_signature = hmac.new(
+            webhook_secret.encode(),
+            webhook_body.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Remove authentication for webhook
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=webhook_signature,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Subscription should remain unchanged
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+
+    def test_razorpay_webhook_invalid_signature_rejected(self):
+        """Test webhook request with invalid signature is rejected."""
+        import json
+
+        webhook_body = json.dumps({
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_test",
+                        "order_id": "order_test",
+                        "status": "captured",
+                    }
+                }
+            },
+        })
+
+        # Remove authentication for webhook
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE="invalid_signature",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_razorpay_webhook_webhook_secret_not_configured_fails(self):
+        """Test webhook request fails when webhook secret is not configured."""
+        import json
+
+        with override_settings(RAZORPAY_WEBHOOK_SECRET=""):
+            webhook_body = json.dumps({"event": "payment.captured"})
+
+            # Remove authentication for webhook
+            self.client.force_authenticate(user=None)
+
+            response = self.client.post(
+                "/api/payments/webhook/",
+                webhook_body,
+                content_type="application/json",
+                HTTP_X_RAZORPAY_SIGNATURE="any_sig",
+            )
+
+            self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+            self.assertIn("error", response.data)
+
+    def test_razorpay_webhook_invalid_json_handled(self):
+        """Test webhook gracefully handles invalid JSON."""
+        import hmac
+        import hashlib
+
+        webhook_body = "not valid json {"
+        webhook_secret = "webhook_secret_key"
+        webhook_signature = hmac.new(
+            webhook_secret.encode(),
+            webhook_body.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        # Remove authentication for webhook
+        self.client.force_authenticate(user=None)
+
+        response = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=webhook_signature,
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_subscription_status_free_plan(self):
+        """Test subscription status endpoint returns free plan data."""
+        # User starts with free plan
+        response = self.client.get("/api/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_FREE)
+        self.assertFalse(response.data["is_pro"])
+        self.assertIsNone(response.data["subscription_end_date"])
+        self.assertIn("pricing", response.data)
+        self.assertEqual(response.data["pricing"]["INR"], 9900)
+        self.assertEqual(response.data["pricing"]["USD"], 299)
+
+    def test_subscription_status_pro_plan_active(self):
+        """Test subscription status endpoint returns pro plan data when active."""
+        # Activate user's pro plan
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PRO,
+            is_active=True,
+            subscription_end_date=timezone.now() + timedelta(days=15),
+        )
+
+        response = self.client.get("/api/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_PRO)
+        self.assertTrue(response.data["is_pro"])
+        self.assertIsNotNone(response.data["subscription_end_date"])
+
+    def test_subscription_status_pro_plan_expired(self):
+        """Test subscription status endpoint shows is_pro=false when pro subscription expired."""
+        # Create expired pro subscription
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PRO,
+            is_active=True,
+            subscription_end_date=timezone.now() - timedelta(days=5),  # Expired
+        )
+
+        response = self.client.get("/api/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_PRO)
+        self.assertFalse(response.data["is_pro"])  # Expired, so not active
+
+    def test_subscription_status_unauthenticated_fails(self):
+        """Test subscription status endpoint fails without authentication."""
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get("/api/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("error", response.data)
+
+    def test_create_order_includes_user_details_in_response(self):
+        """Test create order response includes user name and email."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_user_details",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["user_email"], "paymentuser@test.com")
+        self.assertEqual(response.data["user_name"], "payment-user")
+
+    def test_payment_flow_end_to_end(self):
+        """Test complete payment flow from order creation to subscription activation."""
+        import hmac
+        import hashlib
+        from unittest.mock import patch, MagicMock
+
+        # Step 1: Create order
+        mock_order_response = {
+            "id": "order_e2e_123",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        order_id = response.data["order_id"]
+
+        # Step 2: Verify subscription was created with order_id
+        subscription = UserSubscription.objects.get(user=self.user)
+        self.assertEqual(subscription.razorpay_order_id, order_id)
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+
+        # Step 3: Simulate user payment and signature verification
+        payment_id = "pay_e2e_xyz"
+        msg = f"{order_id}|{payment_id}"
+        generated_signature = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256
+        ).hexdigest()
+
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": generated_signature,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+
+        # Step 4: Verify subscription is now pro
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_PRO)
+        self.assertTrue(subscription.is_active)
+
+        # Step 5: Check subscription status
+        response = self.client.get("/api/subscription/status/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["is_pro"])
