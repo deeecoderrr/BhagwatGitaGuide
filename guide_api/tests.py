@@ -107,6 +107,16 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, 'application/ld+json')
         self.assertContains(response, 'BreadcrumbList')
 
+    @override_settings(GOOGLE_SITE_VERIFICATION="token-abc-123")
+    def test_public_seo_page_renders_google_verification_meta(self):
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(
+            response,
+            'name="google-site-verification" content="token-abc-123"',
+            html=False,
+        )
+
     def test_health_endpoint_v1_alias_works(self):
         response = self.client.get("/api/v1/health/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)

@@ -17,6 +17,9 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ page_title }}">
   <meta name="twitter:description" content="{{ meta_description }}">
+  {% if google_site_verification %}
+    <meta name="google-site-verification" content="{{ google_site_verification }}">
+  {% endif %}
   {% if structured_data %}
     <script type="application/ld+json">{{ structured_data|safe }}</script>
   {% endif %}

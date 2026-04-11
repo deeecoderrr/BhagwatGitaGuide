@@ -419,6 +419,7 @@ class SeoLandingIndexView(View):
             "alternate_hi_url": alternate_hi_url,
             "og_type": "website",
             "structured_data": structured_data,
+            "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
         }
         return render(request, self.template_name, context)
 
@@ -507,6 +508,7 @@ class SeoLandingTopicView(View):
             "alternate_hi_url": alternate_hi_url,
             "og_type": "article",
             "structured_data": structured_data,
+            "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
         }
         return render(request, self.template_name, context)
 
