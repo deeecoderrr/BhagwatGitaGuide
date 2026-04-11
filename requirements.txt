@@ -7,3 +7,6 @@ psycopg[binary]
 pgvector
 openai
 openpyxl
+gunicorn
+dj-database-url
+whitenoise
