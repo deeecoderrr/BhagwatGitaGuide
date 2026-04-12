@@ -232,6 +232,31 @@ class DailyAskUsage(models.Model):
         ordering = ["-date"]
 
 
+class RequestQuotaSettings(models.Model):
+    """Singleton quota controls for guest, free, and pro ask limits."""
+
+    singleton = models.BooleanField(default=True, unique=True, editable=False)
+
+    guest_limit_enabled = models.BooleanField(default=True)
+    guest_ask_limit = models.PositiveIntegerField(default=3)
+
+    free_limit_enabled = models.BooleanField(default=True)
+    free_daily_ask_limit = models.PositiveIntegerField(default=5)
+
+    pro_limit_enabled = models.BooleanField(default=True)
+    pro_daily_ask_limit = models.PositiveIntegerField(default=10000)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Request quota settings"
+        verbose_name_plural = "Request quota settings"
+
+    def __str__(self) -> str:
+        """Readable singleton label in admin list."""
+        return "Request quota settings"
+
+
 class AskEvent(models.Model):
     """Telemetry row for each ask attempt and delivery outcome."""
 

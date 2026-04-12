@@ -30,6 +30,7 @@ from guide_api.models import (
     FollowUpEvent,
     GuestChatIdentity,
     Message,
+    RequestQuotaSettings,
     ResponseFeedback,
     SavedReflection,
     SupportTicket,
@@ -528,11 +529,37 @@ def _get_user_plan_and_usage(user):
     return subscription, usage
 
 
-def _plan_daily_limit(plan: str) -> int:
-    """Resolve daily ask limit from configured plan."""
+def _request_quota_settings() -> RequestQuotaSettings | None:
+    """Return singleton admin quota settings if configured."""
+    return RequestQuotaSettings.objects.first()
+
+
+def _plan_daily_limit(plan: str) -> int | None:
+    """Resolve daily ask limit from admin settings, then env defaults."""
+    quota_settings = _request_quota_settings()
     if plan == UserSubscription.PLAN_PRO:
+        if quota_settings:
+            if not quota_settings.pro_limit_enabled:
+                return None
+            return quota_settings.pro_daily_ask_limit
         return settings.ASK_LIMIT_PRO_DAILY
+
+    if quota_settings:
+        if not quota_settings.free_limit_enabled:
+            return None
+        return quota_settings.free_daily_ask_limit
     return settings.ASK_LIMIT_FREE_DAILY
+
+
+def _remaining_today(
+    *,
+    daily_limit: int | None,
+    used_today: int,
+) -> int | None:
+    """Return remaining asks, or None when plan limits are disabled."""
+    if daily_limit is None:
+        return None
+    return max(daily_limit - used_today, 0)
 
 
 def _log_ask_event(
@@ -832,7 +859,10 @@ class MeView(APIView):
                 "plan": subscription.plan,
                 "daily_limit": daily_limit,
                 "used_today": usage.ask_count,
-                "remaining_today": max(daily_limit - usage.ask_count, 0),
+                "remaining_today": _remaining_today(
+                    daily_limit=daily_limit,
+                    used_today=usage.ask_count,
+                ),
                 "engagement": _serialize_engagement_profile(engagement),
             }
         )
@@ -857,7 +887,10 @@ class PlanUpdateView(APIView):
                 "plan": subscription.plan,
                 "daily_limit": daily_limit,
                 "used_today": usage.ask_count,
-                "remaining_today": max(daily_limit - usage.ask_count, 0),
+                "remaining_today": _remaining_today(
+                    daily_limit=daily_limit,
+                    used_today=usage.ask_count,
+                ),
             }
         )
 
@@ -924,7 +957,7 @@ class AskView(APIView):
 
         subscription, usage = _get_user_plan_and_usage(request.user)
         daily_limit = _plan_daily_limit(subscription.plan)
-        if usage.ask_count >= daily_limit:
+        if daily_limit is not None and usage.ask_count >= daily_limit:
             _log_ask_event(
                 user_id=request.user.get_username(),
                 source=AskEvent.SOURCE_API,
@@ -943,7 +976,10 @@ class AskView(APIView):
                     "plan": subscription.plan,
                     "daily_limit": daily_limit,
                     "used_today": usage.ask_count,
-                    "remaining_today": 0,
+                    "remaining_today": _remaining_today(
+                        daily_limit=daily_limit,
+                        used_today=usage.ask_count,
+                    ),
                 },
             )
 
@@ -981,7 +1017,10 @@ class AskView(APIView):
             "plan": subscription.plan,
             "daily_limit": daily_limit,
             "used_today": usage.ask_count,
-            "remaining_today": max(daily_limit - usage.ask_count, 0),
+            "remaining_today": _remaining_today(
+                daily_limit=daily_limit,
+                used_today=usage.ask_count,
+            ),
             "engagement": _serialize_engagement_profile(engagement),
         }
         follow_ups = _build_contextual_follow_ups(
@@ -1522,7 +1561,20 @@ class ChatUIView(View):
     template_name = "guide_api/chat_ui.html"
     guest_cookie_name = "chat_ui_guest_id"
     guest_cookie_age = 60 * 60 * 24 * 90
-    guest_ask_limit = 3
+
+    @staticmethod
+    def _guest_limit_settings() -> dict:
+        """Resolve guest quota switches and limits from admin settings."""
+        quota_settings = _request_quota_settings()
+        if quota_settings:
+            return {
+                "enabled": quota_settings.guest_limit_enabled,
+                "limit": quota_settings.guest_ask_limit,
+            }
+        return {
+            "enabled": True,
+            "limit": 3,
+        }
 
     def dispatch(self, request, *args, **kwargs):
         """Attach a durable guest identifier so guest caps survive restarts."""
@@ -1591,13 +1643,16 @@ class ChatUIView(View):
         identity = self._guest_identity(request)
         if identity is None:
             return None
-        limit = self.guest_ask_limit
+        guest_quota = self._guest_limit_settings()
+        limit_enabled = guest_quota["enabled"]
+        limit = guest_quota["limit"]
         used = identity.total_asks
         return {
             "ask_limit": limit,
             "asks_used": used,
-            "remaining_asks": max(limit - used, 0),
-            "limit_reached": used >= limit,
+            "remaining_asks": max(limit - used, 0) if limit_enabled else None,
+            "limit_reached": (used >= limit) if limit_enabled else False,
+            "limit_enabled": limit_enabled,
         }
 
     def _consume_guest_conversation_slot(self, request) -> dict:
@@ -1605,7 +1660,11 @@ class ChatUIView(View):
         identity = self._guest_identity(request)
         if identity is None:
             return {"allowed": True, "snapshot": None}
-        if identity.total_asks >= self.guest_ask_limit:
+        guest_quota = self._guest_limit_settings()
+        if (
+            guest_quota["enabled"]
+            and identity.total_asks >= guest_quota["limit"]
+        ):
             return {
                 "allowed": False,
                 "snapshot": self._guest_quota_snapshot(request),
@@ -1626,6 +1685,21 @@ class ChatUIView(View):
         mode = self._chat_ui_mode(request.GET.get("mode", "simple"))
         language = self._chat_ui_language(request.GET.get("language", "en"))
         prefill_message = str(request.GET.get("prefill", "")).strip()
+        if prefill_message:
+            logger.info(
+                "seo_cta_to_chatui",
+                extra={
+                    "path": request.path,
+                    "method": request.method,
+                    "is_guest_chat": not bool(authenticated_username),
+                    "user_id": default_user_id,
+                    "mode": mode,
+                    "language": language,
+                    "prefill_len": len(prefill_message),
+                    "guest_id": str(getattr(request, "chat_ui_guest_id", ""))[:12],
+                    "referer": request.META.get("HTTP_REFERER", ""),
+                },
+            )
         if request.GET.get("fragment", "").strip() == "conversations":
             if not authenticated_username:
                 return JsonResponse(
@@ -1811,7 +1885,11 @@ class ChatUIView(View):
             if authenticated_username
             else None
         )
-        if quota and quota["usage"].ask_count >= quota["daily_limit"]:
+        if (
+            quota
+            and quota["daily_limit"] is not None
+            and quota["usage"].ask_count >= quota["daily_limit"]
+        ):
             _log_ask_event(
                 user_id=user_id,
                 source=AskEvent.SOURCE_CHAT_UI,
@@ -1953,6 +2031,14 @@ class ChatUIView(View):
                     "referer": request.META.get("HTTP_REFERER", ""),
                 },
             )
+            guest_error_messages = self._guest_conversation_messages(request)
+            if not authenticated_username and not guest_error_messages and message:
+                guest_error_messages = [
+                    {
+                        "role": Message.ROLE_USER,
+                        "content": message,
+                    }
+                ]
             return self._render_chat_ui(
                 request,
                 {
@@ -1968,7 +2054,7 @@ class ChatUIView(View):
                     "conversation_messages": (
                         self._conversation_messages(active_conversation)
                         if authenticated_username
-                        else self._guest_conversation_messages(request)
+                        else guest_error_messages
                     ),
                     "conversations": (
                         self._conversation_list(user_id)
@@ -2034,9 +2120,9 @@ class ChatUIView(View):
             response_data["plan"] = quota["subscription"].plan
             response_data["daily_limit"] = quota["daily_limit"]
             response_data["used_today"] = quota["usage"].ask_count
-            response_data["remaining_today"] = max(
-                quota["daily_limit"] - quota["usage"].ask_count,
-                0,
+            response_data["remaining_today"] = _remaining_today(
+                daily_limit=quota["daily_limit"],
+                used_today=quota["usage"].ask_count,
             )
         _log_ask_event(
             user_id=user_id,

@@ -54,9 +54,24 @@ Last updated: 2026-04-12
   - added exception logging guard in chat-ui ask pipeline with structured
     request context (`mode`, `language`, `guest_id`, `referer`, message
     length, conversation id) so future failures are visible in Fly logs
+  - added explicit `seo_cta_to_chatui` marker log when `/api/chat-ui/` opens
+    with `prefill` from SEO landing CTA, including referer + guest context
   - added regression test to ensure internal ask exceptions render a user-safe
     error state instead of returning HTTP 500
-  - validated fix with full suite: all 110 tests passing
+- Admin-configurable request quota controls added:
+  - new singleton `RequestQuotaSettings` model in admin for guest/free/pro
+    quota controls
+  - admin can enable/disable quota enforcement separately for guest, free,
+    and pro users
+  - admin can set guest request cap and free/pro daily request caps without
+    changing code or redeploying
+  - API (`/api/ask/`) and chat-ui now read runtime limits from admin settings
+    with safe fallback to environment defaults when no settings row exists
+  - when free/pro limits are disabled, responses return `daily_limit=null` and
+    `remaining_today=null` to indicate unlimited asks
+  - validated with new regression tests for disabled guest cap and disabled
+    free cap
+  - validated with full suite: all 113 tests passing
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:

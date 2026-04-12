@@ -12,6 +12,7 @@ from guide_api.models import (
     EngagementEvent,
     FollowUpEvent,
     Message,
+    RequestQuotaSettings,
     ResponseFeedback,
     SavedReflection,
     SupportTicket,
@@ -71,6 +72,27 @@ class DailyAskUsageAdmin(admin.ModelAdmin):
     list_display = ("user", "date", "ask_count")
     list_filter = ("date",)
     search_fields = ("user__username",)
+
+
+@admin.register(RequestQuotaSettings)
+class RequestQuotaSettingsAdmin(admin.ModelAdmin):
+    """Manage guest/free/pro limits and enable/disable toggles."""
+
+    list_display = (
+        "guest_limit_enabled",
+        "guest_ask_limit",
+        "free_limit_enabled",
+        "free_daily_ask_limit",
+        "pro_limit_enabled",
+        "pro_daily_ask_limit",
+        "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        """Keep this model singleton by allowing only one row."""
+        if RequestQuotaSettings.objects.exists():
+            return False
+        return super().has_add_permission(request)
 
 
 @admin.register(AskEvent)

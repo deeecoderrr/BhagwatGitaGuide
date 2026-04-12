@@ -3624,7 +3624,7 @@
 
           <!-- Composer at bottom of chat panel (standard chat UI pattern) -->
           <div class="chat-bottom-composer">
-            <form method="post" class="quick-submit">
+            <form method="post" action="/api/chat-ui/" class="quick-submit">
               {% csrf_token %}
               <input type="hidden" name="action" value="ask">
               <input type="hidden" name="conversation_id" value="{{ active_conversation_id|default:'' }}">
@@ -3649,10 +3649,18 @@
                 </span>
                 {% if is_guest_chat and guest_quota_snapshot %}
                   <span>
-                    {% if language == "hi" %}
-                      गेस्ट प्रश्न शेष: {{ guest_quota_snapshot.remaining_asks }}/{{ guest_quota_snapshot.ask_limit }}
+                    {% if guest_quota_snapshot.limit_enabled %}
+                      {% if language == "hi" %}
+                        गेस्ट प्रश्न शेष: {{ guest_quota_snapshot.remaining_asks }}/{{ guest_quota_snapshot.ask_limit }}
+                      {% else %}
+                        Guest questions left: {{ guest_quota_snapshot.remaining_asks }}/{{ guest_quota_snapshot.ask_limit }}
+                      {% endif %}
                     {% else %}
-                      Guest questions left: {{ guest_quota_snapshot.remaining_asks }}/{{ guest_quota_snapshot.ask_limit }}
+                      {% if language == "hi" %}
+                        गेस्ट प्रश्न: असीमित
+                      {% else %}
+                        Guest questions: Unlimited
+                      {% endif %}
                     {% endif %}
                   </span>
                 {% endif %}
@@ -3863,10 +3871,18 @@
                     You have used all {{ guest_quota_snapshot.ask_limit }} guest questions in this browser. Create an account or log in to continue.
                   {% endif %}
                 {% else %}
-                  {% if language == "hi" %}
-                    गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अकाउंट बनाने या लॉगिन करने पर आपकी भविष्य की बातचीत, सेव किए गए चिंतन और थ्रेड इतिहास सुरक्षित रहेंगे। अभी {{ guest_quota_snapshot.remaining_asks|default:3 }} में से {{ guest_quota_snapshot.ask_limit|default:3 }} गेस्ट प्रश्न उपलब्ध हैं।
+                  {% if guest_quota_snapshot and guest_quota_snapshot.limit_enabled %}
+                    {% if language == "hi" %}
+                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अकाउंट बनाने या लॉगिन करने पर आपकी भविष्य की बातचीत, सेव किए गए चिंतन और थ्रेड इतिहास सुरक्षित रहेंगे। अभी {{ guest_quota_snapshot.remaining_asks|default:3 }} में से {{ guest_quota_snapshot.ask_limit|default:3 }} गेस्ट प्रश्न उपलब्ध हैं।
+                    {% else %}
+                      Guest mode keeps your chat only in this browser session. Register or log in if you want future conversations, saved reflections, and thread history to stay with you. You currently have {{ guest_quota_snapshot.remaining_asks|default:3 }} of {{ guest_quota_snapshot.ask_limit|default:3 }} guest questions left.
+                    {% endif %}
                   {% else %}
-                    Guest mode keeps your chat only in this browser session. Register or log in if you want future conversations, saved reflections, and thread history to stay with you. You currently have {{ guest_quota_snapshot.remaining_asks|default:3 }} of {{ guest_quota_snapshot.ask_limit|default:3 }} guest questions left.
+                    {% if language == "hi" %}
+                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अभी गेस्ट प्रश्नों पर कोई सीमा लागू नहीं है, लेकिन अकाउंट बनाने या लॉगिन करने पर आपकी बातचीत और सेव चिंतन आपके साथ सुरक्षित रहेंगे।
+                    {% else %}
+                      Guest mode keeps your chat only in this browser session. Guest asks are currently unlimited, but creating an account or logging in will keep your conversations and saved reflections with you.
+                    {% endif %}
                   {% endif %}
                 {% endif %}
               </p>
@@ -4548,7 +4564,13 @@
 
         try {
           // Use getAttribute because form.action is shadowed by the <input name="action"> element
-          const formAction = form.getAttribute("action") || window.location.href;
+          const formAction = form.getAttribute("action") || window.location.pathname;
+          const mode = String(formData.get("mode") || "simple");
+          const language = String(formData.get("language") || "en");
+          const canonicalNextUrl = (
+            `/api/chat-ui/?mode=${encodeURIComponent(mode)}`
+            + `&language=${encodeURIComponent(language)}`
+          );
           const response = await fetch(formAction, {
             method: "POST",
             body: formData,
@@ -4557,12 +4579,18 @@
             },
           });
           const html = await response.text();
-          const swapped = replaceAppFromHtml(html, window.location.href);
+          const swapped = replaceAppFromHtml(html, canonicalNextUrl);
           if (!swapped) {
             return;
           }
-          // After DOM replacement, wait for rendering then scroll to show the new reply
+          // After DOM replacement, if server returned an error keep it in view,
+          // otherwise scroll to the newest assistant reply.
           window.setTimeout(() => {
+            const serverError = document.querySelector("main.app .message.error");
+            if (serverError) {
+              serverError.scrollIntoView({ behavior: "auto", block: "nearest" });
+              return;
+            }
             scrollToLatestAssistantInTranscript();
           }, 50);
         } catch (error) {

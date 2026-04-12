@@ -13,6 +13,7 @@ from guide_api.models import (
     FollowUpEvent,
     GuestChatIdentity,
     Message,
+    RequestQuotaSettings,
     ResponseFeedback,
     SavedReflection,
     SupportTicket,
@@ -95,6 +96,20 @@ class GuideApiTests(APITestCase):
         response = self.client.get("/api/chat-ui/?mode=simple&language=en&prefill=anxiety+help")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "anxiety help")
+
+    def test_chat_ui_prefill_logs_seo_handoff_marker(self):
+        from unittest.mock import patch
+
+        with patch("guide_api.views.logger.info") as mock_logger_info:
+            response = self.client.get(
+                "/api/chat-ui/?mode=simple&language=en&prefill=anxiety+help",
+                HTTP_REFERER="https://askbhagavadgita.fly.dev/bhagavad-gita-for-anxiety/?language=en",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            any(call.args and call.args[0] == "seo_cta_to_chatui" for call in mock_logger_info.call_args_list),
+        )
 
     def test_public_seo_index_page_switches_to_hindi(self):
         response = self.client.get("/?language=hi")
@@ -582,7 +597,8 @@ class GuideApiTests(APITestCase):
             response,
             "We hit a temporary issue while processing your question.",
         )
-        self.assertContains(response, "Start Chatting")
+        self.assertContains(response, "Conversation")
+        self.assertNotContains(response, "Get Verse-Based Guidance For Your Problem")
         self.assertContains(response, "I feel anxious about my career growth.")
         self.assertEqual(Conversation.objects.count(), 0)
         self.assertEqual(response.context["conversations"], [])
@@ -696,6 +712,53 @@ class GuideApiTests(APITestCase):
             reopened.context["guest_quota_snapshot"]["ask_limit"],
             3,
         )
+
+    def test_chat_ui_guest_limit_can_be_disabled_from_admin_settings(self):
+        self.client.force_authenticate(user=None)
+        RequestQuotaSettings.objects.create(
+            guest_limit_enabled=False,
+            guest_ask_limit=1,
+        )
+
+        for idx in range(4):
+            response = self.client.post(
+                "/api/chat-ui/",
+                data={
+                    "action": "ask",
+                    "mode": "simple",
+                    "message": f"guest unlimited {idx + 1}",
+                },
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        blocked = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "guest unlimited 5",
+            },
+        )
+        self.assertEqual(blocked.status_code, status.HTTP_200_OK)
+        self.assertNotContains(blocked, "used all")
+        self.assertContains(blocked, "Guest questions: Unlimited")
+
+    def test_api_free_limit_can_be_disabled_from_admin_settings(self):
+        RequestQuotaSettings.objects.create(
+            free_limit_enabled=False,
+            free_daily_ask_limit=1,
+        )
+
+        payload = {
+            "message": "I feel anxious about my career growth.",
+            "mode": "simple",
+        }
+        for _ in range(3):
+            response = self.client.post("/api/ask/", payload, format="json")
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["plan"], "free")
+            self.assertIsNone(response.data["daily_limit"])
+            self.assertIsNone(response.data["remaining_today"])
 
     def test_chat_ui_new_conversation_creates_separate_thread(self):
         self._login_chat_ui()
