@@ -3,6 +3,8 @@
 from django.urls import path
 
 from guide_api.views import (
+    AnalyticsEventIngestView,
+    AnalyticsSummaryView,
     AskView,
     ChatUIView,
     ChapterDetailView,
@@ -47,6 +49,16 @@ urlpatterns = [
     ),
     path("ask/", AskView.as_view(), name="ask"),
     path("follow-ups/", FollowUpGenerateView.as_view(), name="follow-ups"),
+    path(
+        "analytics/events/",
+        AnalyticsEventIngestView.as_view(),
+        name="analytics-events",
+    ),
+    path(
+        "analytics/summary/",
+        AnalyticsSummaryView.as_view(),
+        name="analytics-summary",
+    ),
     path("mantra/", MantraView.as_view(), name="mantra"),
     # Quote art generation
     path("quote-art/styles/", QuoteArtStylesView.as_view(), name="quote-art-styles"),

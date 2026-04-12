@@ -313,3 +313,28 @@ class FeaturedQuoteSerializer(serializers.Serializer):
     reference = serializers.CharField()
     preview_quote = serializers.CharField()
     sanskrit_preview = serializers.CharField()
+
+
+class AnalyticsEventIngestSerializer(serializers.Serializer):
+    """Validate frontend growth event ingestion payload."""
+
+    event_type = serializers.ChoiceField(
+        choices=[
+            "starter_click",
+            "share_click",
+            "copy_link_click",
+            "ask_submit",
+        ]
+    )
+    source = serializers.ChoiceField(
+        choices=["chat_ui", "seo_index", "seo_topic"],
+        default="chat_ui",
+    )
+    path = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    metadata = serializers.JSONField(required=False)
+
+
+class AnalyticsSummaryRequestSerializer(serializers.Serializer):
+    """Validate growth summary query window parameters."""
+
+    days = serializers.IntegerField(min_value=1, max_value=90, default=7)

@@ -324,10 +324,21 @@ class WebAudienceProfile(models.Model):
     visit_count = models.PositiveIntegerField(default=0)
     first_seen_at = models.DateTimeField(auto_now_add=True)
     last_seen_at = models.DateTimeField(auto_now=True)
+    first_source = models.CharField(
+        max_length=16,
+        choices=SOURCE_CHOICES,
+        blank=True,
+    )
     last_source = models.CharField(
         max_length=16,
         choices=SOURCE_CHOICES,
     )
+    first_utm_source = models.CharField(max_length=64, blank=True)
+    first_utm_medium = models.CharField(max_length=64, blank=True)
+    first_utm_campaign = models.CharField(max_length=64, blank=True)
+    last_utm_source = models.CharField(max_length=64, blank=True)
+    last_utm_medium = models.CharField(max_length=64, blank=True)
+    last_utm_campaign = models.CharField(max_length=64, blank=True)
     last_path = models.CharField(max_length=255, blank=True)
 
     class Meta:
@@ -336,6 +347,46 @@ class WebAudienceProfile(models.Model):
     def __str__(self) -> str:
         """Readable profile reference for admin listings."""
         return self.audience_id
+
+
+class GrowthEvent(models.Model):
+    """Frontend growth-funnel events for virality and conversion tracking."""
+
+    EVENT_LANDING_VIEW = "landing_view"
+    EVENT_STARTER_CLICK = "starter_click"
+    EVENT_SHARE_CLICK = "share_click"
+    EVENT_COPY_LINK_CLICK = "copy_link_click"
+    EVENT_ASK_SUBMIT = "ask_submit"
+    EVENT_CHOICES = (
+        (EVENT_LANDING_VIEW, "Landing View"),
+        (EVENT_STARTER_CLICK, "Starter Click"),
+        (EVENT_SHARE_CLICK, "Share Click"),
+        (EVENT_COPY_LINK_CLICK, "Copy Link Click"),
+        (EVENT_ASK_SUBMIT, "Ask Submit"),
+    )
+
+    SOURCE_CHAT_UI = "chat_ui"
+    SOURCE_SEO_INDEX = "seo_index"
+    SOURCE_SEO_TOPIC = "seo_topic"
+    SOURCE_CHOICES = (
+        (SOURCE_CHAT_UI, "Chat UI"),
+        (SOURCE_SEO_INDEX, "SEO Index"),
+        (SOURCE_SEO_TOPIC, "SEO Topic"),
+    )
+
+    audience_id = models.CharField(max_length=64, db_index=True)
+    event_type = models.CharField(max_length=24, choices=EVENT_CHOICES)
+    source = models.CharField(max_length=16, choices=SOURCE_CHOICES)
+    path = models.CharField(max_length=255, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        """Readable growth-event label in admin."""
+        return f"{self.event_type}:{self.audience_id}"
 
 
 class SavedReflection(models.Model):

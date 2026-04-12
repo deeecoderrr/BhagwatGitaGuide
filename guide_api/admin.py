@@ -11,6 +11,7 @@ from guide_api.models import (
     DailyAskUsage,
     EngagementEvent,
     FollowUpEvent,
+    GrowthEvent,
     Message,
     RequestQuotaSettings,
     ResponseFeedback,
@@ -146,6 +147,37 @@ class AskEventAdmin(admin.ModelAdmin):
             created_at__gte=window_7d,
             outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
         ).count()
+        growth_7d = GrowthEvent.objects.filter(created_at__gte=window_7d)
+        landing_7d = growth_7d.filter(
+            event_type=GrowthEvent.EVENT_LANDING_VIEW,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+        starter_7d = growth_7d.filter(
+            event_type=GrowthEvent.EVENT_STARTER_CLICK,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+        share_7d = growth_7d.filter(
+            event_type=GrowthEvent.EVENT_SHARE_CLICK,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+        ask_submit_7d = growth_7d.filter(
+            event_type=GrowthEvent.EVENT_ASK_SUBMIT,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+
+        source_counts = {}
+        for profile in WebAudienceProfile.objects.exclude(first_utm_source=""):
+            source = profile.first_utm_source
+            source_counts[source] = source_counts.get(source, 0) + 1
+        top_sources = [
+            {"source": source, "count": count}
+            for source, count in sorted(
+                source_counts.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )[:5]
+        ]
+
         context = {
             "analytics_summary": {
                 "unique_visitors_total": WebAudienceProfile.objects.count(),
@@ -162,11 +194,43 @@ class AskEventAdmin(admin.ModelAdmin):
                 "fallback_rate_7d": round(fallback_rate_7d, 1),
                 "helpful_rate_7d": round(helpful_rate_7d, 1),
                 "quota_blocks_7d": quota_blocks_7d,
+                "landing_views_7d": landing_7d,
+                "starter_clicks_7d": starter_7d,
+                "share_clicks_7d": share_7d,
+                "ask_submits_7d": ask_submit_7d,
+                "starter_click_rate_7d": round(
+                    (starter_7d / landing_7d * 100)
+                    if landing_7d
+                    else 0.0,
+                    1,
+                ),
+                "ask_submit_rate_7d": round(
+                    (ask_submit_7d / landing_7d * 100)
+                    if landing_7d
+                    else 0.0,
+                    1,
+                ),
+                "top_sources": top_sources,
             }
         }
         if extra_context:
             context.update(extra_context)
         return super().changelist_view(request, extra_context=context)
+
+
+@admin.register(GrowthEvent)
+class GrowthEventAdmin(admin.ModelAdmin):
+    """Inspect frontend funnel events for conversion analysis."""
+
+    list_display = (
+        "created_at",
+        "event_type",
+        "source",
+        "audience_id",
+        "path",
+    )
+    list_filter = ("event_type", "source", "created_at")
+    search_fields = ("audience_id", "path")
 
 
 @admin.register(WebAudienceProfile)
@@ -177,11 +241,19 @@ class WebAudienceProfileAdmin(admin.ModelAdmin):
         "audience_id",
         "is_authenticated",
         "visit_count",
+        "first_source",
         "last_source",
+        "first_utm_source",
         "last_seen_at",
     )
-    list_filter = ("is_authenticated", "last_source", "last_seen_at")
-    search_fields = ("audience_id", "last_path")
+    list_filter = (
+        "is_authenticated",
+        "first_source",
+        "last_source",
+        "first_utm_source",
+        "last_seen_at",
+    )
+    search_fields = ("audience_id", "last_path", "first_utm_source")
 
 
 @admin.register(SavedReflection)

@@ -4696,6 +4696,18 @@
 
         form.classList.add("loading");
 
+        if (typeof window.postAnalyticsEvent === "function") {
+          window.postAnalyticsEvent({
+            event_type: "ask_submit",
+            source: "chat_ui",
+            path: window.location.pathname,
+            metadata: {
+              mode: String(formData.get("mode") || "simple"),
+              language: String(formData.get("language") || "en"),
+            },
+          });
+        }
+
         const emptyState = transcript.querySelector(".transcript-empty");
         if (emptyState) {
           emptyState.remove();
@@ -5689,6 +5701,33 @@
 
       // Landing page button handlers
       function initLandingPage() {
+        function readCsrfToken() {
+          const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+          if (tokenInput && tokenInput.value) {
+            return tokenInput.value;
+          }
+          const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+          return match ? decodeURIComponent(match[1]) : "";
+        }
+
+        function postAnalyticsEvent(payload) {
+          const csrfToken = readCsrfToken();
+          const headers = { "Content-Type": "application/json" };
+          if (csrfToken) {
+            headers["X-CSRFToken"] = csrfToken;
+          }
+          fetch('/api/analytics/events/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers,
+            body: JSON.stringify(payload),
+          }).catch(() => {
+            // Analytics should never block UX.
+          });
+        }
+
+        window.postAnalyticsEvent = postAnalyticsEvent;
+
         // Start Conversation - switch to composer mode
         const startConversationBtn = document.querySelector('[data-start-conversation]');
         const chatShell = document.querySelector('[data-chat-shell]');
@@ -5724,6 +5763,14 @@
         const starterButtons = document.querySelectorAll('[data-seed-question]');
         starterButtons.forEach((button) => {
           button.addEventListener('click', () => {
+            postAnalyticsEvent({
+              event_type: 'starter_click',
+              source: 'chat_ui',
+              path: window.location.pathname,
+              metadata: {
+                seed_question: button.dataset.seedQuestion || '',
+              },
+            });
             if (chatShell) {
               chatShell.classList.remove('on-landing');
               chatShell.classList.add('composer-mode');
@@ -5774,6 +5821,14 @@
         if (shareButton) {
           shareButton.addEventListener('click', async () => {
             const payload = getSharePayload();
+            postAnalyticsEvent({
+              event_type: 'share_click',
+              source: 'chat_ui',
+              path: window.location.pathname,
+              metadata: {
+                language: document.querySelector('#nav_language')?.value || 'en',
+              },
+            });
             try {
               if (navigator.share) {
                 await navigator.share(payload);
@@ -5790,6 +5845,14 @@
         if (copyButton) {
           copyButton.addEventListener('click', async () => {
             const payload = getSharePayload();
+            postAnalyticsEvent({
+              event_type: 'copy_link_click',
+              source: 'chat_ui',
+              path: window.location.pathname,
+              metadata: {
+                language: document.querySelector('#nav_language')?.value || 'en',
+              },
+            });
             try {
               await navigator.clipboard.writeText(payload.url);
               flashButtonDone(copyButton, '✓');

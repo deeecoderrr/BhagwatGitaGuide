@@ -28,6 +28,7 @@ from guide_api.models import (
     DailyAskUsage,
     EngagementEvent,
     FollowUpEvent,
+    GrowthEvent,
     GuestChatIdentity,
     Message,
     RequestQuotaSettings,
@@ -40,6 +41,8 @@ from guide_api.models import (
     WebAudienceProfile,
 )
 from guide_api.serializers import (
+    AnalyticsEventIngestSerializer,
+    AnalyticsSummaryRequestSerializer,
     AskRequestSerializer,
     ChapterDetailSerializer,
     ChapterListSerializer,
@@ -103,33 +106,88 @@ def _resolve_web_audience_id(request) -> str:
 def _track_web_visit(request, *, source: str) -> str:
     """Persist a visit heartbeat for growth analytics."""
     audience_id = _resolve_web_audience_id(request)
+    utm_source = str(request.GET.get("utm_source", "")).strip()[:64]
+    utm_medium = str(request.GET.get("utm_medium", "")).strip()[:64]
+    utm_campaign = str(request.GET.get("utm_campaign", "")).strip()[:64]
     profile, _ = WebAudienceProfile.objects.get_or_create(
         audience_id=audience_id,
         defaults={
             "is_authenticated": bool(
                 request.user and request.user.is_authenticated
             ),
+            "first_source": source,
             "last_source": source,
             "visit_count": 0,
             "last_path": request.path[:255],
+            "first_utm_source": utm_source,
+            "first_utm_medium": utm_medium,
+            "first_utm_campaign": utm_campaign,
         },
     )
 
     profile.visit_count += 1
+    if not profile.first_source:
+        profile.first_source = source
     profile.last_source = source
     profile.last_path = request.path[:255]
+    if not profile.first_utm_source and utm_source:
+        profile.first_utm_source = utm_source
+    if not profile.first_utm_medium and utm_medium:
+        profile.first_utm_medium = utm_medium
+    if not profile.first_utm_campaign and utm_campaign:
+        profile.first_utm_campaign = utm_campaign
+    profile.last_utm_source = utm_source
+    profile.last_utm_medium = utm_medium
+    profile.last_utm_campaign = utm_campaign
     if request.user and request.user.is_authenticated:
         profile.is_authenticated = True
     profile.save(
         update_fields=[
             "visit_count",
+            "first_source",
             "last_source",
             "last_path",
             "is_authenticated",
+            "first_utm_source",
+            "first_utm_medium",
+            "first_utm_campaign",
+            "last_utm_source",
+            "last_utm_medium",
+            "last_utm_campaign",
             "last_seen_at",
         ]
     )
+    GrowthEvent.objects.create(
+        audience_id=audience_id,
+        event_type=GrowthEvent.EVENT_LANDING_VIEW,
+        source=source,
+        path=request.path[:255],
+        metadata={
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
+        },
+    )
     return audience_id
+
+
+def _log_growth_event(
+    *,
+    request,
+    event_type: str,
+    source: str,
+    path: str = "",
+    metadata: dict | None = None,
+) -> None:
+    """Persist a single growth funnel event for analytics."""
+    audience_id = _resolve_web_audience_id(request)
+    GrowthEvent.objects.create(
+        audience_id=audience_id,
+        event_type=event_type,
+        source=source,
+        path=(path or request.path)[:255],
+        metadata=metadata or {},
+    )
 
 
 def _attach_web_audience_cookie(request, response) -> None:
@@ -1208,6 +1266,161 @@ class RetrievalEvalView(APIView):
             limit=limit,
         )
         return Response(self._serialize_trace(retrieval))
+
+
+class AnalyticsEventIngestView(APIView):
+    """Capture frontend growth events (starter/share/copy/ask submit)."""
+
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Validate and persist growth event payload."""
+        serializer = AnalyticsEventIngestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        _log_growth_event(
+            request=request,
+            event_type=data["event_type"],
+            source=data["source"],
+            path=data.get("path", "") or request.path,
+            metadata=data.get("metadata", {}),
+        )
+        response = Response({"status": "ok"}, status=status.HTTP_201_CREATED)
+        _attach_web_audience_cookie(request, response)
+        return response
+
+
+class AnalyticsSummaryView(APIView):
+    """Staff-only growth snapshot and trends for dashboard/reporting."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return all-time totals plus daily trends and conversion metrics."""
+        if not request.user.is_staff:
+            return _error_response(
+                message="Admin access required.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="admin_required",
+            )
+
+        serializer = AnalyticsSummaryRequestSerializer(
+            data={"days": request.query_params.get("days", 7)}
+        )
+        serializer.is_valid(raise_exception=True)
+        days = serializer.validated_data["days"]
+
+        today = timezone.localdate()
+        since = timezone.now() - timedelta(days=days - 1)
+
+        ask_qs = AskEvent.objects.filter(created_at__gte=since)
+        growth_qs = GrowthEvent.objects.filter(created_at__gte=since)
+
+        daily_rows = []
+        for offset in range(days):
+            day = today - timedelta(days=(days - 1 - offset))
+            day_ask_qs = ask_qs.filter(created_at__date=day)
+            day_growth_qs = growth_qs.filter(created_at__date=day)
+            landing_views = day_growth_qs.filter(
+                event_type=GrowthEvent.EVENT_LANDING_VIEW,
+                source=GrowthEvent.SOURCE_CHAT_UI,
+            ).count()
+            starter_clicks = day_growth_qs.filter(
+                event_type=GrowthEvent.EVENT_STARTER_CLICK,
+                source=GrowthEvent.SOURCE_CHAT_UI,
+            ).count()
+            ask_submits = day_growth_qs.filter(
+                event_type=GrowthEvent.EVENT_ASK_SUBMIT,
+                source=GrowthEvent.SOURCE_CHAT_UI,
+            ).count()
+            daily_rows.append(
+                {
+                    "date": day.isoformat(),
+                    "unique_visitors": WebAudienceProfile.objects.filter(
+                        last_seen_at__date=day,
+                    ).count(),
+                    "queries_fired": day_ask_qs.count(),
+                    "queries_served": day_ask_qs.filter(
+                        outcome=AskEvent.OUTCOME_SERVED,
+                    ).count(),
+                    "landing_views": landing_views,
+                    "starter_clicks": starter_clicks,
+                    "ask_submits": ask_submits,
+                }
+            )
+
+        landing_window = growth_qs.filter(
+            event_type=GrowthEvent.EVENT_LANDING_VIEW,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+        starter_window = growth_qs.filter(
+            event_type=GrowthEvent.EVENT_STARTER_CLICK,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+        ask_submit_window = growth_qs.filter(
+            event_type=GrowthEvent.EVENT_ASK_SUBMIT,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+        share_window = growth_qs.filter(
+            event_type=GrowthEvent.EVENT_SHARE_CLICK,
+            source=GrowthEvent.SOURCE_CHAT_UI,
+        ).count()
+
+        source_counts = {}
+        for row in WebAudienceProfile.objects.exclude(first_utm_source=""):
+            source = row.first_utm_source
+            source_counts[source] = source_counts.get(source, 0) + 1
+        top_sources = [
+            {"source": source, "visitors": count}
+            for source, count in sorted(
+                source_counts.items(),
+                key=lambda item: item[1],
+                reverse=True,
+            )[:8]
+        ]
+
+        return Response(
+            {
+                "window_days": days,
+                "all_time": {
+                    "unique_visitors": WebAudienceProfile.objects.count(),
+                    "unique_users_used": AskEvent.objects.filter(
+                        outcome=AskEvent.OUTCOME_SERVED,
+                    ).values("user_id").distinct().count(),
+                    "queries_fired": AskEvent.objects.count(),
+                    "queries_served": AskEvent.objects.filter(
+                        outcome=AskEvent.OUTCOME_SERVED,
+                    ).count(),
+                },
+                "conversion": {
+                    "landing_views": landing_window,
+                    "starter_clicks": starter_window,
+                    "ask_submits": ask_submit_window,
+                    "share_clicks": share_window,
+                    "starter_click_rate_pct": round(
+                        (starter_window / landing_window * 100)
+                        if landing_window
+                        else 0,
+                        2,
+                    ),
+                    "ask_submit_rate_pct": round(
+                        (ask_submit_window / landing_window * 100)
+                        if landing_window
+                        else 0,
+                        2,
+                    ),
+                    "share_rate_pct": round(
+                        (share_window / landing_window * 100)
+                        if landing_window
+                        else 0,
+                        2,
+                    ),
+                },
+                "top_sources": top_sources,
+                "daily": daily_rows,
+            }
+        )
 
 
 class DailyVerseView(APIView):

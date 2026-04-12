@@ -92,6 +92,20 @@ Last updated: 2026-04-12
     unique visitors, unique users who used the app, queries fired, and
     queries served
   - validated with new regression tests + full suite: all 115 tests passing
+- Full growth analytics stack completed:
+  - added `GrowthEvent` model to track landing views, starter clicks,
+    share/copy clicks, and ask submissions for funnel analysis
+  - added UTM attribution fields on `WebAudienceProfile` to store first/last
+    source, medium, and campaign for channel performance tracking
+  - added `POST /api/analytics/events/` to ingest frontend growth events
+    without blocking user experience
+  - added staff-only `GET /api/analytics/summary/?days=7` endpoint with:
+    all-time totals, conversion snapshot, daily trend rows, and top UTM sources
+  - wired chat-ui frontend to emit growth events for starter clicks,
+    share/copy actions, and ask-submit events
+  - added management command `python manage.py growth_report` for weekly and
+    monthly growth snapshots in terminal
+  - validated with migrations + new tests + full suite: all 118 tests passing
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:

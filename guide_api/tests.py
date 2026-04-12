@@ -11,6 +11,7 @@ from guide_api.models import (
     Conversation,
     EngagementEvent,
     FollowUpEvent,
+    GrowthEvent,
     GuestChatIdentity,
     Message,
     RequestQuotaSettings,
@@ -95,6 +96,17 @@ class GuideApiTests(APITestCase):
         profile = WebAudienceProfile.objects.first()
         self.assertEqual(profile.last_source, WebAudienceProfile.SOURCE_SEO_INDEX)
         self.assertGreaterEqual(profile.visit_count, 2)
+
+    def test_public_seo_tracks_utm_attribution(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get(
+            "/?utm_source=reddit&utm_medium=post&utm_campaign=launch",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        profile = WebAudienceProfile.objects.first()
+        self.assertEqual(profile.first_utm_source, "reddit")
+        self.assertEqual(profile.first_utm_medium, "post")
+        self.assertEqual(profile.first_utm_campaign, "launch")
 
     def test_public_seo_topic_ask_cta_uses_get_prefill(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
@@ -610,6 +622,52 @@ class GuideApiTests(APITestCase):
         ).latest("created_at")
         self.assertTrue(event.user_id.startswith("guest:"))
         self.assertIn(guest_cookie.value, event.user_id)
+
+    def test_analytics_event_ingest_endpoint_records_growth_event(self):
+        self.client.force_authenticate(user=None)
+        self.client.get("/api/chat-ui/")
+        response = self.client.post(
+            "/api/analytics/events/",
+            data={
+                "event_type": "starter_click",
+                "source": "chat_ui",
+                "path": "/api/chat-ui/",
+                "metadata": {"seed": "career"},
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            GrowthEvent.objects.filter(
+                event_type=GrowthEvent.EVENT_STARTER_CLICK,
+                source=GrowthEvent.SOURCE_CHAT_UI,
+            ).count(),
+            1,
+        )
+
+    def test_analytics_summary_requires_staff_and_returns_totals(self):
+        non_staff = User.objects.create_user(
+            username="non-staff",
+            password="pass-12345",
+        )
+        self.client.force_authenticate(user=non_staff)
+        denied = self.client.get("/api/analytics/summary/")
+        self.assertEqual(denied.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.user.is_staff = True
+        self.user.save(update_fields=["is_staff"])
+        self.client.force_authenticate(user=self.user)
+        self.client.get("/api/chat-ui/")
+        self.client.post(
+            "/api/analytics/events/",
+            data={"event_type": "share_click", "source": "chat_ui"},
+            format="json",
+        )
+        response = self.client.get("/api/analytics/summary/?days=7")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("all_time", response.data)
+        self.assertIn("conversion", response.data)
+        self.assertIn("daily", response.data)
 
     def test_chat_ui_guest_ask_handles_internal_failure_gracefully(self):
         from unittest.mock import patch

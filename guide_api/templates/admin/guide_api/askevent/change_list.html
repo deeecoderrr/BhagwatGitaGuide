@@ -21,6 +21,22 @@
         {{ analytics_summary.queries_served_total }}
       </div>
       <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Landing Views (7d)</strong><br>
+        {{ analytics_summary.landing_views_7d }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Starter Clicks (7d)</strong><br>
+        {{ analytics_summary.starter_clicks_7d }} ({{ analytics_summary.starter_click_rate_7d }}%)
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Ask Submits (7d)</strong><br>
+        {{ analytics_summary.ask_submits_7d }} ({{ analytics_summary.ask_submit_rate_7d }}%)
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Share Clicks (7d)</strong><br>
+        {{ analytics_summary.share_clicks_7d }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
         <strong>Asks Today</strong><br>
         {{ analytics_summary.asks_today }}
       </div>
@@ -41,5 +57,15 @@
         {{ analytics_summary.quota_blocks_7d }}
       </div>
     </div>
+    {% if analytics_summary.top_sources %}
+      <div style="margin-top: 12px; padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px; max-width: 500px;">
+        <strong>Top UTM Sources (All Time)</strong>
+        <ul style="margin: 8px 0 0 18px;">
+          {% for row in analytics_summary.top_sources %}
+            <li>{{ row.source }}: {{ row.count }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
   {% endif %}
 {% endblock %}
