@@ -72,6 +72,14 @@ Last updated: 2026-04-12
   - validated with new regression tests for disabled guest cap and disabled
     free cap
   - validated with full suite: all 113 tests passing
+- Viral-growth landing conversion pass completed:
+  - chat-ui landing now includes one-tap "starter journey" prompts that
+    switch directly into composer mode with prefilled dilemmas
+  - added built-in share actions (Web Share API + copy-link fallback) to
+    encourage word-of-mouth distribution
+  - added trust/value blocks on landing to clarify verse-grounded guidance,
+    practical outcomes, and shareability at first glance
+  - validated with full suite: all 113 tests passing
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:

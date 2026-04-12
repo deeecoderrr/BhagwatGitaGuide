@@ -1355,10 +1355,119 @@
       max-width: 540px;
     }
 
+    .landing-growth {
+      width: 100%;
+      max-width: 820px;
+      margin-top: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .landing-sharebar {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      border-radius: 16px;
+      border: 1px solid rgba(245, 199, 107, 0.2);
+      background: linear-gradient(145deg, rgba(245, 199, 107, 0.09), rgba(121, 217, 239, 0.08));
+      padding: 12px;
+      text-align: left;
+    }
+
+    .landing-share-copy {
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+
+    .landing-sharebar button {
+      margin: 0;
+      font-size: 12px;
+      padding: 9px 13px;
+      white-space: nowrap;
+    }
+
+    .landing-starter-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .landing-starter {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 12px;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .landing-starter:hover {
+      border-color: rgba(245, 199, 107, 0.35);
+      background: rgba(245, 199, 107, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .landing-starter strong {
+      display: block;
+      font-size: 13px;
+      color: #f8dfab;
+      margin-bottom: 6px;
+    }
+
+    .landing-starter span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .landing-proof-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .landing-proof {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 11px;
+      text-align: left;
+    }
+
+    .landing-proof strong {
+      display: block;
+      font-size: 12px;
+      color: #ffe3a3;
+      margin-bottom: 4px;
+    }
+
+    .landing-proof span {
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
     @media (max-width: 600px) {
       .landing-actions {
         flex-direction: column;
         max-width: 320px;
+      }
+
+      .landing-sharebar {
+        grid-template-columns: 1fr;
+      }
+
+      .landing-starter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .landing-proof-grid {
+        grid-template-columns: 1fr;
       }
     }
 
@@ -3608,6 +3717,74 @@
                       </div>
                     {% endif %}
                   </div>
+
+                  <div class="landing-growth">
+                    <div class="landing-sharebar">
+                      <div class="landing-share-copy">
+                        {% if language == "hi" %}
+                          इस अनुभव को किसी मित्र के साथ साझा करें जो चिंता, उद्देश्य या निर्णय की उलझन में है।
+                        {% else %}
+                          Share this with a friend who is navigating anxiety, purpose, or a difficult decision.
+                        {% endif %}
+                      </div>
+                      <button type="button" class="btn-secondary" data-share-app>
+                        {% if language == "hi" %}ऐप शेयर करें{% else %}Share App{% endif %}
+                      </button>
+                      <button type="button" class="btn-ghost" data-copy-app-link>
+                        {% if language == "hi" %}लिंक कॉपी{% else %}Copy Link{% endif %}
+                      </button>
+                    </div>
+
+                    <div class="landing-starter-grid">
+                      <button
+                        type="button"
+                        class="landing-starter"
+                        data-seed-question="{% if language == 'hi' %}मैं तुलना और ईर्ष्या से परेशान हूं। मैं शांति कैसे पाऊं?{% else %}I am struggling with comparison and envy. How can I find peace?{% endif %}"
+                      >
+                        <strong>{% if language == "hi" %}तुलना और ईर्ष्या{% else %}Comparison & Envy{% endif %}</strong>
+                        <span>{% if language == "hi" %}तुरंत यह प्रश्न भरें और संवाद शुरू करें।{% else %}Prefill this dilemma and start instantly.{% endif %}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="landing-starter"
+                        data-seed-question="{% if language == 'hi' %}मैं मेहनत करता/करती हूं लेकिन परिणाम का डर मुझे तोड़ देता है। क्या करूं?{% else %}I work hard, but fear of results breaks my confidence. What should I do?{% endif %}"
+                      >
+                        <strong>{% if language == "hi" %}परिणाम का डर{% else %}Fear of Outcomes{% endif %}</strong>
+                        <span>{% if language == "hi" %}कर्म और मानसिक संतुलन पर मार्गदर्शन पाएँ।{% else %}Get guidance on action without anxiety.{% endif %}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="landing-starter"
+                        data-seed-question="{% if language == 'hi' %}रिश्तों में मैं जल्दी प्रतिक्रिया दे देता/देती हूं। ठहराव कैसे लाऊं?{% else %}In relationships, I react too quickly. How can I respond with steadiness?{% endif %}"
+                      >
+                        <strong>{% if language == "hi" %}रिश्तों में स्थिरता{% else %}Relational Stability{% endif %}</strong>
+                        <span>{% if language == "hi" %}गुस्से से पहले सजगता का अभ्यास सीखें।{% else %}Practice pause-before-reaction guidance.{% endif %}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="landing-starter"
+                        data-seed-question="{% if language == 'hi' %}मुझे दिशा नहीं मिल रही। मेरे स्वधर्म के बारे में गीता क्या सिखाती है?{% else %}I feel directionless. What does the Gita teach about my dharma?{% endif %}"
+                      >
+                        <strong>{% if language == "hi" %}दिशा और स्वधर्म{% else %}Direction & Dharma{% endif %}</strong>
+                        <span>{% if language == "hi" %}उद्देश्य और भूमिका पर स्पष्टता पाएं।{% else %}Find clarity about purpose and role.{% endif %}</span>
+                      </button>
+                    </div>
+
+                    <div class="landing-proof-grid">
+                      <div class="landing-proof">
+                        <strong>{% if language == "hi" %}श्लोक-आधारित{% else %}Verse-First{% endif %}</strong>
+                        <span>{% if language == "hi" %}हर उत्तर गीता संदर्भ के साथ आता है।{% else %}Every answer is grounded in explicit Gita references.{% endif %}</span>
+                      </div>
+                      <div class="landing-proof">
+                        <strong>{% if language == "hi" %}व्यावहारिक{% else %}Practical{% endif %}</strong>
+                        <span>{% if language == "hi" %}सिर्फ दर्शन नहीं, आगे का स्पष्ट कदम भी।{% else %}Not just philosophy, but the next concrete step.{% endif %}</span>
+                      </div>
+                      <div class="landing-proof">
+                        <strong>{% if language == "hi" %}शेयर करने योग्य{% else %}Shareable Wisdom{% endif %}</strong>
+                        <span>{% if language == "hi" %}मित्रों के लिए एक क्लिक में साझा करने लायक।{% else %}Built to be shared with friends in one tap.{% endif %}</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Empty state for composer mode -->
@@ -5540,6 +5717,84 @@
                 { opacity: 0 },
                 { opacity: 1, duration: 0.3, ease: 'power2.out' }
               );
+            }
+          });
+        }
+
+        const starterButtons = document.querySelectorAll('[data-seed-question]');
+        starterButtons.forEach((button) => {
+          button.addEventListener('click', () => {
+            if (chatShell) {
+              chatShell.classList.remove('on-landing');
+              chatShell.classList.add('composer-mode');
+            }
+
+            const textarea = document.querySelector('#chat_message');
+            if (!textarea) {
+              return;
+            }
+
+            textarea.value = button.dataset.seedQuestion || '';
+            textarea.focus();
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+        });
+
+        const shareButton = document.querySelector('[data-share-app]');
+        const copyButton = document.querySelector('[data-copy-app-link]');
+
+        function getSharePayload() {
+          const language = document.querySelector('#nav_language')?.value || 'en';
+          const shareUrl = `${window.location.origin}/api/chat-ui/?mode=simple&language=${encodeURIComponent(language)}`;
+          if (language === 'hi') {
+            return {
+              title: 'Bhagavad Gita Guide',
+              text: 'मैंने एक गीता-आधारित जीवन मार्गदर्शन ऐप पाया है। आप भी अपना प्रश्न पूछ सकते हैं।',
+              url: shareUrl,
+            };
+          }
+          return {
+            title: 'Bhagavad Gita Guide',
+            text: 'I found a Gita-based guide for real life dilemmas. Ask your question here.',
+            url: shareUrl,
+          };
+        }
+
+        function flashButtonDone(button, doneText) {
+          if (!button) {
+            return;
+          }
+          const originalText = button.textContent;
+          button.textContent = doneText;
+          window.setTimeout(() => {
+            button.textContent = originalText;
+          }, 1400);
+        }
+
+        if (shareButton) {
+          shareButton.addEventListener('click', async () => {
+            const payload = getSharePayload();
+            try {
+              if (navigator.share) {
+                await navigator.share(payload);
+                return;
+              }
+              await navigator.clipboard.writeText(payload.url);
+              flashButtonDone(shareButton, '✓');
+            } catch (error) {
+              // User dismissed share or browser blocked clipboard.
+            }
+          });
+        }
+
+        if (copyButton) {
+          copyButton.addEventListener('click', async () => {
+            const payload = getSharePayload();
+            try {
+              await navigator.clipboard.writeText(payload.url);
+              flashButtonDone(copyButton, '✓');
+            } catch (error) {
+              // Clipboard may be blocked by browser permissions.
             }
           });
         }
