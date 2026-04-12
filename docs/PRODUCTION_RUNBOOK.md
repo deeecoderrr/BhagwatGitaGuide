@@ -40,8 +40,10 @@ Support and payment config
    flyctl secrets set RAZORPAY_WEBHOOK_SECRET="your_webhook_secret" -a askbhagavadgita
 
 3. Set pricing values
-   flyctl secrets set SUBSCRIPTION_PRICE_INR="9900" -a askbhagavadgita
-   flyctl secrets set SUBSCRIPTION_PRICE_USD="299" -a askbhagavadgita
+   flyctl secrets set SUBSCRIPTION_PRICE_PLUS_INR="4900" -a askbhagavadgita
+   flyctl secrets set SUBSCRIPTION_PRICE_PLUS_USD="149" -a askbhagavadgita
+   flyctl secrets set SUBSCRIPTION_PRICE_PRO_INR="9900" -a askbhagavadgita
+   flyctl secrets set SUBSCRIPTION_PRICE_PRO_USD="299" -a askbhagavadgita
 
 Admin access operations
 1. Create or reset production admin user

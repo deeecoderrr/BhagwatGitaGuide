@@ -1262,6 +1262,34 @@
       z-index: 1;
     }
 
+    .chat-quota-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 6px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(9, 18, 31, 0.45);
+      font-size: 11.5px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+    .chat-quota-strip .cqs-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+    .chat-quota-strip .cqs-label { opacity: 0.65; }
+    .chat-quota-strip .cqs-val { font-weight: 600; color: var(--text); }
+    .chat-quota-strip .cqs-val.warn { color: #f59e0b; }
+    .chat-quota-strip .cqs-val.danger { color: #f87171; }
+    .chat-quota-strip .cqs-sep {
+      width: 1px; height: 12px;
+      background: var(--border);
+      flex-shrink: 0;
+    }
+
     .chat-scroll-area {
       flex: 1;
       min-height: 0;
@@ -1353,6 +1381,358 @@
       gap: 14px;
       width: 100%;
       max-width: 540px;
+    }
+
+    .landing-journey {
+      width: 100%;
+      max-width: 820px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      padding: 12px;
+      text-align: left;
+    }
+
+    .landing-journey-head {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffe3a3;
+      margin-bottom: 8px;
+      font-weight: 700;
+    }
+
+    .landing-journey-steps {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .landing-journey-step {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+    }
+
+    .landing-journey-step strong {
+      display: block;
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .landing-journey-step span {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.45;
+    }
+
+    .landing-path-grid {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 0 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .landing-path {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px;
+      text-decoration: none;
+      text-align: left;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .landing-path:hover {
+      border-color: rgba(245, 199, 107, 0.35);
+      background: rgba(245, 199, 107, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .landing-path strong {
+      display: block;
+      font-size: 12px;
+      color: #f8dfab;
+      margin-bottom: 4px;
+    }
+
+    .landing-path span {
+      display: block;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .landing-pricing {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 0 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+      padding: 12px;
+      text-align: left;
+    }
+
+    .landing-pricing-head {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #ffe3a3;
+      margin-bottom: 10px;
+      font-weight: 700;
+    }
+
+    .landing-pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .pricing-plan {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 10px;
+      transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+    }
+
+    .pricing-plan:hover {
+      border-color: rgba(245, 199, 107, 0.35);
+      background: rgba(245, 199, 107, 0.08);
+      transform: translateY(-1px);
+    }
+
+    .pricing-plan.free {
+      border-color: rgba(137, 145, 161, 0.35);
+    }
+
+    .pricing-plan.plus {
+      border-color: rgba(245, 199, 107, 0.35);
+    }
+
+    .pricing-plan.pro {
+      border-color: rgba(121, 217, 239, 0.35);
+    }
+
+    .pricing-plan-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+
+    .pricing-plan-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+
+    .pricing-plan-price {
+      font-size: 11px;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .pricing-plan-list {
+      margin: 0;
+      padding-left: 16px;
+      display: grid;
+      gap: 5px;
+      color: var(--text-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .pricing-plan-list li {
+      margin: 0;
+    }
+
+    .pricing-tooltip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 4px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      color: #f8dfab;
+      font-size: 9px;
+      line-height: 1;
+      cursor: help;
+    }
+
+    .pricing-tooltip::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 50%;
+      bottom: 135%;
+      transform: translateX(-50%);
+      min-width: 180px;
+      max-width: 220px;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(14, 17, 24, 0.96);
+      border: 1px solid rgba(245, 199, 107, 0.22);
+      color: #f6ecd1;
+      font-size: 10px;
+      line-height: 1.4;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease;
+      z-index: 30;
+      text-align: left;
+      white-space: normal;
+    }
+
+    .pricing-tooltip:hover::after {
+      opacity: 1;
+    }
+
+    /* Mode Switcher Styles */
+    .conversation-mode-switcher {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 0;
+      background: transparent;
+      border-radius: 8px;
+    }
+
+    .conversation-mode-switcher-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-right: 6px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .mode-switch-btn {
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 180ms ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .mode-switch-btn:hover {
+      border-color: rgba(245, 199, 107, 0.3);
+      background: rgba(245, 199, 107, 0.08);
+      color: var(--text);
+    }
+
+    .mode-switch-btn.active {
+      border-color: rgba(245, 199, 107, 0.6);
+      background: rgba(245, 199, 107, 0.15);
+      color: #ffd680;
+      font-weight: 600;
+      box-shadow: 0 0 8px rgba(245, 199, 107, 0.25);
+    }
+
+    /* Try Another Approach Section */
+    .try-another-approach {
+      margin-top: 20px;
+      padding: 14px;
+      border: 1px solid rgba(121, 217, 239, 0.2);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(121, 217, 239, 0.06), rgba(245, 199, 107, 0.04));
+    }
+
+    .try-another-approach-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #79d9ef;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .try-another-approach-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .try-approach-btn {
+      padding: 10px 12px;
+      font-size: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      cursor: pointer;
+      text-align: left;
+      transition: all 160ms ease;
+      text-decoration: none;
+      display: block;
+    }
+
+    .try-approach-btn:hover {
+      border-color: rgba(121, 217, 239, 0.3);
+      background: rgba(121, 217, 239, 0.08);
+      color: #79d9ef;
+    }
+
+    .try-approach-btn strong {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 3px;
+      font-size: 12px;
+    }
+
+    .try-approach-btn-description {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Mode Info Tooltip */
+    .mode-info-tooltip {
+      position: relative;
+      display: inline-block;
+      cursor: help;
+      margin-left: 4px;
+    }
+
+    .mode-info-tooltip::after {
+      content: attr(data-info);
+      position: absolute;
+      bottom: 130%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0.9);
+      color: #ffd680;
+      font-size: 11px;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+      z-index: 10;
+    }
+
+    .mode-info-tooltip:hover::after {
+      opacity: 1;
     }
 
     .landing-growth {
@@ -1453,6 +1833,12 @@
     }
 
     @media (max-width: 600px) {
+      .landing-journey-steps,
+      .landing-path-grid,
+      .landing-pricing-grid {
+        grid-template-columns: 1fr;
+      }
+
       .landing-actions {
         flex-direction: column;
         max-width: 320px;
@@ -2130,6 +2516,39 @@
       padding-left: 1.2rem;
       font-size: 0.92rem;
       line-height: 1.7;
+    }
+
+    .membership-pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+      margin: 0.75rem 0 0.95rem;
+    }
+
+    .membership-pricing-grid .pricing-plan {
+      background: rgba(8, 12, 22, 0.28);
+      border-color: rgba(255, 255, 255, 0.22);
+      padding: 9px;
+    }
+
+    .membership-pricing-grid .pricing-plan-title {
+      color: #fff4d6;
+    }
+
+    .membership-pricing-grid .pricing-plan-price {
+      color: rgba(255, 255, 255, 0.86);
+    }
+
+    .membership-pricing-grid .pricing-plan-list {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 10.5px;
+      line-height: 1.42;
+      gap: 4px;
+    }
+
+    .membership-pricing-grid .pricing-tooltip {
+      border-color: rgba(255, 255, 255, 0.38);
+      color: #ffe5ae;
     }
 
     .upgrade-actions {
@@ -3076,9 +3495,15 @@
           </p>
           <div class="today-footer">
             <span data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</span>
-            <span>
-              {% if language == "hi" %}मोड{% else %}Mode{% endif %}: {{ mode|default:"simple" }} •
-              {% if language == "hi" %}भाषा{% else %}Language{% endif %}: {{ language|default:"en" }}
+            <span style="font-size: 11px;">
+              📍 {% if language == "hi" %}मोड{% else %}Approach{% endif %}:
+              <strong>{{ mode|default:"simple" }}</strong>
+              {% if mode == "simple" %}
+                ({% if language == "hi" %}तुरंत उत्तर{% else %}Quick answers{% endif %})
+              {% elif mode == "deep" %}
+                ({% if language == "hi" %}गहन विश्लेषण{% else %}Deep insights{% endif %})
+              {% endif %}
+              • {% if language == "hi" %}भाषा{% else %}Language{% endif %}: <strong>{{ language|default:"en" }}</strong>
             </span>
           </div>
         </div>
@@ -3306,12 +3731,40 @@
                 </div>
               {% endif %}
               <form method="get">
-                <label for="sidebar_mode">{% if language == "hi" %}मोड{% else %}Mode{% endif %}</label>
+                <label style="margin-bottom: 10px; display: block;">
+                  <strong>{% if language == "hi" %}मोड चुनें{% else %}Choose Your Approach{% endif %}</strong>
+                  <p style="font-size: 12px; color: var(--text-muted); margin: 6px 0 0;">
+                    {% if language == "hi" %}
+                      हर बार आप प्रश्न पूछते हैं, आप नीचे दिया गया मोड चुन सकते हैं।
+                    {% else %}
+                      You can use a different approach for each question you ask.
+                    {% endif %}
+                  </p>
+                </label>
                 <select id="sidebar_mode" name="mode">
-                  <option value="simple" {% if mode == "simple" %}selected{% endif %}>{% if language == "hi" %}सिंपल{% else %}Simple{% endif %}</option>
-                  <option value="deep" {% if mode == "deep" %}selected{% endif %}>{% if language == "hi" %}डीप{% else %}Deep{% endif %}</option>
+                  <option value="simple" {% if mode == "simple" %}selected{% endif %}>
+                    {% if language == "hi" %}सिंपल - तुरंत, स्पष्ट दिशा{% else %}Simple - Quick, clear guidance{% endif %}
+                  </option>
+                  {% if request.session.chat_ui_auth_username and quota_snapshot and quota_snapshot.deep_mode_allowed %}
+                    <option value="deep" {% if mode == "deep" %}selected{% endif %}>
+                      {% if language == "hi" %}डीप - गहन विश्लेषण और चिंतन{% else %}Deep - Deeper insights and reflection{% endif %}
+                    </option>
+                  {% else %}
+                    <option value="deep" disabled>
+                      {% if language == "hi" %}डीप - केवल Plus / Pro{% else %}Deep - Plus / Pro only{% endif %}
+                    </option>
+                  {% endif %}
                 </select>
-                <label for="sidebar_language">{% if language == "hi" %}भाषा{% else %}Language{% endif %}</label>
+                <p style="font-size: 11px; color: var(--text-muted); margin: 8px 0 0; line-height: 1.5;">
+                  {% if language == "hi" %}
+                    <strong>Simple:</strong> फ्री यूज़र के लिए उपलब्ध, छोटा और कार्य योग्य उत्तर।<br>
+                    <strong>Deep:</strong> Plus/Pro में उपलब्ध, गहन आध्यात्मिक अंतर्दृष्टि, ध्यान और चिंतन मार्गदर्शन।
+                  {% else %}
+                    <strong>Simple:</strong> Available on Free, concise and actionable guidance.<br>
+                    <strong>Deep:</strong> Available on Plus/Pro, deeper spiritual insights, meditation, and contemplative guidance.
+                  {% endif %}
+                </p>
+                <label for="sidebar_language" style="margin-top: 14px;">{% if language == "hi" %}भाषा{% else %}Language{% endif %}</label>
                 <select id="sidebar_language" name="language">
                   <option value="en" {% if language == "en" %}selected{% endif %}>{% if language == "hi" %}अंग्रेज़ी{% else %}English{% endif %}</option>
                   <option value="hi" {% if language == "hi" %}selected{% endif %}>{% if language == "hi" %}हिंदी{% else %}Hindi{% endif %}</option>
@@ -3319,7 +3772,7 @@
                 {% if active_conversation_id %}
                   <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
                 {% endif %}
-                <button type="submit">{% if language == "hi" %}ग्लोबल सेटिंग्स अपडेट करें{% else %}Update Global Settings{% endif %}</button>
+                <button type="submit" style="margin-top: 10px;">{% if language == "hi" %}सेटिंग्स लागू करें{% else %}Apply Settings{% endif %}</button>
               </form>
             </div>
           </details>
@@ -3390,16 +3843,106 @@
                   </div>
                     <h3>{% if language == "hi" %}अपना प्लान अपग्रेड करें{% else %}Upgrade your plan{% endif %}</h3>
                     <ul class="upgrade-list">
-                      <li>{% if language == "hi" %}अधिक मासिक प्रश्न सीमा{% else %}Higher monthly question limits{% endif %}</li>
-                      <li>{% if language == "hi" %}डीप मोड के लिए बड़ी सीमा{% else %}Larger Deep mode allowance{% endif %}</li>
-                      <li>{% if language == "hi" %}प्राथमिकता प्रतिक्रिया{% else %}Priority response{% endif %}</li>
+                      <li>{% if language == "hi" %}Free: {{ plan_limits.free_daily|default:3 }} प्रश्न/दिन, Deep लॉक{% else %}Free: {{ plan_limits.free_daily|default:3 }} questions/day, Deep locked{% endif %}</li>
+                      <li>{% if language == "hi" %}Plus: {{ plan_limits.plus_monthly|default:200 }}/माह कुल, जिसमें {{ plan_limits.plus_deep_monthly|default:40 }} Deep{% else %}Plus: {{ plan_limits.plus_monthly|default:200 }}/month total, up to {{ plan_limits.plus_deep_monthly|default:40 }} Deep{% endif %}</li>
+                      <li>
+                        {% if language == "hi" %}
+                          Pro: {{ plan_limits.pro_monthly|default:500 }}/माह कुल,
+                          {% if plan_limits.pro_deep_monthly %}up to {{ plan_limits.pro_deep_monthly }} Deep{% else %}Unlimited Deep{% endif %}
+                        {% else %}
+                          Pro: {{ plan_limits.pro_monthly|default:500 }}/month total,
+                          {% if plan_limits.pro_deep_monthly %}up to {{ plan_limits.pro_deep_monthly }} Deep{% else %}Unlimited Deep{% endif %}
+                        {% endif %}
+                      </li>
+                      <li>{% if language == "hi" %}Deep Insight: सिद्धांत, आधुनिक अनुप्रयोग, ध्यान, चिंतन{% else %}Deep Insight: principle, modern application, meditation, contemplation{% endif %}</li>
                     </ul>
+                    <p class="support-help" style="margin-bottom: 0.85rem;">
+                      {% if language == "hi" %}
+                        Plus/Pro में Deep mode खुलता है और आपके उत्तर अधिक गहरे व संरचित होते हैं।
+                      {% else %}
+                        Plus/Pro unlock Deep mode with richer and more structured guidance.
+                      {% endif %}
+                    </p>
+                    <div class="membership-pricing-grid">
+                      <article class="pricing-plan free">
+                        <div class="pricing-plan-head">
+                          <div class="pricing-plan-title">🔓 FREE</div>
+                          <div class="pricing-plan-price">Free</div>
+                        </div>
+                        <ul class="pricing-plan-list">
+                          <li>{{ plan_limits.free_daily|default:3 }} Simple questions per day</li>
+                          <li>{{ plan_limits.free_monthly|default:100 }} questions per month</li>
+                          <li>No Deep mode (locked)</li>
+                          <li>Explore example questions</li>
+                          <li>Read full Bhagavad Gita</li>
+                          <li>Guest sessions are temporary</li>
+                        </ul>
+                      </article>
+
+                      <article class="pricing-plan plus">
+                        <div class="pricing-plan-head">
+                          <div class="pricing-plan-title">💳 PLUS</div>
+                          <div class="pricing-plan-price">
+                            {% if billing_currency == "INR" %}
+                              ₹{{ plan_limits.plus_price_inr|default:199 }}
+                            {% else %}
+                              ${{ plan_limits.plus_price_usd|default:"3.49" }}
+                            {% endif %}
+                          </div>
+                        </div>
+                        <ul class="pricing-plan-list">
+                          <li>{{ plan_limits.plus_monthly|default:200 }} questions/month total</li>
+                          <li>Up to {{ plan_limits.plus_deep_monthly|default:40 }} Deep (within total)</li>
+                          <li>
+                            Deep Insight Features
+                            <span
+                              class="pricing-tooltip"
+                              data-tip="Spiritual principle explanation; modern life application; meditation practice aligned to verse; contemplative follow-ups."
+                              aria-label="Deep Insight Features details"
+                            >i</span>
+                          </li>
+                          <li>Save all conversations</li>
+                        </ul>
+                      </article>
+
+                      <article class="pricing-plan pro">
+                        <div class="pricing-plan-head">
+                          <div class="pricing-plan-title">💎 PRO</div>
+                          <div class="pricing-plan-price">
+                            {% if billing_currency == "INR" %}
+                              ₹{{ plan_limits.pro_price_inr|default:499 }}
+                            {% else %}
+                              ${{ plan_limits.pro_price_usd|default:"8.49" }}
+                            {% endif %}
+                          </div>
+                        </div>
+                        <ul class="pricing-plan-list">
+                          <li>{{ plan_limits.pro_monthly|default:500 }} questions/month total</li>
+                          <li>
+                            {% if plan_limits.pro_deep_monthly %}
+                              Up to {{ plan_limits.pro_deep_monthly }} Deep (within total)
+                            {% else %}
+                              Unlimited Deep (within monthly total)
+                            {% endif %}
+                          </li>
+                          <li>
+                            All Plus features +
+                            <span
+                              class="pricing-tooltip"
+                              data-tip="Multi-author commentary access; verse cross-references; meditation program suggestions; custom reflection journals."
+                              aria-label="All Plus features plus details"
+                            >i</span>
+                          </li>
+                          <li>Save unlimited conversations</li>
+                        </ul>
+                      </article>
+                    </div>
                     <div class="upgrade-actions">
-                      <button type="button" onclick="initiatePayment('INR')" class="btn-upgrade btn-upgrade-primary">
-                        ₹99/{% if language == "hi" %}महीना{% else %}month{% endif %}
+                      <button type="button" onclick="initiatePayment('plus')" class="btn-upgrade btn-upgrade-secondary">
+                        Plus - {% if billing_currency == "INR" %}₹{{ plan_limits.plus_price_inr|default:199 }}{% else %}${{ plan_limits.plus_price_usd|default:"3.49" }}{% endif %} {% if language == "hi" %}प्रति माह{% else %}per month{% endif %}
                       </button>
-                      <button type="button" onclick="initiatePayment('USD')" class="btn-upgrade btn-upgrade-secondary">
-                        $2.99/{% if language == "hi" %}महीना{% else %}month{% endif %}
+                      <button type="button" onclick="initiatePayment('pro')" class="btn-upgrade btn-upgrade-primary">
+                        Pro - {% if billing_currency == "INR" %}₹{{ plan_limits.pro_price_inr|default:499 }}{% else %}${{ plan_limits.pro_price_usd|default:"8.49" }}{% endif %} {% if language == "hi" %}प्रति माह{% else %}per month{% endif %}
                       </button>
                     </div>
                   </div>
@@ -3626,8 +4169,26 @@
               </p>
             </div>
             <div class="nav-actions">
+              <div class="conversation-mode-switcher">
+                <span class="conversation-mode-switcher-label">
+                  {% if language == "hi" %}मोड{% else %}Approach{% endif %}
+                </span>
+                <a
+                  href="/api/chat-ui/?conversation_id={{ active_conversation_id|default:'' }}&mode=simple&language={{ language|default:'en' }}"
+                  class="mode-switch-btn {% if mode == 'simple' %}active{% endif %}"
+                  title="{% if language == 'hi' %}जल्दी, स्पष्ट उत्तर{% else %}Quick, clear guidance{% endif %}"
+                >
+                  <span>{% if language == "hi" %}Simple{% else %}Simple{% endif %}</span>
+                </a>
+                <a
+                  href="/api/chat-ui/?conversation_id={{ active_conversation_id|default:'' }}&mode=deep&language={{ language|default:'en' }}"
+                  class="mode-switch-btn {% if mode == 'deep' %}active{% endif %}"
+                  title="{% if language == 'hi' %}गहराई से विश्लेषण{% else %}Deeper reflection{% endif %}"
+                >
+                  <span>{% if language == "hi" %}Deep{% else %}Deep{% endif %}</span>
+                </a>
+              </div>
               <span class="auth-pill">
-                {% if language == "hi" %}मोड{% else %}Mode{% endif %}: {{ mode|default:"simple" }} •
                 {% if language == "hi" %}भाषा{% else %}Language{% endif %}: {{ language|default:"en" }}
               </span>
               {% if active_conversation_id %}
@@ -3637,6 +4198,54 @@
               {% endif %}
             </div>
           </div>
+
+          {% if quota_snapshot %}
+          <div class="chat-quota-strip" aria-label="{% if language == 'hi' %}कोटा स्थिति{% else %}Quota status{% endif %}">
+            <div class="cqs-item">
+              <span class="cqs-label">{% if language == "hi" %}प्लान{% else %}Plan{% endif %}:</span>
+              {% if quota_snapshot.plan == "pro" %}
+                <span class="cqs-val" style="color:#10b981;">Pro</span>
+              {% elif quota_snapshot.plan == "plus" %}
+                <span class="cqs-val" style="color:#f59e0b;">Plus</span>
+              {% else %}
+                <span class="cqs-val">Free</span>
+              {% endif %}
+            </div>
+            {% if quota_snapshot.daily_limit %}
+              <div class="cqs-sep" aria-hidden="true"></div>
+              <div class="cqs-item">
+                <span class="cqs-label">{% if language == "hi" %}आज{% else %}Today{% endif %}:</span>
+                <span class="cqs-val {% if quota_snapshot.remaining_today == 0 %}danger{% elif quota_snapshot.remaining_today <= 1 %}warn{% endif %}">
+                  {{ quota_snapshot.remaining_today }}/{{ quota_snapshot.daily_limit }} {% if language == "hi" %}बचे{% else %}left{% endif %}
+                </span>
+              </div>
+            {% endif %}
+            {% if quota_snapshot.monthly_limit %}
+              <div class="cqs-sep" aria-hidden="true"></div>
+              <div class="cqs-item">
+                <span class="cqs-label">{% if language == "hi" %}माह{% else %}Month{% endif %}:</span>
+                <span class="cqs-val {% if quota_snapshot.remaining_month == 0 %}danger{% elif quota_snapshot.remaining_month <= 10 %}warn{% endif %}">
+                  {{ quota_snapshot.remaining_month }}/{{ quota_snapshot.monthly_limit }} {% if language == "hi" %}बचे{% else %}left{% endif %}
+                </span>
+              </div>
+            {% endif %}
+            <div class="cqs-sep" aria-hidden="true"></div>
+            <div class="cqs-item">
+              <span class="cqs-label">{% if language == "hi" %}डीप{% else %}Deep{% endif %}:</span>
+              {% if quota_snapshot.deep_mode_allowed %}
+                {% if quota_snapshot.deep_monthly_limit %}
+                  <span class="cqs-val {% if quota_snapshot.deep_remaining_month == 0 %}danger{% elif quota_snapshot.deep_remaining_month <= 5 %}warn{% endif %}">
+                    {{ quota_snapshot.deep_remaining_month }}/{{ quota_snapshot.deep_monthly_limit }} {% if language == "hi" %}बचे{% else %}left{% endif %}
+                  </span>
+                {% else %}
+                  <span class="cqs-val" style="color:#10b981;">{% if language == "hi" %}अनलिमिटेड{% else %}Unlimited{% endif %}</span>
+                {% endif %}
+              {% else %}
+                <span class="cqs-val" style="opacity:0.45;">{% if language == "hi" %}लॉक्ड{% else %}Locked{% endif %}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% endif %}
 
           <div class="chat-scroll-area">
             <div class="transcript" data-transcript>
@@ -3679,6 +4288,28 @@
                             <h4>{% if language == "hi" %}चिंतन{% else %}Reflection{% endif %}</h4>
                             {{ response_data.reflection }}
                           </div>
+                          {% if response_data.deep_insights %}
+                            <div class="reply-section warm">
+                              <h4>{% if language == "hi" %}डीप इनसाइट्स{% else %}Deep Insights{% endif %}</h4>
+                              <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}आध्यात्मिक सिद्धांत{% else %}Spiritual Principle{% endif %}:</strong> {{ response_data.deep_insights.spiritual_principle }}</div>
+                              <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}आधुनिक अनुप्रयोग{% else %}Modern Application{% endif %}:</strong> {{ response_data.deep_insights.modern_life_application }}</div>
+                              {% if response_data.deep_insights.historical_context_from_mahabharata %}
+                                <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}महाभारत संदर्भ{% else %}Mahabharata Context{% endif %}:</strong> {{ response_data.deep_insights.historical_context_from_mahabharata }}</div>
+                              {% endif %}
+                              {% if response_data.deep_insights.deep_verse_commentary %}
+                                <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}गहन श्लोक टिप्पणी{% else %}Deep Verse Commentary{% endif %}:</strong> {{ response_data.deep_insights.deep_verse_commentary }}</div>
+                              {% endif %}
+                              <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}ध्यान अभ्यास{% else %}Meditation Practice{% endif %}:</strong> {{ response_data.deep_insights.meditation_practice }}</div>
+                              {% if response_data.deep_insights.contemplative_follow_ups %}
+                                <div><strong>{% if language == "hi" %}चिंतन प्रश्न{% else %}Contemplative Prompts{% endif %}:</strong></div>
+                                <ul class="reply-list">
+                                  {% for prompt in response_data.deep_insights.contemplative_follow_ups %}
+                                    <li>{{ prompt }}</li>
+                                  {% endfor %}
+                                </ul>
+                              {% endif %}
+                            </div>
+                          {% endif %}
                           <div class="reply-section">
                             <h4>{% if language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses Used{% endif %}</h4>
                             {% for verse in response_data.verses %}
@@ -5697,8 +6328,11 @@
       }
 
       // Razorpay Payment Integration (global scope for onclick handlers)
-      window.initiatePayment = async function(currency) {
+      window.initiatePayment = async function(plan) {
         try {
+          const selectedPlan = (plan || 'pro').toLowerCase();
+          const selectedCurrency = '{{ billing_currency|default:"USD" }}';
+
           // Get CSRF token
           const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
           if (!csrfToken) {
@@ -5714,7 +6348,7 @@
               'Content-Type': 'application/json',
               'X-CSRFToken': csrfToken,
             },
-            body: JSON.stringify({ currency: currency }),
+            body: JSON.stringify({ currency: selectedCurrency, plan: selectedPlan }),
           });
 
           if (!orderResponse.ok) {
@@ -5731,7 +6365,9 @@
             amount: orderData.amount,
             currency: orderData.currency,
             name: 'Bhagavad Gita Guide',
-            description: '{% if language == "hi" %}Pro सब्सक्रिप्शन - 1 महीना{% else %}Pro Subscription - 1 Month{% endif %}',
+            description: orderData.plan === 'plus'
+              ? '{% if language == "hi" %}Plus सब्सक्रिप्शन - 1 महीना{% else %}Plus Subscription - 1 Month{% endif %}'
+              : '{% if language == "hi" %}Pro सब्सक्रिप्शन - 1 महीना{% else %}Pro Subscription - 1 Month{% endif %}',
             order_id: orderData.order_id,
             handler: async function(response) {
               // Verify payment
@@ -5746,11 +6382,18 @@
                   razorpay_order_id: response.razorpay_order_id,
                   razorpay_payment_id: response.razorpay_payment_id,
                   razorpay_signature: response.razorpay_signature,
+                  plan: selectedPlan,
                 }),
               });
 
               if (verifyResponse.ok) {
-                alert('{% if language == "hi" %}🎉 सब्सक्रिप्शन सफल! Pro प्लान सक्रिय हो गया।{% else %}🎉 Subscription successful! Pro plan activated.{% endif %}');
+                const verifyData = await verifyResponse.json();
+                const planName = (verifyData.plan || selectedPlan || 'pro').toUpperCase();
+                alert(
+                  '{% if language == "hi" %}🎉 सब्सक्रिप्शन सफल!{% else %}🎉 Subscription successful!{% endif %} '
+                  + planName +
+                  '{% if language == "hi" %} प्लान सक्रिय हो गया।{% else %} plan activated.{% endif %}'
+                );
                 window.location.reload();
               } else {
                 const verifyError = await verifyResponse.json();

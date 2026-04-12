@@ -2475,9 +2475,15 @@ def build_guidance(
     conversation_messages=None,
     language: str = "en",
     query_interpretation: dict[str, object] | None = None,
+    mode: str = "simple",
+    max_output_tokens: int = 350,
 ) -> GuidanceResult:
     """Generate grounded guidance via OpenAI with strict fallback path."""
     language = _normalize_language(language)
+    # Truncate oversized inputs before any LLM processing.
+    max_chars = getattr(settings, "MAX_ASK_INPUT_CHARS", 2200)
+    if len(message) > max_chars:
+        message = message[:max_chars]
     query_interpretation = query_interpretation or interpret_query(message).as_dict()
     if _is_greeting_like(message):
         return _build_fallback_guidance(
@@ -2651,12 +2657,28 @@ def build_guidance(
         "include other Gita verse references you are confident about\n"
         "- write guidance/meaning/actions/reflection in the specified "
         "language_code\n"
+        + (
+            "\n"
+            "DEEP MODE ACTIVE — this is a paid deep-reflection request. "
+            "Expand every section significantly beyond the simple baseline:\n"
+            "- guidance: 4-6 sentences with richer emotional and spiritual depth\n"
+            "- meaning: 2-3 sentences with Mahabharata/Upanishad historical context "
+            "for why Krishna said this to Arjuna in that exact moment\n"
+            "- actions: 3-5 concrete, sequenced actions with reasoning for each\n"
+            "- reflection: 2-3 deep introspective questions, not just one\n"
+            "- Include the emotional/psychological dimension: name the inner state "
+            "the user is probably experiencing and validate it before offering guidance\n"
+            "- Connect to a yogic or breathwork practice specifically aligned to "
+            "the verse's energy (e.g., pranayama for anger, nadi shodhana for anxiety)\n"
+            if mode == "deep" else ""
+        )
     )
 
     try:
         client = OpenAI(api_key=settings.OPENAI_API_KEY)
         response = client.responses.create(
             model=settings.OPENAI_MODEL,
+            max_output_tokens=max_output_tokens,
             input=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},

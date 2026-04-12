@@ -4,6 +4,142 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Unified quota control in admin (single place) completed:
+  - extended `RequestQuotaSettings` singleton to manage all quota knobs:
+    - guest: enabled + ask limit
+    - free: daily + monthly + deep-mode toggle
+    - plus: daily enabled/limit + monthly + deep monthly
+    - pro: daily enabled/limit + monthly + deep monthly
+  - runtime quota resolvers now read admin singleton first and fall back to
+    settings only if singleton is missing
+  - chat UI `plan_limits` now reflects admin-controlled values
+  - sidebar display now correctly shows unlimited Pro deep when configured
+  - migration applied: `guide_api.0019_requestquotasettings_free_deep_mode_enabled_and_more`
+  - singleton data aligned to current defaults and validated
+  - validated with full suite: all 136 tests passing
+
+- Geo-aware pricing display + checkout currency enforcement completed:
+  - India users now see/pay in INR only; non-India users now see/pay in USD only
+    when country headers are available
+  - server now enforces billing currency in `POST /api/payments/create-order/`
+    based on detected country (prevents client-side currency spoofing)
+  - unknown-country fallback remains backward-compatible (defaults to INR unless
+    explicit valid currency is provided)
+  - membership pricing UI now renders a single currency per user region
+  - India launch pricing lowered while keeping USD unchanged:
+    - Plus: ₹199 (USD unchanged at $3.49)
+    - Pro: ₹499 (USD unchanged at $8.49)
+  - validated with full suite: all 132 tests passing
+
+- Cost-safety pricing + deep-mode enhancement pass completed:
+  - updated paid plan pricing defaults to launch-safe levels:
+    - Plus: ₹299 / $3.49 (`SUBSCRIPTION_PRICE_PLUS_INR=29900`, `SUBSCRIPTION_PRICE_PLUS_USD=349`)
+    - Pro: ₹699 / $8.49 (`SUBSCRIPTION_PRICE_PRO_INR=69900`, `SUBSCRIPTION_PRICE_PRO_USD=849`)
+  - deep monthly caps aligned to new matrix:
+    - Plus deep monthly: 40
+    - Pro deep monthly: 180
+  - added cost guardrails in settings and environment defaults:
+    - output token caps by plan (`MAX_OUTPUT_TOKENS_FREE/PLUS/PRO`)
+    - context-verse caps by plan (`MAX_CONTEXT_VERSES_FREE/PLUS/PRO`)
+    - input hard cap (`MAX_ASK_INPUT_CHARS`) and other ask safety caps
+  - wired plan-aware limits into runtime ask flow:
+    - authenticated users now use plan-specific retrieval context limits
+    - authenticated users now use plan-specific `max_output_tokens`
+    - guest flow now uses Free-plan context and output caps
+  - deep insights payload extended:
+    - Plus/Pro deep now include `historical_context_from_mahabharata`
+    - Pro deep now additionally includes `deep_verse_commentary`
+  - deep insights UI now renders these new fields in chat response cards
+  - `.env.example` updated to match all new defaults and pricing values
+  - validated with full test suite: all 132 tests passing
+
+- Mode + plan differentiation pass completed (Free/Plus/Pro clarity):
+  - deep mode is now locked for free users by default
+    (`ENABLE_FREE_DEEP_MODE=false`)
+  - deep limits updated to product decision defaults:
+    - plus deep monthly = 50
+    - pro deep monthly = unlimited when `ASK_LIMIT_PRO_DEEP_MONTHLY=0`
+  - API and chat-ui now enforce guest/free deep lock with clear upgrade messaging
+  - deep responses now include tier-aware `deep_insights` payload:
+    - Plus deep: spiritual principle, modern application, meditation practice,
+      contemplative prompts
+    - Pro deep: all Plus deep insights plus commentary links,
+      cross-verse links, meditation program suggestion, custom journal prompts,
+      and priority-response marker
+  - chat-ui settings and membership copy updated to show the exact
+    Free/Plus/Pro matrix and deep-mode availability
+  - regression coverage added for deep lock and plus/pro deep behavior;
+    full suite passing (132 tests)
+
+- Pricing matrix accuracy audit + copy corrections completed:
+  - executed comprehensive audit comparing pricing matrix claims against
+    backend implementation
+  - identified and corrected 4 copy/code misalignments:
+    1. Removed "Simple" qualifier from quota descriptions ("200 questions/month"
+       instead of "200 Simple questions/month", etc.) because monthly quotas
+       track total asks across both simple and deep modes, not mode-split
+    2. Changed "Learn from 50+ Starter Journeys" to "Explore example questions"
+       (only 4 starter prompts exist in code)
+    3. Changed "Save this session only" (Free) to "Guest sessions are temporary"
+       (clarifies guest behavior without overpromising)
+    4. Removed "priority response" tag from Pro tooltip (only a metadata flag,
+       no actual queue prioritization system yet)
+  - corrected copy in both landing pricing grid and membership panel matrices
+  - validated changes with full test suite: all 132 tests passing
+  - ensures zero false promises about plan features delivered to users
+
+- Chat UI reorganization for clarity completed:
+  - removed "Try Another Approach" modal from active chat area to keep
+    conversation stream clean and focused on responses only
+  - mode switching (Quick Guidance ⚡ | Deep Reflection 🔍) moved entirely to
+    sidebar "Approach" selector for persistent, uncluttered access
+  - "How it works" 3-step guide remains on landing page only (displayed when
+    no active conversation exists)
+  - pricing matrix kept on landing page with path-choice cards (Quick/Deep/Learn)
+  - result: cleaner chat UX with mode toggles always accessible in sidebar
+    without interrupting response flow
+  - validated with full test suite: all 132 tests passing
+
+- Free plan monthly quota cap added:
+  - Free users previously showed "Unlimited monthly" which was confusing with
+    a 3/day daily cap
+  - added ASK_LIMIT_FREE_MONTHLY setting (default: 100/month) to provide
+    explicit monthly ceiling for Free users
+  - updated `_plan_monthly_limit()` to return Free monthly cap instead of None
+  - quota UI now correctly displays "98/100" for Free monthly instead of
+    "Unlimited"
+  - Free plan now has clear dual constraints: 3/day AND 100/month
+  - updated Free pricing matrix to display both limits for transparency
+  - all daily/monthly quota checks now consistent across Free/Plus/Pro
+  - comprehensive verification completed:
+    - FREE: 3/day limit, 100/month limit, deep mode locked
+    - PLUS: unlimited daily, 200/month limit, 50 deep/month, tier-aware insights
+    - PRO: unlimited daily, 500/month limit, unlimited deep, pro_advanced features
+  - validated with full test suite: all 132 tests passing
+
+- Landing page reorganization completed:
+  - removed "How it works", guidance path cards, and pricing matrix from
+    landing page to reduce visual clutter and improve quick-action focus
+  - moved all educational content to sidebar as collapsible "Help" accordion
+  - landing page now shows: hero title, subtitle, quick action buttons
+    (Ask Question, Read Gita, Share), and growth sharing section only
+  - users can explore guidance paths and pricing details by expanding the
+    sidebar Help section instead of scrolling through landing content
+  - result: faster path to asking questions, educational content still
+    discoverable but out of the primary flow
+  - validated with full test suite: all 132 tests passing
+
+- Tier-specific payment checkout flow synced (Plus + Pro):
+  - `/api/payments/create-order/` now accepts selected paid tier and maps
+    amount/currency by plan
+  - `/api/payments/verify/` now activates selected tier (plus/pro) instead of
+    forcing pro
+  - `payment.captured` webhook now infers tier from captured amount/currency
+  - chat-ui upgrade panel now exposes separate Plus and Pro checkout buttons
+  - subscription status pricing payload now includes per-plan pricing matrix
+    while retaining legacy top-level pricing keys
+  - added regression coverage; full suite passing (128 tests)
+
 - Monetization quota refactor (cost-aware) completed in runtime gates:
   - added `plus` plan support in model choices and plan-update serializer
   - introduced daily + monthly + deep-mode quota settings in config

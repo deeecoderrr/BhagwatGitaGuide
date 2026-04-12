@@ -218,6 +218,7 @@ def _run_guidance_flow(
     mode: str,
     language: str = "en",
     conversation_id: int | None = None,
+    plan: str = UserSubscription.PLAN_FREE,
 ):
     """Run end-to-end ask pipeline and persist conversation messages."""
     if conversation_id:
@@ -240,7 +241,7 @@ def _run_guidance_flow(
     conversation_messages = list(conversation.messages.order_by("created_at"))
     retrieval = retrieve_verses_with_trace(
         message=message,
-        limit=4 if mode == "deep" else 3,
+        limit=_plan_max_context_verses(plan, mode),
     )
     verses = retrieval.verses
     guidance = build_guidance(
@@ -249,6 +250,8 @@ def _run_guidance_flow(
         conversation_messages=conversation_messages,
         language=language,
         query_interpretation=retrieval.query_interpretation,
+        mode=mode,
+        max_output_tokens=_plan_max_output_tokens(plan),
     )
 
     Message.objects.create(
@@ -835,6 +838,10 @@ def _plan_daily_limit(plan: str) -> int | None:
         return settings.ASK_LIMIT_PRO_DAILY or None
 
     if plan == UserSubscription.PLAN_PLUS:
+        if quota_settings:
+            if not quota_settings.plus_limit_enabled:
+                return None
+            return quota_settings.plus_daily_ask_limit
         plus_daily_limit = getattr(settings, "ASK_LIMIT_PLUS_DAILY", 0)
         return plus_daily_limit or None
 
@@ -845,8 +852,37 @@ def _plan_daily_limit(plan: str) -> int | None:
     return settings.ASK_LIMIT_FREE_DAILY
 
 
+def _plan_max_output_tokens(plan: str) -> int:
+    """Return LLM max_output_tokens limit for the given plan."""
+    if plan == UserSubscription.PLAN_PRO:
+        return settings.MAX_OUTPUT_TOKENS_PRO
+    if plan == UserSubscription.PLAN_PLUS:
+        return settings.MAX_OUTPUT_TOKENS_PLUS
+    return settings.MAX_OUTPUT_TOKENS_FREE
+
+
+def _plan_max_context_verses(plan: str, mode: str) -> int:
+    """Return retrieval verse limit for the given plan and mode."""
+    if plan == UserSubscription.PLAN_PRO:
+        return settings.MAX_CONTEXT_VERSES_PRO
+    if plan == UserSubscription.PLAN_PLUS:
+        return settings.MAX_CONTEXT_VERSES_PLUS
+    return settings.MAX_CONTEXT_VERSES_FREE
+
+
 def _plan_monthly_limit(plan: str) -> int | None:
     """Return monthly ask quota for the selected plan."""
+    quota_settings = _request_quota_settings()
+    if quota_settings:
+        if plan == UserSubscription.PLAN_FREE:
+            return quota_settings.free_monthly_ask_limit
+        if plan == UserSubscription.PLAN_PLUS:
+            return quota_settings.plus_monthly_ask_limit
+        if plan == UserSubscription.PLAN_PRO:
+            return quota_settings.pro_monthly_ask_limit
+
+    if plan == UserSubscription.PLAN_FREE:
+        return settings.ASK_LIMIT_FREE_MONTHLY
     if plan == UserSubscription.PLAN_PLUS:
         return settings.ASK_LIMIT_PLUS_MONTHLY
     if plan == UserSubscription.PLAN_PRO:
@@ -856,17 +892,44 @@ def _plan_monthly_limit(plan: str) -> int | None:
 
 def _plan_deep_mode_allowed(plan: str) -> bool:
     """Return whether deep mode is enabled for plan."""
+    quota_settings = _request_quota_settings()
     if plan == UserSubscription.PLAN_FREE:
+        if quota_settings:
+            return quota_settings.free_deep_mode_enabled
         return settings.ENABLE_FREE_DEEP_MODE
     return True
 
 
 def _plan_deep_monthly_limit(plan: str) -> int | None:
     """Return deep-mode monthly cap for the selected plan."""
+    quota_settings = _request_quota_settings()
+    if quota_settings:
+        if plan == UserSubscription.PLAN_PLUS:
+            return (
+                None
+                if quota_settings.plus_deep_monthly_limit <= 0
+                else quota_settings.plus_deep_monthly_limit
+            )
+        if plan == UserSubscription.PLAN_PRO:
+            return (
+                None
+                if quota_settings.pro_deep_monthly_limit <= 0
+                else quota_settings.pro_deep_monthly_limit
+            )
+        return 0 if not quota_settings.free_deep_mode_enabled else None
+
     if plan == UserSubscription.PLAN_PLUS:
-        return settings.ASK_LIMIT_PLUS_DEEP_MONTHLY
+        return (
+            None
+            if settings.ASK_LIMIT_PLUS_DEEP_MONTHLY <= 0
+            else settings.ASK_LIMIT_PLUS_DEEP_MONTHLY
+        )
     if plan == UserSubscription.PLAN_PRO:
-        return settings.ASK_LIMIT_PRO_DEEP_MONTHLY
+        return (
+            None
+            if settings.ASK_LIMIT_PRO_DEEP_MONTHLY <= 0
+            else settings.ASK_LIMIT_PRO_DEEP_MONTHLY
+        )
     return 0 if not settings.ENABLE_FREE_DEEP_MODE else None
 
 
@@ -1055,6 +1118,166 @@ def _build_contextual_follow_ups(
             },
         ]
     return prompts[: 2 if mode == "simple" else 3]
+
+
+def _default_meditation_practice(language: str) -> str:
+    """Return a short calming practice aligned with contemplative mode."""
+    if language == "hi":
+        return (
+            "7 मिनट का अभ्यास: 4-4-6 श्वास चक्र (4 सेकंड श्वास, "
+            "4 सेकंड रोकें, 6 सेकंड छोड़ें), फिर 2 मिनट मौन में "
+            "'मैं कर्म पर केंद्रित हूँ, फल पर नहीं' का मानसिक जप करें।"
+        )
+    return (
+        "7-minute practice: do 4-4-6 breathing cycles "
+        "(inhale 4s, hold 4s, exhale 6s), then sit for 2 minutes in silence "
+        "with the thought 'I focus on right action, not anxious outcomes.'"
+    )
+
+
+def _build_deep_insights(
+    *,
+    mode: str,
+    plan: str,
+    language: str,
+    message: str,
+    verses,
+    query_themes: list[str],
+) -> dict | None:
+    """Build additive deep-mode payload for Plus and Pro tiers.
+
+    Plus: spiritual_principle, modern_life_application,
+          historical_context_from_mahabharata, meditation_practice,
+          contemplative_follow_ups.
+    Pro: adds deep_verse_commentary, cross_verse_links, commentary_access,
+         meditation_program_suggestion, custom_reflection_journal.
+    """
+    if mode != AskEvent.MODE_DEEP:
+        return None
+    if plan not in {UserSubscription.PLAN_PLUS, UserSubscription.PLAN_PRO}:
+        return None
+
+    primary_theme = query_themes[0] if query_themes else "clarity"
+    refs = [f"{verse.chapter}.{verse.verse}" for verse in verses[:3]]
+    primary_ref = refs[0] if refs else "2.47"
+    chapter_num = primary_ref.split(".")[0]
+
+    if language == "hi":
+        base = {
+            "deep_tier": "plus_lite",
+            "spiritual_principle": (
+                "मुख्य आध्यात्मिक सिद्धांत: प्रतिक्रिया नहीं, "
+                f"सजग कर्म। यह प्रश्न '{message[:80]}' में "
+                "स्थिरता और विवेक से निर्णय लेने पर केंद्रित है।"
+            ),
+            "modern_life_application": (
+                "आधुनिक जीवन अनुप्रयोग: अगले 24 घंटों में एक एसा निर्णय लें "
+                "जिसे आप नियंत्रित कर सकते हैं; परिणाम-चिंता को "
+                "कार्रवाई से बदलें।"
+            ),
+            "historical_context_from_mahabharata": (
+                f"भगवद गीता (अध्याय {chapter_num}) में कृष्ण ने अर्जुन को "
+                "कुरुक्षेत्र के युद्धक्षेत्र पर तब मार्गदर्शन दिया जब वह "
+                "कर्तव्य और आसक्ति के द्वंद्व में स्तब्ध हो गए थे। "
+                "आपका यह प्रश्न उसी आंतरिक संघर्ष का आधुनिक प्रतिबिम्ब है।"
+            ),
+            "meditation_practice": _default_meditation_practice(language),
+            "contemplative_follow_ups": [
+                "मैं अभी किस भय के आधार पर निर्णय ले रहा हूँ?",
+                "अगर कृष्ण मेरे सामने होते तो वे आज कौन-सा एक कर्म पहले सुझाते?",
+            ],
+            "primary_theme": primary_theme,
+            "primary_reference": primary_ref,
+        }
+    else:
+        base = {
+            "deep_tier": "plus_lite",
+            "spiritual_principle": (
+                "Core spiritual principle: respond with conscious action, "
+                f"not emotional reactivity. For your concern ‘{message[:80]}’, "
+                "the emphasis is steady discernment over panic."
+            ),
+            "modern_life_application": (
+                "Modern application: choose one decision within your control "
+                "in the next 24 hours and replace outcome-anxiety with "
+                "disciplined action."
+            ),
+            "historical_context_from_mahabharata": (
+                f"In the Bhagavad Gita (Chapter {chapter_num}), Krishna speaks "
+                "to Arjuna on the Kurukshetra battlefield — a warrior paralysed "
+                "not by enemy arrows but by his own grief about duty. "
+                "That same inner conflict between attachment and dharma is the "
+                "mirror your question holds up today."
+            ),
+            "meditation_practice": _default_meditation_practice(language),
+            "contemplative_follow_ups": [
+                "What fear is currently making decisions on my behalf?",
+                "If Krishna advised me today, what one dharmic action would come first?",
+            ],
+            "primary_theme": primary_theme,
+            "primary_reference": primary_ref,
+        }
+
+    if plan == UserSubscription.PLAN_PRO:
+        if language == "hi":
+            base.update(
+                {
+                    "deep_tier": "pro_advanced",
+                    "deep_verse_commentary": (
+                        f"श्लोक {primary_ref}: आदि शंकराचार्य इसे विवेक-आधारित कर्म की "
+                        "प्रेरणा मानते हैं — ज्ञान से क्रिया, कामना से नहीं। "
+                        "रामानुजाचार्य इसे भक्ति में समर्पित कर्म मानते हैं। "
+                        "स्वामी विवेकानंद इसे व्यावहारिक कर्मयोग की कुंजी बताते हैं: "
+                        "श्रेष्ठ कर्म करो, फल की चिंता मुक्त करो।"
+                    ),
+                    "cross_verse_links": refs,
+                    "commentary_access": {
+                        "label": "मल्टी-ऑथर टिप्पणी देखें",
+                        "links": [f"/api/verses/{ref}/" for ref in refs],
+                    },
+                    "meditation_program_suggestion": (
+                        "7-दिवसीय सूक्ष्म साधना: दिन 1-2 श्वास स्थिरता, "
+                        "दिन 3-4 कर्म-जर्नल, दिन 5-6 संबंधों में समत्व, "
+                        "दिन 7 आत्म-चिंतन समीक्षा।"
+                    ),
+                    "custom_reflection_journal": {
+                        "morning_prompt": "आज मैं किस एक धर्मसंगत कर्म पर केंद्रित रहूंगा?",
+                        "evening_prompt": "क्या मैंने परिणाम से अधिक कर्तव्य पर ध्यान दिया?",
+                    },
+                    "priority_response": True,
+                }
+            )
+        else:
+            base.update(
+                {
+                    "deep_tier": "pro_advanced",
+                    "deep_verse_commentary": (
+                        f"Verse {primary_ref}: Adi Shankaracharya reads this as viveka "
+                        "(discriminative wisdom) — acting from inner knowledge, not desire. "
+                        "Ramanujacharya frames it as surrendered action within bhakti, "
+                        "where the Lord is both the means and the end. Swami Vivekananda "
+                        "translated it into practical karma yoga: pursue excellence in "
+                        "action while releasing its fruits."
+                    ),
+                    "cross_verse_links": refs,
+                    "commentary_access": {
+                        "label": "Open multi-author commentary",
+                        "links": [f"/api/verses/{ref}/" for ref in refs],
+                    },
+                    "meditation_program_suggestion": (
+                        "7-day micro-sadhana: days 1-2 breath stability, "
+                        "days 3-4 karma journal, days 5-6 equanimity in relationships, "
+                        "day 7 reflective review."
+                    ),
+                    "custom_reflection_journal": {
+                        "morning_prompt": "What is one dharmic action I will prioritize today?",
+                        "evening_prompt": "Did I stay rooted in duty over outcome anxiety?",
+                    },
+                    "priority_response": True,
+                }
+            )
+
+    return base
 
 
 def _log_follow_up_events(
@@ -1417,6 +1640,16 @@ class AskView(APIView):
             **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
         }
+        deep_insights = _build_deep_insights(
+            mode=data["mode"],
+            plan=subscription.plan,
+            language=data["language"],
+            message=data["message"],
+            verses=verses,
+            query_themes=retrieval.query_themes,
+        )
+        if deep_insights is not None:
+            response_data["deep_insights"] = deep_insights
         follow_ups = _build_contextual_follow_ups(
             message=data["message"],
             mode=data["mode"],
@@ -2310,6 +2543,40 @@ class ChatUIView(View):
         )
         context.setdefault("debug", settings.DEBUG)
         context.setdefault("support_email", settings.SUPPORT_EMAIL)
+        # Single source of truth for all plan limits exposed to the template.
+        # Change settings.py (or env vars) and every UI reference updates automatically.
+        plus_price_inr = settings.SUBSCRIPTION_PRICE_PLUS_INR // 100
+        plus_price_usd_cents = settings.SUBSCRIPTION_PRICE_PLUS_USD
+        pro_price_inr = settings.SUBSCRIPTION_PRICE_PRO_INR // 100
+        pro_price_usd_cents = settings.SUBSCRIPTION_PRICE_PRO_USD
+        plus_usd = f"{plus_price_usd_cents / 100:.2f}"
+        pro_usd = f"{pro_price_usd_cents / 100:.2f}"
+        billing_currency = _billing_currency_for_request(request)
+        context.setdefault("billing_currency", billing_currency)
+        context.setdefault("billing_country_code", _request_country_code(request) or "")
+        default_plan_limits = {
+            "free_daily": _plan_daily_limit(UserSubscription.PLAN_FREE),
+            "free_monthly": _plan_monthly_limit(UserSubscription.PLAN_FREE),
+            # Plus: total monthly pool; deep is a sub-limit within that pool.
+            "plus_monthly": _plan_monthly_limit(UserSubscription.PLAN_PLUS),
+            "plus_deep_monthly": _plan_deep_monthly_limit(UserSubscription.PLAN_PLUS),
+            # Pro: total monthly pool; deep limit may be capped by settings.
+            "pro_monthly": _plan_monthly_limit(UserSubscription.PLAN_PRO),
+            "pro_deep_monthly": _plan_deep_monthly_limit(UserSubscription.PLAN_PRO),
+            "free_deep_enabled": _plan_deep_mode_allowed(UserSubscription.PLAN_FREE),
+            "plus_price_inr": plus_price_inr,
+            "plus_price_usd": plus_usd,
+            "pro_price_inr": pro_price_inr,
+            "pro_price_usd": pro_usd,
+        }
+        # Hydrate all expected keys even if a caller provided an empty/partial map.
+        context_plan_limits = context.get("plan_limits")
+        if not isinstance(context_plan_limits, dict):
+            context_plan_limits = {}
+        context["plan_limits"] = {
+            **default_plan_limits,
+            **context_plan_limits,
+        }
         context.setdefault(
             "support_name",
             str(request.session.get("chat_ui_auth_username", "")).strip(),
@@ -2396,6 +2663,17 @@ class ChatUIView(View):
         mode = self._chat_ui_mode(request.GET.get("mode", "simple"))
         language = self._chat_ui_language(request.GET.get("language", "en"))
         prefill_message = str(request.GET.get("prefill", "")).strip()
+        deep_lock_error = ""
+        if (
+            mode == AskEvent.MODE_DEEP
+            and not authenticated_username
+            and not settings.ENABLE_FREE_DEEP_MODE
+        ):
+            mode = AskEvent.MODE_SIMPLE
+            deep_lock_error = (
+                "Deep mode is available on Plus and Pro plans. "
+                "You can continue in Simple mode or sign in to upgrade."
+            )
         if prefill_message:
             logger.info(
                 "seo_cta_to_chatui",
@@ -2439,13 +2717,25 @@ class ChatUIView(View):
             if authenticated_username
             else {"items": [], "has_more": False, "next_offset": None}
         )
+        quota_snapshot = None
+        selected_plan = UserSubscription.PLAN_FREE
+        if authenticated_username:
+            quota_state = self._resolve_chat_ui_quota(default_user_id)
+            if quota_state is not None:
+                selected_plan = quota_state["subscription"].plan
+                quota_snapshot = _quota_snapshot_for_user(
+                    quota_state["subscription"],
+                    quota_state["usage"],
+                    quota_state["user"],
+                )
         return self._render_chat_ui(
             request,
             {
                 "response_data": None,
-                "error": "",
+                "error": deep_lock_error,
                 "feedback_message": "",
-                "selected_plan": "free",
+                "selected_plan": selected_plan,
+                "quota_snapshot": quota_snapshot,
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
                 "follow_up_prompts": [],
@@ -2521,6 +2811,36 @@ class ChatUIView(View):
 
         if mode not in {"simple", "deep"}:
             mode = "simple"
+
+        if (
+            mode == AskEvent.MODE_DEEP
+            and not authenticated_username
+            and not settings.ENABLE_FREE_DEEP_MODE
+        ):
+            return self._render_chat_ui(
+                request,
+                {
+                    "response_data": None,
+                    "error": (
+                        "Deep mode is available on Plus and Pro plans. "
+                        "Please sign in and upgrade to continue with Deep mode."
+                    ),
+                    "feedback_message": "",
+                    "active_conversation_id": "",
+                    "conversation_messages": self._guest_conversation_messages(
+                        request,
+                    ),
+                    "conversations": [],
+                    "user_id": user_id,
+                    "is_guest_chat": True,
+                    "mode": AskEvent.MODE_SIMPLE,
+                    "language": language,
+                    "message": message,
+                    "starter_prompts": starter_prompts,
+                    "recent_questions": recent_questions,
+                    "follow_up_prompts": [],
+                },
+            )
 
         if not message:
             return self._render_chat_ui(
@@ -2697,6 +3017,7 @@ class ChatUIView(View):
                     conversation_id=(
                         active_conversation.id if active_conversation else None
                     ),
+                    plan=quota["subscription"].plan if quota else UserSubscription.PLAN_FREE,
                 )
                 conversation_messages = self._conversation_messages(conversation)
                 active_conversation_id = conversation.id
@@ -2800,6 +3121,20 @@ class ChatUIView(View):
             ],
             "language": language,
         }
+        deep_insights = _build_deep_insights(
+            mode=mode,
+            plan=(
+                quota["subscription"].plan
+                if quota
+                else UserSubscription.PLAN_FREE
+            ),
+            language=language,
+            message=message,
+            verses=verses,
+            query_themes=retrieval.query_themes,
+        )
+        if deep_insights is not None:
+            response_data["deep_insights"] = deep_insights
         follow_ups = _build_contextual_follow_ups(
             message=message,
             mode=mode,
@@ -2890,6 +3225,9 @@ class ChatUIView(View):
                     "monthly_limit": response_data.get("monthly_limit"),
                     "used_month": response_data.get("used_month", 0),
                     "remaining_month": response_data.get("remaining_month"),
+                    "deep_mode_allowed": response_data.get(
+                        "deep_mode_allowed",
+                    ),
                     "deep_monthly_limit": response_data.get(
                         "deep_monthly_limit",
                     ),
@@ -3296,7 +3634,7 @@ class ChatUIView(View):
         ]
         retrieval = retrieve_verses_with_trace(
             message=message,
-            limit=4 if mode == "deep" else 3,
+            limit=_plan_max_context_verses(UserSubscription.PLAN_FREE, mode),
         )
         verses = retrieval.verses
         guidance = build_guidance(
@@ -3305,6 +3643,8 @@ class ChatUIView(View):
             conversation_messages=conversation_messages,
             language=language,
             query_interpretation=retrieval.query_interpretation,
+            mode=mode,
+            max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
         )
         self._append_guest_exchange(
             request,
@@ -4031,6 +4371,78 @@ class CsrfExemptSessionAuth(SessionAuthentication):
         return  # Skip CSRF check - we handle it differently
 
 
+def _normalize_paid_plan(raw_value: str | None) -> str | None:
+    """Return normalized paid tier (`plus` or `pro`) or None."""
+    value = str(raw_value or "").strip().lower()
+    if value in {UserSubscription.PLAN_PLUS, UserSubscription.PLAN_PRO}:
+        return value
+    return None
+
+
+def _request_country_code(request) -> str | None:
+    """Best-effort country code from edge headers or language hints."""
+    meta = request.META
+    for key in (
+        "HTTP_CF_IPCOUNTRY",
+        "HTTP_CLOUDFRONT_VIEWER_COUNTRY",
+        "HTTP_X_COUNTRY_CODE",
+        "HTTP_X_APPENGINE_COUNTRY",
+    ):
+        value = str(meta.get(key, "")).strip().upper()
+        if len(value) == 2 and value.isalpha():
+            return value
+
+    # Fallback heuristic when edge country headers are unavailable.
+    accept_language = str(meta.get("HTTP_ACCEPT_LANGUAGE", "")).lower()
+    if "-in" in accept_language or "en-in" in accept_language or "hi-in" in accept_language:
+        return "IN"
+    return None
+
+
+def _billing_currency_for_request(
+    request,
+    *,
+    requested_currency: str | None = None,
+) -> str:
+    """Return enforced billing currency: INR for India, USD for other known countries."""
+    country_code = _request_country_code(request)
+    if country_code == "IN":
+        return UserSubscription.CURRENCY_INR
+    if country_code:
+        return UserSubscription.CURRENCY_USD
+
+    # Unknown country: preserve explicit request if valid, otherwise default INR.
+    req = str(requested_currency or "").strip().upper()
+    if req in {UserSubscription.CURRENCY_INR, UserSubscription.CURRENCY_USD}:
+        return req
+    return UserSubscription.CURRENCY_INR
+
+
+def _payment_amount_for_plan(*, plan: str, currency: str) -> int:
+    """Return smallest-unit payment amount for selected plan and currency."""
+    currency = currency.upper()
+    if plan == UserSubscription.PLAN_PLUS:
+        if currency == UserSubscription.CURRENCY_INR:
+            return settings.SUBSCRIPTION_PRICE_PLUS_INR
+        return settings.SUBSCRIPTION_PRICE_PLUS_USD
+    if currency == UserSubscription.CURRENCY_INR:
+        return settings.SUBSCRIPTION_PRICE_PRO_INR
+    return settings.SUBSCRIPTION_PRICE_PRO_USD
+
+
+def _infer_plan_from_amount(*, amount: int, currency: str) -> str:
+    """Infer paid tier from settled payment amount; fallback to pro."""
+    currency = currency.upper()
+    if (
+        amount == _payment_amount_for_plan(
+            plan=UserSubscription.PLAN_PLUS,
+            currency=currency,
+        )
+    ):
+        return UserSubscription.PLAN_PLUS
+    return UserSubscription.PLAN_PRO
+
+
 class CreateOrderView(APIView):
     """Create a Razorpay order for subscription payment."""
 
@@ -4062,13 +4474,20 @@ class CreateOrderView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        # Determine currency based on request or default to INR
-        currency = request.data.get("currency", "INR").upper()
-        if currency == "INR":
-            amount = settings.SUBSCRIPTION_PRICE_INR
-        else:
-            currency = "USD"
-            amount = settings.SUBSCRIPTION_PRICE_USD
+        selected_plan = _normalize_paid_plan(request.data.get("plan"))
+        if selected_plan is None:
+            selected_plan = UserSubscription.PLAN_PRO
+
+        # Enforce currency by country: INR (India), USD (outside India).
+        currency = _billing_currency_for_request(
+            request,
+            requested_currency=request.data.get("currency"),
+        )
+
+        amount = _payment_amount_for_plan(
+            plan=selected_plan,
+            currency=currency,
+        )
 
         client = razorpay.Client(auth=(key_id, key_secret))
 
@@ -4079,7 +4498,7 @@ class CreateOrderView(APIView):
                 "receipt": f"sub_{user.id}_{timezone.now().timestamp()}",
                 "notes": {
                     "user_id": str(user.id),
-                    "plan": UserSubscription.PLAN_PRO,
+                    "plan": selected_plan,
                 },
             }
             order = client.order.create(data=order_data)
@@ -4093,10 +4512,17 @@ class CreateOrderView(APIView):
             subscription.payment_currency = currency
             subscription.save()
 
+            pending_plans = request.session.get("pending_subscription_plans", {})
+            if not isinstance(pending_plans, dict):
+                pending_plans = {}
+            pending_plans[order["id"]] = selected_plan
+            request.session["pending_subscription_plans"] = pending_plans
+
             return Response({
                 "order_id": order["id"],
                 "amount": amount,
                 "currency": currency,
+                "plan": selected_plan,
                 "key_id": key_id,
                 "user_email": user.email,
                 "user_name": user.get_full_name() or user.username,
@@ -4174,10 +4600,24 @@ class VerifyPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            subscription.plan = UserSubscription.PLAN_PRO
+            pending_plans = request.session.get("pending_subscription_plans", {})
+            pending_plan = None
+            if isinstance(pending_plans, dict):
+                pending_plan = _normalize_paid_plan(
+                    pending_plans.get(razorpay_order_id),
+                )
+
+            requested_plan = _normalize_paid_plan(request.data.get("plan"))
+            selected_plan = pending_plan or requested_plan or UserSubscription.PLAN_PRO
+
+            subscription.plan = selected_plan
             subscription.is_active = True
             subscription.subscription_end_date = timezone.now() + timedelta(days=30)
             subscription.save()
+
+            if isinstance(pending_plans, dict) and razorpay_order_id in pending_plans:
+                pending_plans.pop(razorpay_order_id, None)
+                request.session["pending_subscription_plans"] = pending_plans
 
             return Response({
                 "success": True,
@@ -4237,11 +4677,16 @@ class RazorpayWebhookView(APIView):
             if event == "payment.captured":
                 payment_entity = payload.get("payload", {}).get("payment", {}).get("entity", {})
                 order_id = payment_entity.get("order_id")
+                amount = int(payment_entity.get("amount") or 0)
+                currency = str(payment_entity.get("currency") or "INR")
 
                 if order_id:
                     try:
                         subscription = UserSubscription.objects.get(razorpay_order_id=order_id)
-                        subscription.plan = UserSubscription.PLAN_PRO
+                        subscription.plan = _infer_plan_from_amount(
+                            amount=amount,
+                            currency=currency,
+                        )
                         subscription.is_active = True
                         subscription.subscription_end_date = timezone.now() + timedelta(days=30)
                         subscription.save()
@@ -4305,7 +4750,17 @@ class SubscriptionStatusView(APIView):
                 else None
             ),
             "pricing": {
-                "INR": settings.SUBSCRIPTION_PRICE_INR,
-                "USD": settings.SUBSCRIPTION_PRICE_USD,
+                "INR": settings.SUBSCRIPTION_PRICE_PRO_INR,
+                "USD": settings.SUBSCRIPTION_PRICE_PRO_USD,
+                "plans": {
+                    "plus": {
+                        "INR": settings.SUBSCRIPTION_PRICE_PLUS_INR,
+                        "USD": settings.SUBSCRIPTION_PRICE_PLUS_USD,
+                    },
+                    "pro": {
+                        "INR": settings.SUBSCRIPTION_PRICE_PRO_INR,
+                        "USD": settings.SUBSCRIPTION_PRICE_PRO_USD,
+                    },
+                },
             },
         })

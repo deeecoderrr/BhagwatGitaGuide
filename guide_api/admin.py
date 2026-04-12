@@ -79,16 +79,70 @@ class DailyAskUsageAdmin(admin.ModelAdmin):
 
 @admin.register(RequestQuotaSettings)
 class RequestQuotaSettingsAdmin(admin.ModelAdmin):
-    """Manage guest/free/pro limits and enable/disable toggles."""
+    """Manage all plan quota controls from a single admin screen."""
 
     list_display = (
         "guest_limit_enabled",
         "guest_ask_limit",
         "free_limit_enabled",
         "free_daily_ask_limit",
+        "free_monthly_ask_limit",
+        "free_deep_mode_enabled",
+        "plus_limit_enabled",
+        "plus_daily_ask_limit",
+        "plus_monthly_ask_limit",
+        "plus_deep_monthly_limit",
         "pro_limit_enabled",
         "pro_daily_ask_limit",
+        "pro_monthly_ask_limit",
+        "pro_deep_monthly_limit",
         "updated_at",
+    )
+    fieldsets = (
+        (
+            "Guest",
+            {
+                "fields": (
+                    "guest_limit_enabled",
+                    "guest_ask_limit",
+                ),
+            },
+        ),
+        (
+            "Free",
+            {
+                "fields": (
+                    "free_limit_enabled",
+                    "free_daily_ask_limit",
+                    "free_monthly_ask_limit",
+                    "free_deep_mode_enabled",
+                ),
+            },
+        ),
+        (
+            "Plus",
+            {
+                "fields": (
+                    "plus_limit_enabled",
+                    "plus_daily_ask_limit",
+                    "plus_monthly_ask_limit",
+                    "plus_deep_monthly_limit",
+                ),
+                "description": "Set plus_limit_enabled=False for unlimited daily plus asks.",
+            },
+        ),
+        (
+            "Pro",
+            {
+                "fields": (
+                    "pro_limit_enabled",
+                    "pro_daily_ask_limit",
+                    "pro_monthly_ask_limit",
+                    "pro_deep_monthly_limit",
+                ),
+                "description": "Set pro_limit_enabled=False for unlimited daily pro asks.",
+            },
+        ),
     )
 
     def has_add_permission(self, request):

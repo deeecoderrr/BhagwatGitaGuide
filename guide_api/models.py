@@ -237,7 +237,7 @@ class DailyAskUsage(models.Model):
 
 
 class RequestQuotaSettings(models.Model):
-    """Singleton quota controls for guest, free, and pro ask limits."""
+    """Singleton quota controls for all guest/free/plus/pro ask limits."""
 
     singleton = models.BooleanField(default=True, unique=True, editable=False)
 
@@ -246,9 +246,18 @@ class RequestQuotaSettings(models.Model):
 
     free_limit_enabled = models.BooleanField(default=True)
     free_daily_ask_limit = models.PositiveIntegerField(default=5)
+    free_monthly_ask_limit = models.PositiveIntegerField(default=100)
+    free_deep_mode_enabled = models.BooleanField(default=False)
+
+    plus_limit_enabled = models.BooleanField(default=False)
+    plus_daily_ask_limit = models.PositiveIntegerField(default=0)
+    plus_monthly_ask_limit = models.PositiveIntegerField(default=200)
+    plus_deep_monthly_limit = models.PositiveIntegerField(default=40)
 
     pro_limit_enabled = models.BooleanField(default=True)
-    pro_daily_ask_limit = models.PositiveIntegerField(default=10000)
+    pro_daily_ask_limit = models.PositiveIntegerField(default=100)
+    pro_monthly_ask_limit = models.PositiveIntegerField(default=500)
+    pro_deep_monthly_limit = models.PositiveIntegerField(default=180)
 
     updated_at = models.DateTimeField(auto_now=True)
 

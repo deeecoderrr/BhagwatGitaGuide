@@ -308,6 +308,68 @@ class GuideApiTests(APITestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data["plan"], "pro")
 
+    @override_settings(ENABLE_FREE_DEEP_MODE=False)
+    def test_ask_endpoint_blocks_deep_mode_for_free_plan(self):
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "I want deeper guidance for my anxiety.",
+                "mode": "deep",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertEqual(response.data["error"]["code"], "deep_mode_not_included")
+
+    @override_settings(ENABLE_FREE_DEEP_MODE=False)
+    def test_ask_endpoint_plus_deep_includes_plus_lite_insights(self):
+        subscription, _ = UserSubscription.objects.get_or_create(user=self.user)
+        subscription.plan = UserSubscription.PLAN_PLUS
+        subscription.save(update_fields=["plan"])
+
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "Help me understand my stress deeply.",
+                "mode": "deep",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("deep_insights", response.data)
+        self.assertEqual(
+            response.data["deep_insights"]["deep_tier"],
+            "plus_lite",
+        )
+        self.assertIn("spiritual_principle", response.data["deep_insights"])
+        self.assertIn("meditation_practice", response.data["deep_insights"])
+
+    @override_settings(
+        ENABLE_FREE_DEEP_MODE=False,
+        ASK_LIMIT_PRO_DEEP_MONTHLY=0,
+    )
+    def test_ask_endpoint_pro_deep_limit_zero_means_unlimited(self):
+        subscription, _ = UserSubscription.objects.get_or_create(user=self.user)
+        subscription.plan = UserSubscription.PLAN_PRO
+        subscription.save(update_fields=["plan"])
+
+        for _ in range(3):
+            response = self.client.post(
+                "/api/ask/",
+                {
+                    "message": "Give me a deep reflection on discipline.",
+                    "mode": "deep",
+                },
+                format="json",
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertIsNone(response.data["deep_monthly_limit"])
+            self.assertIn("deep_insights", response.data)
+            self.assertEqual(
+                response.data["deep_insights"]["deep_tier"],
+                "pro_advanced",
+            )
+
     def test_auth_me_includes_plan_and_quota_fields(self):
         response = self.client.get("/api/auth/me/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -1094,8 +1156,15 @@ class GuideApiTests(APITestCase):
         self.assertIn("My own thread", titles)
         self.assertNotIn("Other user's thread", titles)
 
+    @override_settings(ENABLE_FREE_DEEP_MODE=False)
     def test_chat_ui_mode_selection_persists_across_threads(self):
         self._login_chat_ui()
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=self.user,
+        )
+        subscription.plan = UserSubscription.PLAN_PLUS
+        subscription.save(update_fields=["plan"])
+
         selected = self.client.get("/api/chat-ui/?mode=deep")
         self.assertEqual(selected.status_code, status.HTTP_200_OK)
         self.assertEqual(selected.context["mode"], "deep")
@@ -1117,6 +1186,43 @@ class GuideApiTests(APITestCase):
         )
         self.assertEqual(reopened.status_code, status.HTTP_200_OK)
         self.assertEqual(reopened.context["mode"], "deep")
+
+    @override_settings(ENABLE_FREE_DEEP_MODE=False)
+    def test_chat_ui_guest_deep_mode_is_locked(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "deep",
+                "message": "Give me deep guidance for anxiety.",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Deep mode is available on Plus and Pro plans")
+        self.assertEqual(response.context["mode"], "simple")
+
+    def test_chat_ui_shows_inr_only_for_india(self):
+        self._login_chat_ui()
+        response = self.client.get(
+            "/api/chat-ui/?language=en",
+            HTTP_CF_IPCOUNTRY="IN",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.context["billing_currency"], "INR")
+        self.assertContains(response, "Plus - ₹")
+        self.assertNotContains(response, "Plus - $")
+
+    def test_chat_ui_shows_usd_only_for_non_india(self):
+        self._login_chat_ui()
+        response = self.client.get(
+            "/api/chat-ui/?language=en",
+            HTTP_CF_IPCOUNTRY="US",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.context["billing_currency"], "USD")
+        self.assertContains(response, "Plus - $")
+        self.assertNotContains(response, "Plus - ₹")
 
     def test_chat_ui_language_selection_persists_across_threads(self):
         self._login_chat_ui()
@@ -1730,8 +1836,10 @@ class GuideApiTests(APITestCase):
     RAZORPAY_KEY_ID="rzp_test_key_12345",
     RAZORPAY_KEY_SECRET="secret_key_67890",
     RAZORPAY_WEBHOOK_SECRET="webhook_secret_key",
-    SUBSCRIPTION_PRICE_INR=9900,
-    SUBSCRIPTION_PRICE_USD=299,
+    SUBSCRIPTION_PRICE_PLUS_INR=4900,
+    SUBSCRIPTION_PRICE_PLUS_USD=149,
+    SUBSCRIPTION_PRICE_PRO_INR=9900,
+    SUBSCRIPTION_PRICE_PRO_USD=299,
 )
 class PaymentIntegrationTests(APITestCase):
     def setUp(self):
@@ -1770,6 +1878,7 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.data["order_id"], "order_test_123abc")
         self.assertEqual(response.data["amount"], 9900)
         self.assertEqual(response.data["currency"], "INR")
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_PRO)
         self.assertEqual(response.data["key_id"], "rzp_test_key_12345")
         self.assertEqual(response.data["user_email"], "paymentuser@test.com")
 
@@ -1777,6 +1886,35 @@ class PaymentIntegrationTests(APITestCase):
         subscription = UserSubscription.objects.get(user=self.user)
         self.assertEqual(subscription.razorpay_order_id, "order_test_123abc")
         self.assertEqual(subscription.payment_currency, "INR")
+
+    def test_create_order_plus_inr_flow(self):
+        """Test creating a Razorpay order for Plus INR payment."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_plus_inr",
+            "entity": "order",
+            "amount": 4900,
+            "currency": "INR",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR", "plan": "plus"},
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["order_id"], "order_plus_inr")
+        self.assertEqual(response.data["amount"], 4900)
+        self.assertEqual(response.data["currency"], "INR")
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_PLUS)
 
     def test_create_order_usd_flow(self):
         """Test creating a Razorpay order for USD payment."""
@@ -1837,6 +1975,62 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["amount"], 9900)
         self.assertEqual(response.data["currency"], "INR")
+
+    def test_create_order_india_header_forces_inr_even_if_usd_requested(self):
+        """India requests are billed in INR regardless of client-requested currency."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_in_forced_inr",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "USD"},
+                format="json",
+                HTTP_CF_IPCOUNTRY="IN",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["currency"], "INR")
+        self.assertEqual(response.data["amount"], 9900)
+
+    def test_create_order_non_india_header_forces_usd_even_if_inr_requested(self):
+        """Non-India requests are billed in USD regardless of client-requested currency."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_us_forced_usd",
+            "entity": "order",
+            "amount": 299,
+            "currency": "USD",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+                HTTP_CF_IPCOUNTRY="US",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["currency"], "USD")
+        self.assertEqual(response.data["amount"], 299)
 
     def test_create_order_unauthenticated_fails(self):
         """Test order creation fails without authentication."""
@@ -1914,6 +2108,46 @@ class PaymentIntegrationTests(APITestCase):
         days_diff = (subscription.subscription_end_date - timezone.now()).days
         self.assertGreaterEqual(days_diff, 29)
         self.assertLessEqual(days_diff, 31)
+
+    def test_verify_payment_plus_plan_from_request(self):
+        """Test verifying payment can activate plus plan when selected."""
+        import hmac
+        import hashlib
+
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        subscription.razorpay_order_id = "order_plus_456def"
+        subscription.save()
+
+        order_id = "order_plus_456def"
+        payment_id = "pay_plus_789ghi"
+        key_secret = "secret_key_67890"
+        msg = f"{order_id}|{payment_id}"
+        generated_signature = hmac.new(
+            key_secret.encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
+        response = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": generated_signature,
+                "plan": "plus",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["success"])
+
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_PLUS)
+        self.assertTrue(subscription.is_active)
 
     def test_verify_payment_with_invalid_signature_fails(self):
         """Test payment verification fails with invalid signature."""
@@ -2208,6 +2442,10 @@ class PaymentIntegrationTests(APITestCase):
         self.assertIn("pricing", response.data)
         self.assertEqual(response.data["pricing"]["INR"], 9900)
         self.assertEqual(response.data["pricing"]["USD"], 299)
+        self.assertEqual(response.data["pricing"]["plans"]["plus"]["INR"], 4900)
+        self.assertEqual(response.data["pricing"]["plans"]["plus"]["USD"], 149)
+        self.assertEqual(response.data["pricing"]["plans"]["pro"]["INR"], 9900)
+        self.assertEqual(response.data["pricing"]["plans"]["pro"]["USD"], 299)
 
     def test_subscription_status_pro_plan_active(self):
         """Test subscription status endpoint returns pro plan data when active."""

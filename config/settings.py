@@ -237,14 +237,15 @@ ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "3"))
 ASK_LIMIT_PLUS_DAILY = int(os.getenv("ASK_LIMIT_PLUS_DAILY", "0"))
 ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "0"))
 
-# Monthly ask quotas for paid plans
+# Monthly ask quotas (Free = 100/month, Paid plans have higher limits)
+ASK_LIMIT_FREE_MONTHLY = int(os.getenv("ASK_LIMIT_FREE_MONTHLY", "100"))
 ASK_LIMIT_PLUS_MONTHLY = int(os.getenv("ASK_LIMIT_PLUS_MONTHLY", "200"))
 ASK_LIMIT_PRO_MONTHLY = int(os.getenv("ASK_LIMIT_PRO_MONTHLY", "500"))
 
 # Deep-mode entitlement controls
 ENABLE_FREE_DEEP_MODE = os.getenv(
     "ENABLE_FREE_DEEP_MODE",
-    "true",
+    "false",
 ).lower() == "true"
 ASK_LIMIT_PLUS_DEEP_MONTHLY = int(
     os.getenv("ASK_LIMIT_PLUS_DEEP_MONTHLY", "40"),
@@ -253,14 +254,43 @@ ASK_LIMIT_PRO_DEEP_MONTHLY = int(
     os.getenv("ASK_LIMIT_PRO_DEEP_MONTHLY", "180"),
 )
 
+# Per-plan LLM output token caps (controls cost per ask)
+MAX_OUTPUT_TOKENS_FREE = int(os.getenv("MAX_OUTPUT_TOKENS_FREE", "350"))
+MAX_OUTPUT_TOKENS_PLUS = int(os.getenv("MAX_OUTPUT_TOKENS_PLUS", "550"))
+MAX_OUTPUT_TOKENS_PRO = int(os.getenv("MAX_OUTPUT_TOKENS_PRO", "800"))
+
+# Per-plan retrieval context verse limits
+MAX_CONTEXT_VERSES_FREE = int(os.getenv("MAX_CONTEXT_VERSES_FREE", "2"))
+MAX_CONTEXT_VERSES_PLUS = int(os.getenv("MAX_CONTEXT_VERSES_PLUS", "3"))
+MAX_CONTEXT_VERSES_PRO = int(os.getenv("MAX_CONTEXT_VERSES_PRO", "4"))
+
+# Hard caps to limit runaway LLM cost
+MAX_ASK_INPUT_CHARS = int(os.getenv("MAX_ASK_INPUT_CHARS", "2200"))
+MAX_ASK_ACTIONS = int(os.getenv("MAX_ASK_ACTIONS", "3"))
+MAX_VERSE_REFERENCES = int(os.getenv("MAX_VERSE_REFERENCES", "3"))
+
 # Razorpay Payment Settings
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")
 RAZORPAY_KEY_SECRET = os.getenv("RAZORPAY_KEY_SECRET", "")
 RAZORPAY_WEBHOOK_SECRET = os.getenv("RAZORPAY_WEBHOOK_SECRET", "")
 
 # Subscription Pricing (in paise for INR, cents for USD)
-SUBSCRIPTION_PRICE_INR = int(os.getenv("SUBSCRIPTION_PRICE_INR", "9900"))  # ₹99/month
-SUBSCRIPTION_PRICE_USD = int(os.getenv("SUBSCRIPTION_PRICE_USD", "299"))   # $2.99/month
+SUBSCRIPTION_PRICE_PLUS_INR = int(
+    os.getenv("SUBSCRIPTION_PRICE_PLUS_INR", "19900"),
+)  # ₹199/month (India)
+SUBSCRIPTION_PRICE_PLUS_USD = int(
+    os.getenv("SUBSCRIPTION_PRICE_PLUS_USD", "349"),
+)  # $3.49/month
+SUBSCRIPTION_PRICE_PRO_INR = int(
+    os.getenv("SUBSCRIPTION_PRICE_PRO_INR", "49900"),
+)  # ₹499/month (India)
+SUBSCRIPTION_PRICE_PRO_USD = int(
+    os.getenv("SUBSCRIPTION_PRICE_PRO_USD", "849"),
+)  # $8.49/month
+
+# Backward-compatible aliases used by older tests/clients.
+SUBSCRIPTION_PRICE_INR = SUBSCRIPTION_PRICE_PRO_INR
+SUBSCRIPTION_PRICE_USD = SUBSCRIPTION_PRICE_PRO_USD
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@askbhagavadgita.com")
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
