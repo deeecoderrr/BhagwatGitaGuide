@@ -88,7 +88,7 @@ class LoginRequestSerializer(serializers.Serializer):
 class PlanUpdateRequestSerializer(serializers.Serializer):
     """Validate mock billing plan update payload for testing gates."""
 
-    plan = serializers.ChoiceField(choices=["free", "pro"])
+    plan = serializers.ChoiceField(choices=["free", "plus", "pro"])
 
 
 class SavedReflectionCreateSerializer(serializers.Serializer):

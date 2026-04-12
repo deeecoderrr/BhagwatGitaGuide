@@ -233,8 +233,25 @@ PGVECTOR_EMBEDDING_DIM = int(
 PGVECTOR_PROBES = int(
     os.getenv("PGVECTOR_PROBES", "10"),
 )
-ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "5"))
-ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "10000"))
+ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "3"))
+ASK_LIMIT_PLUS_DAILY = int(os.getenv("ASK_LIMIT_PLUS_DAILY", "0"))
+ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "0"))
+
+# Monthly ask quotas for paid plans
+ASK_LIMIT_PLUS_MONTHLY = int(os.getenv("ASK_LIMIT_PLUS_MONTHLY", "200"))
+ASK_LIMIT_PRO_MONTHLY = int(os.getenv("ASK_LIMIT_PRO_MONTHLY", "500"))
+
+# Deep-mode entitlement controls
+ENABLE_FREE_DEEP_MODE = os.getenv(
+    "ENABLE_FREE_DEEP_MODE",
+    "true",
+).lower() == "true"
+ASK_LIMIT_PLUS_DEEP_MONTHLY = int(
+    os.getenv("ASK_LIMIT_PLUS_DEEP_MONTHLY", "40"),
+)
+ASK_LIMIT_PRO_DEEP_MONTHLY = int(
+    os.getenv("ASK_LIMIT_PRO_DEEP_MONTHLY", "180"),
+)
 
 # Razorpay Payment Settings
 RAZORPAY_KEY_ID = os.getenv("RAZORPAY_KEY_ID", "")

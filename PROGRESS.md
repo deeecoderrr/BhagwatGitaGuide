@@ -4,6 +4,16 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Monetization quota refactor (cost-aware) completed in runtime gates:
+  - added `plus` plan support in model choices and plan-update serializer
+  - introduced daily + monthly + deep-mode quota settings in config
+  - centralized quota snapshot + violation evaluation for API and chat-ui
+  - aligned `/api/ask/`, `/api/auth/me/`, `/api/plan/`, and `/api/chat-ui/`
+    to return consistent enriched quota snapshots
+  - preserved backward-compatible default deep-mode behavior for free users
+    (`ENABLE_FREE_DEEP_MODE=true` unless overridden)
+  - validated with full suite: all 124 tests passing
+
 - Production deployment + runtime hardening completed:
   - deployed app successfully on Fly.io
   - production database connected to Neon PostgreSQL via `DATABASE_URL`

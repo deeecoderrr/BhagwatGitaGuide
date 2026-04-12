@@ -11,6 +11,7 @@ from uuid import uuid4
 
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
+from django.db.models import Sum
 from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
@@ -795,6 +796,34 @@ def _request_quota_settings() -> RequestQuotaSettings | None:
     return RequestQuotaSettings.objects.first()
 
 
+def _current_month_start() -> timezone.datetime:
+    """Return timezone-aware start timestamp of the current month."""
+    now = timezone.now()
+    return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+
+def _monthly_ask_count(user) -> int:
+    """Count total asks in current month from daily usage rows."""
+    month_start = timezone.localdate().replace(day=1)
+    return int(
+        DailyAskUsage.objects.filter(
+            user=user,
+            date__gte=month_start,
+        ).aggregate(total=Sum("ask_count"))["total"]
+        or 0
+    )
+
+
+def _monthly_deep_ask_count(user) -> int:
+    """Count served deep-mode asks in current month from ask events."""
+    return AskEvent.objects.filter(
+        user_id=user.get_username(),
+        outcome=AskEvent.OUTCOME_SERVED,
+        mode=AskEvent.MODE_DEEP,
+        created_at__gte=_current_month_start(),
+    ).count()
+
+
 def _plan_daily_limit(plan: str) -> int | None:
     """Resolve daily ask limit from admin settings, then env defaults."""
     quota_settings = _request_quota_settings()
@@ -803,13 +832,42 @@ def _plan_daily_limit(plan: str) -> int | None:
             if not quota_settings.pro_limit_enabled:
                 return None
             return quota_settings.pro_daily_ask_limit
-        return settings.ASK_LIMIT_PRO_DAILY
+        return settings.ASK_LIMIT_PRO_DAILY or None
+
+    if plan == UserSubscription.PLAN_PLUS:
+        plus_daily_limit = getattr(settings, "ASK_LIMIT_PLUS_DAILY", 0)
+        return plus_daily_limit or None
 
     if quota_settings:
         if not quota_settings.free_limit_enabled:
             return None
         return quota_settings.free_daily_ask_limit
     return settings.ASK_LIMIT_FREE_DAILY
+
+
+def _plan_monthly_limit(plan: str) -> int | None:
+    """Return monthly ask quota for the selected plan."""
+    if plan == UserSubscription.PLAN_PLUS:
+        return settings.ASK_LIMIT_PLUS_MONTHLY
+    if plan == UserSubscription.PLAN_PRO:
+        return settings.ASK_LIMIT_PRO_MONTHLY
+    return None
+
+
+def _plan_deep_mode_allowed(plan: str) -> bool:
+    """Return whether deep mode is enabled for plan."""
+    if plan == UserSubscription.PLAN_FREE:
+        return settings.ENABLE_FREE_DEEP_MODE
+    return True
+
+
+def _plan_deep_monthly_limit(plan: str) -> int | None:
+    """Return deep-mode monthly cap for the selected plan."""
+    if plan == UserSubscription.PLAN_PLUS:
+        return settings.ASK_LIMIT_PLUS_DEEP_MONTHLY
+    if plan == UserSubscription.PLAN_PRO:
+        return settings.ASK_LIMIT_PRO_DEEP_MONTHLY
+    return 0 if not settings.ENABLE_FREE_DEEP_MODE else None
 
 
 def _remaining_today(
@@ -821,6 +879,91 @@ def _remaining_today(
     if daily_limit is None:
         return None
     return max(daily_limit - used_today, 0)
+
+
+def _remaining_monthly(*, monthly_limit: int | None, used_month: int) -> int | None:
+    """Return remaining monthly asks, or None when monthly caps are disabled."""
+    if monthly_limit is None:
+        return None
+    return max(monthly_limit - used_month, 0)
+
+
+def _quota_snapshot_for_user(subscription, usage, user) -> dict:
+    """Build enriched quota payload with daily + monthly + deep caps."""
+    daily_limit = _plan_daily_limit(subscription.plan)
+    used_today = usage.ask_count
+    used_month = _monthly_ask_count(user)
+    monthly_limit = _plan_monthly_limit(subscription.plan)
+    deep_monthly_limit = _plan_deep_monthly_limit(subscription.plan)
+    deep_used_month = _monthly_deep_ask_count(user)
+    return {
+        "plan": subscription.plan,
+        "daily_limit": daily_limit,
+        "used_today": used_today,
+        "remaining_today": _remaining_today(
+            daily_limit=daily_limit,
+            used_today=used_today,
+        ),
+        "monthly_limit": monthly_limit,
+        "used_month": used_month,
+        "remaining_month": _remaining_monthly(
+            monthly_limit=monthly_limit,
+            used_month=used_month,
+        ),
+        "deep_mode_allowed": _plan_deep_mode_allowed(subscription.plan),
+        "deep_monthly_limit": deep_monthly_limit,
+        "deep_used_month": deep_used_month,
+        "deep_remaining_month": _remaining_monthly(
+            monthly_limit=deep_monthly_limit,
+            used_month=deep_used_month,
+        ),
+    }
+
+
+def _quota_violation_for_request(
+    *,
+    subscription,
+    usage,
+    user,
+    mode: str,
+) -> tuple[str, str, dict] | None:
+    """Return violation tuple (code, message, snapshot) if request exceeds caps."""
+    snapshot = _quota_snapshot_for_user(subscription, usage, user)
+    if mode == AskEvent.MODE_DEEP and not snapshot["deep_mode_allowed"]:
+        return (
+            "deep_mode_not_included",
+            "Deep mode is not included in your current plan.",
+            snapshot,
+        )
+    if (
+        snapshot["daily_limit"] is not None
+        and snapshot["used_today"] >= snapshot["daily_limit"]
+    ):
+        return (
+            "daily_quota_exceeded",
+            "Daily ask limit reached for your plan.",
+            snapshot,
+        )
+    if (
+        snapshot["monthly_limit"] is not None
+        and snapshot["used_month"] >= snapshot["monthly_limit"]
+    ):
+        return (
+            "monthly_quota_exceeded",
+            "Monthly ask limit reached for your plan.",
+            snapshot,
+        )
+    if (
+        mode == AskEvent.MODE_DEEP
+        and snapshot["deep_monthly_limit"] is not None
+        and snapshot["deep_used_month"] >= snapshot["deep_monthly_limit"]
+    ):
+        return (
+            "deep_quota_exceeded",
+            "Deep-mode monthly limit reached for your plan.",
+            snapshot,
+        )
+    return None
 
 
 def _log_ask_event(
@@ -1113,17 +1256,15 @@ class MeView(APIView):
         """Serve minimal identity payload for client checks."""
         subscription, usage = _get_user_plan_and_usage(request.user)
         engagement = _get_engagement_profile(request.user)
-        daily_limit = _plan_daily_limit(subscription.plan)
+        quota_snapshot = _quota_snapshot_for_user(
+            subscription,
+            usage,
+            request.user,
+        )
         return Response(
             {
                 "username": request.user.get_username(),
-                "plan": subscription.plan,
-                "daily_limit": daily_limit,
-                "used_today": usage.ask_count,
-                "remaining_today": _remaining_today(
-                    daily_limit=daily_limit,
-                    used_today=usage.ask_count,
-                ),
+                **quota_snapshot,
                 "engagement": _serialize_engagement_profile(engagement),
             }
         )
@@ -1141,17 +1282,15 @@ class PlanUpdateView(APIView):
         subscription, usage = _get_user_plan_and_usage(request.user)
         subscription.plan = serializer.validated_data["plan"]
         subscription.save(update_fields=["plan", "updated_at"])
-        daily_limit = _plan_daily_limit(subscription.plan)
+        quota_snapshot = _quota_snapshot_for_user(
+            subscription,
+            usage,
+            request.user,
+        )
         return Response(
             {
                 "username": request.user.get_username(),
-                "plan": subscription.plan,
-                "daily_limit": daily_limit,
-                "used_today": usage.ask_count,
-                "remaining_today": _remaining_today(
-                    daily_limit=daily_limit,
-                    used_today=usage.ask_count,
-                ),
+                **quota_snapshot,
             }
         )
 
@@ -1217,8 +1356,14 @@ class AskView(APIView):
             )
 
         subscription, usage = _get_user_plan_and_usage(request.user)
-        daily_limit = _plan_daily_limit(subscription.plan)
-        if daily_limit is not None and usage.ask_count >= daily_limit:
+        quota_violation = _quota_violation_for_request(
+            subscription=subscription,
+            usage=usage,
+            user=request.user,
+            mode=data["mode"],
+        )
+        if quota_violation is not None:
+            violation_code, violation_message, snapshot = quota_violation
             _log_ask_event(
                 user_id=request.user.get_username(),
                 source=AskEvent.SOURCE_API,
@@ -1227,21 +1372,10 @@ class AskView(APIView):
                 plan=subscription.plan,
             )
             return _error_response(
-                message=(
-                    "Daily ask limit reached for your plan. "
-                    "Please upgrade to Pro or try again tomorrow."
-                ),
+                message=violation_message,
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                code="quota_exceeded",
-                extra={
-                    "plan": subscription.plan,
-                    "daily_limit": daily_limit,
-                    "used_today": usage.ask_count,
-                    "remaining_today": _remaining_today(
-                        daily_limit=daily_limit,
-                        used_today=usage.ask_count,
-                    ),
-                },
+                code=violation_code,
+                extra=snapshot,
             )
 
         conversation, verses, guidance, retrieval = _run_guidance_flow(
@@ -1254,6 +1388,11 @@ class AskView(APIView):
         usage.ask_count += 1
         usage.save(update_fields=["ask_count"])
         engagement = _update_streak_for_today(request.user)
+        quota_snapshot = _quota_snapshot_for_user(
+            subscription,
+            usage,
+            request.user,
+        )
         _log_ask_event(
             user_id=request.user.get_username(),
             source=AskEvent.SOURCE_API,
@@ -1275,13 +1414,7 @@ class AskView(APIView):
                 f"{verse.chapter}.{verse.verse}" for verse in verses
             ],
             "language": data["language"],
-            "plan": subscription.plan,
-            "daily_limit": daily_limit,
-            "used_today": usage.ask_count,
-            "remaining_today": _remaining_today(
-                daily_limit=daily_limit,
-                used_today=usage.ask_count,
-            ),
+            **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
         }
         follow_ups = _build_contextual_follow_ups(
@@ -2468,57 +2601,53 @@ class ChatUIView(View):
             if authenticated_username
             else None
         )
-        if (
-            quota
-            and quota["daily_limit"] is not None
-            and quota["usage"].ask_count >= quota["daily_limit"]
-        ):
-            _log_ask_event(
-                user_id=analytics_user_id,
-                source=AskEvent.SOURCE_CHAT_UI,
+        if quota:
+            quota_violation = _quota_violation_for_request(
+                subscription=quota["subscription"],
+                usage=quota["usage"],
+                user=quota["user"],
                 mode=mode,
-                outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
-                plan=quota["subscription"].plan,
             )
-            return self._render_chat_ui(
-                request,
-                {
-                    "response_data": None,
-                    "error": (
-                        "Daily ask limit reached for this user plan "
-                        "in chat UI. "
-                        "Switch to Pro or try tomorrow."
-                    ),
-                    "feedback_message": "",
-                    "active_conversation_id": (
-                        active_conversation.id if active_conversation else ""
-                    ),
-                    "conversation_messages": (
-                        self._conversation_messages(active_conversation)
-                        if authenticated_username
-                        else self._guest_conversation_messages(request)
-                    ),
-                    "conversations": (
-                        self._conversation_list(user_id)
-                        if authenticated_username
-                        else []
-                    ),
-                    "user_id": user_id,
-                    "is_guest_chat": not authenticated_username,
-                    "mode": mode,
-                    "message": message,
-                    "selected_plan": quota["subscription"].plan,
-                    "quota_snapshot": {
-                        "plan": quota["subscription"].plan,
-                        "daily_limit": quota["daily_limit"],
-                        "used_today": quota["usage"].ask_count,
-                        "remaining_today": 0,
+            if quota_violation is not None:
+                _, violation_message, violation_snapshot = quota_violation
+                _log_ask_event(
+                    user_id=analytics_user_id,
+                    source=AskEvent.SOURCE_CHAT_UI,
+                    mode=mode,
+                    outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
+                    plan=quota["subscription"].plan,
+                )
+                return self._render_chat_ui(
+                    request,
+                    {
+                        "response_data": None,
+                        "error": violation_message,
+                        "feedback_message": "",
+                        "active_conversation_id": (
+                            active_conversation.id if active_conversation else ""
+                        ),
+                        "conversation_messages": (
+                            self._conversation_messages(active_conversation)
+                            if authenticated_username
+                            else self._guest_conversation_messages(request)
+                        ),
+                        "conversations": (
+                            self._conversation_list(user_id)
+                            if authenticated_username
+                            else []
+                        ),
+                        "user_id": user_id,
+                        "is_guest_chat": not authenticated_username,
+                        "mode": mode,
+                        "language": language,
+                        "message": message,
+                        "selected_plan": quota["subscription"].plan,
+                        "quota_snapshot": violation_snapshot,
+                        "starter_prompts": starter_prompts,
+                        "recent_questions": recent_questions,
+                        "follow_up_prompts": [],
                     },
-                    "starter_prompts": starter_prompts,
-                    "recent_questions": recent_questions,
-                    "follow_up_prompts": [],
-                },
-            )
+                )
 
         guest_quota_snapshot = None
         if not authenticated_username:
@@ -2701,13 +2830,12 @@ class ChatUIView(View):
         if quota:
             quota["usage"].ask_count += 1
             quota["usage"].save(update_fields=["ask_count"])
-            response_data["plan"] = quota["subscription"].plan
-            response_data["daily_limit"] = quota["daily_limit"]
-            response_data["used_today"] = quota["usage"].ask_count
-            response_data["remaining_today"] = _remaining_today(
-                daily_limit=quota["daily_limit"],
-                used_today=quota["usage"].ask_count,
+            quota_snapshot = _quota_snapshot_for_user(
+                quota["subscription"],
+                quota["usage"],
+                quota["user"],
             )
+            response_data.update(quota_snapshot)
         _log_ask_event(
             user_id=analytics_user_id,
             source=AskEvent.SOURCE_CHAT_UI,
@@ -2756,11 +2884,21 @@ class ChatUIView(View):
                 ),
                 "quota_snapshot": {
                     "plan": response_data.get("plan", "free"),
-                    "daily_limit": response_data.get("daily_limit", "N/A"),
-                    "used_today": response_data.get("used_today", "N/A"),
-                    "remaining_today": response_data.get(
-                        "remaining_today",
-                        "N/A",
+                    "daily_limit": response_data.get("daily_limit"),
+                    "used_today": response_data.get("used_today", 0),
+                    "remaining_today": response_data.get("remaining_today"),
+                    "monthly_limit": response_data.get("monthly_limit"),
+                    "used_month": response_data.get("used_month", 0),
+                    "remaining_month": response_data.get("remaining_month"),
+                    "deep_monthly_limit": response_data.get(
+                        "deep_monthly_limit",
+                    ),
+                    "deep_used_month": response_data.get(
+                        "deep_used_month",
+                        0,
+                    ),
+                    "deep_remaining_month": response_data.get(
+                        "deep_remaining_month",
                     ),
                 },
                 "starter_prompts": starter_prompts,
@@ -3349,10 +3487,12 @@ class ChatUIView(View):
         if user is None:
             return None
         subscription, usage = _get_user_plan_and_usage(user)
+        snapshot = _quota_snapshot_for_user(subscription, usage, user)
         return {
+            "user": user,
             "subscription": subscription,
             "usage": usage,
-            "daily_limit": _plan_daily_limit(subscription.plan),
+            "snapshot": snapshot,
         }
 
     def _handle_plan_update(self, request):
@@ -3390,6 +3530,7 @@ class ChatUIView(View):
         selected_plan = request.POST.get("selected_plan", "free").strip()
         if selected_plan not in {
             UserSubscription.PLAN_FREE,
+            UserSubscription.PLAN_PLUS,
             UserSubscription.PLAN_PRO,
         }:
             selected_plan = UserSubscription.PLAN_FREE
@@ -3446,14 +3587,7 @@ class ChatUIView(View):
                 "message": request.POST.get("message", ""),
                 "selected_plan": selected_plan,
                 "quota_snapshot": {
-                    "plan": selected_plan,
-                    "daily_limit": refreshed["daily_limit"],
-                    "used_today": refreshed["usage"].ask_count,
-                    "remaining_today": max(
-                        refreshed["daily_limit"]
-                        - refreshed["usage"].ask_count,
-                        0,
-                    ),
+                    **refreshed["snapshot"],
                 },
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),

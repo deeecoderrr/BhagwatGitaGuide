@@ -170,9 +170,11 @@ class UserSubscription(models.Model):
     """Per-user plan record used for ask quota and monetization gates."""
 
     PLAN_FREE = "free"
+    PLAN_PLUS = "plus"
     PLAN_PRO = "pro"
     PLAN_CHOICES = (
         (PLAN_FREE, "Free"),
+        (PLAN_PLUS, "Plus"),
         (PLAN_PRO, "Pro"),
     )
 
