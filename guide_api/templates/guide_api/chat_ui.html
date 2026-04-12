@@ -3346,12 +3346,34 @@
                     <strong>{% if language == "hi" %}वर्तमान प्लान{% else %}Current Plan{% endif %}</strong>:
                     {% if quota_snapshot.plan == "pro" %}
                       <span style="color: #10b981; font-weight: 600;">Pro ✓</span>
+                    {% elif quota_snapshot.plan == "plus" %}
+                      <span style="color: #f59e0b; font-weight: 600;">Plus ✓</span>
                     {% else %}
                       <span style="color: #6b7280;">Free</span>
                     {% endif %}
                     <br>
-                    {% if language == "hi" %}उपयोग{% else %}Used{% endif %}: {{ quota_snapshot.used_today }}/{{ quota_snapshot.daily_limit }}
-                    ({% if language == "hi" %}शेष{% else %}remaining{% endif %}: {{ quota_snapshot.remaining_today }})
+                    {% if quota_snapshot.daily_limit %}
+                      {% if language == "hi" %}दैनिक उपयोग{% else %}Daily used{% endif %}: {{ quota_snapshot.used_today }}/{{ quota_snapshot.daily_limit }}
+                      ({% if language == "hi" %}शेष{% else %}remaining{% endif %}: {{ quota_snapshot.remaining_today }})
+                    {% else %}
+                      {% if language == "hi" %}दैनिक उपयोग{% else %}Daily usage{% endif %}: {% if language == "hi" %}अनलिमिटेड{% else %}Unlimited{% endif %}
+                    {% endif %}
+                    <br>
+                    {% if quota_snapshot.monthly_limit %}
+                      {% if language == "hi" %}मासिक उपयोग{% else %}Monthly used{% endif %}: {{ quota_snapshot.used_month }}/{{ quota_snapshot.monthly_limit }}
+                      ({% if language == "hi" %}शेष{% else %}remaining{% endif %}: {{ quota_snapshot.remaining_month }})
+                    {% else %}
+                      {% if language == "hi" %}मासिक उपयोग{% else %}Monthly usage{% endif %}: {% if language == "hi" %}अनलिमिटेड{% else %}Unlimited{% endif %}
+                    {% endif %}
+                    <br>
+                    {% if quota_snapshot.deep_monthly_limit %}
+                      {% if language == "hi" %}डीप मोड{% else %}Deep mode{% endif %}: {{ quota_snapshot.deep_used_month }}/{{ quota_snapshot.deep_monthly_limit }}
+                      ({% if language == "hi" %}शेष{% else %}remaining{% endif %}: {{ quota_snapshot.deep_remaining_month }})
+                    {% elif quota_snapshot.deep_mode_allowed %}
+                      {% if language == "hi" %}डीप मोड{% else %}Deep mode{% endif %}: {% if language == "hi" %}उपलब्ध (अनलिमिटेड){% else %}Available (Unlimited){% endif %}
+                    {% else %}
+                      {% if language == "hi" %}डीप मोड{% else %}Deep mode{% endif %}: {% if language == "hi" %}आपके प्लान में शामिल नहीं{% else %}Not included in your plan{% endif %}
+                    {% endif %}
                   </div>
                 {% endif %}
 
@@ -3366,11 +3388,11 @@
                     </span>
                     {% if language == "hi" %}अधिक गहराई{% else %}Go Deeper{% endif %}
                   </div>
-                    <h3>{% if language == "hi" %}Pro में अपग्रेड करें{% else %}Upgrade to Pro{% endif %}</h3>
+                    <h3>{% if language == "hi" %}अपना प्लान अपग्रेड करें{% else %}Upgrade your plan{% endif %}</h3>
                     <ul class="upgrade-list">
-                      <li>{% if language == "hi" %}1000 दैनिक प्रश्न{% else %}1000 daily questions{% endif %}</li>
+                      <li>{% if language == "hi" %}अधिक मासिक प्रश्न सीमा{% else %}Higher monthly question limits{% endif %}</li>
+                      <li>{% if language == "hi" %}डीप मोड के लिए बड़ी सीमा{% else %}Larger Deep mode allowance{% endif %}</li>
                       <li>{% if language == "hi" %}प्राथमिकता प्रतिक्रिया{% else %}Priority response{% endif %}</li>
-                      <li>{% if language == "hi" %}उन्नत अंतर्दृष्टि{% else %}Advanced insights{% endif %}</li>
                     </ul>
                     <div class="upgrade-actions">
                       <button type="button" onclick="initiatePayment('INR')" class="btn-upgrade btn-upgrade-primary">
@@ -3400,6 +3422,7 @@
                     <input type="hidden" name="message" value="{{ message|default:'' }}">
                     <select id="selected_plan" name="selected_plan">
                       <option value="free" {% if selected_plan == "free" %}selected{% endif %}>Free</option>
+                      <option value="plus" {% if selected_plan == "plus" %}selected{% endif %}>Plus</option>
                       <option value="pro" {% if selected_plan == "pro" %}selected{% endif %}>Pro</option>
                     </select>
                     <button type="submit" class="btn-secondary">Update</button>

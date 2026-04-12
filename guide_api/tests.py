@@ -248,6 +248,15 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["plan"], "pro")
 
+    def test_auth_plan_update_accepts_plus_plan(self):
+        response = self.client.post(
+            "/api/auth/plan/",
+            {"plan": "plus"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["plan"], "plus")
+
     def test_ask_endpoint_requires_authentication(self):
         self.client.force_authenticate(user=None)
         payload = {
@@ -1005,6 +1014,18 @@ class GuideApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "Plan updated to pro")
+
+    def test_chat_ui_plan_update_accepts_plus_for_existing_username(self):
+        self._login_chat_ui()
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "plan",
+                "selected_plan": "plus",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Plan updated to plus")
 
     @override_settings(ASK_LIMIT_FREE_DAILY=1)
     def test_chat_ui_enforces_quota_for_existing_username(self):
