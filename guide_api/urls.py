@@ -29,6 +29,7 @@ from guide_api.views import (
     RetrievalEvalView,
     SavedReflectionDetailView,
     SavedReflectionListCreateView,
+    SharedAnswerCreateView,
     SupportRequestView,
     SubscriptionStatusView,
     VerifyPaymentView,
@@ -101,6 +102,12 @@ urlpatterns = [
         name="saved-reflection-detail",
     ),
     path("chat-ui/", ChatUIView.as_view(), name="chat-ui"),
+    # Shareable answer cards
+    path(
+        "answers/share/",
+        SharedAnswerCreateView.as_view(),
+        name="answers-share",
+    ),
     # Payment / Subscription endpoints
     path("payments/create-order/", CreateOrderView.as_view(), name="create-order"),
     path("payments/verify/", VerifyPaymentView.as_view(), name="verify-payment"),

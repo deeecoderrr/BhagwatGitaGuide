@@ -1663,6 +1663,28 @@
       gap: 10px;
     }
 
+    .reply-share-row {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 8px;
+    }
+
+    .reply-share-btn {
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(126, 215, 255, 0.28);
+      background: rgba(126, 215, 255, 0.07);
+      color: var(--blue, #7ed7ff);
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 700;
+    }
+
+    .reply-share-btn:hover {
+      background: rgba(126, 215, 255, 0.14);
+    }
+
     .reply-section {
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: rgba(6, 10, 26, 0.34);
@@ -3638,6 +3660,27 @@
                               </div>
                             {% endfor %}
                           </div>
+                        </div>
+                        <div class="reply-share-row">
+                          <button
+                            type="button"
+                            class="btn-ghost reply-share-btn"
+                            data-share-answer
+                            data-language="{{ language|default:'en' }}"
+                          >
+                            {% if language == "hi" %}इस उत्तर को शेयर करें{% else %}Share this answer{% endif %}
+                          </button>
+                          <script type="application/json" id="share-answer-payload">
+                            {
+                              "question": "{{ message|default:''|escapejs }}",
+                              "guidance": "{{ response_data.guidance|default:''|escapejs }}",
+                              "meaning": "{{ response_data.meaning|default:''|escapejs }}",
+                              "actions": [{% for action in response_data.actions %}"{{ action|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+                              "reflection": "{{ response_data.reflection|default:''|escapejs }}",
+                              "verse_references": [{% for ref in response_data.verse_references %}"{{ ref|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+                              "language": "{{ language|default:'en' }}"
+                            }
+                          </script>
                         </div>
                       </div>
                     {% else %}
@@ -5863,6 +5906,88 @@
         }
       }
 
+      function initShareAnswerBtn() {
+        const btn = document.querySelector('[data-share-answer]');
+        if (!btn) return;
+        const payloadNode = document.querySelector('#share-answer-payload');
+        if (!payloadNode) return;
+
+        btn.addEventListener('click', async () => {
+          let payload = null;
+          try {
+            payload = JSON.parse(payloadNode.textContent || '{}');
+          } catch (_) {
+            payload = null;
+          }
+          if (!payload) return;
+
+          const question = payload.question || '';
+          const guidance = payload.guidance || '';
+          const meaning = payload.meaning || '';
+          const actions = Array.isArray(payload.actions) ? payload.actions : [];
+          const reflection = payload.reflection || '';
+          const verseRefs = Array.isArray(payload.verse_references)
+            ? payload.verse_references
+            : [];
+          const language = payload.language || btn.dataset.language || 'en';
+
+          // readCsrfToken is defined inside initLandingPage; read cookie directly here.
+          const csrfMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+          const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+          const csrfToken = (tokenInput && tokenInput.value)
+            || (csrfMatch ? decodeURIComponent(csrfMatch[1]) : '');
+
+          const headers = { 'Content-Type': 'application/json' };
+          if (csrfToken) headers['X-CSRFToken'] = csrfToken;
+
+          let shareUrl = window.location.href;
+          try {
+            const res = await fetch('/api/answers/share/', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers,
+              body: JSON.stringify({
+                question,
+                guidance,
+                meaning,
+                actions,
+                reflection,
+                verse_references: verseRefs,
+                language,
+              }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              shareUrl = window.location.origin + data.share_url;
+            }
+          } catch (_) { /* fall back to current URL */ }
+
+          if (window.postAnalyticsEvent) {
+            window.postAnalyticsEvent({
+              event_type: 'share_click',
+              source: 'chat_ui',
+              path: window.location.pathname,
+              metadata: { type: 'answer_card', language },
+            });
+          }
+
+          try {
+            if (navigator.share) {
+              await navigator.share({
+                title: 'Bhagavad Gita Guidance',
+                text: question.slice(0, 140) || 'Gita guidance for a real-life question.',
+                url: shareUrl,
+              });
+              return;
+            }
+            await navigator.clipboard.writeText(shareUrl);
+            const orig = btn.textContent;
+            btn.textContent = '✓ Link copied';
+            window.setTimeout(() => { btn.textContent = orig; }, 1400);
+          } catch (_) { /* dismissed or blocked */ }
+        });
+      }
+
       function initGuestNavAuth() {
         const authLinks = document.querySelectorAll('[data-nav-auth-target]');
         const overlay = document.querySelector('[data-auth-modal-overlay]');
@@ -5975,6 +6100,7 @@
       initQuoteArt();
       initGitaReader();
       initLandingPage();
+      initShareAnswerBtn();
       initGuestNavAuth();
       initTodaySignal();
       scrollTranscriptToLatestReplyStart();

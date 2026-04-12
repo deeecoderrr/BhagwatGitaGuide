@@ -153,7 +153,10 @@ question. Recent thread history is used only as supporting context so the
 reply stays relevant to the current message while still feeling continuous.
 
 For product analytics review (developer/admin use), see Django Admin
-`Ask events` for asks/day, fallback rate, helpful rate, and quota blocks.
+`Ask events` for asks/day, fallback rate, helpful rate, quota blocks,
+unique visitor counts, 7-day conversion funnel (landing → starter → ask → share),
+and top UTM acquisition sources. Operators can also run
+`python manage.py growth_report` in terminal for 7d/30d growth snapshots.
 
 ### View latest history
 

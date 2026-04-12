@@ -17,6 +17,7 @@ from guide_api.models import (
     RequestQuotaSettings,
     ResponseFeedback,
     SavedReflection,
+    SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
     UserSubscription,
@@ -1595,6 +1596,60 @@ class GuideApiTests(APITestCase):
         response = self.client.get("/api/v1/chapters/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("chapters", response.data)
+
+    def test_seo_topic_page_includes_faq_schema(self):
+        """FAQPage JSON-LD and visible FAQ items appear on SEO topic pages."""
+        response = self.client.get("/bhagavad-gita-for-anxiety/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('"@type": "FAQPage"', content)
+        self.assertIn("How does the Bhagavad Gita help with anxiety", content)
+        # visible FAQ section rendered for Google rich-result eligibility
+        self.assertIn("Frequently Asked Questions", content)
+        self.assertIn("<details", content)
+
+    def test_shared_answer_create_returns_share_url(self):
+        """POST /api/answers/share/ creates a SharedAnswer and returns share_url."""
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/answers/share/",
+            data={
+                "question": "How do I deal with fear of failure?",
+                "guidance": "The Gita teaches detachment from outcomes.",
+                "verse_references": ["2.47", "2.48"],
+                "language": "en",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertIn("share_url", response.data)
+        self.assertIn("share_id", response.data)
+        self.assertTrue(response.data["share_url"].startswith("/share/"))
+        self.assertEqual(SharedAnswer.objects.count(), 1)
+
+    def test_shared_answer_page_renders_with_og_meta(self):
+        """GET /share/<uuid>/ renders the answer card with OG meta."""
+        shared = SharedAnswer.objects.create(
+            question="What does the Gita say about anxiety?",
+            guidance="Act without attachment to results.",
+            verse_references=["2.48"],
+            language="en",
+        )
+        response = self.client.get(f"/share/{shared.share_id}/")
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode()
+        self.assertIn('property="og:title"', content)
+        self.assertIn('property="og:description"', content)
+        self.assertIn("What does the Gita say about anxiety?", content)
+        self.assertIn("Act without attachment to results.", content)
+        self.assertIn("BG 2.48", content)
+
+    def test_shared_answer_page_404_for_unknown_uuid(self):
+        """GET /share/<unknown-uuid>/ returns 404."""
+        response = self.client.get(
+            "/share/00000000-0000-0000-0000-000000000000/"
+        )
+        self.assertEqual(response.status_code, 404)
 
 
 # Razorpay Payment Integration Tests

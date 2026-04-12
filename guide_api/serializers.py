@@ -338,3 +338,29 @@ class AnalyticsSummaryRequestSerializer(serializers.Serializer):
     """Validate growth summary query window parameters."""
 
     days = serializers.IntegerField(min_value=1, max_value=90, default=7)
+
+
+class SharedAnswerCreateSerializer(serializers.Serializer):
+    """Validate inputs when creating a shareable answer card."""
+
+    question = serializers.CharField(max_length=1000)
+    guidance = serializers.CharField(max_length=5000)
+    meaning = serializers.CharField(max_length=5000, required=False, default="")
+    actions = serializers.ListField(
+        child=serializers.CharField(max_length=500),
+        max_length=20,
+        required=False,
+        default=list,
+    )
+    reflection = serializers.CharField(
+        max_length=5000,
+        required=False,
+        default="",
+    )
+    verse_references = serializers.ListField(
+        child=serializers.CharField(max_length=16),
+        max_length=20,
+        required=False,
+        default=list,
+    )
+    language = serializers.ChoiceField(choices=["en", "hi"], default="en")

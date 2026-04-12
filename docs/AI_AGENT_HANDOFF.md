@@ -55,11 +55,12 @@ Useful `Makefile` targets: `make run`, `make test`, `make setup`,
 | Serializers / validation | `guide_api/serializers.py` |
 | Models | `guide_api/models.py` |
 | Admin + analytics summaries | `guide_api/admin.py`, `guide_api/templates/admin/guide_api/askevent/change_list.html` |
+| Growth event tracking | `guide_api/models.py` (`GrowthEvent`, `WebAudienceProfile`), `guide_api/views.py` (`_track_web_visit`, `_log_growth_event`, `AnalyticsEventIngestView`, `AnalyticsSummaryView`) |
 | Manual web UI | `guide_api/templates/guide_api/chat_ui.html` |
 | Project URLs (includes `/api/v1/` alias) | `config/urls.py` |
 | Settings / env | `config/settings.py`, `.env.example` |
 | Verse data / eval | `data/gita_700.json`, `data/Bhagwad_Gita.csv`, `data/gita_additional_angles.json`, `data/retrieval_eval_cases.json` |
-| Management commands | `guide_api/management/commands/` (`ingest_gita_multiscript`, `import_gita`, `tag_gita_themes`, `embed_gita_verses`, `setup_pgvector_index`, `sync_pgvector_embeddings`, `eval_retrieval`, …) |
+| Management commands | `guide_api/management/commands/` (`ingest_gita_multiscript`, `import_gita`, `tag_gita_themes`, `embed_gita_verses`, `setup_pgvector_index`, `sync_pgvector_embeddings`, `eval_retrieval`, `growth_report`) |
 | Tests | `guide_api/tests.py` |
 
 Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavior in `docs/USER_GUIDE.md`. Build status and roadmap: `PROGRESS.md`, `README.md`.
@@ -119,6 +120,8 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - **Chat UI ownership model:** Signed-in users only see their own saved
   threads. Logged-out chat uses a session-only guest transcript and does not
   create `Conversation` rows or account-bound feedback/bookmarks.
+- **Growth event tracking:** `_track_web_visit(request, source=)` is called from all landing views and chat-ui GET to upsert `WebAudienceProfile` + emit `landing_view` `GrowthEvent`. UTM params (`utm_source`, `utm_medium`, `utm_campaign`) from query strings are captured as first/last attribution fields. Frontend calls `POST /api/analytics/events/` to record `starter_click`, `share_click`, `copy_link_click`, and `ask_submit` events without blocking UX.
+- **Analytics CLI:** `python manage.py growth_report` prints 7d and 30d windows: unique visitors, unique askers, queries fired/served, starter/share/ask rates, and top 10 UTM sources.
 - **Support flow:** chat-ui now includes a support panel and support form;
   submissions persist as `SupportTicket` rows and are visible in Django admin.
 - **Plan test controls:** any plan-switch utilities are intended for local
@@ -136,17 +139,18 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, and bilingual guidance selection (`en`/`hi`) across API + chat-ui.
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI).
 
 Deployment/ops snapshot:
-- live deployment on Fly is active
-- Neon-backed Postgres connectivity verified in runtime shell
+- live deployment on Fly is active (version 22, commit `40852d4`)
+- Neon-backed Postgres connectivity verified; all 16 migrations applied
+- 118 tests passing
 - if app appears slow after idle, this is expected in free mode due to cold starts
 - if `/api/*` loops with repeated 301 redirects, re-check `SECURE_PROXY_SSL_HEADER`
 - if shell shows SQLite in production unexpectedly, validate Fly `DATABASE_URL`
   secret value and redeploy
 
-**Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today).
+**Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today), SEO FAQ schema markup for topic pages, shareable answer pages with og:image.
 
 **See `PROGRESS.md` for the authoritative checklist** and “Next 3 Tasks” before large new scope.
 
@@ -164,4 +168,4 @@ Deployment/ops snapshot:
 
 ---
 
-*Last aligned with repo state: 2026-04-11. Regenerate or edit this file when major architecture or endpoints change.*
+*Last aligned with repo state: 2026-04-12 (commit `40852d4`). Regenerate or edit this file when major architecture or endpoints change.*

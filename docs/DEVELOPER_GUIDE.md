@@ -11,7 +11,7 @@ API compatibility strategy:
 
 - `guide_api/models.py`: data models (`Verse`, `Conversation`,
   `Message`, `ResponseFeedback`, `UserSubscription`, `DailyAskUsage`,
-  `AskEvent`, `SavedReflection`)
+  `AskEvent`, `SavedReflection`, `WebAudienceProfile`, `GrowthEvent`)
 - `guide_api/services.py`: retrieval, safety checks, and guidance build
 - `guide_api/views.py`: API/UI endpoints and orchestration
 - `guide_api/management/commands/`: import, theme tagging, embeddings
@@ -57,6 +57,7 @@ flyctl status -a askbhagavadgita
 flyctl secrets list -a askbhagavadgita
 flyctl deploy -a askbhagavadgita
 flyctl ssh console -a askbhagavadgita -C "python manage.py migrate --noinput"
+flyctl ssh console -a askbhagavadgita -C "python manage.py growth_report"
 flyctl ssh console -a askbhagavadgita -C "python manage.py shell -c \"from guide_api.models import Verse; print(Verse.objects.count())\""
 ```
 
@@ -206,6 +207,37 @@ Use this map to understand the exact call chain for each endpoint.
    otherwise stores as guest requester.
 5. Returns `201` with ticket receipt status.
 
+### `POST /api/analytics/events/`
+
+1. `guide_api/urls.py` -> `AnalyticsEventIngestView`
+2. `guide_api/views.py` -> `AnalyticsEventIngestView.post()`
+3. Permission: `AllowAny` (no auth required — trackable from landing page)
+4. Validates payload with `AnalyticsEventIngestSerializer`:
+   - `event_type` (choices: `landing_view`, `starter_click`, `share_click`,
+     `copy_link_click`, `ask_submit`)
+   - `source` (choices: `chat_ui`, `seo_index`, `seo_topic`, `direct`)
+   - `path` (URL path string)
+   - `metadata` (optional JSON dict, e.g. `{"seed_question": "..."}`)
+5. Calls `_log_growth_event()` to persist a `GrowthEvent` row
+6. Attaches durable `web_audience_id` cookie to response for guest attribution
+7. Returns `{"status": "ok"}` with HTTP 201
+
+### `GET /api/analytics/summary/`
+
+1. `guide_api/urls.py` -> `AnalyticsSummaryView`
+2. `guide_api/views.py` -> `AnalyticsSummaryView.get()`
+3. Permission: `IsAuthenticated` + staff check (returns 403 for non-staff)
+4. Validates query param `?days=N` (1–90, default 7) with
+   `AnalyticsSummaryRequestSerializer`
+5. Returns JSON payload:
+   - `window_days`
+   - `all_time`: `unique_visitors`, `unique_users_used`, `queries_fired`,
+     `queries_served`
+   - `conversion`: `landing_views`, `starter_clicks`, `ask_submits`,
+     `share_clicks`, and `*_rate_pct` fields for each
+   - `top_sources`: list of `{source, count}` for top 10 UTM sources
+   - `daily`: list of `{date, landing_views, ask_submits}` for the window
+
 ### `GET/POST /api/saved-reflections/` and `DELETE /api/saved-reflections/<id>/`
 
 1. All routes require authenticated user
@@ -253,8 +285,14 @@ Use Django Admin -> `Ask events` for a lightweight metrics snapshot:
 - fallback rate in last 7 days
 - helpful feedback rate in last 7 days
 - quota blocks in last 7 days
+- unique visitors (all-time and 7d)
+- unique users who sent an ask (all-time and 7d)
+- total queries fired and served (all-time)
+- 7-day conversion funnel: landing views → starter clicks → ask submits → share clicks (with rate %)
+- top UTM sources driving visits
 
-Event rows are logged from both `POST /api/ask/` and `chat-ui` asks.
+The `growth_report` CLI command (`python manage.py growth_report`) prints the same
+growth funnel data for 7d and 30d windows in a terminal-friendly format.
 
 ## Service Layer Walkthrough
 

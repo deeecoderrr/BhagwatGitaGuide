@@ -1,8 +1,9 @@
 # Bhagwat Gita Guide API
 
-DRF backend starter for a Gita-based life guidance app.
+DRF backend for a Bhagavad Gita–based life guidance app (RAG + OpenAI, auth, quota, growth analytics).
 
 See `PROGRESS.md` for live build status and next milestones.
+**Current production version: 22** (commit `40852d4`) — 118 tests passing.
 
 ## Documentation
 
@@ -80,7 +81,20 @@ make eval-retrieval  # run retrieval eval on labeled prompts
 make auth-flow USERNAME=demo-user PASSWORD=demo-pass-123  # auth + ask + history smoke flow
 make auth-flow-benchmark USERNAME=demo-user PASSWORD=demo-pass-123  # auth + retrieval benchmark + ask
 make auth-flow-benchmark-summary USERNAME=demo-user PASSWORD=demo-pass-123  # benchmark with concise summary
+make growth-report  # print 7d/30d growth funnel in terminal (requires running server)
 ```
+
+## Growth Analytics
+
+The app ships a lightweight growth analytics stack:
+
+- Visitor tracking via durable cookie (`web_audience_id`) and `WebAudienceProfile` model
+- `GrowthEvent` model records landing views, starter clicks, ask submits, share/copy clicks
+- UTM attribution (`utm_source`, `utm_medium`, `utm_campaign`) captured as first/last touch
+- `POST /api/analytics/events/` — frontend event ingest (public)
+- `GET /api/analytics/summary/?days=N` — staff-only growth summary API
+- Admin dashboard (`/admin/`) → `Ask events` shows 7-day funnel + UTM sources
+- CLI: `python manage.py growth_report` for weekly/monthly terminal reports
 
 ## Environment Variables
 

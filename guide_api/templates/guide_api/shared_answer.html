@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="{{ shared.language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ question_short }} — Bhagavad Gita Guide</title>
+  <meta name="description" content="{{ guidance_short }}">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="{{ canonical_url }}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Bhagavad Gita Guide">
+  <meta property="og:title" content="{{ question_short }}">
+  <meta property="og:description" content="{{ guidance_short }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+
+  <!-- Twitter / X card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ question_short }}">
+  <meta name="twitter:description" content="{{ guidance_short }}">
+
+  {% if structured_data %}
+    <script type="application/ld+json">{{ structured_data|safe }}</script>
+  {% endif %}
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-start: #0d2233;
+      --bg-end: #2a1840;
+      --panel: rgba(10, 18, 36, 0.82);
+      --panel-strong: rgba(16, 23, 44, 0.94);
+      --border: rgba(236, 193, 106, 0.22);
+      --text: #f8f2e8;
+      --muted: rgba(241, 232, 219, 0.78);
+      --gold: #f0c46a;
+      --blue: #7ed7ff;
+      --shadow: 0 20px 80px rgba(0, 0, 0, 0.32);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 18%, rgba(78, 160, 255, 0.16), transparent 28%),
+        radial-gradient(circle at 82% 74%, rgba(204, 78, 167, 0.20), transparent 22%),
+        linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      min-height: 100vh;
+    }
+    .shell {
+      width: min(720px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 40px 0 80px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 32px;
+    }
+    .brand {
+      text-decoration: none;
+      color: var(--text);
+      font-family: "Sora", sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+    }
+    .navlink {
+      text-decoration: none;
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      backdrop-filter: blur(18px);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .card-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 22px 28px 0;
+      color: var(--gold);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+    }
+    .card-eyebrow svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--gold);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .card-question {
+      padding: 14px 28px 20px;
+      font-family: "Sora", sans-serif;
+      font-size: clamp(20px, 3vw, 26px);
+      font-weight: 700;
+      line-height: 1.25;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-body {
+      padding: 24px 28px;
+    }
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .guidance-text {
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 16px;
+      white-space: pre-line;
+    }
+    .verse-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .verse-chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+      background: rgba(240, 196, 106, 0.08);
+    }
+    .cta-row {
+      padding: 20px 28px 28px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 14px 20px;
+      font-weight: 800;
+      font-family: inherit;
+      font-size: 15px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #f0c46a, #d79b37);
+      color: #1e1d1b;
+    }
+    .btn-ghost {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--blue);
+      border: 1px solid rgba(126, 215, 255, 0.24);
+    }
+    .footer-note {
+      margin-top: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    @media (max-width: 480px) {
+      .shell { width: calc(100% - 24px); }
+      .topbar { flex-direction: column; align-items: flex-start; gap: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <a class="brand" href="/">🙏 Bhagavad Gita Guide</a>
+      <a class="navlink" href="{{ chat_url }}">Ask your own question →</a>
+    </div>
+
+    <div class="card">
+      <div class="card-eyebrow">
+        <svg viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>
+        Bhagavad Gita Guidance
+      </div>
+
+      <div class="card-question">{{ shared.question }}</div>
+
+      <div class="card-body">
+        <div class="section-label">Guidance</div>
+        <div class="guidance-text">{{ shared.guidance }}</div>
+
+        {% if shared.meaning %}
+          <div class="section-label" style="margin-top:18px;">Meaning</div>
+          <div class="guidance-text">{{ shared.meaning }}</div>
+        {% endif %}
+
+        {% if shared.actions %}
+          <div class="section-label" style="margin-top:18px;">Actions</div>
+          <ul class="guidance-text" style="margin:0; padding-left:20px;">
+            {% for action in shared.actions %}
+              <li>{{ action }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if shared.reflection %}
+          <div class="section-label" style="margin-top:18px;">Reflection</div>
+          <div class="guidance-text">{{ shared.reflection }}</div>
+        {% endif %}
+
+        {% if shared.verse_references %}
+          <div class="verse-chips">
+            {% for ref in shared.verse_references %}
+              <span class="verse-chip">BG {{ ref }}</span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="cta-row">
+        <a class="btn btn-primary" href="{{ chat_url }}">
+          Ask your own question
+        </a>
+        <button type="button" class="btn btn-ghost" id="shareBtn">
+          Share this answer
+        </button>
+      </div>
+    </div>
+
+    <p class="footer-note">
+      Guidance rooted in the Bhagavad Gita · <a href="/" style="color:var(--gold);text-decoration:none;">Bhagavad Gita Guide</a>
+    </p>
+  </div>
+
+  <script>
+    document.getElementById('shareBtn').addEventListener('click', async () => {
+      const url = window.location.href;
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: 'Bhagavad Gita Guidance',
+            text: '{{ question_short|escapejs }}',
+            url,
+          });
+          return;
+        }
+        await navigator.clipboard.writeText(url);
+        const btn = document.getElementById('shareBtn');
+        const orig = btn.textContent;
+        btn.textContent = '✓ Link copied';
+        setTimeout(() => { btn.textContent = orig; }, 1400);
+      } catch (_) { /* dismissed */ }
+    });
+  </script>
+</body>
+</html>

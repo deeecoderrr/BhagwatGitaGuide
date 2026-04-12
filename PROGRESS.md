@@ -1,6 +1,6 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-12
+Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
@@ -106,6 +106,7 @@ Last updated: 2026-04-12
   - added management command `python manage.py growth_report` for weekly and
     monthly growth snapshots in terminal
   - validated with migrations + new tests + full suite: all 118 tests passing
+  - deployed to production (version 22, Fly.io `askbhagavadgita`)
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:

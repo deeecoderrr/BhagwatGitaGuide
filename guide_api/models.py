@@ -1,5 +1,7 @@
 """Core database models for verses, chats, and feedback."""
 
+import uuid
+
 from django.conf import settings
 from django.db import models
 
@@ -597,3 +599,29 @@ class QuoteArt(models.Model):
 
     def __str__(self) -> str:
         return f"QuoteArt {self.verse_reference}"
+
+
+class SharedAnswer(models.Model):
+    """Persisted share card for a single guidance response."""
+
+    share_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        db_index=True,
+    )
+    question = models.TextField()
+    guidance = models.TextField()
+    meaning = models.TextField(blank=True)
+    actions = models.JSONField(default=list)
+    reflection = models.TextField(blank=True)
+    verse_references = models.JSONField(default=list)
+    language = models.CharField(max_length=4, default="en")
+    user_id = models.CharField(max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"SharedAnswer {self.share_id}"

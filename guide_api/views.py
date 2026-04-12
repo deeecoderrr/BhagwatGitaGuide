@@ -34,6 +34,7 @@ from guide_api.models import (
     RequestQuotaSettings,
     ResponseFeedback,
     SavedReflection,
+    SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
     UserSubscription,
@@ -59,6 +60,7 @@ from guide_api.serializers import (
     RetrievalEvalRequestSerializer,
     SavedReflectionCreateSerializer,
     SavedReflectionSerializer,
+    SharedAnswerCreateSerializer,
     SupportRequestSerializer,
     VerseDetailSerializer,
     VerseSerializer,
@@ -299,6 +301,39 @@ SEO_LANDING_PAGES = {
         "verse_refs": ["2.48", "6.5", "2.14"],
         "starter_question": "I feel anxious about my future and overthink everything. What does the Gita say?",
         "starter_question_hi": "मुझे अपने भविष्य को लेकर चिंता है और मैं हर बात को लेकर बहुत सोचता हूँ। गीता क्या कहती है?",
+        "faq": [
+            {
+                "question": "How does the Bhagavad Gita help with anxiety and overthinking?",
+                "answer": (
+                    "The Bhagavad Gita teaches that anxiety arises from attachment to outcomes. "
+                    "In Chapter 2 verse 48, Krishna instructs Arjuna to act with steadiness and release the "
+                    "results. This principle — performing your duty without obsessing over what will happen — "
+                    "directly quiets the restless mind. The Gita also distinguishes between what is within "
+                    "your control (your action) and what is not (the outcome), which is the same insight "
+                    "modern cognitive therapy builds on."
+                ),
+            },
+            {
+                "question": "Which Bhagavad Gita verses address fear and a restless mind?",
+                "answer": (
+                    "Three verses are most cited. Chapter 2.14 teaches that discomfort and pleasure are "
+                    "impermanent — the wise endure both with equanimity. Chapter 2.48 instructs performing "
+                    "one's duty with a steady, balanced mind, free from attachment to results. Chapter 6.5 "
+                    "reminds the seeker to lift themselves using their own inner strength. Together these form "
+                    "a complete framework for moving from fearful overthinking to grounded, present-moment action."
+                ),
+            },
+            {
+                "question": "What does Lord Krishna say about a restless mind in the Bhagavad Gita?",
+                "answer": (
+                    "In Chapter 6, Arjuna himself tells Krishna that the mind is restless, turbulent, and hard "
+                    "to control — as difficult to tame as the wind. Krishna acknowledges this and responds that "
+                    "while the mind is indeed difficult to control, it can be trained through practice (abhyasa) "
+                    "and non-attachment (vairagya). Regular inner practice — whether meditation, self-inquiry, "
+                    "or mindful action — gradually stills the restless mind."
+                ),
+            },
+        ],
     },
     "career": {
         "slug": "bhagavad-gita-for-career-confusion",
@@ -337,6 +372,40 @@ SEO_LANDING_PAGES = {
         "verse_refs": ["2.47", "3.35", "18.47"],
         "starter_question": "I feel confused about my career path and future. What should I do next?",
         "starter_question_hi": "मैं अपने करियर और भविष्य को लेकर उलझन में हूँ। मुझे अगला कदम क्या लेना चाहिए?",
+        "faq": [
+            {
+                "question": "Does the Bhagavad Gita offer guidance for career confusion and uncertainty?",
+                "answer": (
+                    "Yes. Chapter 2 verse 47 — 'You have the right to your actions, not to the fruits of "
+                    "your actions' — is directly relevant to career decisions. The Gita encourages aligning "
+                    "your work with your natural strengths and deeper purpose (svadharma) rather than "
+                    "choosing based purely on external rewards or comparison. Chapters 3 and 18 both "
+                    "emphasize that sincere, duty-driven action leads to a steadier and more fulfilling "
+                    "career than anxious, outcome-chasing work."
+                ),
+            },
+            {
+                "question": "Which Bhagavad Gita verses help when you feel lost or purposeless at work?",
+                "answer": (
+                    "Chapter 3 verse 35 says it is better to perform your own dharma imperfectly than "
+                    "another's perfectly. Chapter 18 verse 47 echoes the same: your own path, however "
+                    "ordinary, carries more meaning than an impressive path that does not belong to you. "
+                    "Chapter 2 verse 47 reinforces this with the teaching on action without attachment. "
+                    "These three form the core scriptural basis for finding and trusting one's own "
+                    "vocational calling."
+                ),
+            },
+            {
+                "question": "What does the Bhagavad Gita say about the fear of failure in career?",
+                "answer": (
+                    "The Gita frames the fear of failure as rooted in identifying with outcomes rather "
+                    "than with the act of sincere effort. In Chapter 2 verse 48, Krishna instructs Arjuna "
+                    "to establish himself in equanimity and then act. When action is rooted in integrity "
+                    "and clarity of purpose, failure becomes information rather than identity. The fear "
+                    "naturally diminishes because the seeker no longer defines themselves by the result."
+                ),
+            },
+        ],
     },
     "relationships": {
         "slug": "bhagavad-gita-for-relationships",
@@ -373,6 +442,41 @@ SEO_LANDING_PAGES = {
         "verse_refs": ["2.62", "2.63", "12.13"],
         "starter_question": "I get hurt and angry in relationships. How can I respond better?",
         "starter_question_hi": "रिश्तों में मुझे चोट लगती है और गुस्सा आता है। मैं बेहतर प्रतिक्रिया कैसे दूँ?",
+        "faq": [
+            {
+                "question": "How does the Bhagavad Gita help with relationship conflict and anger?",
+                "answer": (
+                    "In Chapter 2 verses 62-63, Krishna traces the exact chain from desire to destruction: "
+                    "dwelling on objects of desire creates attachment, attachment creates desire, desire when "
+                    "blocked creates anger, and anger clouds judgment. The Gita's remedy is awareness at the "
+                    "earliest link in this chain — recognizing the seed before it grows into reactivity. "
+                    "Chapter 12 then describes the model of a person who bears no ill-will and responds "
+                    "with genuine goodwill, free from ego and possessiveness."
+                ),
+            },
+            {
+                "question": "Which Bhagavad Gita verses talk about attachment and emotional pain in relationships?",
+                "answer": (
+                    "Chapter 2 verse 62 (desire leads to anger), Chapter 2 verse 63 (anger leads to delusion), "
+                    "and Chapter 12 verse 13 (the devoted person has no ill-will toward any creature) are most "
+                    "frequently cited. The broader framework of non-attachment (vairagya) across Chapters 2, 3, "
+                    "and 12 points to a core insight: much relational pain comes from expecting others to "
+                    "conform to our desires. Releasing that grip — not withdrawing love, but releasing "
+                    "control — is the Gita's path through."
+                ),
+            },
+            {
+                "question": "What is Krishna's teaching on unconditional love and compassion?",
+                "answer": (
+                    "Chapter 12 verse 13 describes the ideal: one who has no ill-will toward any creature, "
+                    "who is friendly and compassionate, free from possessiveness and ego, even-minded in pain "
+                    "and pleasure. This is not emotional detachment but emotional clarity — loving and caring "
+                    "deeply without the grasping quality of attachment. Krishna's teaching on bhakti "
+                    "(loving devotion) throughout Chapter 12 shows that the highest love is offered "
+                    "freely, without conditions or the expectation of return."
+                ),
+            },
+        ],
     },
 }
 
@@ -587,6 +691,7 @@ class SeoLandingTopicView(View):
         breadcrumb_title = _seo_value(page, "topic_label", language)
         page_title = _seo_value(page, "title", language)
         meta_description = _seo_value(page, "description", language)
+        faq_items = page.get("faq", [])
         structured_data = json.dumps(
             [
                 {
@@ -615,7 +720,28 @@ class SeoLandingTopicView(View):
                         },
                     ],
                 },
-            ],
+            ]
+            + (
+                [
+                    {
+                        "@context": "https://schema.org",
+                        "@type": "FAQPage",
+                        "mainEntity": [
+                            {
+                                "@type": "Question",
+                                "name": faq["question"],
+                                "acceptedAnswer": {
+                                    "@type": "Answer",
+                                    "text": faq["answer"],
+                                },
+                            }
+                            for faq in faq_items
+                        ],
+                    }
+                ]
+                if faq_items
+                else []
+            ),
             ensure_ascii=False,
         )
         context = {
@@ -629,6 +755,7 @@ class SeoLandingTopicView(View):
             "starter_question": starter_question,
             "chat_url": chat_url,
             "chat_url_with_prefill": f"{chat_url}&prefill={quote_plus(starter_question)}",
+            "faq_items": faq_items,
             "other_topics": [
                 {
                     "topic_label": _seo_value(item, "topic_label", language),
@@ -1421,6 +1548,102 @@ class AnalyticsSummaryView(APIView):
                 "daily": daily_rows,
             }
         )
+
+
+class SharedAnswerCreateView(APIView):
+    """Create a shareable answer card from a guidance response."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+
+    def post(self, request):
+        """Persist a guidance response and return a public share URL."""
+        serializer = SharedAnswerCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        data = serializer.validated_data
+        audience_id = _resolve_web_audience_id(request)
+        shared = SharedAnswer.objects.create(
+            question=data["question"],
+            guidance=data["guidance"],
+            meaning=data.get("meaning", ""),
+            actions=data.get("actions", []),
+            reflection=data.get("reflection", ""),
+            verse_references=data["verse_references"],
+            language=data["language"],
+            user_id=audience_id,
+        )
+        share_url = f"/share/{shared.share_id}/"
+        response = Response(
+            {"share_id": str(shared.share_id), "share_url": share_url},
+            status=status.HTTP_201_CREATED,
+        )
+        _attach_web_audience_cookie(request, response)
+        return response
+
+
+class SharedAnswerPageView(View):
+    """Public OG-optimized page for a shared guidance answer."""
+
+    template_name = "guide_api/shared_answer.html"
+
+    def get(self, request, share_id: str):
+        """Render the answer card with rich Open Graph metadata."""
+        try:
+            shared = SharedAnswer.objects.get(share_id=share_id)
+        except (SharedAnswer.DoesNotExist, ValueError):
+            return JsonResponse({"detail": "Not found."}, status=404)
+
+        question_short = (
+            shared.question[:120] + "…"
+            if len(shared.question) > 120
+            else shared.question
+        )
+        guidance_short = (
+            shared.guidance[:200] + "…"
+            if len(shared.guidance) > 200
+            else shared.guidance
+        )
+        if shared.meaning:
+            guidance_short = (
+                shared.meaning[:200] + "…"
+                if len(shared.meaning) > 200
+                else shared.meaning
+            )
+        chat_url = (
+            f"/api/chat-ui/?mode=simple&language={shared.language}"
+            f"&prefill={quote_plus(shared.question[:500])}"
+        )
+        canonical_url = request.build_absolute_uri(request.path)
+        structured_data = json.dumps(
+            {
+                "@context": "https://schema.org",
+                "@type": "Article",
+                "headline": question_short,
+                "description": guidance_short,
+                "url": canonical_url,
+                "publisher": {
+                    "@type": "Organization",
+                    "name": "Bhagavad Gita Guide",
+                    "url": request.build_absolute_uri("/"),
+                },
+            },
+            ensure_ascii=False,
+        )
+        context = {
+            "shared": shared,
+            "question_short": question_short,
+            "guidance_short": guidance_short,
+            "chat_url": chat_url,
+            "canonical_url": canonical_url,
+            "structured_data": structured_data,
+        }
+        response = render(request, self.template_name, context)
+        _attach_web_audience_cookie(request, response)
+        return response
 
 
 class DailyVerseView(APIView):

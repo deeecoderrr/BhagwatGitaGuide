@@ -16,6 +16,7 @@ from guide_api.models import (
     RequestQuotaSettings,
     ResponseFeedback,
     SavedReflection,
+    SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
     UserSubscription,
@@ -263,6 +264,16 @@ class SavedReflectionAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "conversation", "created_at")
     search_fields = ("user__username", "message", "guidance", "note")
     list_filter = ("created_at",)
+
+
+@admin.register(SharedAnswer)
+class SharedAnswerAdmin(admin.ModelAdmin):
+    """Inspect shareable answer cards generated from chat responses."""
+
+    list_display = ("share_id", "language", "user_id", "created_at")
+    search_fields = ("question", "guidance", "user_id")
+    list_filter = ("language", "created_at")
+    readonly_fields = ("share_id", "created_at")
 
 
 @admin.register(FollowUpEvent)

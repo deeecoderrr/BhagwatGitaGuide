@@ -235,6 +235,39 @@
       padding: 10px 14px;
       font-weight: 700;
     }
+    .faq-section { margin-top: 24px; }
+    .faq-item {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.03);
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+    .faq-item summary {
+      cursor: pointer;
+      padding: 18px 22px;
+      font-weight: 700;
+      font-size: 16px;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: "+";
+      color: var(--gold);
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .faq-item[open] summary::after { content: "−"; }
+    .faq-answer {
+      padding: 0 22px 18px;
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 16px;
+    }
     .cta-form {
       display: grid;
       gap: 12px;
@@ -396,6 +429,18 @@
           </div>
         </section>
       </div>
+    {% endif %}
+
+    {% if faq_items %}
+      <section class="panel faq-section">
+        <h2 class="section-title">{% if language == "hi" %}अक्सर पूछे जाने वाले प्रश्न{% else %}Frequently Asked Questions{% endif %}</h2>
+        {% for faq in faq_items %}
+          <details class="faq-item">
+            <summary>{{ faq.question }}</summary>
+            <div class="faq-answer">{{ faq.answer }}</div>
+          </details>
+        {% endfor %}
+      </section>
     {% endif %}
   </div>
 </body>
