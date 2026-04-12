@@ -786,12 +786,38 @@ class SeoLandingTopicView(View):
 def _get_user_plan_and_usage(user):
     """Return user subscription record and today's usage counter."""
     subscription, _ = UserSubscription.objects.get_or_create(user=user)
+    subscription = _normalize_subscription_state(subscription)
     usage, _ = DailyAskUsage.objects.get_or_create(
         user=user,
         date=timezone.localdate(),
         defaults={"ask_count": 0},
     )
     return subscription, usage
+
+
+def _normalize_subscription_state(subscription: UserSubscription) -> UserSubscription:
+    """Downgrade expired paid subscriptions to Free and persist the change.
+
+    This keeps runtime behavior correct even without a background scheduler.
+    """
+    if subscription.plan == UserSubscription.PLAN_FREE:
+        return subscription
+    if (
+        subscription.subscription_end_date is not None
+        and subscription.subscription_end_date <= timezone.now()
+    ):
+        subscription.plan = UserSubscription.PLAN_FREE
+        subscription.is_active = False
+        subscription.subscription_end_date = None
+        subscription.save(
+            update_fields=[
+                "plan",
+                "is_active",
+                "subscription_end_date",
+                "updated_at",
+            ],
+        )
+    return subscription
 
 
 def _request_quota_settings() -> RequestQuotaSettings | None:
@@ -4405,6 +4431,11 @@ def _billing_currency_for_request(
     requested_currency: str | None = None,
 ) -> str:
     """Return enforced billing currency: INR for India, USD for other known countries."""
+    accept_language = str(request.META.get("HTTP_ACCEPT_LANGUAGE", "")).lower()
+    # Locale override for India users when edge geo is inaccurate.
+    if "-in" in accept_language or "en-in" in accept_language or "hi-in" in accept_language:
+        return UserSubscription.CURRENCY_INR
+
     country_code = _request_country_code(request)
     if country_code == "IN":
         return UserSubscription.CURRENCY_INR
@@ -4730,6 +4761,7 @@ class SubscriptionStatusView(APIView):
             user=user,
             defaults={"plan": UserSubscription.PLAN_FREE},
         )
+        subscription = _normalize_subscription_state(subscription)
 
         is_pro = (
             subscription.plan == UserSubscription.PLAN_PRO

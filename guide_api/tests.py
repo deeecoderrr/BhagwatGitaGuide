@@ -379,6 +379,24 @@ class GuideApiTests(APITestCase):
         self.assertIn("remaining_today", response.data)
         self.assertIn("engagement", response.data)
 
+    def test_auth_me_auto_downgrades_expired_paid_plan(self):
+        subscription, _ = UserSubscription.objects.get_or_create(user=self.user)
+        subscription.plan = UserSubscription.PLAN_PLUS
+        subscription.is_active = True
+        subscription.subscription_end_date = timezone.now() - timedelta(days=1)
+        subscription.save(
+            update_fields=["plan", "is_active", "subscription_end_date"],
+        )
+
+        response = self.client.get("/api/auth/me/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_FREE)
+
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+        self.assertFalse(subscription.is_active)
+        self.assertIsNone(subscription.subscription_end_date)
+
     def test_engagement_me_get_returns_defaults(self):
         response = self.client.get("/api/engagement/me/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -2032,6 +2050,35 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.data["currency"], "USD")
         self.assertEqual(response.data["amount"], 299)
 
+    def test_create_order_india_locale_overrides_non_india_geo(self):
+        """India locale hints (en-IN/hi-IN) should keep INR when geo is inaccurate."""
+        from unittest.mock import patch, MagicMock
+
+        mock_order_response = {
+            "id": "order_in_locale_override",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "USD"},
+                format="json",
+                HTTP_CF_IPCOUNTRY="US",
+                HTTP_ACCEPT_LANGUAGE="en-IN,en;q=0.9",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["currency"], "INR")
+        self.assertEqual(response.data["amount"], 9900)
+
     def test_create_order_unauthenticated_fails(self):
         """Test order creation fails without authentication."""
         self.client.force_authenticate(user=None)
@@ -2465,7 +2512,7 @@ class PaymentIntegrationTests(APITestCase):
         self.assertIsNotNone(response.data["subscription_end_date"])
 
     def test_subscription_status_pro_plan_expired(self):
-        """Test subscription status endpoint shows is_pro=false when pro subscription expired."""
+        """Expired paid subscriptions should auto-downgrade to free."""
         # Create expired pro subscription
         subscription = UserSubscription.objects.create(
             user=self.user,
@@ -2477,8 +2524,12 @@ class PaymentIntegrationTests(APITestCase):
         response = self.client.get("/api/subscription/status/")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["plan"], UserSubscription.PLAN_PRO)
-        self.assertFalse(response.data["is_pro"])  # Expired, so not active
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_FREE)
+        self.assertFalse(response.data["is_pro"])
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+        self.assertFalse(subscription.is_active)
+        self.assertIsNone(subscription.subscription_end_date)
 
     def test_subscription_status_unauthenticated_fails(self):
         """Test subscription status endpoint fails without authentication."""

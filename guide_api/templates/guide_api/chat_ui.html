@@ -3830,7 +3830,7 @@
                   </div>
                 {% endif %}
 
-                {% if quota_snapshot.plan != "pro" %}
+                {% if not quota_snapshot or quota_snapshot.plan != "pro" %}
                   <div class="upgrade-section">
                   <div class="panel-kicker">
                     <span class="asset-icon" aria-hidden="true">
@@ -3864,6 +3864,7 @@
                       {% endif %}
                     </p>
                     <div class="membership-pricing-grid">
+                      {% if not quota_snapshot or quota_snapshot.plan == "free" %}
                       <article class="pricing-plan free">
                         <div class="pricing-plan-head">
                           <div class="pricing-plan-title">🔓 FREE</div>
@@ -3878,7 +3879,9 @@
                           <li>Guest sessions are temporary</li>
                         </ul>
                       </article>
+                      {% endif %}
 
+                      {% if not quota_snapshot or quota_snapshot.plan == "free" %}
                       <article class="pricing-plan plus">
                         <div class="pricing-plan-head">
                           <div class="pricing-plan-title">💳 PLUS</div>
@@ -3904,6 +3907,7 @@
                           <li>Save all conversations</li>
                         </ul>
                       </article>
+                      {% endif %}
 
                       <article class="pricing-plan pro">
                         <div class="pricing-plan-head">
@@ -3938,9 +3942,11 @@
                       </article>
                     </div>
                     <div class="upgrade-actions">
+                      {% if not quota_snapshot or quota_snapshot.plan == "free" %}
                       <button type="button" onclick="initiatePayment('plus')" class="btn-upgrade btn-upgrade-secondary">
                         Plus - {% if billing_currency == "INR" %}₹{{ plan_limits.plus_price_inr|default:199 }}{% else %}${{ plan_limits.plus_price_usd|default:"3.49" }}{% endif %} {% if language == "hi" %}प्रति माह{% else %}per month{% endif %}
                       </button>
+                      {% endif %}
                       <button type="button" onclick="initiatePayment('pro')" class="btn-upgrade btn-upgrade-primary">
                         Pro - {% if billing_currency == "INR" %}₹{{ plan_limits.pro_price_inr|default:499 }}{% else %}${{ plan_limits.pro_price_usd|default:"8.49" }}{% endif %} {% if language == "hi" %}प्रति माह{% else %}per month{% endif %}
                       </button>
@@ -3954,6 +3960,7 @@
                 {% endif %}
 
                 {% if debug %}
+                {% if not quota_snapshot or quota_snapshot.plan != "pro" %}
                 <details class="dev-options">
                   <summary>{% if language == "hi" %}डेव/टेस्ट विकल्प{% else %}Dev/Test Options{% endif %}</summary>
                   <form method="post" class="quick-submit">
@@ -3971,6 +3978,7 @@
                     <button type="submit" class="btn-secondary">Update</button>
                   </form>
                 </details>
+                {% endif %}
                 {% endif %}
               </div>
             </details>
