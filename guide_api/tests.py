@@ -2617,6 +2617,7 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.data["pricing"]["plans"]["plus"]["USD"], 149)
         self.assertEqual(response.data["pricing"]["plans"]["pro"]["INR"], 9900)
         self.assertEqual(response.data["pricing"]["plans"]["pro"]["USD"], 299)
+        self.assertIsNone(response.data["latest_billing_record"])
 
     def test_subscription_status_pro_plan_active(self):
         """Test subscription status endpoint returns pro plan data when active."""
@@ -2634,6 +2635,37 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.data["plan"], UserSubscription.PLAN_PRO)
         self.assertTrue(response.data["is_pro"])
         self.assertIsNotNone(response.data["subscription_end_date"])
+
+    def test_subscription_status_includes_latest_billing_record(self):
+        """Subscription status should expose the latest billing ledger row."""
+        BillingRecord.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PLUS,
+            payment_status=BillingRecord.STATUS_CAPTURED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Rishi Sharma",
+            billing_email="accounts@example.com",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=4900,
+            amount_major="49.00",
+            razorpay_order_id="order_status_latest",
+            razorpay_payment_id="pay_status_latest",
+        )
+
+        response = self.client.get("/api/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(response.data["latest_billing_record"])
+        self.assertEqual(
+            response.data["latest_billing_record"]["razorpay_order_id"],
+            "order_status_latest",
+        )
+        self.assertEqual(
+            response.data["latest_billing_record"]["payment_status"],
+            BillingRecord.STATUS_CAPTURED,
+        )
 
     def test_subscription_status_pro_plan_expired(self):
         """Expired paid subscriptions should auto-downgrade to free."""
@@ -2660,6 +2692,61 @@ class PaymentIntegrationTests(APITestCase):
         self.client.force_authenticate(user=None)
 
         response = self.client.get("/api/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("error", response.data)
+
+    def test_payment_history_returns_latest_rows(self):
+        """Signed-in users should be able to inspect payment ledger history."""
+        BillingRecord.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PLUS,
+            payment_status=BillingRecord.STATUS_VERIFIED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Demo User",
+            billing_email="demo@example.com",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=4900,
+            amount_major="49.00",
+            razorpay_order_id="order_history_1",
+        )
+        BillingRecord.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PRO,
+            payment_status=BillingRecord.STATUS_CAPTURED,
+            tax_treatment=BillingRecord.TAX_EXPORT_LUT,
+            billing_name="Demo User",
+            billing_email="demo@example.com",
+            billing_country_code="ZA",
+            billing_country_name="South Africa",
+            currency="USD",
+            amount_minor=299,
+            amount_major="2.99",
+            razorpay_order_id="order_history_2",
+            razorpay_payment_id="pay_history_2",
+        )
+
+        response = self.client.get("/api/payments/history/?limit=10&offset=0")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertEqual(
+            response.data["results"][0]["razorpay_order_id"],
+            "order_history_2",
+        )
+        self.assertEqual(
+            response.data["results"][1]["razorpay_order_id"],
+            "order_history_1",
+        )
+
+    def test_payment_history_requires_authentication(self):
+        """Guests should not be able to inspect payment ledger rows."""
+        self.client.force_authenticate(user=None)
+
+        response = self.client.get("/api/payments/history/")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertIn("error", response.data)

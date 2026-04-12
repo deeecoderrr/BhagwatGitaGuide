@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from guide_api.models import Message, SavedReflection, Verse
+from guide_api.models import BillingRecord, Message, SavedReflection, Verse
 
 
 class VerseSerializer(serializers.ModelSerializer):
@@ -218,7 +218,50 @@ class VerseSynthesisSerializer(serializers.Serializer):
     life_application_hi = serializers.CharField()
     key_points_en = serializers.ListField(child=serializers.CharField())
     key_points_hi = serializers.ListField(child=serializers.CharField())
-    cached = serializers.BooleanField()
+
+
+class BillingRecordSerializer(serializers.ModelSerializer):
+    """Serialize invoice-ready payment ledger rows for app/admin consumers."""
+
+    username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = BillingRecord
+        fields = [
+            "id",
+            "plan",
+            "payment_status",
+            "tax_treatment",
+            "is_international",
+            "billing_name",
+            "billing_email",
+            "business_name",
+            "gstin",
+            "billing_country_code",
+            "billing_country_name",
+            "billing_state",
+            "billing_city",
+            "billing_postal_code",
+            "billing_address",
+            "currency",
+            "amount_minor",
+            "amount_major",
+            "razorpay_order_id",
+            "razorpay_payment_id",
+            "payment_method",
+            "invoice_reference",
+            "verified_at",
+            "paid_at",
+            "created_at",
+            "updated_at",
+            "username",
+        ]
+
+    def get_username(self, obj: BillingRecord) -> str:
+        """Expose username when row is linked to an authenticated account."""
+        if obj.user:
+            return obj.user.username
+        return ""
 
 
 class VerseDetailSerializer(serializers.Serializer):
@@ -237,6 +280,7 @@ class VerseDetailSerializer(serializers.Serializer):
     word_meaning = serializers.CharField()
     commentaries = CommentarySerializer(many=True)
     synthesis = VerseSynthesisSerializer()
+    cached = serializers.BooleanField()
 
 
 class MantraRequestSerializer(serializers.Serializer):

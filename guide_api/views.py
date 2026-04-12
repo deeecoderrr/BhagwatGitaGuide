@@ -49,6 +49,7 @@ from guide_api.serializers import (
     AnalyticsEventIngestSerializer,
     AnalyticsSummaryRequestSerializer,
     AskRequestSerializer,
+    BillingRecordSerializer,
     ChapterDetailSerializer,
     ChapterListSerializer,
     CommentarySerializer,
@@ -2816,6 +2817,14 @@ class ChatUIView(View):
         )
         context.setdefault("support_issue_type", "other")
         context.setdefault("support_message", "")
+        latest_billing_record = None
+        if billing_user:
+            latest_billing_record = (
+                BillingRecord.objects.filter(user=billing_user)
+                .order_by("-created_at")
+                .first()
+            )
+        context.setdefault("latest_billing_record", latest_billing_record)
         response = render(request, self.template_name, context)
         _attach_web_audience_cookie(request, response)
         return response
@@ -5088,6 +5097,10 @@ class SubscriptionStatusView(APIView):
             )
         )
 
+        latest_billing_record = BillingRecord.objects.filter(
+            user=user,
+        ).order_by("-created_at").first()
+
         return Response({
             "plan": subscription.plan,
             "is_active": subscription.is_active,
@@ -5111,4 +5124,53 @@ class SubscriptionStatusView(APIView):
                     },
                 },
             },
+            "latest_billing_record": (
+                BillingRecordSerializer(latest_billing_record).data
+                if latest_billing_record
+                else None
+            ),
         })
+
+
+class PaymentHistoryView(APIView):
+    """Return payment/billing ledger rows for the signed-in user."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = [CsrfExemptSessionAuth]
+
+    def get(self, request) -> Response:
+        user = None
+        if request.user and request.user.is_authenticated:
+            user = request.user
+        else:
+            user = _get_user_from_session(request)
+
+        if not user:
+            return Response(
+                {"error": "Please log in to view payment history"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+
+        base_qs = BillingRecord.objects.filter(user=user).order_by("-created_at")
+        rows = base_qs[offset:offset + limit]
+        total = base_qs.count()
+        next_offset = offset + limit if (offset + limit) < total else None
+        serializer = BillingRecordSerializer(rows, many=True)
+        return Response(
+            {
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "results": serializer.data,
+            }
+        )

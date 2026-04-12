@@ -19,6 +19,12 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
     the export table remains the single source of truth
   - Django admin now exposes `BillingRecord` with filters/search plus CSV export
     for Tally-friendly download
+  - added authenticated `GET /api/payments/history/` so users/support flows can
+    inspect recent billing rows without going through Django admin
+  - `GET /api/subscription/status/` now includes `latest_billing_record` for
+    the signed-in user
+  - membership panel now shows the latest payment/billing snapshot after a
+    checkout attempt
   - validated with `manage.py check` and full suite: 130 tests passing
 
 - Unified quota control in admin (single place) completed:

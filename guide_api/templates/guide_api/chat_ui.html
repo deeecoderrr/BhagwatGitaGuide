@@ -2623,6 +2623,46 @@
       color: rgba(255,255,255,0.42);
     }
 
+    .billing-status-card {
+      margin-top: 0.9rem;
+      padding: 0.9rem 0.95rem;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.16);
+    }
+
+    .billing-status-card h4 {
+      margin: 0 0 0.35rem 0;
+      font-size: 0.92rem;
+      color: #fff4d6;
+    }
+
+    .billing-status-copy {
+      margin: 0;
+      color: rgba(255,255,255,0.84);
+      font-size: 0.81rem;
+      line-height: 1.5;
+    }
+
+    .billing-status-meta {
+      margin-top: 0.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .billing-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.36rem 0.62rem;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      background: rgba(8, 12, 22, 0.34);
+      border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.9);
+    }
+
     .btn-upgrade {
       margin-top: 0;
       padding: 0.65rem 1rem;
@@ -4153,6 +4193,40 @@
                         Pro - {% if billing_currency == "INR" %}₹{{ plan_limits.pro_price_inr|default:499 }}{% else %}${{ plan_limits.pro_price_usd|default:"8.49" }}{% endif %} {% if language == "hi" %}प्रति माह{% else %}per month{% endif %}
                       </button>
                     </div>
+                    {% if latest_billing_record %}
+                    <div class="billing-status-card">
+                      <h4>
+                        {% if language == "hi" %}
+                          नवीनतम भुगतान स्थिति
+                        {% else %}
+                          Latest payment status
+                        {% endif %}
+                      </h4>
+                      <p class="billing-status-copy">
+                        {% if language == "hi" %}
+                          {{ latest_billing_record.billing_name|default:latest_billing_record.billing_email|default:"Billing profile" }} के लिए {{ latest_billing_record.plan|upper }} checkout
+                          {{ latest_billing_record.created_at|timesince }} पहले शुरू हुआ था।
+                        {% else %}
+                          {{ latest_billing_record.billing_name|default:latest_billing_record.billing_email|default:"Billing profile" }} started a {{ latest_billing_record.plan|upper }} checkout
+                          {{ latest_billing_record.created_at|timesince }} ago.
+                        {% endif %}
+                      </p>
+                      <div class="billing-status-meta">
+                        <span class="billing-status-pill">
+                          {% if language == "hi" %}स्थिति{% else %}Status{% endif %}: {{ latest_billing_record.payment_status }}
+                        </span>
+                        <span class="billing-status-pill">
+                          {% if language == "hi" %}Tax{% else %}Tax{% endif %}: {{ latest_billing_record.tax_treatment }}
+                        </span>
+                        <span class="billing-status-pill">
+                          {% if latest_billing_record.currency == "INR" %}₹{% else %}${% endif %}{{ latest_billing_record.amount_major }}
+                        </span>
+                        <span class="billing-status-pill">
+                          {{ latest_billing_record.currency }} · {{ latest_billing_record.billing_country_code|default:"--" }}
+                        </span>
+                      </div>
+                    </div>
+                    {% endif %}
                   </div>
                 {% else %}
                   <div class="plan-active">

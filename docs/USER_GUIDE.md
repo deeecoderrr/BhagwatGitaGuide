@@ -47,6 +47,9 @@ and give feedback on whether the answer was useful.
 13. Before upgrading to Plus or Pro, fill the billing section in the membership
     panel. Those details are stored against the Razorpay order so you can later
     export invoice-ready rows for accounting/Tally.
+14. After a checkout attempt, the membership panel now shows your latest payment
+    status snapshot so you can quickly see whether the last order is created,
+    verified, captured, or failed.
 
 ## Quick Start (API)
 
@@ -199,6 +202,14 @@ You can also call API directly:
   "message": "My payment succeeded but Pro is not active yet."
 }
 ```
+
+### Payment history
+
+- `GET /api/payments/history/`
+
+Use this when you want to list the signed-in user’s recent billing/payment rows.
+This is especially useful for account screens, invoice lookup, and support
+follow-up.
 
 ### Save reflections/bookmarks
 

@@ -228,6 +228,14 @@ The Razorpay checkout path now keeps one export-friendly billing row per order:
 `BillingRecord` is intended to be the single table exported to Tally or other
 invoice workflows, so avoid splitting invoice fields across multiple models.
 
+Related payment inspection endpoints:
+
+- `GET /api/subscription/status/`
+  - now returns `latest_billing_record` alongside plan/pricing
+- `GET /api/payments/history/?limit=&offset=`
+  - returns paginated `BillingRecord` rows for the authenticated user
+  - useful for account screens, support, and payment-history UI
+
 ### `POST /api/analytics/events/`
 
 1. `guide_api/urls.py` -> `AnalyticsEventIngestView`
