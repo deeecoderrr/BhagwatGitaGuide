@@ -1574,7 +1574,8 @@
 
     /* Hide composer and header when on landing page */
     .chat-shell.on-landing {
-      overflow: hidden;
+      overflow: visible;
+      min-height: auto;
     }
 
     .chat-shell.on-landing .conversation-panel-head {
@@ -1582,18 +1583,24 @@
     }
 
     .chat-shell.on-landing .chat-bottom-composer {
-      display: none;
+      display: block;
+      border-top: 0;
+      margin-top: 0;
+      padding: 0 18px 6px;
     }
 
     .chat-shell.on-landing .chat-scroll-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
+      display: block;
+      overflow-y: visible;
+      min-height: auto;
+      padding-bottom: 24px;
     }
 
     .chat-shell.on-landing .landing-page {
-      overflow: hidden;
+      overflow: visible;
+      justify-content: flex-start;
+      padding-top: 20px;
+      padding-bottom: 10px;
     }
 
     /* Composer mode - shown after clicking Start Conversation */
@@ -1607,6 +1614,17 @@
 
     .chat-shell.composer-mode .chat-bottom-composer {
       display: block;
+    }
+
+    .landing-growth-below-composer {
+      width: 100%;
+      max-width: 100%;
+      padding: 6px 18px 18px;
+      margin-top: 6px;
+    }
+
+    .chat-shell.composer-mode .landing-growth-below-composer {
+      display: none;
     }
 
     .chat-shell.composer-mode .composer-prompt {
@@ -3672,7 +3690,7 @@
                           </button>
                           <script type="application/json" id="share-answer-payload">
                             {
-                              "question": "{{ message|default:''|escapejs }}",
+                              "question": "{{ response_data.question|default:''|escapejs }}",
                               "guidance": "{{ response_data.guidance|default:''|escapejs }}",
                               "meaning": "{{ response_data.meaning|default:''|escapejs }}",
                               "actions": [{% for action in response_data.actions %}"{{ action|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
@@ -5774,6 +5792,18 @@
         // Start Conversation - switch to composer mode
         const startConversationBtn = document.querySelector('[data-start-conversation]');
         const chatShell = document.querySelector('[data-chat-shell]');
+        const landingGrowth = document.querySelector('.landing-page .landing-growth');
+        const bottomComposer = document.querySelector('.chat-bottom-composer');
+
+        if (
+          chatShell
+          && chatShell.classList.contains('on-landing')
+          && landingGrowth
+          && bottomComposer
+        ) {
+          landingGrowth.classList.add('landing-growth-below-composer');
+          chatShell.appendChild(landingGrowth);
+        }
 
         if (startConversationBtn && chatShell) {
           startConversationBtn.addEventListener('click', () => {

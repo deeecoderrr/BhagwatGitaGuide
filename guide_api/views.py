@@ -3,6 +3,7 @@
 from datetime import timedelta
 import json
 import logging
+import re
 from random import Random
 from types import SimpleNamespace
 from urllib.parse import quote_plus
@@ -10,7 +11,7 @@ from uuid import uuid4
 
 from django.contrib.auth import authenticate, get_user_model
 from django.conf import settings
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
 from django.utils.timesince import timesince
@@ -1565,9 +1566,12 @@ class SharedAnswerCreateView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         data = serializer.validated_data
+        question = str(data.get("question", "")).strip()
+        if not question:
+            question = "What does the Bhagavad Gita say about this situation?"
         audience_id = _resolve_web_audience_id(request)
         shared = SharedAnswer.objects.create(
-            question=data["question"],
+            question=question,
             guidance=data["guidance"],
             meaning=data.get("meaning", ""),
             actions=data.get("actions", []),
@@ -1590,8 +1594,11 @@ class SharedAnswerPageView(View):
 
     template_name = "guide_api/shared_answer.html"
 
-    def get(self, request, share_id: str):
+    def get(self, request, share_id: str, legacy_suffix: str = ""):
         """Render the answer card with rich Open Graph metadata."""
+        if legacy_suffix:
+            # Some clients append tokens (for example: /ok); normalize to canonical URL.
+            return HttpResponsePermanentRedirect(f"/share/{share_id}/")
         try:
             shared = SharedAnswer.objects.get(share_id=share_id)
         except (SharedAnswer.DoesNotExist, ValueError):
@@ -1649,6 +1656,53 @@ class SharedAnswerPageView(View):
 class DailyVerseView(APIView):
     """Return a deterministic daily verse and short reflection."""
 
+    @staticmethod
+    def _clean_signal_text(value: str) -> str:
+        """Normalize noisy verse/commentary text for compact sidebar display."""
+        text = str(value or "").strip()
+        if not text:
+            return ""
+        # Decode escaped unicode markers that can appear in serialized text.
+        text = text.replace("\\u0022", '"').replace("\\u000A", " ")
+        text = text.replace("\n", " ").replace("\r", " ")
+        text = re.sub(r"\s+", " ", text).strip()
+        return text
+
+    @staticmethod
+    def _strip_signal_prefix(text: str) -> str:
+        """Drop leading verse-number markers like '।।11.55।।' from snippets."""
+        cleaned = str(text or "").strip()
+        cleaned = re.sub(r"^[।|\s\-\d.]+", "", cleaned).strip()
+        return cleaned
+
+    @classmethod
+    def _compact_signal_text(cls, value: str, limit: int) -> str:
+        """Return a meaningful sentence-like chunk with safe truncation."""
+        cleaned = cls._clean_signal_text(value)
+        if not cleaned:
+            return ""
+
+        # Split by sentence boundaries, then choose the first substantial fragment.
+        segments = [
+            cls._strip_signal_prefix(segment)
+            for segment in re.split(r"(?<=[.!?।])\s+", cleaned)
+            if segment.strip()
+        ]
+        candidate = ""
+        for segment in segments:
+            # Skip tiny markers like 'हे पाण्डव!' that are context but not meaning.
+            alpha_len = len(re.sub(r"[^\w\u0900-\u097F]+", "", segment))
+            if len(segment) >= 50 and alpha_len >= 24:
+                candidate = segment
+                break
+
+        if not candidate:
+            candidate = " ".join(segments[:2]).strip() or cleaned
+
+        if len(candidate) <= limit:
+            return candidate
+        return candidate[: limit - 1].rstrip() + "…"
+
     def get(self, request):
         """Serve one date-seeded verse with language-aware meaning."""
         language = str(request.query_params.get("language", "en")).strip()
@@ -1670,23 +1724,25 @@ class DailyVerseView(APIView):
         else:
             detail = get_verse_detail(verse.chapter, verse.verse) or {}
 
-        english_quote = str(detail.get("english_meaning", "")).strip()
-        hindi_quote = str(detail.get("slok", "")).strip()
-        english_meaning = (
+        english_quote = self._clean_signal_text(detail.get("english_meaning", ""))
+        hindi_quote = self._clean_signal_text(detail.get("slok", ""))
+        english_meaning = self._clean_signal_text(
             str(detail.get("translation", "")).strip()
             or verse.translation.strip()
         )
-        hindi_meaning = str(detail.get("hindi_meaning", "")).strip()
-        commentary = str(verse.commentary or "").strip()
+        hindi_meaning = self._clean_signal_text(detail.get("hindi_meaning", ""))
+        commentary = self._clean_signal_text(verse.commentary or "")
         meaning = (
-            hindi_meaning
+            self._compact_signal_text(hindi_meaning, 260)
             if language == "hi" and hindi_meaning
-            else commentary or english_meaning
+            else self._compact_signal_text(english_meaning, 260)
+            or self._compact_signal_text(commentary, 260)
         )
         quote = (
-            hindi_quote
+            self._compact_signal_text(hindi_quote, 260)
             if language == "hi" and hindi_quote
-            else english_quote or english_meaning
+            else self._compact_signal_text(english_quote, 260)
+            or self._compact_signal_text(english_meaning, 260)
         )
         reflection = (
             "आज इस श्लोक को अपने एक निर्णय, एक प्रतिक्रिया, और एक कर्म में उतारने का अभ्यास करें।"
@@ -2604,6 +2660,7 @@ class ChatUIView(View):
             )
         response_data = {
             "conversation_id": active_conversation_id,
+            "question": message,
             "guidance": guidance.guidance,
             "verses": VerseSerializer(verses, many=True).data,
             "meaning": guidance.meaning,

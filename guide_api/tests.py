@@ -21,6 +21,7 @@ from guide_api.models import (
     SupportTicket,
     UserEngagementProfile,
     UserSubscription,
+    Verse,
     WebAudienceProfile,
 )
 from django.test import override_settings
@@ -505,6 +506,37 @@ class GuideApiTests(APITestCase):
         self.assertTrue(response.data["verse"]["reference"])
         self.assertTrue(response.data["quote"])
         self.assertTrue(response.data["meaning"])
+
+    def test_daily_verse_hindi_meaning_skips_short_prefix_sentence(self):
+        from unittest.mock import patch
+
+        verse = Verse.objects.create(
+            chapter=11,
+            verse=55,
+            translation="He reaches Me who acts for Me.",
+            commentary="",
+            themes=["devotion"],
+        )
+        detail = {
+            "english_meaning": "He reaches Me who acts for Me.",
+            "slok": (
+                "मत्कर्मकृन्मत्परमो मद्भक्तः सङ्गवर्जितः | "
+                "निर्वैरः सर्वभूतेषु यः स मामेति पाण्डव ||११-५५||"
+            ),
+            "hindi_meaning": (
+                "।।11.55।। हे पाण्डव! जो पुरुष मेरे लिए ही कर्म करने वाला है, "
+                "और मुझे ही परम लक्ष्य मानता है, वह मुझे प्राप्त होता है।"
+            ),
+            "translation": "He reaches Me who acts for Me.",
+        }
+
+        with patch("guide_api.views.get_verse_detail", return_value=detail):
+            response = self.client.get("/api/daily-verse/?language=hi")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # Should include the substantive Hindi meaning, not just 'हे पाण्डव!'
+        self.assertIn("जो पुरुष", response.data["meaning"])
+        self.assertNotEqual(response.data["meaning"].strip(), "हे पाण्डव!")
 
     def test_chat_ui_page_loads(self):
         response = self.client.get("/api/chat-ui/")
@@ -1650,6 +1682,21 @@ class GuideApiTests(APITestCase):
             "/share/00000000-0000-0000-0000-000000000000/"
         )
         self.assertEqual(response.status_code, 404)
+
+    def test_shared_answer_page_legacy_suffix_redirects_to_canonical(self):
+        """GET /share/<uuid>/ok redirects to /share/<uuid>/ for compatibility."""
+        shared = SharedAnswer.objects.create(
+            question="How can I calm my mind?",
+            guidance="Practice steady action and non-attachment.",
+            verse_references=["2.48"],
+            language="en",
+        )
+        response = self.client.get(
+            f"/share/{shared.share_id}/ok/",
+            follow=False,
+        )
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response["Location"], f"/share/{shared.share_id}/")
 
 
 # Razorpay Payment Integration Tests

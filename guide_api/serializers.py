@@ -343,7 +343,7 @@ class AnalyticsSummaryRequestSerializer(serializers.Serializer):
 class SharedAnswerCreateSerializer(serializers.Serializer):
     """Validate inputs when creating a shareable answer card."""
 
-    question = serializers.CharField(max_length=1000)
+    question = serializers.CharField(max_length=1000, allow_blank=True)
     guidance = serializers.CharField(max_length=5000)
     meaning = serializers.CharField(max_length=5000, required=False, default="")
     actions = serializers.ListField(

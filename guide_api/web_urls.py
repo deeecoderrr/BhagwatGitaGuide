@@ -15,6 +15,11 @@ urlpatterns = [
     path("robots.txt", robots_txt_view, name="robots-txt"),
     path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),
     path(
+        "share/<uuid:share_id>/<str:legacy_suffix>/",
+        SharedAnswerPageView.as_view(),
+        name="shared-answer-legacy",
+    ),
+    path(
         "share/<uuid:share_id>/",
         SharedAnswerPageView.as_view(),
         name="shared-answer",
