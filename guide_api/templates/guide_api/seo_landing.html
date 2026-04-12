@@ -374,12 +374,10 @@
               The strongest experience is when you describe your real problem in your own words. The app will then try to find the most relevant verse, meaning, and next step.
             {% endif %}
           </p>
-          <form class="cta-form" method="post" action="/api/chat-ui/">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="ask">
+          <form class="cta-form" method="get" action="/api/chat-ui/">
             <input type="hidden" name="mode" value="simple">
             <input type="hidden" name="language" value="{{ language|default:'en' }}">
-            <textarea name="message">{{ starter_question }}</textarea>
+            <textarea name="prefill">{{ starter_question }}</textarea>
             <button class="btn btn-primary" type="submit">
               {% if language == "hi" %}ऐप में यह प्रश्न पूछें{% else %}Ask This In The App{% endif %}
             </button>

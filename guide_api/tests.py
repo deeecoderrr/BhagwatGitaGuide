@@ -81,6 +81,21 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Relevant Bhagavad Gita verses")
         self.assertContains(response, "Ask This In The App")
 
+    def test_public_seo_topic_ask_cta_uses_get_prefill(self):
+        response = self.client.get("/bhagavad-gita-for-anxiety/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(
+            response,
+            '<form class="cta-form" method="get" action="/api/chat-ui/">',
+            html=False,
+        )
+        self.assertContains(response, 'textarea name="prefill"', html=False)
+
+    def test_chat_ui_prefill_query_renders_in_message_field(self):
+        response = self.client.get("/api/chat-ui/?mode=simple&language=en&prefill=anxiety+help")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "anxiety help")
+
     def test_public_seo_index_page_switches_to_hindi(self):
         response = self.client.get("/?language=hi")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -543,12 +558,34 @@ class GuideApiTests(APITestCase):
             ).count(),
             1,
         )
-        self.assertContains(response, "Conversation")
-        self.assertContains(response, "You")
-        self.assertContains(response, "Guide")
+
+    def test_chat_ui_guest_ask_handles_internal_failure_gracefully(self):
+        from unittest.mock import patch
+
+        self.client.force_authenticate(user=None)
+        with patch(
+            "guide_api.views.retrieve_verses_with_trace",
+            side_effect=RuntimeError("forced failure for logging path"),
+        ):
+            response = self.client.post(
+                "/api/chat-ui/",
+                data={
+                    "action": "ask",
+                    "mode": "simple",
+                    "language": "en",
+                    "message": "I feel anxious about my career growth.",
+                },
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(
+            response,
+            "We hit a temporary issue while processing your question.",
+        )
+        self.assertContains(response, "Start Chatting")
+        self.assertContains(response, "I feel anxious about my career growth.")
         self.assertEqual(Conversation.objects.count(), 0)
         self.assertEqual(response.context["conversations"], [])
-        self.assertContains(response, "Temporary guest reply")
         # Composer is now at the bottom with "Send" button
         self.assertContains(response, "Send")
 

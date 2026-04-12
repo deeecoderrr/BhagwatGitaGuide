@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 import json
+import logging
 from random import Random
 from types import SimpleNamespace
 from urllib.parse import quote_plus
@@ -73,6 +74,9 @@ from guide_api.services import (
     retrieve_semantic_verses_with_trace,
     retrieve_verses_with_trace,
 )
+
+
+logger = logging.getLogger(__name__)
 
 
 def _run_guidance_flow(
@@ -1621,6 +1625,7 @@ class ChatUIView(View):
         start_fresh = request.GET.get("new", "").strip() == "1"
         mode = self._chat_ui_mode(request.GET.get("mode", "simple"))
         language = self._chat_ui_language(request.GET.get("language", "en"))
+        prefill_message = str(request.GET.get("prefill", "")).strip()
         if request.GET.get("fragment", "").strip() == "conversations":
             if not authenticated_username:
                 return JsonResponse(
@@ -1683,7 +1688,7 @@ class ChatUIView(View):
                 "is_guest_chat": not authenticated_username,
                 "mode": mode,
                 "language": language,
-                "message": "",
+                "message": prefill_message,
             },
         )
 
@@ -1892,40 +1897,98 @@ class ChatUIView(View):
                     },
                 )
 
-        if authenticated_username:
-            conversation, verses, guidance, retrieval = _run_guidance_flow(
-                user_id=user_id,
-                message=message,
-                mode=mode,
-                language=language,
-                conversation_id=(
-                    active_conversation.id if active_conversation else None
-                ),
+        try:
+            if authenticated_username:
+                conversation, verses, guidance, retrieval = _run_guidance_flow(
+                    user_id=user_id,
+                    message=message,
+                    mode=mode,
+                    language=language,
+                    conversation_id=(
+                        active_conversation.id if active_conversation else None
+                    ),
+                )
+                conversation_messages = self._conversation_messages(conversation)
+                active_conversation_id = conversation.id
+                conversation_page = self._conversation_page(
+                    user_id,
+                    limit=3,
+                    offset=0,
+                )
+                conversations = conversation_page["items"]
+            else:
+                verses, guidance, retrieval = self._run_guest_guidance_flow(
+                    request,
+                    message=message,
+                    mode=mode,
+                    language=language,
+                )
+                conversation = None
+                conversation_messages = self._guest_conversation_messages(request)
+                active_conversation_id = ""
+                conversations = []
+                conversation_page = {
+                    "items": [],
+                    "has_more": False,
+                    "next_offset": None,
+                }
+        except Exception:
+            logger.exception(
+                "chat_ui_ask_failed",
+                extra={
+                    "path": request.path,
+                    "method": request.method,
+                    "is_guest_chat": not authenticated_username,
+                    "user_id": user_id,
+                    "mode": mode,
+                    "language": language,
+                    "message_len": len(message),
+                    "has_follow_up_intent": bool(follow_up_intent),
+                    "active_conversation_id": (
+                        active_conversation.id
+                        if (active_conversation and authenticated_username)
+                        else ""
+                    ),
+                    "guest_id": str(getattr(request, "chat_ui_guest_id", ""))[:12],
+                    "referer": request.META.get("HTTP_REFERER", ""),
+                },
             )
-            conversation_messages = self._conversation_messages(conversation)
-            active_conversation_id = conversation.id
-            conversation_page = self._conversation_page(
-                user_id,
-                limit=3,
-                offset=0,
-            )
-            conversations = conversation_page["items"]
-        else:
-            verses, guidance, retrieval = self._run_guest_guidance_flow(
+            return self._render_chat_ui(
                 request,
-                message=message,
-                mode=mode,
-                language=language,
+                {
+                    "response_data": None,
+                    "error": (
+                        "We hit a temporary issue while processing your question. "
+                        "Please try again."
+                    ),
+                    "feedback_message": "",
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": (
+                        self._conversation_messages(active_conversation)
+                        if authenticated_username
+                        else self._guest_conversation_messages(request)
+                    ),
+                    "conversations": (
+                        self._conversation_list(user_id)
+                        if authenticated_username
+                        else []
+                    ),
+                    "user_id": user_id,
+                    "is_guest_chat": not authenticated_username,
+                    "mode": mode,
+                    "language": language,
+                    "message": message,
+                    "starter_prompts": starter_prompts,
+                    "recent_questions": recent_questions,
+                    "follow_up_prompts": [],
+                    "guest_quota_snapshot": guest_quota_snapshot,
+                    "selected_plan": (
+                        quota["subscription"].plan if quota else "free"
+                    ),
+                },
             )
-            conversation = None
-            conversation_messages = self._guest_conversation_messages(request)
-            active_conversation_id = ""
-            conversations = []
-            conversation_page = {
-                "items": [],
-                "has_more": False,
-                "next_offset": None,
-            }
         response_data = {
             "conversation_id": active_conversation_id,
             "guidance": guidance.guidance,

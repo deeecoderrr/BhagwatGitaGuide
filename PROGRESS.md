@@ -1,6 +1,6 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-11
+Last updated: 2026-04-12
 
 ## Completed
 
@@ -40,6 +40,23 @@ Last updated: 2026-04-11
   - guest logged-out landing now uses a true single-column layout instead of reserving sidebar space
   - hero simplifies for guests by removing the competing remembrance card
   - guest register/login access is now surfaced in the main flow instead of the hidden sidebar
+- Guest Ask-From-SEO crash fixed in production:
+  - identified the issue path as SEO landing CTA posting directly to
+    `/api/chat-ui/` for immediate guest ask execution
+  - updated SEO CTA flow to open `/api/chat-ui/` via GET with `prefill`
+    instead of executing ask on the landing page
+  - chat-ui GET now accepts `prefill` and injects it into the composer text
+    so users can review/edit before submitting
+  - reverted retrieval scoring optimizations to preserve prior relevance
+    behavior and answer quality
+  - added regression tests for SEO CTA GET prefill flow and chat-ui prefill
+    rendering
+  - added exception logging guard in chat-ui ask pipeline with structured
+    request context (`mode`, `language`, `guest_id`, `referer`, message
+    length, conversation id) so future failures are visible in Fly logs
+  - added regression test to ensure internal ask exceptions render a user-safe
+    error state instead of returning HTTP 500
+  - validated fix with full suite: all 110 tests passing
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:
@@ -510,7 +527,7 @@ Last updated: 2026-04-11
 
 - Global multilingual SEO presence completed:
   - added global language selector (en/hi) visible on every page including guest/logged-out pages
-  - added public SEO landing pages at `/`, `/bhagavad-gita-for-anxiety/`, 
+  - added public SEO landing pages at `/`, `/bhagavad-gita-for-anxiety/`,
     `/bhagavad-gita-for-career-confusion/`, `/bhagavad-gita-for-relationships/`
     with dedicated metadata, focused copy, curated verses, and direct CTAs
   - each SEO page fully localized in English and Hindi
