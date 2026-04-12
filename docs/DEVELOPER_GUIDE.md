@@ -207,6 +207,27 @@ Use this map to understand the exact call chain for each endpoint.
    otherwise stores as guest requester.
 5. Returns `201` with ticket receipt status.
 
+### Payment billing ledger flow
+
+The Razorpay checkout path now keeps one export-friendly billing row per order:
+
+1. `POST /api/payments/create-order/`
+   - resolves authenticated user
+   - normalizes plan + currency
+   - captures billing fields from request payload
+   - creates Razorpay order
+   - upserts a single `BillingRecord` row keyed by `razorpay_order_id`
+2. `POST /api/payments/verify/`
+   - verifies signature
+   - activates subscription
+   - updates the same `BillingRecord` row to `verified`
+3. `POST /api/payments/webhook/`
+   - `payment.captured` updates the same row to `captured`
+   - `payment.failed` updates the same row to `failed`
+
+`BillingRecord` is intended to be the single table exported to Tally or other
+invoice workflows, so avoid splitting invoice fields across multiple models.
+
 ### `POST /api/analytics/events/`
 
 1. `guide_api/urls.py` -> `AnalyticsEventIngestView`

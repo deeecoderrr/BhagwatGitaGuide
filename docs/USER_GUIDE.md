@@ -44,6 +44,9 @@ and give feedback on whether the answer was useful.
   from anywhere.
 12. The chat UI uses smooth animations and transitions; if a CDN is blocked,
     core chat functionality still works without the visual effects.
+13. Before upgrading to Plus or Pro, fill the billing section in the membership
+    panel. Those details are stored against the Razorpay order so you can later
+    export invoice-ready rows for accounting/Tally.
 
 ## Quick Start (API)
 

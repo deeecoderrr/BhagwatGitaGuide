@@ -2558,6 +2558,71 @@
       margin-top: 0.9rem;
     }
 
+    .billing-capture-block {
+      margin-top: 0.95rem;
+      padding: 0.95rem;
+      border-radius: 18px;
+      background: rgba(8, 12, 22, 0.28);
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+
+    .billing-capture-block h4 {
+      margin: 0 0 0.35rem 0;
+      font-size: 0.96rem;
+      color: #fff6df;
+    }
+
+    .billing-capture-help {
+      margin: 0 0 0.75rem 0;
+      color: rgba(255,255,255,0.82);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .billing-capture-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.7rem;
+    }
+
+    .billing-capture-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+    }
+
+    .billing-capture-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .billing-capture-field label {
+      font-size: 0.77rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.86);
+    }
+
+    .billing-capture-field input,
+    .billing-capture-field textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(10, 14, 24, 0.66);
+      color: #fff;
+      padding: 0.72rem 0.82rem;
+      font-size: 0.88rem;
+      box-sizing: border-box;
+    }
+
+    .billing-capture-field textarea {
+      min-height: 86px;
+      resize: vertical;
+    }
+
+    .billing-capture-field input::placeholder,
+    .billing-capture-field textarea::placeholder {
+      color: rgba(255,255,255,0.42);
+    }
+
     .btn-upgrade {
       margin-top: 0;
       padding: 0.65rem 1rem;
@@ -2622,6 +2687,12 @@
     .support-form textarea {
       min-height: 98px;
       resize: vertical;
+    }
+
+    @media (max-width: 640px) {
+      .billing-capture-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* Gita Reader Styles */
@@ -3940,6 +4011,137 @@
                           <li>Save unlimited conversations</li>
                         </ul>
                       </article>
+                    </div>
+                    <div class="billing-capture-block">
+                      <h4>
+                        {% if language == "hi" %}
+                          बिलिंग विवरण
+                        {% else %}
+                          Billing details
+                        {% endif %}
+                      </h4>
+                      <p class="billing-capture-help">
+                        {% if language == "hi" %}
+                          यही जानकारी बिलिंग रिकॉर्ड में सहेजी जाएगी ताकि बाद में Tally के लिए सही invoice बनाया जा सके।
+                        {% else %}
+                          We store these details in one billing ledger so you can later export clean invoice data into Tally.
+                        {% endif %}
+                      </p>
+                      <div class="billing-capture-grid" id="billing_capture_form">
+                        <div class="billing-capture-field">
+                          <label for="billing_name">
+                            {% if language == "hi" %}बिलिंग नाम{% else %}Billing name{% endif %}
+                          </label>
+                          <input
+                            id="billing_name"
+                            type="text"
+                            maxlength="120"
+                            value="{{ billing_name_default|default:'' }}"
+                            placeholder="{% if language == 'hi' %}नाम या contact person{% else %}Name or contact person{% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="billing_email">
+                            {% if language == "hi" %}बिलिंग ईमेल{% else %}Billing email{% endif %}
+                          </label>
+                          <input
+                            id="billing_email"
+                            type="email"
+                            maxlength="254"
+                            value="{{ billing_email_default|default:'' }}"
+                            placeholder="billing@example.com"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="business_name">
+                            {% if language == "hi" %}फर्म / बिज़नेस नाम{% else %}Firm / business name{% endif %}
+                          </label>
+                          <input
+                            id="business_name"
+                            type="text"
+                            maxlength="160"
+                            placeholder="{% if language == 'hi' %}Firm name (optional){% else %}Firm name (optional){% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="gstin">
+                            {% if language == "hi" %}GSTIN{% else %}GSTIN{% endif %}
+                          </label>
+                          <input
+                            id="gstin"
+                            type="text"
+                            maxlength="20"
+                            placeholder="{% if language == 'hi' %}भारत के business users के लिए{% else %}For Indian business invoices{% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="billing_country_code">
+                            {% if language == "hi" %}Country code{% else %}Country code{% endif %}
+                          </label>
+                          <input
+                            id="billing_country_code"
+                            type="text"
+                            maxlength="2"
+                            value="{{ billing_country_code_default|default:'' }}"
+                            placeholder="IN / ZA / US"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="billing_country_name">
+                            {% if language == "hi" %}Country{% else %}Country{% endif %}
+                          </label>
+                          <input
+                            id="billing_country_name"
+                            type="text"
+                            maxlength="80"
+                            value="{{ billing_country_name_default|default:'' }}"
+                            placeholder="{% if language == 'hi' %}India / South Africa{% else %}India / South Africa{% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="billing_state">
+                            {% if language == "hi" %}State / Province{% else %}State / Province{% endif %}
+                          </label>
+                          <input
+                            id="billing_state"
+                            type="text"
+                            maxlength="80"
+                            placeholder="{% if language == 'hi' %}State or province{% else %}State or province{% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="billing_city">
+                            {% if language == "hi" %}City{% else %}City{% endif %}
+                          </label>
+                          <input
+                            id="billing_city"
+                            type="text"
+                            maxlength="80"
+                            placeholder="{% if language == 'hi' %}City{% else %}City{% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field">
+                          <label for="billing_postal_code">
+                            {% if language == "hi" %}PIN / Postal code{% else %}PIN / Postal code{% endif %}
+                          </label>
+                          <input
+                            id="billing_postal_code"
+                            type="text"
+                            maxlength="20"
+                            placeholder="{% if language == 'hi' %}PIN / ZIP{% else %}PIN / ZIP{% endif %}"
+                          />
+                        </div>
+                        <div class="billing-capture-field full">
+                          <label for="billing_address">
+                            {% if language == "hi" %}Billing address{% else %}Billing address{% endif %}
+                          </label>
+                          <textarea
+                            id="billing_address"
+                            maxlength="600"
+                            placeholder="{% if language == 'hi' %}पूर्ण address (optional but useful for invoice){% else %}Full address (optional but useful for invoice){% endif %}"
+                          ></textarea>
+                        </div>
+                      </div>
                     </div>
                     <div class="upgrade-actions">
                       {% if not quota_snapshot or quota_snapshot.plan == "free" %}
@@ -6340,6 +6542,23 @@
         try {
           const selectedPlan = (plan || 'pro').toLowerCase();
           const selectedCurrency = '{{ billing_currency|default:"USD" }}';
+          const billingCountryCode = (
+            document.getElementById('billing_country_code')?.value || ''
+          ).trim().toUpperCase();
+          const billingCountryName = (
+            document.getElementById('billing_country_name')?.value || ''
+          ).trim();
+          const billingEmail = (
+            document.getElementById('billing_email')?.value || ''
+          ).trim();
+          const billingName = (
+            document.getElementById('billing_name')?.value || ''
+          ).trim();
+
+          if (!billingName || !billingEmail || !billingCountryName) {
+            alert('{% if language == "hi" %}कृपया billing name, billing email, और country भरें।{% else %}Please fill billing name, billing email, and country before checkout.{% endif %}');
+            return;
+          }
 
           // Get CSRF token
           const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
@@ -6356,7 +6575,32 @@
               'Content-Type': 'application/json',
               'X-CSRFToken': csrfToken,
             },
-            body: JSON.stringify({ currency: selectedCurrency, plan: selectedPlan }),
+            body: JSON.stringify({
+              currency: selectedCurrency,
+              plan: selectedPlan,
+              billing_name: billingName,
+              billing_email: billingEmail,
+              business_name: (
+                document.getElementById('business_name')?.value || ''
+              ).trim(),
+              gstin: (
+                document.getElementById('gstin')?.value || ''
+              ).trim().toUpperCase(),
+              billing_country_code: billingCountryCode,
+              billing_country_name: billingCountryName,
+              billing_state: (
+                document.getElementById('billing_state')?.value || ''
+              ).trim(),
+              billing_city: (
+                document.getElementById('billing_city')?.value || ''
+              ).trim(),
+              billing_postal_code: (
+                document.getElementById('billing_postal_code')?.value || ''
+              ).trim(),
+              billing_address: (
+                document.getElementById('billing_address')?.value || ''
+              ).trim(),
+            }),
           });
 
           if (!orderResponse.ok) {

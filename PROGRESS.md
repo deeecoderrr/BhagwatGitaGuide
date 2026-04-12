@@ -4,6 +4,23 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Billing ledger for Tally/invoice export completed:
+  - added `BillingRecord` model as a single invoice-ready row per Razorpay
+    order/payment
+  - stores billing identity, GST/export classification, country details,
+    currency, amount, plan, payment IDs, and status transitions
+  - checkout now captures billing details from the membership panel before
+    opening Razorpay
+  - `POST /api/payments/create-order/` now creates/updates the billing row at
+    order creation time
+  - `POST /api/payments/verify/` now marks the same billing row as verified and
+    attaches the Razorpay payment id
+  - `payment.captured` and `payment.failed` webhooks now update the same row so
+    the export table remains the single source of truth
+  - Django admin now exposes `BillingRecord` with filters/search plus CSV export
+    for Tally-friendly download
+  - validated with `manage.py check` and full suite: 130 tests passing
+
 - Unified quota control in admin (single place) completed:
   - extended `RequestQuotaSettings` singleton to manage all quota knobs:
     - guest: enabled + ask limit

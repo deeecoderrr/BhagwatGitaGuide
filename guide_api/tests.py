@@ -8,6 +8,7 @@ from django.core.management.base import CommandError
 from django.utils import timezone
 from guide_api.models import (
     AskEvent,
+    BillingRecord,
     Conversation,
     EngagementEvent,
     FollowUpEvent,
@@ -1904,6 +1905,18 @@ class PaymentIntegrationTests(APITestCase):
         subscription = UserSubscription.objects.get(user=self.user)
         self.assertEqual(subscription.razorpay_order_id, "order_test_123abc")
         self.assertEqual(subscription.payment_currency, "INR")
+        billing_record = BillingRecord.objects.get(
+            razorpay_order_id="order_test_123abc",
+        )
+        self.assertEqual(billing_record.amount_minor, 9900)
+        self.assertEqual(
+            billing_record.payment_status,
+            BillingRecord.STATUS_CREATED,
+        )
+        self.assertEqual(
+            billing_record.tax_treatment,
+            BillingRecord.TAX_DOMESTIC,
+        )
 
     def test_create_order_plus_inr_flow(self):
         """Test creating a Razorpay order for Plus INR payment."""
@@ -2049,6 +2062,61 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["currency"], "USD")
         self.assertEqual(response.data["amount"], 299)
+        billing_record = BillingRecord.objects.get(
+            razorpay_order_id="order_us_forced_usd",
+        )
+        self.assertEqual(
+            billing_record.tax_treatment,
+            BillingRecord.TAX_EXPORT_LUT,
+        )
+        self.assertTrue(billing_record.is_international)
+
+    def test_create_order_persists_billing_profile_fields(self):
+        """Checkout should store one invoice-friendly billing ledger row."""
+        from unittest.mock import MagicMock, patch
+
+        mock_order_response = {
+            "id": "order_billing_profile",
+            "entity": "order",
+            "amount": 4900,
+            "currency": "INR",
+            "status": "created",
+        }
+
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {
+                    "currency": "INR",
+                    "plan": "plus",
+                    "billing_name": "Rishi Sharma",
+                    "billing_email": "accounts@example.com",
+                    "business_name": "Gita Guide Labs",
+                    "gstin": "29ABCDE1234F1Z5",
+                    "billing_country_code": "IN",
+                    "billing_country_name": "India",
+                    "billing_state": "Karnataka",
+                    "billing_city": "Bengaluru",
+                    "billing_postal_code": "560001",
+                    "billing_address": "MG Road\nBengaluru",
+                },
+                format="json",
+            )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        billing_record = BillingRecord.objects.get(
+            razorpay_order_id="order_billing_profile",
+        )
+        self.assertEqual(billing_record.billing_name, "Rishi Sharma")
+        self.assertEqual(billing_record.billing_email, "accounts@example.com")
+        self.assertEqual(billing_record.business_name, "Gita Guide Labs")
+        self.assertEqual(billing_record.gstin, "29ABCDE1234F1Z5")
+        self.assertEqual(billing_record.billing_state, "Karnataka")
+        self.assertEqual(billing_record.billing_city, "Bengaluru")
 
     def test_create_order_india_locale_overrides_non_india_geo(self):
         """India locale hints (en-IN/hi-IN) should keep INR when geo is inaccurate."""
@@ -2151,6 +2219,15 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(subscription.plan, UserSubscription.PLAN_PRO)
         self.assertTrue(subscription.is_active)
         self.assertIsNotNone(subscription.subscription_end_date)
+        billing_record = BillingRecord.objects.get(
+            razorpay_order_id=order_id,
+        )
+        self.assertEqual(
+            billing_record.payment_status,
+            BillingRecord.STATUS_VERIFIED,
+        )
+        self.assertEqual(billing_record.razorpay_payment_id, payment_id)
+        self.assertIsNotNone(billing_record.verified_at)
         # Should be ~30 days from now
         days_diff = (subscription.subscription_end_date - timezone.now()).days
         self.assertGreaterEqual(days_diff, 29)
@@ -2308,6 +2385,22 @@ class PaymentIntegrationTests(APITestCase):
         )
         subscription.razorpay_order_id = "order_webhook_123"
         subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_PRO,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_EXPORT_LUT,
+            is_international=True,
+            billing_name="Foreign Customer",
+            billing_email="billing@example.com",
+            billing_country_code="ZA",
+            billing_country_name="South Africa",
+            currency="USD",
+            amount_minor=299,
+            amount_major="2.99",
+            razorpay_order_id="order_webhook_123",
+        )
 
         # Create webhook payload
         webhook_body = json.dumps({
@@ -2348,6 +2441,15 @@ class PaymentIntegrationTests(APITestCase):
         subscription.refresh_from_db()
         self.assertEqual(subscription.plan, UserSubscription.PLAN_PRO)
         self.assertTrue(subscription.is_active)
+        billing_record = BillingRecord.objects.get(
+            razorpay_order_id="order_webhook_123",
+        )
+        self.assertEqual(
+            billing_record.payment_status,
+            BillingRecord.STATUS_CAPTURED,
+        )
+        self.assertEqual(billing_record.razorpay_payment_id, "pay_webhook_xyz")
+        self.assertIsNotNone(billing_record.paid_at)
 
     def test_razorpay_webhook_payment_failed_event(self):
         """Test webhook correctly handles payment.failed event."""
@@ -2362,6 +2464,21 @@ class PaymentIntegrationTests(APITestCase):
         )
         subscription.razorpay_order_id = "order_failed_123"
         subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_PLUS,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Indian User",
+            billing_email="user@example.com",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=4900,
+            amount_major="49.00",
+            razorpay_order_id="order_failed_123",
+        )
 
         # Create webhook payload for failed payment
         webhook_body = json.dumps({
@@ -2400,6 +2517,13 @@ class PaymentIntegrationTests(APITestCase):
         # Subscription should remain unchanged
         subscription.refresh_from_db()
         self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+        billing_record = BillingRecord.objects.get(
+            razorpay_order_id="order_failed_123",
+        )
+        self.assertEqual(
+            billing_record.payment_status,
+            BillingRecord.STATUS_FAILED,
+        )
 
     def test_razorpay_webhook_invalid_signature_rejected(self):
         """Test webhook request with invalid signature is rejected."""

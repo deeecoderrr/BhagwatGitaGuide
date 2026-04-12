@@ -4,6 +4,7 @@ from datetime import timedelta
 import json
 import logging
 import re
+from decimal import Decimal
 from random import Random
 from types import SimpleNamespace
 from urllib.parse import quote_plus
@@ -26,6 +27,7 @@ from rest_framework.views import APIView
 
 from guide_api.models import (
     AskEvent,
+    BillingRecord,
     Conversation,
     DailyAskUsage,
     EngagementEvent,
@@ -89,6 +91,17 @@ logger = logging.getLogger(__name__)
 
 WEB_AUDIENCE_COOKIE_NAME = "web_audience_id"
 WEB_AUDIENCE_COOKIE_AGE = 60 * 60 * 24 * 365
+
+COUNTRY_CODE_TO_NAME = {
+    "IN": "India",
+    "US": "United States",
+    "GB": "United Kingdom",
+    "ZA": "South Africa",
+    "AE": "United Arab Emirates",
+    "SG": "Singapore",
+    "AU": "Australia",
+    "CA": "Canada",
+}
 
 
 def _resolve_web_audience_id(request) -> str:
@@ -173,6 +186,169 @@ def _track_web_visit(request, *, source: str) -> str:
         },
     )
     return audience_id
+
+
+def _clean_billing_text(value, *, max_length: int) -> str:
+    """Normalize billing text fields for storage and export."""
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    return text[:max_length]
+
+
+def _clean_billing_multiline(value, *, max_length: int) -> str:
+    """Keep billing address readable while trimming noisy whitespace."""
+    text = str(value or "").replace("\r\n", "\n").replace("\r", "\n").strip()
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text[:max_length]
+
+
+def _default_country_name(country_code: str) -> str:
+    """Map ISO-ish country code to a readable country label when possible."""
+    return COUNTRY_CODE_TO_NAME.get(country_code.upper(), "")
+
+
+def _billing_country_defaults(
+    request,
+    *,
+    requested_currency: str = "",
+) -> tuple[str, str]:
+    """Infer a best-effort billing country for prefill/fallback behavior."""
+    country_code = str(_request_country_code(request) or "").strip().upper()
+    if not country_code:
+        currency = _billing_currency_for_request(
+            request,
+            requested_currency=requested_currency,
+        )
+        country_code = "IN" if currency == UserSubscription.CURRENCY_INR else ""
+    return country_code[:2], _default_country_name(country_code)
+
+
+def _collect_billing_profile(request, *, user) -> dict:
+    """Build a normalized invoice profile from checkout payload + user context."""
+    data = request.data if hasattr(request, "data") else {}
+    default_country_code, default_country_name = _billing_country_defaults(
+        request,
+        requested_currency=data.get("currency", ""),
+    )
+    default_name = ""
+    default_email = ""
+    if user:
+        default_name = user.get_full_name() or user.username or ""
+        default_email = user.email or ""
+
+    country_code = _clean_billing_text(
+        data.get("billing_country_code") or default_country_code,
+        max_length=2,
+    ).upper()
+    country_name = _clean_billing_text(
+        data.get("billing_country_name") or _default_country_name(country_code),
+        max_length=80,
+    )
+    if not country_name and default_country_name:
+        country_name = default_country_name
+
+    billing_name = _clean_billing_text(
+        data.get("billing_name") or default_name,
+        max_length=120,
+    )
+    billing_email = _clean_billing_text(
+        data.get("billing_email") or default_email,
+        max_length=254,
+    )
+
+    tax_treatment = BillingRecord.TAX_EXPORT_LUT
+    if country_code == "IN":
+        tax_treatment = BillingRecord.TAX_DOMESTIC
+    elif not country_code and not country_name:
+        tax_treatment = BillingRecord.TAX_UNKNOWN
+
+    return {
+        "billing_name": billing_name,
+        "billing_email": billing_email,
+        "business_name": _clean_billing_text(
+            data.get("business_name"),
+            max_length=160,
+        ),
+        "gstin": _clean_billing_text(data.get("gstin"), max_length=20).upper(),
+        "billing_country_code": country_code,
+        "billing_country_name": country_name,
+        "billing_state": _clean_billing_text(
+            data.get("billing_state"),
+            max_length=80,
+        ),
+        "billing_city": _clean_billing_text(
+            data.get("billing_city"),
+            max_length=80,
+        ),
+        "billing_postal_code": _clean_billing_text(
+            data.get("billing_postal_code"),
+            max_length=20,
+        ),
+        "billing_address": _clean_billing_multiline(
+            data.get("billing_address"),
+            max_length=600,
+        ),
+        "tax_treatment": tax_treatment,
+        "is_international": bool(country_code and country_code != "IN"),
+    }
+
+
+def _minor_to_major(amount_minor: int, currency: str) -> Decimal:
+    """Convert smallest-unit amount into a two-decimal export value."""
+    return Decimal(amount_minor or 0) / Decimal("100")
+
+
+def _upsert_billing_record(
+    *,
+    user,
+    subscription,
+    order_id: str,
+    plan: str,
+    currency: str,
+    amount_minor: int,
+    billing_profile: dict,
+    payment_status: str,
+    raw_order_payload: dict | None = None,
+    raw_payment_payload: dict | None = None,
+    payment_id: str = "",
+    payment_method: str = "",
+    verified_at=None,
+    paid_at=None,
+):
+    """Maintain one export-friendly billing row per Razorpay order."""
+    defaults = {
+        "user": user,
+        "subscription": subscription,
+        "plan": plan,
+        "currency": (currency or "").upper()[:3],
+        "amount_minor": int(amount_minor or 0),
+        "amount_major": _minor_to_major(amount_minor, currency or ""),
+        "payment_status": payment_status,
+        "razorpay_payment_id": str(payment_id or "")[:64],
+        "payment_method": str(payment_method or "")[:40],
+        "verified_at": verified_at,
+        "paid_at": paid_at,
+        "raw_order_payload": raw_order_payload or {},
+        "raw_payment_payload": raw_payment_payload or {},
+        "metadata": {
+            "invoice_basis": "billing_record",
+            "source": "razorpay_checkout",
+        },
+        **(billing_profile or {}),
+    }
+    record, created = BillingRecord.objects.update_or_create(
+        razorpay_order_id=order_id,
+        defaults=defaults,
+    )
+    if not created:
+        metadata = record.metadata or {}
+        metadata.setdefault("invoice_basis", "billing_record")
+        metadata.setdefault("source", "razorpay_checkout")
+        if payment_status == BillingRecord.STATUS_CAPTURED:
+            metadata["last_capture_sync"] = timezone.now().isoformat()
+        record.metadata = metadata
+        record.save(update_fields=["metadata", "updated_at"])
+    return record
 
 
 def _log_growth_event(
@@ -2580,6 +2756,29 @@ class ChatUIView(View):
         billing_currency = _billing_currency_for_request(request)
         context.setdefault("billing_currency", billing_currency)
         context.setdefault("billing_country_code", _request_country_code(request) or "")
+        default_country_code, default_country_name = _billing_country_defaults(
+            request,
+            requested_currency=billing_currency,
+        )
+        billing_user = (
+            request.user
+            if request.user and request.user.is_authenticated
+            else None
+        )
+        context.setdefault(
+            "billing_name_default",
+            (
+                billing_user.get_full_name() or billing_user.username
+                if billing_user
+                else str(request.session.get("chat_ui_auth_username", "")).strip()
+            ),
+        )
+        context.setdefault(
+            "billing_email_default",
+            billing_user.email if billing_user else "",
+        )
+        context.setdefault("billing_country_name_default", default_country_name)
+        context.setdefault("billing_country_code_default", default_country_code)
         default_plan_limits = {
             "free_daily": _plan_daily_limit(UserSubscription.PLAN_FREE),
             "free_monthly": _plan_monthly_limit(UserSubscription.PLAN_FREE),
@@ -4523,6 +4722,7 @@ class CreateOrderView(APIView):
         client = razorpay.Client(auth=(key_id, key_secret))
 
         try:
+            billing_profile = _collect_billing_profile(request, user=user)
             order_data = {
                 "amount": amount,
                 "currency": currency,
@@ -4530,6 +4730,10 @@ class CreateOrderView(APIView):
                 "notes": {
                     "user_id": str(user.id),
                     "plan": selected_plan,
+                    "billing_email": billing_profile["billing_email"][:64],
+                    "billing_country": billing_profile[
+                        "billing_country_code"
+                    ][:2],
                 },
             }
             order = client.order.create(data=order_data)
@@ -4542,6 +4746,18 @@ class CreateOrderView(APIView):
             subscription.razorpay_order_id = order["id"]
             subscription.payment_currency = currency
             subscription.save()
+
+            _upsert_billing_record(
+                user=user,
+                subscription=subscription,
+                order_id=order["id"],
+                plan=selected_plan,
+                currency=currency,
+                amount_minor=amount,
+                billing_profile=billing_profile,
+                payment_status=BillingRecord.STATUS_CREATED,
+                raw_order_payload=order,
+            )
 
             pending_plans = request.session.get("pending_subscription_plans", {})
             if not isinstance(pending_plans, dict):
@@ -4557,6 +4773,8 @@ class CreateOrderView(APIView):
                 "key_id": key_id,
                 "user_email": user.email,
                 "user_name": user.get_full_name() or user.username,
+                "billing_country_code": billing_profile["billing_country_code"],
+                "billing_country_name": billing_profile["billing_country_name"],
             })
 
         except Exception as e:
@@ -4646,6 +4864,44 @@ class VerifyPaymentView(APIView):
             subscription.subscription_end_date = timezone.now() + timedelta(days=30)
             subscription.save()
 
+            billing_record = BillingRecord.objects.filter(
+                razorpay_order_id=razorpay_order_id,
+            ).first()
+            billing_profile = (
+                {
+                    "billing_name": billing_record.billing_name,
+                    "billing_email": billing_record.billing_email,
+                    "business_name": billing_record.business_name,
+                    "gstin": billing_record.gstin,
+                    "billing_country_code": billing_record.billing_country_code,
+                    "billing_country_name": billing_record.billing_country_name,
+                    "billing_state": billing_record.billing_state,
+                    "billing_city": billing_record.billing_city,
+                    "billing_postal_code": billing_record.billing_postal_code,
+                    "billing_address": billing_record.billing_address,
+                    "tax_treatment": billing_record.tax_treatment,
+                    "is_international": billing_record.is_international,
+                }
+                if billing_record
+                else _collect_billing_profile(request, user=user)
+            )
+            _upsert_billing_record(
+                user=user,
+                subscription=subscription,
+                order_id=razorpay_order_id,
+                plan=selected_plan,
+                currency=subscription.payment_currency or UserSubscription.CURRENCY_INR,
+                amount_minor=_payment_amount_for_plan(
+                    plan=selected_plan,
+                    currency=subscription.payment_currency
+                    or UserSubscription.CURRENCY_INR,
+                ),
+                billing_profile=billing_profile,
+                payment_status=BillingRecord.STATUS_VERIFIED,
+                payment_id=razorpay_payment_id,
+                verified_at=timezone.now(),
+            )
+
             if isinstance(pending_plans, dict) and razorpay_order_id in pending_plans:
                 pending_plans.pop(razorpay_order_id, None)
                 request.session["pending_subscription_plans"] = pending_plans
@@ -4714,19 +4970,79 @@ class RazorpayWebhookView(APIView):
                 if order_id:
                     try:
                         subscription = UserSubscription.objects.get(razorpay_order_id=order_id)
-                        subscription.plan = _infer_plan_from_amount(
+                        resolved_plan = _infer_plan_from_amount(
                             amount=amount,
                             currency=currency,
                         )
+                        subscription.plan = resolved_plan
                         subscription.is_active = True
                         subscription.subscription_end_date = timezone.now() + timedelta(days=30)
                         subscription.save()
+                        billing_record = BillingRecord.objects.filter(
+                            razorpay_order_id=order_id,
+                        ).first()
+                        billing_profile = (
+                            {
+                                "billing_name": billing_record.billing_name,
+                                "billing_email": billing_record.billing_email,
+                                "business_name": billing_record.business_name,
+                                "gstin": billing_record.gstin,
+                                "billing_country_code": billing_record.billing_country_code,
+                                "billing_country_name": billing_record.billing_country_name,
+                                "billing_state": billing_record.billing_state,
+                                "billing_city": billing_record.billing_city,
+                                "billing_postal_code": billing_record.billing_postal_code,
+                                "billing_address": billing_record.billing_address,
+                                "tax_treatment": billing_record.tax_treatment,
+                                "is_international": billing_record.is_international,
+                            }
+                            if billing_record
+                            else {
+                                "billing_name": "",
+                                "billing_email": "",
+                                "business_name": "",
+                                "gstin": "",
+                                "billing_country_code": "",
+                                "billing_country_name": "",
+                                "billing_state": "",
+                                "billing_city": "",
+                                "billing_postal_code": "",
+                                "billing_address": "",
+                                "tax_treatment": BillingRecord.TAX_UNKNOWN,
+                                "is_international": False,
+                            }
+                        )
+                        _upsert_billing_record(
+                            user=subscription.user,
+                            subscription=subscription,
+                            order_id=order_id,
+                            plan=resolved_plan,
+                            currency=currency,
+                            amount_minor=amount,
+                            billing_profile=billing_profile,
+                            payment_status=BillingRecord.STATUS_CAPTURED,
+                            raw_payment_payload=payment_entity,
+                            payment_id=payment_entity.get("id", ""),
+                            payment_method=payment_entity.get("method", ""),
+                            paid_at=timezone.now(),
+                        )
                     except UserSubscription.DoesNotExist:
                         pass  # Order not found, ignore
 
             elif event == "payment.failed":
-                # Log failed payment for monitoring
-                pass
+                payment_entity = payload.get("payload", {}).get("payment", {}).get(
+                    "entity",
+                    {},
+                )
+                order_id = payment_entity.get("order_id")
+                if order_id:
+                    BillingRecord.objects.filter(
+                        razorpay_order_id=order_id,
+                    ).update(
+                        payment_status=BillingRecord.STATUS_FAILED,
+                        razorpay_payment_id=str(payment_entity.get("id") or "")[:64],
+                        raw_payment_payload=payment_entity,
+                    )
 
             return Response({"status": "ok"})
 

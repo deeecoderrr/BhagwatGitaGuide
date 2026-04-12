@@ -215,6 +215,113 @@ class UserSubscription(models.Model):
         ordering = ["-updated_at"]
 
 
+class BillingRecord(models.Model):
+    """Single invoice-ready ledger row per Razorpay order/payment."""
+
+    TAX_DOMESTIC = "domestic_taxable"
+    TAX_EXPORT_LUT = "export_lut"
+    TAX_UNKNOWN = "unknown"
+    TAX_TREATMENT_CHOICES = (
+        (TAX_DOMESTIC, "Domestic taxable"),
+        (TAX_EXPORT_LUT, "Export under LUT"),
+        (TAX_UNKNOWN, "Unknown"),
+    )
+
+    STATUS_CREATED = "created"
+    STATUS_VERIFIED = "verified"
+    STATUS_CAPTURED = "captured"
+    STATUS_FAILED = "failed"
+    STATUS_CHOICES = (
+        (STATUS_CREATED, "Created"),
+        (STATUS_VERIFIED, "Verified"),
+        (STATUS_CAPTURED, "Captured"),
+        (STATUS_FAILED, "Failed"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="billing_records",
+        blank=True,
+        null=True,
+    )
+    subscription = models.ForeignKey(
+        "UserSubscription",
+        on_delete=models.SET_NULL,
+        related_name="billing_records",
+        blank=True,
+        null=True,
+    )
+    plan = models.CharField(
+        max_length=16,
+        choices=UserSubscription.PLAN_CHOICES,
+        default=UserSubscription.PLAN_FREE,
+    )
+    payment_status = models.CharField(
+        max_length=16,
+        choices=STATUS_CHOICES,
+        default=STATUS_CREATED,
+    )
+    tax_treatment = models.CharField(
+        max_length=24,
+        choices=TAX_TREATMENT_CHOICES,
+        default=TAX_UNKNOWN,
+    )
+    is_international = models.BooleanField(default=False)
+
+    billing_name = models.CharField(max_length=120, blank=True)
+    billing_email = models.EmailField(blank=True)
+    business_name = models.CharField(max_length=160, blank=True)
+    gstin = models.CharField(max_length=20, blank=True)
+    billing_country_code = models.CharField(max_length=2, blank=True)
+    billing_country_name = models.CharField(max_length=80, blank=True)
+    billing_state = models.CharField(max_length=80, blank=True)
+    billing_city = models.CharField(max_length=80, blank=True)
+    billing_postal_code = models.CharField(max_length=20, blank=True)
+    billing_address = models.TextField(blank=True)
+
+    currency = models.CharField(
+        max_length=3,
+        choices=UserSubscription.CURRENCY_CHOICES,
+        blank=True,
+    )
+    amount_minor = models.PositiveIntegerField(default=0)
+    amount_major = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+    )
+
+    razorpay_order_id = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+    )
+    razorpay_payment_id = models.CharField(
+        max_length=64,
+        blank=True,
+        db_index=True,
+    )
+    payment_method = models.CharField(max_length=40, blank=True)
+    invoice_reference = models.CharField(max_length=64, blank=True)
+    verified_at = models.DateTimeField(blank=True, null=True)
+    paid_at = models.DateTimeField(blank=True, null=True)
+
+    raw_order_payload = models.JSONField(default=dict, blank=True)
+    raw_payment_payload = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        """Readable billing row reference for admin/export."""
+        return f"{self.razorpay_order_id} ({self.plan})"
+
+
 class DailyAskUsage(models.Model):
     """Daily ask usage counter for authenticated users."""
 

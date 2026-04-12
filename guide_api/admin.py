@@ -1,12 +1,15 @@
 """Admin configuration for browsing verses, chats, and feedback."""
 
+import csv
 from datetime import timedelta
 
 from django.contrib import admin
+from django.http import HttpResponse
 from django.utils import timezone
 
 from guide_api.models import (
     AskEvent,
+    BillingRecord,
     Conversation,
     DailyAskUsage,
     EngagementEvent,
@@ -66,6 +69,125 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
     list_display = ("user", "plan", "is_active", "updated_at")
     list_filter = ("plan", "is_active")
     search_fields = ("user__username", "user__email")
+
+
+@admin.action(description="Export selected billing rows as CSV")
+def export_billing_records_csv(modeladmin, request, queryset):
+    """Download an invoice-friendly CSV from selected billing rows."""
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = (
+        'attachment; filename="billing-records-export.csv"'
+    )
+    writer = csv.writer(response)
+    writer.writerow(
+        [
+            "created_at",
+            "updated_at",
+            "billing_name",
+            "billing_email",
+            "business_name",
+            "gstin",
+            "billing_country_code",
+            "billing_country_name",
+            "billing_state",
+            "billing_city",
+            "billing_postal_code",
+            "billing_address",
+            "plan",
+            "tax_treatment",
+            "payment_status",
+            "is_international",
+            "currency",
+            "amount_minor",
+            "amount_major",
+            "razorpay_order_id",
+            "razorpay_payment_id",
+            "payment_method",
+            "invoice_reference",
+            "verified_at",
+            "paid_at",
+            "user_id",
+            "username",
+        ]
+    )
+    for record in queryset.order_by("-created_at"):
+        writer.writerow(
+            [
+                record.created_at.isoformat(),
+                record.updated_at.isoformat(),
+                record.billing_name,
+                record.billing_email,
+                record.business_name,
+                record.gstin,
+                record.billing_country_code,
+                record.billing_country_name,
+                record.billing_state,
+                record.billing_city,
+                record.billing_postal_code,
+                record.billing_address,
+                record.plan,
+                record.tax_treatment,
+                record.payment_status,
+                "yes" if record.is_international else "no",
+                record.currency,
+                record.amount_minor,
+                record.amount_major,
+                record.razorpay_order_id,
+                record.razorpay_payment_id,
+                record.payment_method,
+                record.invoice_reference,
+                record.verified_at.isoformat() if record.verified_at else "",
+                record.paid_at.isoformat() if record.paid_at else "",
+                record.user_id or "",
+                record.user.username if record.user else "",
+            ]
+        )
+    return response
+
+
+@admin.register(BillingRecord)
+class BillingRecordAdmin(admin.ModelAdmin):
+    """Invoice export ledger for domestic and export SaaS payments."""
+
+    list_display = (
+        "created_at",
+        "billing_name",
+        "billing_email",
+        "plan",
+        "tax_treatment",
+        "payment_status",
+        "currency",
+        "amount_major",
+        "billing_country_code",
+        "razorpay_order_id",
+    )
+    list_filter = (
+        "payment_status",
+        "plan",
+        "tax_treatment",
+        "currency",
+        "billing_country_code",
+    )
+    search_fields = (
+        "billing_name",
+        "billing_email",
+        "business_name",
+        "gstin",
+        "razorpay_order_id",
+        "razorpay_payment_id",
+        "user__username",
+        "user__email",
+    )
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+        "verified_at",
+        "paid_at",
+        "raw_order_payload",
+        "raw_payment_payload",
+        "metadata",
+    )
+    actions = [export_billing_records_csv]
 
 
 @admin.register(DailyAskUsage)
