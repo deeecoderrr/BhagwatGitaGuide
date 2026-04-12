@@ -307,6 +307,37 @@ class AskEvent(models.Model):
         ordering = ["-created_at"]
 
 
+class WebAudienceProfile(models.Model):
+    """Durable web-visitor identity and visit counters for growth analytics."""
+
+    SOURCE_CHAT_UI = "chat_ui"
+    SOURCE_SEO_INDEX = "seo_index"
+    SOURCE_SEO_TOPIC = "seo_topic"
+    SOURCE_CHOICES = (
+        (SOURCE_CHAT_UI, "Chat UI"),
+        (SOURCE_SEO_INDEX, "SEO Index"),
+        (SOURCE_SEO_TOPIC, "SEO Topic"),
+    )
+
+    audience_id = models.CharField(max_length=64, unique=True, db_index=True)
+    is_authenticated = models.BooleanField(default=False)
+    visit_count = models.PositiveIntegerField(default=0)
+    first_seen_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+    last_source = models.CharField(
+        max_length=16,
+        choices=SOURCE_CHOICES,
+    )
+    last_path = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["-last_seen_at"]
+
+    def __str__(self) -> str:
+        """Readable profile reference for admin listings."""
+        return self.audience_id
+
+
 class SavedReflection(models.Model):
     """User-saved guidance entry for retention and revisit flows."""
 

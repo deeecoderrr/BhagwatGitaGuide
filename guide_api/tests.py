@@ -19,6 +19,7 @@ from guide_api.models import (
     SupportTicket,
     UserEngagementProfile,
     UserSubscription,
+    WebAudienceProfile,
 )
 from django.test import override_settings
 from rest_framework import status
@@ -81,6 +82,19 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Bhagavad Gita For Anxiety And Overthinking")
         self.assertContains(response, "Relevant Bhagavad Gita verses")
         self.assertContains(response, "Ask This In The App")
+
+    def test_public_seo_page_tracks_unique_audience(self):
+        self.client.force_authenticate(user=None)
+        first = self.client.get("/")
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertIn("web_audience_id", first.cookies)
+
+        second = self.client.get("/")
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertEqual(WebAudienceProfile.objects.count(), 1)
+        profile = WebAudienceProfile.objects.first()
+        self.assertEqual(profile.last_source, WebAudienceProfile.SOURCE_SEO_INDEX)
+        self.assertGreaterEqual(profile.visit_count, 2)
 
     def test_public_seo_topic_ask_cta_uses_get_prefill(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
@@ -573,6 +587,29 @@ class GuideApiTests(APITestCase):
             ).count(),
             1,
         )
+
+    def test_chat_ui_guest_telemetry_uses_unique_guest_identifier(self):
+        self.client.force_authenticate(user=None)
+        landing = self.client.get("/api/chat-ui/")
+        self.assertEqual(landing.status_code, status.HTTP_200_OK)
+        guest_cookie = self.client.cookies.get("chat_ui_guest_id")
+        self.assertIsNotNone(guest_cookie)
+
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        event = AskEvent.objects.filter(
+            source=AskEvent.SOURCE_CHAT_UI,
+            outcome=AskEvent.OUTCOME_SERVED,
+        ).latest("created_at")
+        self.assertTrue(event.user_id.startswith("guest:"))
+        self.assertIn(guest_cookie.value, event.user_id)
 
     def test_chat_ui_guest_ask_handles_internal_failure_gracefully(self):
         from unittest.mock import patch

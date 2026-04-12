@@ -5,6 +5,22 @@
   {% if analytics_summary %}
     <div style="margin-top: 12px; display: flex; gap: 10px; flex-wrap: wrap;">
       <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Unique Visitors (All Time)</strong><br>
+        {{ analytics_summary.unique_visitors_total }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Unique Users Who Used (All Time)</strong><br>
+        {{ analytics_summary.unique_users_used_total }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Queries Fired (All Time)</strong><br>
+        {{ analytics_summary.queries_fired_total }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
+        <strong>Queries Served (All Time)</strong><br>
+        {{ analytics_summary.queries_served_total }}
+      </div>
+      <div style="padding: 10px 12px; border: 1px solid #ddd; border-radius: 6px;">
         <strong>Asks Today</strong><br>
         {{ analytics_summary.asks_today }}
       </div>

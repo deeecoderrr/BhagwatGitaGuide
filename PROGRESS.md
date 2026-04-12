@@ -80,6 +80,18 @@ Last updated: 2026-04-12
   - added trust/value blocks on landing to clarify verse-grounded guidance,
     practical outcomes, and shareability at first glance
   - validated with full suite: all 113 tests passing
+- Audience and search-query analytics tracking completed:
+  - added persistent `WebAudienceProfile` model to track unique visitors,
+    visit heartbeat, and latest source/path
+  - wired visitor tracking into SEO index/topic pages and chat-ui landing
+    loads with durable guest audience cookie attribution
+  - improved guest ask telemetry IDs to be per-browser (`guest:<id>`) so
+    unique users-who-used metrics are accurate instead of collapsing to one
+    shared "guest" value
+  - expanded AskEvent admin dashboard cards with all-time metrics:
+    unique visitors, unique users who used the app, queries fired, and
+    queries served
+  - validated with new regression tests + full suite: all 115 tests passing
 - Project scaffold created with Django + DRF.
 - Core API app added: `guide_api`.
 - Models implemented:

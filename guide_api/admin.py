@@ -19,6 +19,7 @@ from guide_api.models import (
     UserEngagementProfile,
     UserSubscription,
     Verse,
+    WebAudienceProfile,
 )
 
 
@@ -117,6 +118,7 @@ class AskEventAdmin(admin.ModelAdmin):
         today = timezone.localdate()
         window_7d = now - timedelta(days=7)
         qs = AskEvent.objects.all()
+        served_all = qs.filter(outcome=AskEvent.OUTCOME_SERVED)
         served_7d = qs.filter(
             created_at__gte=window_7d,
             outcome=AskEvent.OUTCOME_SERVED,
@@ -146,6 +148,12 @@ class AskEventAdmin(admin.ModelAdmin):
         ).count()
         context = {
             "analytics_summary": {
+                "unique_visitors_total": WebAudienceProfile.objects.count(),
+                "unique_users_used_total": served_all.values(
+                    "user_id"
+                ).distinct().count(),
+                "queries_fired_total": qs.count(),
+                "queries_served_total": served_all.count(),
                 "asks_today": qs.filter(
                     created_at__date=today,
                     outcome=AskEvent.OUTCOME_SERVED,
@@ -159,6 +167,21 @@ class AskEventAdmin(admin.ModelAdmin):
         if extra_context:
             context.update(extra_context)
         return super().changelist_view(request, extra_context=context)
+
+
+@admin.register(WebAudienceProfile)
+class WebAudienceProfileAdmin(admin.ModelAdmin):
+    """Track unique web audience and revisit heartbeat in admin."""
+
+    list_display = (
+        "audience_id",
+        "is_authenticated",
+        "visit_count",
+        "last_source",
+        "last_seen_at",
+    )
+    list_filter = ("is_authenticated", "last_source", "last_seen_at")
+    search_fields = ("audience_id", "last_path")
 
 
 @admin.register(SavedReflection)

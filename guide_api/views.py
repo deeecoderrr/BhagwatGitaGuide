@@ -37,6 +37,7 @@ from guide_api.models import (
     UserEngagementProfile,
     UserSubscription,
     Verse,
+    WebAudienceProfile,
 )
 from guide_api.serializers import (
     AskRequestSerializer,
@@ -78,6 +79,74 @@ from guide_api.services import (
 
 
 logger = logging.getLogger(__name__)
+
+WEB_AUDIENCE_COOKIE_NAME = "web_audience_id"
+WEB_AUDIENCE_COOKIE_AGE = 60 * 60 * 24 * 365
+
+
+def _resolve_web_audience_id(request) -> str:
+    """Resolve stable audience identifier for auth users and guests."""
+    if request.user and request.user.is_authenticated:
+        return f"user:{request.user.id}"
+
+    cookie_value = str(
+        request.COOKIES.get(WEB_AUDIENCE_COOKIE_NAME, ""),
+    ).strip()
+    if cookie_value:
+        return cookie_value[:64]
+
+    audience_id = f"guest:{uuid4().hex}"
+    request.web_audience_cookie_to_set = audience_id
+    return audience_id
+
+
+def _track_web_visit(request, *, source: str) -> str:
+    """Persist a visit heartbeat for growth analytics."""
+    audience_id = _resolve_web_audience_id(request)
+    profile, _ = WebAudienceProfile.objects.get_or_create(
+        audience_id=audience_id,
+        defaults={
+            "is_authenticated": bool(
+                request.user and request.user.is_authenticated
+            ),
+            "last_source": source,
+            "visit_count": 0,
+            "last_path": request.path[:255],
+        },
+    )
+
+    profile.visit_count += 1
+    profile.last_source = source
+    profile.last_path = request.path[:255]
+    if request.user and request.user.is_authenticated:
+        profile.is_authenticated = True
+    profile.save(
+        update_fields=[
+            "visit_count",
+            "last_source",
+            "last_path",
+            "is_authenticated",
+            "last_seen_at",
+        ]
+    )
+    return audience_id
+
+
+def _attach_web_audience_cookie(request, response) -> None:
+    """Set audience cookie once for guests so revisit attribution is stable."""
+    audience_id = str(
+        getattr(request, "web_audience_cookie_to_set", ""),
+    ).strip()
+    if not audience_id:
+        return
+    response.set_cookie(
+        WEB_AUDIENCE_COOKIE_NAME,
+        audience_id,
+        max_age=WEB_AUDIENCE_COOKIE_AGE,
+        httponly=True,
+        samesite="Lax",
+        secure=not settings.DEBUG,
+    )
 
 
 def _run_guidance_flow(
@@ -426,7 +495,10 @@ class SeoLandingIndexView(View):
             "structured_data": structured_data,
             "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
         }
-        return render(request, self.template_name, context)
+        _track_web_visit(request, source=WebAudienceProfile.SOURCE_SEO_INDEX)
+        response = render(request, self.template_name, context)
+        _attach_web_audience_cookie(request, response)
+        return response
 
 
 class SeoLandingTopicView(View):
@@ -515,7 +587,10 @@ class SeoLandingTopicView(View):
             "structured_data": structured_data,
             "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
         }
-        return render(request, self.template_name, context)
+        _track_web_visit(request, source=WebAudienceProfile.SOURCE_SEO_TOPIC)
+        response = render(request, self.template_name, context)
+        _attach_web_audience_cookie(request, response)
+        return response
 
 
 def _get_user_plan_and_usage(user):
@@ -1624,7 +1699,18 @@ class ChatUIView(View):
         )
         context.setdefault("support_issue_type", "other")
         context.setdefault("support_message", "")
-        return render(request, self.template_name, context)
+        response = render(request, self.template_name, context)
+        _attach_web_audience_cookie(request, response)
+        return response
+
+    def _chat_ui_analytics_user_id(self, request, authenticated_username: str) -> str:
+        """Build a stable telemetry ID for guests and authenticated users."""
+        if authenticated_username:
+            return authenticated_username
+        guest_id = str(getattr(request, "chat_ui_guest_id", "")).strip()
+        if guest_id:
+            return f"guest:{guest_id}"
+        return "guest:anonymous"
 
     def _guest_identity(self, request):
         """Look up the persistent guest row for the current browser."""
@@ -1714,6 +1800,7 @@ class ChatUIView(View):
                     offset=offset,
                 ),
             )
+        _track_web_visit(request, source=WebAudienceProfile.SOURCE_CHAT_UI)
         active_conversation = None
         if authenticated_username and not start_fresh:
             active_conversation = self._chat_ui_conversation(
@@ -1769,6 +1856,10 @@ class ChatUIView(View):
     def post(self, request):
         """Handle ask or feedback submit action from HTML form."""
         authenticated_username = self._chat_ui_authenticated_username(request)
+        analytics_user_id = self._chat_ui_analytics_user_id(
+            request,
+            authenticated_username,
+        )
         action = request.POST.get("action", "ask").strip()
         if action == "register":
             return self._handle_register(request)
@@ -1839,7 +1930,7 @@ class ChatUIView(View):
 
         if is_risky_prompt(message):
             _log_ask_event(
-                user_id=user_id,
+                user_id=analytics_user_id,
                 source=AskEvent.SOURCE_CHAT_UI,
                 mode=mode,
                 outcome=AskEvent.OUTCOME_BLOCKED_SAFETY,
@@ -1891,7 +1982,7 @@ class ChatUIView(View):
             and quota["usage"].ask_count >= quota["daily_limit"]
         ):
             _log_ask_event(
-                user_id=user_id,
+                user_id=analytics_user_id,
                 source=AskEvent.SOURCE_CHAT_UI,
                 mode=mode,
                 outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
@@ -1943,7 +2034,7 @@ class ChatUIView(View):
             guest_quota_snapshot = guest_quota_result["snapshot"]
             if not guest_quota_result["allowed"]:
                 _log_ask_event(
-                    user_id=user_id,
+                    user_id=analytics_user_id,
                     source=AskEvent.SOURCE_CHAT_UI,
                     mode=mode,
                     outcome=AskEvent.OUTCOME_BLOCKED_QUOTA,
@@ -2095,7 +2186,7 @@ class ChatUIView(View):
         )
         response_data["follow_ups"] = follow_ups
         _log_follow_up_events(
-            user_id=user_id,
+            user_id=analytics_user_id,
             source=FollowUpEvent.SOURCE_CHAT_UI,
             event_type=FollowUpEvent.EVENT_SHOWN,
             mode=mode,
@@ -2103,7 +2194,7 @@ class ChatUIView(View):
         )
         if follow_up_intent:
             _log_follow_up_events(
-                user_id=user_id,
+                user_id=analytics_user_id,
                 source=FollowUpEvent.SOURCE_CHAT_UI,
                 event_type=FollowUpEvent.EVENT_CLICKED,
                 mode=mode,
@@ -2125,7 +2216,7 @@ class ChatUIView(View):
                 used_today=quota["usage"].ask_count,
             )
         _log_ask_event(
-            user_id=user_id,
+            user_id=analytics_user_id,
             source=AskEvent.SOURCE_CHAT_UI,
             mode=mode,
             outcome=AskEvent.OUTCOME_SERVED,
