@@ -788,6 +788,42 @@ def _score_verse(
     )
 
 
+def get_related_verses(
+    *,
+    message: str,
+    seed_verses: list[Verse],
+    limit: int = 5,
+) -> list[Verse]:
+    """Return additional verses a user might want to explore next.
+
+    Deterministic, fast, and safe for request-time use.
+    """
+    if limit <= 0:
+        return []
+
+    themes = infer_themes_from_text(message)
+    # Broaden exploration using themes already present in the selected verses.
+    for verse in seed_verses:
+        themes.update(verse.themes or [])
+
+    query_tokens = _tokenize(message)
+    excluded = {_verse_reference(verse) for verse in seed_verses}
+
+    candidates = Verse.objects.all()
+    scored: list[tuple[int, Verse]] = []
+    for verse in candidates:
+        ref = _verse_reference(verse)
+        if ref in excluded:
+            continue
+        score = _score_verse(verse=verse, themes=themes, query_tokens=query_tokens)
+        if score <= 0:
+            continue
+        scored.append((score, verse))
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    return [verse for _, verse in scored[:limit]]
+
+
 def _local_query_verse_relevance(*, message: str, verse: Verse) -> int:
     """Compute a lightweight local relevance score for confidence gating."""
     query_tokens = _tokenize(message)
@@ -2072,16 +2108,26 @@ def _guidance_with_primary_quote(
     guidance: str,
     primary_verse: Verse | None,
     language: str,
+    tone: str = "classic",
 ) -> str:
     """Prepend primary verse quote in language-aware format."""
     ref, quote = _primary_verse_quote(verse=primary_verse, language=language)
     if not ref or not quote:
         return guidance
 
+    is_plain = str(tone).lower().strip() == "plain"
     if language == "hi":
-        prefix = f"गीता {ref} में कृष्ण कहते हैं: \"{quote}\""
+        prefix = (
+            f"गीता {ref}: \"{quote}\""
+            if is_plain
+            else f"गीता {ref} में कृष्ण कहते हैं: \"{quote}\""
+        )
     else:
-        prefix = f"In Bhagavad Gita {ref}, Krishna says: \"{quote}\""
+        prefix = (
+            f"Bhagavad Gita {ref}: \"{quote}\""
+            if is_plain
+            else f"In Bhagavad Gita {ref}, Krishna says: \"{quote}\""
+        )
     return f"{prefix}\n\n{guidance}"
 
 def _is_context_relevant_response(
@@ -2490,6 +2536,19 @@ def build_guidance(
     if len(message) > max_chars:
         message = message[:max_chars]
     query_interpretation = query_interpretation or interpret_query(message).as_dict()
+    emotional_state = str(query_interpretation.get("emotional_state", "")).strip().lower()
+    stressed_states = {
+        "anxious",
+        "fearful",
+        "reactive",
+        "tender",
+        "confused",
+        "self-doubting",
+        "scattered",
+    }
+    wants_plain_language = mode != "deep"
+    is_stressed = emotional_state in stressed_states
+    tone = "plain" if wants_plain_language else "classic"
     if _is_greeting_like(message):
         return _build_fallback_guidance(
             message,
@@ -2561,6 +2620,9 @@ def build_guidance(
             "3) how to act with calm wisdom rather than panic."
         )
 
+    if detected_topic in {"ANXIETY AND STRESS", "WAR, DEATH, AND THE IMMORTAL SELF"}:
+        is_stressed = True
+
     allowed_refs = _verse_reference_set(verses)
     verses_context = _serialize_verses_for_prompt(verses, message=message)
     primary_verse = verses[0] if verses else None
@@ -2572,13 +2634,29 @@ def build_guidance(
     conversation_context = _serialize_conversation_context(
         conversation_messages,
     )
+    tone_directive = ""
+    if mode != "deep":
+        tone_directive = (
+            "TONE: Use simple, modern, non-formal language. Avoid phrases like "
+            "'Dear seeker'. Keep sentences short. Explain like a supportive friend. "
+        )
+        if is_stressed:
+            tone_directive += (
+                "Because the user sounds stressed, keep it extra simple and reassuring. "
+                "Focus on one idea at a time. "
+            )
+    else:
+        tone_directive = (
+            "TONE: Speak in a compassionate, serene, guru-like voice inspired by "
+            "Krishna's wisdom, without claiming literal divine identity. "
+        )
+
     system_prompt = (
         "You are a Bhagavad Gita guidance assistant. Return valid JSON only "
         "with keys: "
         "guidance, meaning, actions, reflection, verse_references. "
-        "Speak in a deeply compassionate, serene, guru-like voice inspired "
-        "by Krishna's wisdom. Do not claim literal divine identity. "
-        "Be calm, emotionally satisfying, and spiritually grounding. "
+        + tone_directive
+        + "Be calm, emotionally satisfying, and spiritually grounding. "
         "CRITICAL: Your advice must be DIRECTLY RELEVANT to the user's specific "
         "problem. If they ask about studies, give study advice. If they ask about "
         "relationships, give relationship advice. DO NOT default to generic "
@@ -2750,6 +2828,7 @@ def build_guidance(
             guidance=guidance,
             primary_verse=primary_verse,
             language=language,
+            tone=tone,
         )
 
         return GuidanceResult(

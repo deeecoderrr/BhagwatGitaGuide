@@ -4594,29 +4594,45 @@
                               {% endif %}
                             </div>
                           {% endif %}
-                          <div class="reply-section">
-                            <h4>{% if language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses Used{% endif %}</h4>
-                            {% for verse in response_data.verses %}
-                              <div class="verse-item">
-                                <button type="button" class="verse-item-trigger" data-open-verse-reference="{{ verse.reference }}">
-                                  <div><strong>{{ verse.reference }}</strong></div>
-                                  <div>{{ verse.translation }}</div>
-                                  {% if verse.themes %}
-                                    <div class="muted">{% if language == "hi" %}थीम{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
-                                  {% endif %}
-                                </button>
-                              </div>
-                            {% empty %}
-                              <div class="muted">
-                                {% if language == "hi" %}
-                                  अभी कोई श्लोक नहीं चुना गया है। अपना प्रश्न थोड़ा और स्पष्ट लिखें।
-                                {% else %}
-                                  No verse has been selected yet. Share your actual question and I’ll find the most relevant one.
-                                {% endif %}
-                              </div>
-                            {% endfor %}
-                          </div>
-                        </div>
+	                          <div class="reply-section">
+	                            <h4>{% if language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses Used{% endif %}</h4>
+	                            {% for verse in response_data.verses %}
+	                              <div class="verse-item">
+	                                <button type="button" class="verse-item-trigger" data-open-verse-reference="{{ verse.reference }}">
+	                                  <div><strong>{{ verse.reference }}</strong></div>
+	                                  <div>{{ verse.translation }}</div>
+	                                  {% if verse.themes %}
+	                                    <div class="muted">{% if language == "hi" %}थीम{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
+	                                  {% endif %}
+	                                </button>
+	                              </div>
+	                            {% empty %}
+	                              <div class="muted">
+	                                {% if language == "hi" %}
+	                                  अभी कोई श्लोक नहीं चुना गया है। अपना प्रश्न थोड़ा और स्पष्ट लिखें।
+	                                {% else %}
+	                                  No verse has been selected yet. Share your actual question and I’ll find the most relevant one.
+	                                {% endif %}
+	                              </div>
+	                            {% endfor %}
+	                            {% if response_data.related_verses %}
+	                              <div class="muted" style="margin-top: 12px;">
+	                                {% if language == "hi" %}संबंधित श्लोक (आगे पढ़ें){% else %}Explore Related Verses{% endif %}
+	                              </div>
+	                              {% for verse in response_data.related_verses %}
+	                                <div class="verse-item" style="opacity: 0.92;">
+	                                  <button type="button" class="verse-item-trigger" data-open-verse-reference="{{ verse.reference }}">
+	                                    <div><strong>{{ verse.reference }}</strong></div>
+	                                    <div>{{ verse.translation }}</div>
+	                                    {% if verse.themes %}
+	                                      <div class="muted">{% if language == "hi" %}थीम{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
+	                                    {% endif %}
+	                                  </button>
+	                                </div>
+	                              {% endfor %}
+	                            {% endif %}
+	                          </div>
+	                        </div>
                         <div class="reply-share-row">
                           <button
                             type="button"

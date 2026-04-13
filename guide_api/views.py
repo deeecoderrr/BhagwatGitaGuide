@@ -78,6 +78,7 @@ from guide_api.serializers import (
 )
 from guide_api.services import (
     build_guidance,
+    get_related_verses,
     generate_quote_art_data,
     get_all_chapters,
     get_chapter_detail,
@@ -1876,6 +1877,18 @@ class AskView(APIView):
             "verse_references": [
                 f"{verse.chapter}.{verse.verse}" for verse in verses
             ],
+            "related_verses": [
+                {
+                    "reference": f"{verse.chapter}.{verse.verse}",
+                    "translation": verse.translation,
+                    "themes": verse.themes,
+                }
+                for verse in get_related_verses(
+                    message=data["message"],
+                    seed_verses=verses,
+                    limit=6,
+                )
+            ],
             "language": data["language"],
             **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
@@ -3409,6 +3422,18 @@ class ChatUIView(View):
             "reflection": guidance.reflection,
             "verse_references": [
                 f"{verse.chapter}.{verse.verse}" for verse in verses
+            ],
+            "related_verses": [
+                {
+                    "reference": f"{verse.chapter}.{verse.verse}",
+                    "translation": verse.translation,
+                    "themes": verse.themes,
+                }
+                for verse in get_related_verses(
+                    message=message,
+                    seed_verses=verses,
+                    limit=6,
+                )
             ],
             "language": language,
         }
