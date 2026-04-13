@@ -904,3 +904,4 @@ At the end of each coding session:
 - Reduced cold-start failures by keeping `min_machines_running = 1` in `fly.toml`.
 - Reduced partial replies by increasing gunicorn timeouts and bounding OpenAI client request timeouts so we can fall back gracefully instead of worker aborts.
 - Implemented a plain-language tone path for `mode=simple` (especially for anxious/stressed prompts) and added “Explore Related Verses” under “Verses Used”.
+- Added custom domain support for `askbhagavadgita.co.in` (allowed hosts + CSRF trusted origins) to unblock GoDaddy DNS + Google Search Console verification.

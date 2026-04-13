@@ -47,9 +47,12 @@ ALLOWED_HOSTS = [
     "localhost",
     "testserver",
     ".onrender.com",  # Render.com hosting
+    ".fly.dev",  # Fly.io default domain
     ".ngrok-free.app",  # Allow ngrok tunnels for local testing
     ".ngrok.io",
     ".trycloudflare.com",  # Allow cloudflared tunnels for local testing
+    "askbhagavadgita.co.in",
+    "www.askbhagavadgita.co.in",
 ]
 extra_hosts = os.getenv("ALLOWED_HOSTS", "")
 if extra_hosts:
@@ -64,6 +67,12 @@ if DEBUG:
         "https://*.ngrok-free.app",
         "https://*.ngrok.io",
         "https://*.trycloudflare.com",
+    ])
+else:
+    # Custom domain(s) served via Fly (TLS terminated at the edge)
+    CSRF_TRUSTED_ORIGINS.extend([
+        "https://askbhagavadgita.co.in",
+        "https://www.askbhagavadgita.co.in",
     ])
 extra_csrf_origins = os.getenv("CSRF_TRUSTED_ORIGINS", "")
 if extra_csrf_origins:
