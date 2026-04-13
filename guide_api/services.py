@@ -591,7 +591,13 @@ def is_risky_prompt(message: str) -> bool:
 def ensure_seed_verses() -> None:
     """Ensure default verse seed data exists for local/dev environments."""
     global _seed_synced
-    if _seed_synced and Verse.objects.exists():
+    # Production already has the full corpus. On process restart, _seed_synced
+    # resets, so avoid re-seeding (hundreds of update_or_create calls) just
+    # because the worker booted.
+    if Verse.objects.exists():
+        _seed_synced = True
+        return
+    if _seed_synced:
         return
 
     for verse in DEFAULT_VERSES:

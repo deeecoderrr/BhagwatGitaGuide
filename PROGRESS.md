@@ -895,3 +895,8 @@ At the end of each coding session:
 - Move completed items from "Remaining" to "Completed".
 - Add any new scope under "Remaining".
 - Update "Next 3 Tasks" so the next session can start immediately.
+
+## 2026-04-14
+
+- Fixed intermittent prod chat resets by preserving `conversation_id` in the live-chat DOM swap URL (previously the client always rewrote the URL without the id, so the next render fell back to the landing state even though the thread was created).
+- Fixed intermittent prod slow/partial replies by preventing `ensure_seed_verses()` from re-seeding/updating the verse corpus on every worker boot when verses already exist.

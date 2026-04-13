@@ -5767,7 +5767,31 @@
             },
           });
           const html = await response.text();
-          const swapped = replaceAppFromHtml(html, canonicalNextUrl);
+          // The server may create a new conversation_id on first ask (guest or signed-in).
+          // If we don't carry that id into the URL, the next render defaults back to the
+          // landing state and the chat appears to "disappear" even though the thread exists.
+          let nextUrl = canonicalNextUrl;
+          try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const idCandidates = Array.from(
+              doc.querySelectorAll('input[name="conversation_id"]'),
+            )
+              .map((node) => (node && node.value ? String(node.value).trim() : ""))
+              .filter((value) => value);
+            const conversationId = idCandidates[0];
+            if (conversationId) {
+              nextUrl = (
+                `/api/chat-ui/?conversation_id=${encodeURIComponent(conversationId)}`
+                + `&mode=${encodeURIComponent(mode)}`
+                + `&language=${encodeURIComponent(language)}`
+              );
+            }
+          } catch (e) {
+            nextUrl = canonicalNextUrl;
+          }
+
+          const swapped = replaceAppFromHtml(html, nextUrl);
           if (!swapped) {
             return;
           }
