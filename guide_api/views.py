@@ -4,6 +4,7 @@ from datetime import timedelta
 import json
 import logging
 import re
+import time
 from decimal import Decimal
 from random import Random
 from types import SimpleNamespace
@@ -94,6 +95,12 @@ from guide_api.services import (
 
 
 logger = logging.getLogger(__name__)
+_QUOTA_SETTINGS_UNSET = object()
+_QUOTA_SETTINGS_CACHE_TTL_SECONDS = 60
+_quota_settings_cache: dict[str, object] = {
+    "value": _QUOTA_SETTINGS_UNSET,
+    "loaded_at": 0.0,
+}
 
 WEB_AUDIENCE_COOKIE_NAME = "web_audience_id"
 WEB_AUDIENCE_COOKIE_AGE = 60 * 60 * 24 * 365
@@ -1003,8 +1010,27 @@ def _normalize_subscription_state(subscription: UserSubscription) -> UserSubscri
 
 
 def _request_quota_settings() -> RequestQuotaSettings | None:
-    """Return singleton admin quota settings if configured."""
-    return RequestQuotaSettings.objects.first()
+    """Return singleton admin quota settings with a short-lived safe cache."""
+    now = time.monotonic()
+    cached_value = _quota_settings_cache.get("value", _QUOTA_SETTINGS_UNSET)
+    loaded_at = float(_quota_settings_cache.get("loaded_at", 0.0) or 0.0)
+    if (
+        cached_value not in {_QUOTA_SETTINGS_UNSET, None}
+        and (now - loaded_at) < _QUOTA_SETTINGS_CACHE_TTL_SECONDS
+    ):
+        return cached_value
+
+    try:
+        quota_settings = RequestQuotaSettings.objects.first()
+    except Exception:
+        logger.exception("request_quota_settings_lookup_failed")
+        if cached_value is not _QUOTA_SETTINGS_UNSET:
+            return cached_value
+        return None
+
+    _quota_settings_cache["value"] = quota_settings
+    _quota_settings_cache["loaded_at"] = now
+    return quota_settings
 
 
 def _current_month_start() -> timezone.datetime:

@@ -130,6 +130,8 @@ Use this map to understand the exact call chain for each endpoint.
   - quota UI should render as unlimited rather than blocked
 - Quota-specific tests must explicitly run with
   `DISABLE_ALL_QUOTAS=False` when they are validating enforcement behavior.
+- quota settings are read through a short-lived cache so transient production
+  DB latency does not take down guest chat or quota rendering paths
 
 ### `POST /api/eval/retrieval/`
 

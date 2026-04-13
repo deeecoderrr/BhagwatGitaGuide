@@ -174,3 +174,5 @@ Current operational note:
 - the app supports `DISABLE_ALL_QUOTAS=true` as a temporary operator switch to
   remove guest and signed-in ask caps without changing plan/payment code
 - normal default posture is quota-on (`DISABLE_ALL_QUOTAS=false`)
+- admin quota singleton lookups are protected by a short-lived cache so guest
+  chat remains resilient if production Postgres is briefly slow

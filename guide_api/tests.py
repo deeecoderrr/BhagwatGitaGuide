@@ -2,11 +2,13 @@ import json
 from datetime import timedelta
 from decimal import Decimal
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.utils import timezone
+import guide_api.views as guide_views
 from guide_api.models import (
     AskEvent,
     BillingRecord,
@@ -38,6 +40,10 @@ from rest_framework.test import APITestCase
 )
 class GuideApiTests(APITestCase):
     def setUp(self):
+        guide_views._quota_settings_cache["value"] = (
+            guide_views._QUOTA_SETTINGS_UNSET
+        )
+        guide_views._quota_settings_cache["loaded_at"] = 0.0
         self.user = User.objects.create_user(
             username="demo-user",
             password="demo-pass-123",
@@ -310,6 +316,22 @@ class GuideApiTests(APITestCase):
         self.assertEqual(second.status_code, status.HTTP_200_OK)
         self.assertIsNone(second.data["daily_limit"])
         self.assertIsNone(second.data["remaining_today"])
+
+    def test_quota_settings_lookup_failure_falls_back_to_defaults(self):
+        guide_views._quota_settings_cache["value"] = guide_views._QUOTA_SETTINGS_UNSET
+        guide_views._quota_settings_cache["loaded_at"] = 0.0
+
+        with patch(
+            "guide_api.views.RequestQuotaSettings.objects.first",
+            side_effect=RuntimeError("db temporarily unavailable"),
+        ):
+            self.assertEqual(
+                guide_views._plan_daily_limit(UserSubscription.PLAN_FREE),
+                3,
+            )
+            self.assertFalse(
+                guide_views._plan_deep_mode_allowed(UserSubscription.PLAN_FREE),
+            )
 
     @override_settings(ASK_LIMIT_FREE_DAILY=2, ASK_LIMIT_PRO_DAILY=5)
     def test_ask_endpoint_pro_plan_gets_higher_daily_limit(self):

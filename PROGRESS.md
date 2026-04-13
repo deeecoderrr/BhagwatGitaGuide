@@ -4,6 +4,15 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Production guest chat resilience improved:
+  - identified that guest-mode prod asks could blank back to the landing state
+    because the server was hitting `500` during quota settings reads on Fly
+  - hardened `_request_quota_settings()` with a short-lived in-process cache
+    and safe fallback to env defaults when the admin quota singleton lookup is
+    temporarily unavailable
+  - this prevents a transient Neon/Fly latency spike from crashing guest chat
+    and dropping the visible transcript
+
 - Quotas re-enabled by default:
   - switched `DISABLE_ALL_QUOTAS` default posture back to `false`
   - restored normal guest and signed-in quota behavior as the standard runtime
