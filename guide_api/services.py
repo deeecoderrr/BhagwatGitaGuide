@@ -1147,12 +1147,27 @@ def _cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
+def _openai_client() -> OpenAI:
+    """Create an OpenAI client with bounded timeouts to avoid gunicorn worker aborts."""
+    # Keep below gunicorn timeout so we can still fall back gracefully.
+    timeout_seconds = float(getattr(settings, "OPENAI_REQUEST_TIMEOUT_SECONDS", 60))
+    try:
+        return OpenAI(
+            api_key=settings.OPENAI_API_KEY,
+            timeout=timeout_seconds,
+            max_retries=1,
+        )
+    except TypeError:
+        # Older client versions may not accept timeout/max_retries.
+        return OpenAI(api_key=settings.OPENAI_API_KEY)
+
+
 def _build_query_embedding(message: str) -> list[float] | None:
     """Build embedding for user query; return None on any failure."""
     if not settings.OPENAI_API_KEY:
         return None
     try:
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        client = _openai_client()
         response = client.embeddings.create(
             model=settings.OPENAI_EMBEDDING_MODEL,
             input=message,
@@ -2419,7 +2434,7 @@ def _validate_and_correct_verses(
     )
 
     try:
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        client = _openai_client()
         response = client.responses.create(
             model=settings.OPENAI_MODEL,
             input=[{"role": "user", "content": prompt}],
@@ -2665,7 +2680,7 @@ def build_guidance(
     )
 
     try:
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        client = _openai_client()
         response = client.responses.create(
             model=settings.OPENAI_MODEL,
             max_output_tokens=max_output_tokens,
@@ -3058,7 +3073,7 @@ def _refresh_verse_synthesis_embedding(record: VerseSynthesis) -> None:
     if not settings.OPENAI_API_KEY:
         return
     try:
-        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        client = _openai_client()
         response = client.embeddings.create(
             model=settings.OPENAI_EMBEDDING_MODEL,
             input=_verse_synthesis_embedding_text(record),
@@ -3127,7 +3142,7 @@ def get_or_create_verse_synthesis(verse: Verse) -> dict[str, object]:
             f"Verse source material:\n{_verse_synthesis_source_text(verse)}"
         )
         try:
-            client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            client = _openai_client()
             response = client.responses.create(
                 model=settings.OPENAI_MODEL,
                 input=[
