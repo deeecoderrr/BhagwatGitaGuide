@@ -88,6 +88,8 @@ class GuestChatIdentity(models.Model):
     guest_id = models.CharField(max_length=64, unique=True, db_index=True)
     conversations_started = models.PositiveIntegerField(default=0)
     total_asks = models.PositiveIntegerField(default=0)
+    daily_asks_used = models.PositiveIntegerField(default=0)
+    daily_asks_date = models.DateField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_seen_at = models.DateTimeField(auto_now=True)
 

@@ -2851,15 +2851,32 @@ class ChatUIView(View):
             identity.save(update_fields=["last_seen_at"])
         return identity
 
+    @staticmethod
+    def _sync_guest_daily_quota(identity: GuestChatIdentity) -> GuestChatIdentity:
+        """Reset per-day guest usage when the browser returns on a new day."""
+        today = timezone.localdate()
+        if identity.daily_asks_date != today:
+            identity.daily_asks_date = today
+            identity.daily_asks_used = 0
+            identity.save(
+                update_fields=[
+                    "daily_asks_date",
+                    "daily_asks_used",
+                    "last_seen_at",
+                ],
+            )
+        return identity
+
     def _guest_quota_snapshot(self, request) -> dict | None:
         """Summarize guest chat availability for the current browser."""
         identity = self._guest_identity(request)
         if identity is None:
             return None
+        identity = self._sync_guest_daily_quota(identity)
         guest_quota = self._guest_limit_settings()
         limit_enabled = guest_quota["enabled"]
         limit = guest_quota["limit"]
-        used = identity.total_asks
+        used = identity.daily_asks_used
         return {
             "ask_limit": limit,
             "asks_used": used,
@@ -2869,21 +2886,23 @@ class ChatUIView(View):
         }
 
     def _consume_guest_conversation_slot(self, request) -> dict:
-        """Count each guest prompt against the persistent browser cap."""
+        """Count each guest prompt against the browser's daily guest cap."""
         identity = self._guest_identity(request)
         if identity is None:
             return {"allowed": True, "snapshot": None}
+        identity = self._sync_guest_daily_quota(identity)
         guest_quota = self._guest_limit_settings()
         if (
             guest_quota["enabled"]
-            and identity.total_asks >= guest_quota["limit"]
+            and identity.daily_asks_used >= guest_quota["limit"]
         ):
             return {
                 "allowed": False,
                 "snapshot": self._guest_quota_snapshot(request),
             }
-        update_fields = ["last_seen_at", "total_asks"]
+        update_fields = ["last_seen_at", "total_asks", "daily_asks_used"]
         identity.total_asks += 1
+        identity.daily_asks_used += 1
         identity.save(update_fields=update_fields)
         return {
             "allowed": True,

@@ -970,6 +970,56 @@ class GuideApiTests(APITestCase):
             3,
         )
 
+    def test_chat_ui_guest_limit_resets_on_new_day_for_same_browser(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/chat-ui/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        guest_cookie = self.client.cookies["chat_ui_guest_id"].value
+
+        for idx in range(3):
+            response = self.client.post(
+                "/api/chat-ui/",
+                data={
+                    "action": "ask",
+                    "mode": "simple",
+                    "message": f"guest daily reset {idx + 1}",
+                },
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        identity = GuestChatIdentity.objects.get(guest_id=guest_cookie)
+        self.assertEqual(identity.total_asks, 3)
+        self.assertEqual(identity.daily_asks_used, 3)
+
+        yesterday = timezone.localdate() - timedelta(days=1)
+        identity.daily_asks_date = yesterday
+        identity.save(update_fields=["daily_asks_date"])
+
+        reopened = self.client.get("/api/chat-ui/")
+        self.assertEqual(reopened.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            reopened.context["guest_quota_snapshot"]["asks_used"],
+            0,
+        )
+        self.assertEqual(
+            reopened.context["guest_quota_snapshot"]["remaining_asks"],
+            3,
+        )
+
+        next_day_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "guest next day question",
+            },
+        )
+        self.assertEqual(next_day_response.status_code, status.HTTP_200_OK)
+        identity.refresh_from_db()
+        self.assertEqual(identity.total_asks, 4)
+        self.assertEqual(identity.daily_asks_used, 1)
+        self.assertEqual(identity.daily_asks_date, timezone.localdate())
+
     def test_chat_ui_guest_limit_can_be_disabled_from_admin_settings(self):
         self.client.force_authenticate(user=None)
         RequestQuotaSettings.objects.create(

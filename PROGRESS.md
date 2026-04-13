@@ -4,6 +4,18 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Guest quota now resets daily per browser:
+  - root cause was guest mode using `GuestChatIdentity.total_asks` as a
+    lifetime cap, so a guest browser stayed blocked forever after hitting 3 asks
+  - added per-browser daily fields on `GuestChatIdentity`:
+    `daily_asks_used` and `daily_asks_date`
+  - guest quota snapshot and enforcement now reset automatically on a new local
+    day while still preserving `total_asks` for lifetime analytics
+  - same browser can now ask again the next day in guest mode
+  - migration added: `0021_guestchatidentity_daily_asks_date_and_more`
+  - validated with `manage.py migrate`, focused guest reset tests, and full
+    suite: 136 tests passing
+
 - Chat UI membership plan desync after successful payment fixed:
   - root cause was split auth state between Django's authenticated
     `request.user` and the custom `chat_ui_auth_username` session key
