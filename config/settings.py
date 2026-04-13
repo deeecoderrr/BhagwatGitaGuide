@@ -33,6 +33,9 @@ SECRET_KEY = os.getenv(
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
 
+# Used by CanonicalHostRedirectMiddleware (prod only)
+CANONICAL_HOST = os.getenv("CANONICAL_HOST", "askbhagavadgita.co.in").strip()
+
 # Production security settings
 if not DEBUG:
     # Fly terminates TLS at the edge and forwards requests to the app.
@@ -101,6 +104,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'guide_api.middleware.CanonicalHostRedirectMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
