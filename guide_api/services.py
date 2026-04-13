@@ -25,9 +25,9 @@ SUPPORTED_LANGUAGE_CODES = {"en", "hi"}
 VERSE_SYNTHESIS_SCHEMA_VERSION = "v2"
 _verse_quote_cache: dict[str, dict[str, str]] | None = None
 _verse_additional_angle_cache: dict[str, list[dict[str, str]]] | None = None
-_merged_verse_context_cache: dict[str, dict[str, object]] | None = None
+_merged_verse_context_cache: dict[str, dict[str, object]] = {}
 _chapter_summary_cache: dict[int, dict[str, object]] | None = None
-_vedic_slok_cache: dict[str, dict[str, object]] | None = None
+_vedic_slok_cache: dict[str, dict[str, object]] = {}
 
 RISK_KEYWORDS = {
     "suicide",
@@ -1637,122 +1637,106 @@ def _load_additional_angle_cache() -> dict[str, list[dict[str, str]]]:
     return _verse_additional_angle_cache
 
 
-def _load_vedic_slok_cache() -> dict[str, dict[str, object]]:
-    """Load multi-author sloka commentary copied from the Vedic repo."""
-    global _vedic_slok_cache
-    if _vedic_slok_cache is not None:
-        return _vedic_slok_cache
-
-    _vedic_slok_cache = {}
+def _vedic_slok_path_for_reference(reference: str) -> Path:
+    """Return the JSON file path that contains multi-author commentary for a verse."""
     slok_dir = Path(__file__).resolve().parents[1] / "data" / "slok"
-    if not slok_dir.exists():
-        return _vedic_slok_cache
+    chapter, verse = (0, 0)
+    try:
+        chapter_str, verse_str = str(reference).split(".", 1)
+        chapter = int(chapter_str)
+        verse = int(verse_str)
+    except Exception:
+        return slok_dir / "__invalid__.json"
+    return slok_dir / f"bhagavadgita_chapter_{chapter}_slok_{verse}.json"
+
+
+def _load_vedic_slok_row(reference: str) -> dict[str, object]:
+    """Load one verse's Vedic slok JSON (lazy, cached) to avoid large cold-start stalls."""
+    reference = str(reference or "").strip()
+    if not reference:
+        return {}
+    if reference in _vedic_slok_cache:
+        return _vedic_slok_cache[reference]
+
+    path = _vedic_slok_path_for_reference(reference)
+    if not path.exists():
+        _vedic_slok_cache[reference] = {}
+        return {}
 
     commentary_fields = ("et", "ec", "ht", "hc", "sc")
     try:
-        for path in sorted(slok_dir.glob("*.json")):
-            row = json.loads(path.read_text(encoding="utf-8"))
-            chapter = row.get("chapter")
-            verse = row.get("verse")
-            if not chapter or not verse:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        commentaries: list[dict[str, str]] = []
+        for value in raw.values():
+            if not isinstance(value, dict):
                 continue
-            reference = f"{int(chapter)}.{int(verse)}"
-            commentaries: list[dict[str, str]] = []
-            for key, value in row.items():
-                if not isinstance(value, dict):
-                    continue
-                author = str(value.get("author", "")).strip()
-                parts = [
-                    str(value.get(field, "")).strip()
-                    for field in commentary_fields
-                ]
-                parts = [part for part in parts if part]
-                if not author or not parts:
-                    continue
-                commentaries.append(
-                    {
-                        "author": author,
-                        "text": " ".join(parts),
-                    }
-                )
-            _vedic_slok_cache[reference] = {
-                "speaker": str(row.get("speaker", "")).strip(),
-                "slok": str(row.get("slok", "")).strip(),
-                "transliteration": str(row.get("transliteration", "")).strip(),
-                "commentaries": commentaries,
-            }
-    except Exception as exc:
-        logger.warning("Vedic slok cache load failed: %s", exc)
-    return _vedic_slok_cache
+            author = str(value.get("author", "")).strip()
+            parts = [str(value.get(field, "")).strip() for field in commentary_fields]
+            parts = [part for part in parts if part]
+            if not author or not parts:
+                continue
+            commentaries.append({"author": author, "text": " ".join(parts)})
 
-
-def _load_merged_verse_context_cache() -> dict[str, dict[str, object]]:
-    """Merge canonical verse context and additional angles by reference."""
-    global _merged_verse_context_cache
-    if _merged_verse_context_cache is not None:
-        return _merged_verse_context_cache
-
-    quote_cache = _load_verse_quote_cache()
-    additional_cache = _load_additional_angle_cache()
-    vedic_slok_cache = _load_vedic_slok_cache()
-    merged: dict[str, dict[str, object]] = {}
-
-    references = (
-        set(quote_cache.keys())
-        | set(additional_cache.keys())
-        | set(vedic_slok_cache.keys())
-    )
-    for reference in references:
-        quote_row = quote_cache.get(reference, {})
-        angle_rows = additional_cache.get(reference, [])
-        vedic_row = vedic_slok_cache.get(reference, {})
-
-        merged[reference] = {
-            "sanskrit": str(
-                quote_row.get("sanskrit", "") or vedic_row.get("slok", "")
-            ).strip(),
-            "transliteration": str(
-                quote_row.get("transliteration", "")
-                or vedic_row.get("transliteration", "")
-            ).strip(),
-            "hindi": str(quote_row.get("hindi", "")).strip(),
-            "english": str(quote_row.get("english", "")).strip(),
-            "word_meaning": str(quote_row.get("word_meaning", "")).strip(),
-            "angles": angle_rows,
-            "commentaries": list(vedic_row.get("commentaries", [])),
+        row = {
+            "speaker": str(raw.get("speaker", "")).strip(),
+            "slok": str(raw.get("slok", "")).strip(),
+            "transliteration": str(raw.get("transliteration", "")).strip(),
+            "commentaries": commentaries,
         }
-
-        # Fill blanks from additional-angle source when canonical CSV does not
-        # have that specific field populated for the same reference.
-        for angle in angle_rows:
-            if not merged[reference]["sanskrit"]:
-                merged[reference]["sanskrit"] = str(
-                    angle.get("sanskrit", "")
-                ).strip()
-            if not merged[reference]["transliteration"]:
-                merged[reference]["transliteration"] = str(
-                    angle.get("transliteration", "")
-                ).strip()
-            if not merged[reference]["hindi"]:
-                merged[reference]["hindi"] = str(
-                    angle.get("hindi", "")
-                ).strip()
-            if not merged[reference]["english"]:
-                merged[reference]["english"] = str(
-                    angle.get("english", "")
-                ).strip()
-            if not merged[reference]["word_meaning"]:
-                merged[reference]["word_meaning"] = str(
-                    angle.get("word_meaning", "")
-                ).strip()
-
-    _merged_verse_context_cache = merged
-    return _merged_verse_context_cache
+        _vedic_slok_cache[reference] = row
+        return row
+    except Exception as exc:
+        logger.warning("Vedic slok row load failed (%s): %s", reference, exc)
+        _vedic_slok_cache[reference] = {}
+        return {}
 
 
 def _merged_verse_context(reference: str) -> dict[str, object]:
     """Return one merged context payload for a verse reference."""
-    return _load_merged_verse_context_cache().get(reference, {})
+    reference = str(reference or "").strip()
+    if not reference:
+        return {}
+    cached = _merged_verse_context_cache.get(reference)
+    if cached is not None:
+        return cached
+
+    quote_cache = _load_verse_quote_cache()
+    additional_cache = _load_additional_angle_cache()
+    quote_row = quote_cache.get(reference, {})
+    angle_rows = additional_cache.get(reference, [])
+    vedic_row = _load_vedic_slok_row(reference)
+
+    merged: dict[str, object] = {
+        "sanskrit": str(
+            quote_row.get("sanskrit", "") or vedic_row.get("slok", "")
+        ).strip(),
+        "transliteration": str(
+            quote_row.get("transliteration", "")
+            or vedic_row.get("transliteration", "")
+        ).strip(),
+        "hindi": str(quote_row.get("hindi", "")).strip(),
+        "english": str(quote_row.get("english", "")).strip(),
+        "word_meaning": str(quote_row.get("word_meaning", "")).strip(),
+        "angles": angle_rows,
+        "commentaries": list(vedic_row.get("commentaries", [])),
+    }
+
+    # Fill blanks from additional-angle source when canonical CSV does not
+    # have that specific field populated for the same reference.
+    for angle in angle_rows:
+        if not merged["sanskrit"]:
+            merged["sanskrit"] = str(angle.get("sanskrit", "")).strip()
+        if not merged["transliteration"]:
+            merged["transliteration"] = str(angle.get("transliteration", "")).strip()
+        if not merged["hindi"]:
+            merged["hindi"] = str(angle.get("hindi", "")).strip()
+        if not merged["english"]:
+            merged["english"] = str(angle.get("english", "")).strip()
+        if not merged["word_meaning"]:
+            merged["word_meaning"] = str(angle.get("word_meaning", "")).strip()
+
+    _merged_verse_context_cache[reference] = merged
+    return merged
 
 
 def _load_chapter_summary_cache() -> dict[int, dict[str, object]]:
@@ -2829,14 +2813,13 @@ def get_chapter_verses(chapter_number: int) -> list[dict[str, object]]:
     for verse in verses:
         ref = _verse_reference(verse)
         row = _merged_verse_context(ref)
-        vedic = _load_vedic_slok_cache().get(ref, {})
         result.append({
             "reference": ref,
             "chapter": verse.chapter,
             "verse": verse.verse,
-            "slok": str(vedic.get("slok", row.get("sanskrit", ""))).strip(),
+            "slok": str(row.get("sanskrit", "")).strip(),
             "translation": verse.translation,
-            "speaker": str(vedic.get("speaker", "")).strip(),
+            "speaker": "",
         })
     return result
 
@@ -2850,7 +2833,7 @@ def get_verse_detail(chapter: int, verse: int) -> dict[str, object] | None:
 
     ref = _verse_reference(verse_obj)
     row = _merged_verse_context(ref)
-    vedic = _load_vedic_slok_cache().get(ref, {})
+    vedic = _load_vedic_slok_row(ref)
 
     # Build commentaries list from vedic cache
     commentaries = []
@@ -2892,7 +2875,7 @@ def _verse_synthesis_source_text(verse: Verse) -> str:
     """Build stable source text for verse synthesis generation and invalidation."""
     ref = _verse_reference(verse)
     row = _merged_verse_context(ref)
-    vedic = _load_vedic_slok_cache().get(ref, {})
+    vedic = _load_vedic_slok_row(ref)
     commentary_lines = [
         f"{entry.get('author', '').strip()}: {entry.get('text', '').strip()}"
         for entry in _author_commentary_entries(ref)
@@ -3220,7 +3203,7 @@ def get_mantra_for_mood(mood: str, language: str = "en") -> dict[str, object] | 
         return None
 
     row = _merged_verse_context(ref)
-    vedic = _load_vedic_slok_cache().get(ref, {})
+    vedic = _load_vedic_slok_row(ref)
 
     if language == "hi":
         meaning = row.get("hindi", "") or verse_obj.translation
@@ -3321,7 +3304,7 @@ def generate_quote_art_data(
 
     ref = verse_reference
     row = _merged_verse_context(ref)
-    vedic = _load_vedic_slok_cache().get(ref, {})
+    vedic = _load_vedic_slok_row(ref)
 
     # Get quote text
     if custom_quote:
