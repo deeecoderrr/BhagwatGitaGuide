@@ -27,6 +27,13 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
     checkout attempt
   - validated with `manage.py check` and full suite: 130 tests passing
 
+- Production Razorpay build fix completed:
+  - added missing `razorpay` package to `requirements.txt` so Fly production
+    installs the SDK during deploy
+  - `CreateOrderView` now returns a clean `503` JSON error if the payment SDK is
+    missing instead of crashing with an HTML 500
+  - validated with `manage.py check` and full suite: 133 tests passing
+
 - Unified quota control in admin (single place) completed:
   - extended `RequestQuotaSettings` singleton to manage all quota knobs:
     - guest: enabled + ask limit

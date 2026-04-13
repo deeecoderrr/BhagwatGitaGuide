@@ -10,3 +10,4 @@ openpyxl
 gunicorn
 dj-database-url
 whitenoise
+razorpay

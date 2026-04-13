@@ -236,6 +236,12 @@ Related payment inspection endpoints:
   - returns paginated `BillingRecord` rows for the authenticated user
   - useful for account screens, support, and payment-history UI
 
+Deployment note:
+
+- Fly installs dependencies from `requirements.txt`, so any payment SDK/runtime
+  package must be present there even if it already exists in
+  `requirements.lock.txt`.
+
 ### `POST /api/analytics/events/`
 
 1. `guide_api/urls.py` -> `AnalyticsEventIngestView`

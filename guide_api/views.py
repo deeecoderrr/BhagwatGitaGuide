@@ -4689,7 +4689,13 @@ class CreateOrderView(APIView):
     authentication_classes = [CsrfExemptSessionAuth]
 
     def post(self, request) -> Response:
-        import razorpay
+        try:
+            import razorpay
+        except ModuleNotFoundError:
+            return Response(
+                {"error": "Payment SDK not available on server"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
 
         # Get user - first try DRF auth, then session lookup
         user = None
