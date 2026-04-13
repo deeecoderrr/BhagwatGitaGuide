@@ -119,6 +119,10 @@ Ask responses now include quota fields (`plan`, `daily_limit`,
 If your plan limit is reached, `/api/ask/` returns `429` with an
 upgrade/try-tomorrow message.
 
+If the operator has temporarily enabled the global quota-off switch, these
+quota fields may return `null` and chat will continue without daily/monthly
+blocking for both guests and signed-in users.
+
 To test a plan change quickly:
 
 ```json

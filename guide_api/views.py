@@ -1037,6 +1037,8 @@ def _monthly_deep_ask_count(user) -> int:
 
 def _plan_daily_limit(plan: str) -> int | None:
     """Resolve daily ask limit from admin settings, then env defaults."""
+    if settings.DISABLE_ALL_QUOTAS:
+        return None
     quota_settings = _request_quota_settings()
     if plan == UserSubscription.PLAN_PRO:
         if quota_settings:
@@ -1080,6 +1082,8 @@ def _plan_max_context_verses(plan: str, mode: str) -> int:
 
 def _plan_monthly_limit(plan: str) -> int | None:
     """Return monthly ask quota for the selected plan."""
+    if settings.DISABLE_ALL_QUOTAS:
+        return None
     quota_settings = _request_quota_settings()
     if quota_settings:
         if plan == UserSubscription.PLAN_FREE:
@@ -1110,6 +1114,8 @@ def _plan_deep_mode_allowed(plan: str) -> bool:
 
 def _plan_deep_monthly_limit(plan: str) -> int | None:
     """Return deep-mode monthly cap for the selected plan."""
+    if settings.DISABLE_ALL_QUOTAS:
+        return None
     quota_settings = _request_quota_settings()
     if quota_settings:
         if plan == UserSubscription.PLAN_PLUS:
@@ -2706,6 +2712,11 @@ class ChatUIView(View):
     @staticmethod
     def _guest_limit_settings() -> dict:
         """Resolve guest quota switches and limits from admin settings."""
+        if settings.DISABLE_ALL_QUOTAS:
+            return {
+                "enabled": False,
+                "limit": 0,
+            }
         quota_settings = _request_quota_settings()
         if quota_settings:
             return {

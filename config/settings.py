@@ -233,6 +233,10 @@ PGVECTOR_EMBEDDING_DIM = int(
 PGVECTOR_PROBES = int(
     os.getenv("PGVECTOR_PROBES", "10"),
 )
+DISABLE_ALL_QUOTAS = os.getenv(
+    "DISABLE_ALL_QUOTAS",
+    "true",
+).lower() == "true"
 ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "3"))
 ASK_LIMIT_PLUS_DAILY = int(os.getenv("ASK_LIMIT_PLUS_DAILY", "0"))
 ASK_LIMIT_PRO_DAILY = int(os.getenv("ASK_LIMIT_PRO_DAILY", "0"))
@@ -255,14 +259,14 @@ ASK_LIMIT_PRO_DEEP_MONTHLY = int(
 )
 
 # Per-plan LLM output token caps (controls cost per ask)
-MAX_OUTPUT_TOKENS_FREE = int(os.getenv("MAX_OUTPUT_TOKENS_FREE", "350"))
-MAX_OUTPUT_TOKENS_PLUS = int(os.getenv("MAX_OUTPUT_TOKENS_PLUS", "550"))
-MAX_OUTPUT_TOKENS_PRO = int(os.getenv("MAX_OUTPUT_TOKENS_PRO", "800"))
+MAX_OUTPUT_TOKENS_FREE = int(os.getenv("MAX_OUTPUT_TOKENS_FREE", "500"))
+MAX_OUTPUT_TOKENS_PLUS = int(os.getenv("MAX_OUTPUT_TOKENS_PLUS", "800"))
+MAX_OUTPUT_TOKENS_PRO = int(os.getenv("MAX_OUTPUT_TOKENS_PRO", "1200"))
 
 # Per-plan retrieval context verse limits
-MAX_CONTEXT_VERSES_FREE = int(os.getenv("MAX_CONTEXT_VERSES_FREE", "2"))
-MAX_CONTEXT_VERSES_PLUS = int(os.getenv("MAX_CONTEXT_VERSES_PLUS", "3"))
-MAX_CONTEXT_VERSES_PRO = int(os.getenv("MAX_CONTEXT_VERSES_PRO", "4"))
+MAX_CONTEXT_VERSES_FREE = int(os.getenv("MAX_CONTEXT_VERSES_FREE", "3"))
+MAX_CONTEXT_VERSES_PLUS = int(os.getenv("MAX_CONTEXT_VERSES_PLUS", "5"))
+MAX_CONTEXT_VERSES_PRO = int(os.getenv("MAX_CONTEXT_VERSES_PRO", "6"))
 
 # Hard caps to limit runaway LLM cost
 MAX_ASK_INPUT_CHARS = int(os.getenv("MAX_ASK_INPUT_CHARS", "2200"))

@@ -119,6 +119,17 @@ Use this map to understand the exact call chain for each endpoint.
 9. Serialize verses with `VerseSerializer`
 10. Return API payload (plus debug retrieval fields when `DEBUG=true`).
 
+### Temporary global quota switch
+
+- `DISABLE_ALL_QUOTAS=true` disables all guest and signed-in ask caps without
+  changing plan records or payment logic.
+- When enabled:
+  - guest ask limits are treated as unlimited
+  - signed-in daily/monthly/deep caps return `None`
+  - quota UI should render as unlimited rather than blocked
+- Quota-specific tests must explicitly run with
+  `DISABLE_ALL_QUOTAS=False` when they are validating enforcement behavior.
+
 ### `POST /api/eval/retrieval/`
 
 1. `guide_api/urls.py` -> `RetrievalEvalView`

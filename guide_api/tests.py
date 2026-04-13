@@ -31,7 +31,11 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 
-@override_settings(DEBUG=True, OPENAI_API_KEY="")
+@override_settings(
+    DEBUG=True,
+    OPENAI_API_KEY="",
+    DISABLE_ALL_QUOTAS=False,
+)
 class GuideApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -292,6 +296,20 @@ class GuideApiTests(APITestCase):
             ).count(),
             1,
         )
+
+    @override_settings(DISABLE_ALL_QUOTAS=True, ASK_LIMIT_FREE_DAILY=1)
+    def test_ask_endpoint_ignores_limits_when_global_quota_switch_is_off(self):
+        payload = {
+            "message": "I feel anxious about my career growth.",
+            "mode": "simple",
+        }
+        first = self.client.post("/api/ask/", payload, format="json")
+        second = self.client.post("/api/ask/", payload, format="json")
+
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        self.assertIsNone(second.data["daily_limit"])
+        self.assertIsNone(second.data["remaining_today"])
 
     @override_settings(ASK_LIMIT_FREE_DAILY=2, ASK_LIMIT_PRO_DAILY=5)
     def test_ask_endpoint_pro_plan_gets_higher_daily_limit(self):
@@ -1037,6 +1055,25 @@ class GuideApiTests(APITestCase):
                 },
             )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    @override_settings(DISABLE_ALL_QUOTAS=True)
+    def test_chat_ui_guest_limit_is_disabled_by_global_quota_switch(self):
+        self.client.force_authenticate(user=None)
+
+        for idx in range(5):
+            response = self.client.post(
+                "/api/chat-ui/",
+                data={
+                    "action": "ask",
+                    "mode": "simple",
+                    "message": f"guest quota off {idx + 1}",
+                },
+            )
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        landing = self.client.get("/api/chat-ui/")
+        self.assertFalse(landing.context["guest_quota_snapshot"]["limit_enabled"])
+        self.assertIsNone(landing.context["guest_quota_snapshot"]["remaining_asks"])
 
         blocked = self.client.post(
             "/api/chat-ui/",

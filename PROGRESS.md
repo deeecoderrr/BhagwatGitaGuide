@@ -4,6 +4,27 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Global quota switch-off added:
+  - introduced `DISABLE_ALL_QUOTAS` setting so guest and signed-in ask caps can
+    be disabled cleanly without rewriting individual limit values
+  - when enabled, guest ask caps are off and plan daily/monthly/deep monthly
+    quota enforcement returns unlimited
+  - this leaves the rest of the product intact while temporarily removing quota
+    friction
+
+- Response quality defaults rebalanced upward:
+  - increased per-plan LLM output caps to improve answer completeness:
+    - Free: 500
+    - Plus: 800
+    - Pro: 1200
+  - increased per-plan retrieval context verse caps so the model sees more
+    relevant material before generating:
+    - Free: 3
+    - Plus: 5
+    - Pro: 6
+  - quota and monetization rules remain unchanged; only quality-oriented
+    generation defaults were relaxed
+
 - Guest quota now resets daily per browser:
   - root cause was guest mode using `GuestChatIdentity.total_asks` as a
     lifetime cap, so a guest browser stayed blocked forever after hitting 3 asks
