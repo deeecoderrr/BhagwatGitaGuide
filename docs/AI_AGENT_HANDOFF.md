@@ -171,5 +171,6 @@ Deployment/ops snapshot:
 *Last aligned with repo state: 2026-04-12 (commit `40852d4`). Regenerate or edit this file when major architecture or endpoints change.*
 
 Current operational note:
-- the app now supports `DISABLE_ALL_QUOTAS=true` as a temporary operator switch
-  to remove guest and signed-in ask caps without changing plan/payment code
+- the app supports `DISABLE_ALL_QUOTAS=true` as a temporary operator switch to
+  remove guest and signed-in ask caps without changing plan/payment code
+- normal default posture is quota-on (`DISABLE_ALL_QUOTAS=false`)

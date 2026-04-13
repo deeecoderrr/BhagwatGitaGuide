@@ -235,7 +235,7 @@ PGVECTOR_PROBES = int(
 )
 DISABLE_ALL_QUOTAS = os.getenv(
     "DISABLE_ALL_QUOTAS",
-    "true",
+    "false",
 ).lower() == "true"
 ASK_LIMIT_FREE_DAILY = int(os.getenv("ASK_LIMIT_FREE_DAILY", "3"))
 ASK_LIMIT_PLUS_DAILY = int(os.getenv("ASK_LIMIT_PLUS_DAILY", "0"))

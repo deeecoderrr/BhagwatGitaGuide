@@ -4,6 +4,13 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Quotas re-enabled by default:
+  - switched `DISABLE_ALL_QUOTAS` default posture back to `false`
+  - restored normal guest and signed-in quota behavior as the standard runtime
+    mode
+  - kept the global quota-off switch available for temporary operational use
+    when needed
+
 - Global quota switch-off added:
   - introduced `DISABLE_ALL_QUOTAS` setting so guest and signed-in ask caps can
     be disabled cleanly without rewriting individual limit values

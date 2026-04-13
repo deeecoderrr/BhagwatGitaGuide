@@ -121,8 +121,9 @@ Use this map to understand the exact call chain for each endpoint.
 
 ### Temporary global quota switch
 
-- `DISABLE_ALL_QUOTAS=true` disables all guest and signed-in ask caps without
-  changing plan records or payment logic.
+- normal runtime should keep `DISABLE_ALL_QUOTAS=false`
+- setting `DISABLE_ALL_QUOTAS=true` disables all guest and signed-in ask caps
+  without changing plan records or payment logic
 - When enabled:
   - guest ask limits are treated as unlimited
   - signed-in daily/monthly/deep caps return `None`
