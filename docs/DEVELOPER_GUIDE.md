@@ -212,12 +212,15 @@ Use this map to understand the exact call chain for each endpoint.
 The Razorpay checkout path now keeps one export-friendly billing row per order:
 
 1. `POST /api/payments/create-order/`
-   - resolves authenticated user
+   - resolves the active chat-ui user
+   - if `chat_ui_auth_username` exists in session, that identity wins over any
+     stale Django-authenticated browser user
    - normalizes plan + currency
    - captures billing fields from request payload
    - creates Razorpay order
    - upserts a single `BillingRecord` row keyed by `razorpay_order_id`
 2. `POST /api/payments/verify/`
+   - resolves the same active chat-ui user identity
    - verifies signature
    - activates subscription
    - updates the same `BillingRecord` row to `verified`

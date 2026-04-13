@@ -4,6 +4,25 @@ Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
 
 ## Completed
 
+- Chat UI membership plan desync after successful payment fixed:
+  - root cause was split auth state between Django's authenticated
+    `request.user` and the custom `chat_ui_auth_username` session key
+  - this could show a verified PLUS/PRO billing record while the sidebar plan
+    card still rendered `Free`
+  - chat-ui now resolves one effective user for quota, plan, and billing
+    context: explicit `chat_ui_auth_username` wins, and Django `request.user`
+    is used only as a fallback
+  - chat-ui register/login now also call Django `login()` so browser auth state
+    and chat-ui session state stay aligned
+  - chat-ui logout now calls Django `logout()` in addition to clearing the
+    custom session keys
+  - added regression test covering an authenticated browser session without the
+    custom chat-ui session username to ensure paid plan context still renders
+  - added regression coverage for the exact stale-browser-user case where
+    payment APIs must prefer `chat_ui_auth_username` over an older Django
+    authenticated user
+  - validated with `manage.py check` and full suite: 135 tests passing
+
 - Billing ledger for Tally/invoice export completed:
   - added `BillingRecord` model as a single invoice-ready row per Razorpay
     order/payment

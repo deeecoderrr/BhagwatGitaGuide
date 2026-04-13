@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from decimal import Decimal
 from tempfile import NamedTemporaryFile
 
 from django.contrib.auth.models import User
@@ -698,6 +699,44 @@ class GuideApiTests(APITestCase):
         )
         self.assertContains(login_response, "Conversations")
         self.assertNotContains(login_response, "Other user's thread")
+
+    def test_chat_ui_uses_authenticated_request_user_for_paid_plan_context(self):
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PLUS,
+            is_active=True,
+            subscription_end_date=timezone.now() + timedelta(days=30),
+        )
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_PLUS,
+            payment_status=BillingRecord.STATUS_VERIFIED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Demo User",
+            billing_email="demo@example.com",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency=UserSubscription.CURRENCY_INR,
+            amount_minor=19900,
+            amount_major=Decimal("199.00"),
+            razorpay_order_id="order_paid_chatui",
+            razorpay_payment_id="pay_paid_chatui",
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get("/api/chat-ui/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.context["selected_plan"], UserSubscription.PLAN_PLUS)
+        self.assertEqual(
+            response.context["quota_snapshot"]["plan"],
+            UserSubscription.PLAN_PLUS,
+        )
+        self.assertEqual(
+            response.context["latest_billing_record"].plan,
+            UserSubscription.PLAN_PLUS,
+        )
 
     def test_chat_ui_renders_structured_response_sections(self):
         self.client.force_authenticate(user=None)
@@ -2776,6 +2815,68 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["user_email"], "paymentuser@test.com")
         self.assertEqual(response.data["user_name"], "payment-user")
+
+    def test_payment_endpoints_prefer_chat_ui_session_user_over_stale_request_user(self):
+        """Payment/session APIs should follow the visible chat-ui user account."""
+        from unittest.mock import patch, MagicMock
+
+        admin_user = User.objects.create_user(
+            username="admin",
+            password="admin-pass-123",
+            email="admin@example.com",
+        )
+        UserSubscription.objects.create(
+            user=admin_user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        test_subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PLUS,
+            is_active=True,
+            subscription_end_date=timezone.now() + timedelta(days=30),
+        )
+
+        self.client.force_authenticate(user=admin_user)
+        session = self.client.session
+        session["chat_ui_auth_username"] = self.user.username
+        session.save()
+
+        status_response = self.client.get("/api/subscription/status/")
+        self.assertEqual(status_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(status_response.data["plan"], UserSubscription.PLAN_PLUS)
+
+        mock_order_response = {
+            "id": "order_session_priority",
+            "entity": "order",
+            "amount": 19900,
+            "currency": "INR",
+        }
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order_response
+
+            create_response = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR", "plan": "plus"},
+                format="json",
+            )
+
+        self.assertEqual(create_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(create_response.data["user_email"], self.user.email)
+        self.assertEqual(
+            create_response.data["user_name"],
+            self.user.get_full_name() or self.user.username,
+        )
+        test_subscription.refresh_from_db()
+        self.assertEqual(
+            test_subscription.razorpay_order_id,
+            mock_order_response["id"],
+        )
+        self.assertEqual(test_subscription.payment_currency, "INR")
+        self.assertFalse(
+            UserSubscription.objects.get(user=admin_user).razorpay_order_id,
+        )
 
     def test_payment_flow_end_to_end(self):
         """Test complete payment flow from order creation to subscription activation."""

@@ -10,7 +10,12 @@ from types import SimpleNamespace
 from urllib.parse import quote_plus
 from uuid import uuid4
 
-from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth import (
+    authenticate,
+    get_user_model,
+    login as auth_login,
+    logout as auth_logout,
+)
 from django.conf import settings
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
@@ -2761,11 +2766,7 @@ class ChatUIView(View):
             request,
             requested_currency=billing_currency,
         )
-        billing_user = (
-            request.user
-            if request.user and request.user.is_authenticated
-            else None
-        )
+        billing_user = self._chat_ui_authenticated_user(request)
         context.setdefault(
             "billing_name_default",
             (
@@ -4331,6 +4332,7 @@ class ChatUIView(View):
             username=username,
             password=password,
         )
+        auth_login(request, user)
         token, _ = Token.objects.get_or_create(user=user)
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
@@ -4398,6 +4400,7 @@ class ChatUIView(View):
                     "follow_up_prompts": [],
                 },
             )
+        auth_login(request, user)
         token, _ = Token.objects.get_or_create(user=user)
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
@@ -4442,6 +4445,7 @@ class ChatUIView(View):
         token_key = request.session.get("chat_ui_auth_token")
         if token_key:
             Token.objects.filter(key=token_key).delete()
+        auth_logout(request)
         request.session.pop("chat_ui_auth_username", None)
         request.session.pop("chat_ui_auth_token", None)
         self._clear_guest_conversation(request)
@@ -4469,7 +4473,14 @@ class ChatUIView(View):
     @staticmethod
     def _default_user_id(request) -> str:
         """Resolve default chat-ui user from session fallback."""
-        return str(request.session.get("chat_ui_auth_username", "guest"))
+        session_username = str(
+            request.session.get("chat_ui_auth_username", ""),
+        ).strip()
+        if session_username:
+            return session_username
+        if request.user and request.user.is_authenticated:
+            return request.user.get_username()
+        return "guest"
 
     @staticmethod
     def _chat_ui_mode(value: str) -> str:
@@ -4484,7 +4495,25 @@ class ChatUIView(View):
     @staticmethod
     def _chat_ui_authenticated_username(request) -> str:
         """Return the logged-in chat-ui username, or blank for guest mode."""
-        return str(request.session.get("chat_ui_auth_username", "")).strip()
+        session_username = str(
+            request.session.get("chat_ui_auth_username", ""),
+        ).strip()
+        if session_username:
+            return session_username
+        if request.user and request.user.is_authenticated:
+            return request.user.get_username()
+        return ""
+
+    @staticmethod
+    def _chat_ui_authenticated_user(request):
+        """Return the authenticated Django user, or a session-mapped fallback."""
+        username = str(request.session.get("chat_ui_auth_username", "")).strip()
+        user_model = get_user_model()
+        if username:
+            return user_model.objects.filter(username=username).first()
+        if request.user and request.user.is_authenticated:
+            return request.user
+        return None
 
     @staticmethod
     def _guest_conversation_messages(request) -> list[dict]:
@@ -4580,13 +4609,14 @@ class ChatUIView(View):
 
 
 def _get_user_from_session(request):
-    """Get authenticated user from session token (for chat-ui auth)."""
+    """Resolve active chat-ui user, preferring explicit chat-ui session identity."""
     # In DRF APIView, access session from the underlying Django request
-    session = getattr(request, 'session', None)
+    session = getattr(request, "session", None)
     if session is None:
-        session = getattr(request, '_request', request).session
+        session = getattr(request, "_request", request).session
 
-    # First try by username (more reliable)
+    # Prefer the explicit chat-ui username when present so billing and
+    # subscription actions affect the same account visible in the web UI.
     username = session.get("chat_ui_auth_username")
     if username:
         User = get_user_model()
@@ -4595,8 +4625,17 @@ def _get_user_from_session(request):
         except User.DoesNotExist:
             pass
 
-    # Fallback to token
-        return None
+    django_request = getattr(request, "_request", request)
+    if getattr(django_request, "user", None) and django_request.user.is_authenticated:
+        return django_request.user
+
+    token_key = session.get("chat_ui_auth_token")
+    if token_key:
+        try:
+            return Token.objects.select_related("user").get(key=token_key).user
+        except Token.DoesNotExist:
+            return None
+    return None
 
 
 class CsrfExemptSessionAuth(SessionAuthentication):
@@ -4698,11 +4737,7 @@ class CreateOrderView(APIView):
             )
 
         # Get user - first try DRF auth, then session lookup
-        user = None
-        if request.user and request.user.is_authenticated:
-            user = request.user
-        else:
-            user = _get_user_from_session(request)
+        user = _get_user_from_session(request)
 
         if not user:
             return Response(
@@ -4809,12 +4844,7 @@ class VerifyPaymentView(APIView):
         import hmac
         import hashlib
 
-        # Get user - first try DRF auth, then session lookup
-        user = None
-        if request.user and request.user.is_authenticated:
-            user = request.user
-        else:
-            user = _get_user_from_session(request)
+        user = _get_user_from_session(request)
 
         if not user:
             return Response(
@@ -5075,12 +5105,7 @@ class SubscriptionStatusView(APIView):
     authentication_classes = [CsrfExemptSessionAuth]
 
     def get(self, request) -> Response:
-        # Get user - first try DRF auth, then session lookup
-        user = None
-        if request.user and request.user.is_authenticated:
-            user = request.user
-        else:
-            user = _get_user_from_session(request)
+        user = _get_user_from_session(request)
 
         if not user:
             return Response(
@@ -5145,11 +5170,7 @@ class PaymentHistoryView(APIView):
     authentication_classes = [CsrfExemptSessionAuth]
 
     def get(self, request) -> Response:
-        user = None
-        if request.user and request.user.is_authenticated:
-            user = request.user
-        else:
-            user = _get_user_from_session(request)
+        user = _get_user_from_session(request)
 
         if not user:
             return Response(
