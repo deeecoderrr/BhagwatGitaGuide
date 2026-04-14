@@ -88,6 +88,7 @@ class GuideApiTests(APITestCase):
         body = response.content.decode()
         self.assertIn("<urlset", body)
         self.assertIn("/bhagavad-gita-for-anxiety/", body)
+        self.assertIn("/bhagavad-gita-for-purpose/", body)
         self.assertIn("/api/chat-ui/", body)
 
     def test_public_seo_topic_page_loads(self):
@@ -172,6 +173,9 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, 'name="keywords"')
         self.assertContains(response, "Gita GPT")
         self.assertContains(response, '"@type": "FAQPage"')
+        self.assertContains(response, "Most Searched Bhagavad Gita Verses")
+        self.assertContains(response, "2.47")
+        self.assertContains(response, '"@type": "ItemList"')
 
     def test_public_seo_topic_includes_canonical_and_json_ld(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
@@ -180,6 +184,12 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, 'application/ld+json')
         self.assertContains(response, 'BreadcrumbList')
         self.assertContains(response, 'name="keywords"')
+
+    def test_new_public_seo_topic_page_loads(self):
+        response = self.client.get("/bhagavad-gita-for-purpose/?language=hi")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "उद्देश्य और अर्थ के लिए भगवद गीता")
+        self.assertContains(response, "प्रासंगिक भगवद गीता श्लोक")
 
     @override_settings(GOOGLE_SITE_VERIFICATION="token-abc-123")
     def test_public_seo_page_renders_google_verification_meta(self):

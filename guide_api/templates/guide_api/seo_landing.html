@@ -212,6 +212,12 @@
       gap: 14px;
       margin-top: 18px;
     }
+    .verse-spotlight-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-top: 18px;
+    }
     .verse-card {
       border-radius: 20px;
       border: 1px solid var(--border);
@@ -392,6 +398,32 @@
           <div class="intent-strip">{{ search_intent_copy }}</div>
         {% endif %}
       </section>
+      {% if popular_verse_cards %}
+        <section class="panel">
+          <h2 class="section-title">{% if language == "hi" %}सबसे अधिक खोजे जाने वाले भगवद गीता श्लोक{% else %}Most Searched Bhagavad Gita Verses{% endif %}</h2>
+          <p class="hint">
+            {% if language == "hi" %}
+              ये वे प्रसिद्ध श्लोक हैं जिन्हें लोग सबसे अधिक खोजते हैं। हर कार्ड आपको सीधे पूरे ऐप में ले जाता है जहाँ उसी श्लोक को आपकी स्थिति से जोड़कर समझाया जा सकता है।
+            {% else %}
+              These are some of the Bhagavad Gita verses people search most often. Each card takes you into the full app with a ready-made prompt so the verse can be explained for your exact situation.
+            {% endif %}
+          </p>
+          <div class="verse-spotlight-grid">
+            {% for verse in popular_verse_cards %}
+              <div class="verse-card">
+                <div class="verse-ref">{{ verse.reference }} · {{ verse.label }}</div>
+                <div class="body-copy">{{ verse.summary }}</div>
+                <div class="footnote">{% if language == "hi" %}लोग इसे क्यों खोजते हैं{% else %}Why people search it{% endif %}: {{ verse.search_intent }}</div>
+                <div class="hero-actions">
+                  <a class="btn btn-secondary" href="{{ verse.chat_url_with_prefill }}">
+                    {% if language == "hi" %}इस श्लोक को समझें{% else %}Explore This Verse{% endif %}
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
     {% else %}
       <div class="grid">
         <section class="panel">

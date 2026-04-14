@@ -673,6 +673,266 @@ SEO_LANDING_PAGES = {
             },
         ],
     },
+    "fear_of_failure": {
+        "slug": "bhagavad-gita-for-fear-of-failure",
+        "topic_label": "Fear of Failure",
+        "topic_label_hi": "असफलता का भय",
+        "title": "Bhagavad Gita for Fear of Failure | Guidance for Results, Courage, and Steady Action",
+        "title_hi": "असफलता के भय के लिए भगवद गीता | परिणाम, साहस और स्थिर कर्म के लिए मार्गदर्शन",
+        "description": (
+            "Find Bhagavad Gita guidance for fear of failure, pressure, and self-doubt with relevant verses and practical meaning."
+        ),
+        "description_hi": (
+            "असफलता के भय, दबाव और आत्म-संदेह के लिए प्रासंगिक श्लोकों और व्यावहारिक अर्थ के साथ भगवद गीता मार्गदर्शन पाएँ।"
+        ),
+        "hero_title": "Bhagavad Gita For Fear Of Failure",
+        "hero_title_hi": "असफलता के भय के लिए भगवद गीता",
+        "hero_body": (
+            "When the mind becomes trapped in 'what if I fail?', the Gita shifts attention from imagined defeat "
+            "to sincere action. These verses help you work with more courage and less paralysis."
+        ),
+        "hero_body_hi": (
+            "जब मन 'अगर मैं असफल हो गया तो?' में फँस जाता है, तब गीता कल्पित हार से ध्यान हटाकर ईमानदार कर्म पर लाती है। "
+            "ये श्लोक अधिक साहस और कम जड़ता के साथ काम करने में मदद करते हैं।"
+        ),
+        "problem_points": [
+            "avoiding action because the result feels scary",
+            "self-worth tied too closely to success",
+            "pressure, comparison, and paralysis",
+        ],
+        "problem_points_hi": [
+            "परिणाम के डर से कर्म टालना",
+            "सफलता से आत्म-मूल्य को जोड़ देना",
+            "दबाव, तुलना और जड़ता",
+        ],
+        "verse_refs": ["2.47", "2.48", "18.66"],
+        "starter_question": "I am afraid of failing and that fear is stopping me from acting. What does the Gita teach?",
+        "starter_question_hi": "मुझे असफलता का बहुत भय है और वही मुझे कदम उठाने से रोक रहा है। गीता क्या सिखाती है?",
+        "faq": [
+            {
+                "question": "What does the Bhagavad Gita say about the fear of failure?",
+                "answer": (
+                    "The Gita repeatedly turns the seeker away from obsession with outcomes and toward right action. "
+                    "Chapter 2 verse 47 is central here: your responsibility is action, not guaranteed success. "
+                    "That insight weakens fear because identity is no longer fused with the result."
+                ),
+            },
+            {
+                "question": "Which Bhagavad Gita verse helps when fear stops you from trying?",
+                "answer": (
+                    "Chapter 2 verse 48 is especially relevant because Krishna asks Arjuna to act from equanimity, "
+                    "not from panic. When effort is rooted in steadiness rather than fear, action becomes possible again."
+                ),
+            },
+        ],
+    },
+    "purpose": {
+        "slug": "bhagavad-gita-for-purpose",
+        "topic_label": "Purpose",
+        "topic_label_hi": "उद्देश्य",
+        "title": "Bhagavad Gita for Purpose | Guidance for Meaning, Dharma, and Direction",
+        "title_hi": "उद्देश्य के लिए भगवद गीता | अर्थ, धर्म और दिशा के लिए मार्गदर्शन",
+        "description": (
+            "Explore Bhagavad Gita guidance for purpose, meaning, and dharma with verses that help you find direction."
+        ),
+        "description_hi": (
+            "अर्थ, उद्देश्य और धर्म के लिए दिशा देने वाले श्लोकों के साथ भगवद गीता मार्गदर्शन देखें।"
+        ),
+        "hero_title": "Bhagavad Gita For Purpose And Meaning",
+        "hero_title_hi": "उद्देश्य और अर्थ के लिए भगवद गीता",
+        "hero_body": (
+            "When life feels directionless, the Gita does not offer a motivational slogan. It asks deeper questions "
+            "about dharma, nature, duty, and what kind of life is truly yours to live."
+        ),
+        "hero_body_hi": (
+            "जब जीवन दिशाहीन लगे, गीता केवल प्रेरक वाक्य नहीं देती। वह धर्म, स्वभाव, कर्तव्य और उस जीवन के बारे में "
+            "गहरे प्रश्न पूछती है जो वास्तव में आपका अपना है।"
+        ),
+        "problem_points": [
+            "feeling directionless despite effort",
+            "wanting meaning beyond external success",
+            "confusion about your true path",
+        ],
+        "problem_points_hi": [
+            "प्रयास के बावजूद दिशाहीनता महसूस होना",
+            "बाहरी सफलता से आगे अर्थ की तलाश",
+            "अपने सच्चे मार्ग को लेकर उलझन",
+        ],
+        "verse_refs": ["3.35", "18.47", "18.46"],
+        "starter_question": "I feel lost and purposeless. How can the Bhagavad Gita help me find direction?",
+        "starter_question_hi": "मैं खोया हुआ और उद्देश्यहीन महसूस करता हूँ। भगवद गीता मुझे दिशा कैसे दे सकती है?",
+        "faq": [
+            {
+                "question": "Does the Bhagavad Gita help people find purpose?",
+                "answer": (
+                    "Yes. The Gita frames purpose in terms of dharma, nature, and sincere action rather than public image. "
+                    "Its guidance is not to copy someone else's path, but to discover and live your own."
+                ),
+            },
+            {
+                "question": "Which Bhagavad Gita verses are most useful for purpose and meaning?",
+                "answer": (
+                    "Chapter 3 verse 35 and Chapter 18 verse 47 are foundational because they emphasize one's own dharma. "
+                    "Chapter 18 verse 46 adds that your work can become a path of worship when aligned with truth and sincerity."
+                ),
+            },
+        ],
+    },
+    "discipline": {
+        "slug": "bhagavad-gita-for-discipline",
+        "topic_label": "Discipline",
+        "topic_label_hi": "अनुशासन",
+        "title": "Bhagavad Gita for Discipline | Guidance for Consistency, Self Control, and Practice",
+        "title_hi": "अनुशासन के लिए भगवद गीता | निरंतरता, आत्म-नियंत्रण और अभ्यास के लिए मार्गदर्शन",
+        "description": (
+            "Get Bhagavad Gita guidance for discipline, consistency, and self-control with verses for practice and inner mastery."
+        ),
+        "description_hi": (
+            "अनुशासन, निरंतरता और आत्म-नियंत्रण के लिए अभ्यास और आंतरिक mastery वाले श्लोकों सहित भगवद गीता मार्गदर्शन पाएँ।"
+        ),
+        "hero_title": "Bhagavad Gita For Discipline And Self-Mastery",
+        "hero_title_hi": "अनुशासन और आत्म-नियंत्रण के लिए भगवद गीता",
+        "hero_body": (
+            "The Gita treats discipline as inner governance, not punishment. These verses help when you want consistency, "
+            "better habits, and the strength to stop undermining yourself."
+        ),
+        "hero_body_hi": (
+            "गीता अनुशासन को दंड नहीं, बल्कि भीतर के शासन के रूप में देखती है। ये श्लोक तब मदद करते हैं जब आप निरंतरता, "
+            "बेहतर आदतें और स्वयं को कमज़ोर करने की प्रवृत्ति से ऊपर उठना चाहते हैं।"
+        ),
+        "problem_points": [
+            "starting strong but not staying consistent",
+            "fighting distraction and lack of self-control",
+            "wanting stronger habits and inner order",
+        ],
+        "problem_points_hi": [
+            "शुरू तो करना पर निरंतर न रह पाना",
+            "विचलन और आत्म-नियंत्रण की कमी से संघर्ष",
+            "मजबूत आदतें और भीतर का अनुशासन चाहना",
+        ],
+        "verse_refs": ["6.5", "6.26", "3.30"],
+        "starter_question": "I keep losing discipline and slipping back into bad habits. What does the Gita say?",
+        "starter_question_hi": "मैं बार-बार अनुशासन खो देता हूँ और बुरी आदतों में लौट जाता हूँ। गीता क्या कहती है?",
+        "faq": [
+            {
+                "question": "Which Bhagavad Gita verse helps with self-discipline?",
+                "answer": (
+                    "Chapter 6 verse 5 is central because it tells the seeker to raise themselves by themselves. "
+                    "It frames discipline as inner responsibility rather than external pressure."
+                ),
+            },
+            {
+                "question": "What does Krishna teach about controlling the mind?",
+                "answer": (
+                    "Chapter 6 explains that the mind wanders, but it can be repeatedly brought back through practice and detachment. "
+                    "That makes discipline a returning process, not a perfection test."
+                ),
+            },
+        ],
+    },
+    "stress": {
+        "slug": "bhagavad-gita-for-stress",
+        "topic_label": "Stress",
+        "topic_label_hi": "तनाव",
+        "title": "Bhagavad Gita for Stress | Guidance for Calm, Pressure, and Mental Balance",
+        "title_hi": "तनाव के लिए भगवद गीता | शांति, दबाव और मानसिक संतुलन के लिए मार्गदर्शन",
+        "description": (
+            "Find Bhagavad Gita guidance for stress, mental pressure, and overload with calming verses and practical insight."
+        ),
+        "description_hi": (
+            "तनाव, मानसिक दबाव और अधिक बोझ के लिए शांत करने वाले श्लोकों और व्यावहारिक अंतर्दृष्टि के साथ भगवद गीता मार्गदर्शन पाएँ।"
+        ),
+        "hero_title": "Bhagavad Gita For Stress And Mental Pressure",
+        "hero_title_hi": "तनाव और मानसिक दबाव के लिए भगवद गीता",
+        "hero_body": (
+            "Stress often comes from carrying too much mentally at once. The Gita helps you return to steadiness, "
+            "right effort, and a calmer relationship with pressure."
+        ),
+        "hero_body_hi": (
+            "तनाव अक्सर मन में बहुत कुछ एक साथ उठाने से आता है। गीता आपको स्थिरता, उचित प्रयास और दबाव के साथ शांत संबंध में लौटने में मदद करती है।"
+        ),
+        "problem_points": [
+            "constant pressure and mental overload",
+            "difficulty calming down after stressful days",
+            "feeling drained by expectations and urgency",
+        ],
+        "problem_points_hi": [
+            "लगातार दबाव और मानसिक बोझ",
+            "तनावपूर्ण दिनों के बाद शांत न हो पाना",
+            "अपेक्षाओं और जल्दबाज़ी से थक जाना",
+        ],
+        "verse_refs": ["2.48", "6.17", "2.14"],
+        "starter_question": "I feel mentally stressed and overloaded all the time. Which Gita teaching can help?",
+        "starter_question_hi": "मैं हर समय मानसिक तनाव और बोझ महसूस करता हूँ। गीता की कौन-सी शिक्षा मदद कर सकती है?",
+        "faq": [
+            {
+                "question": "Can the Bhagavad Gita help with stress and pressure?",
+                "answer": (
+                    "Yes. The Gita repeatedly teaches equanimity, moderation, and right relationship to action. "
+                    "These teachings reduce the internal friction that turns work and difficulty into chronic stress."
+                ),
+            },
+            {
+                "question": "Which verse is best for stress?",
+                "answer": (
+                    "Chapter 2 verse 48 is one of the strongest because it asks for balanced action under pressure. "
+                    "Chapter 6 verse 17 also emphasizes moderation, which is essential for sustainable calm."
+                ),
+            },
+        ],
+    },
+    "anger": {
+        "slug": "bhagavad-gita-for-anger",
+        "topic_label": "Anger",
+        "topic_label_hi": "क्रोध",
+        "title": "Bhagavad Gita for Anger | Guidance for Reactivity, Hurt, and Emotional Control",
+        "title_hi": "क्रोध के लिए भगवद गीता | प्रतिक्रिया, चोट और भावनात्मक नियंत्रण के लिए मार्गदर्शन",
+        "description": (
+            "Get Bhagavad Gita guidance for anger, reactivity, and emotional control with relevant verses and practical meaning."
+        ),
+        "description_hi": (
+            "क्रोध, तीखी प्रतिक्रिया और भावनात्मक नियंत्रण के लिए प्रासंगिक श्लोकों और व्यावहारिक अर्थ के साथ भगवद गीता मार्गदर्शन पाएँ।"
+        ),
+        "hero_title": "Bhagavad Gita For Anger And Reactivity",
+        "hero_title_hi": "क्रोध और तीखी प्रतिक्रिया के लिए भगवद गीता",
+        "hero_body": (
+            "The Gita gives one of the clearest analyses of anger anywhere: how desire becomes attachment, "
+            "attachment becomes anger, and anger clouds wisdom. These verses help you interrupt that chain."
+        ),
+        "hero_body_hi": (
+            "गीता क्रोध का सबसे स्पष्ट विश्लेषण देती है: कैसे इच्छा आसक्ति बनती है, आसक्ति क्रोध में बदलती है और "
+            "क्रोध बुद्धि को ढक देता है। ये श्लोक उस श्रृंखला को तोड़ने में मदद करते हैं।"
+        ),
+        "problem_points": [
+            "snapping quickly in conflict",
+            "carrying hurt that turns into anger",
+            "wanting more emotional control",
+        ],
+        "problem_points_hi": [
+            "विवाद में जल्दी भड़क जाना",
+            "चोट को भीतर लेकर क्रोध में बदल देना",
+            "अधिक भावनात्मक नियंत्रण चाहना",
+        ],
+        "verse_refs": ["2.62", "2.63", "12.13"],
+        "starter_question": "I get angry quickly and regret my reactions. What does the Gita teach?",
+        "starter_question_hi": "मुझे जल्दी गुस्सा आ जाता है और बाद में अपनी प्रतिक्रियाओं पर पछतावा होता है। गीता क्या सिखाती है?",
+        "faq": [
+            {
+                "question": "What does the Bhagavad Gita say about anger?",
+                "answer": (
+                    "Chapter 2 verses 62-63 lay out the chain clearly: attachment leads to desire, blocked desire leads to anger, "
+                    "and anger leads to delusion and loss of wisdom. The teaching is diagnostic and practical at the same time."
+                ),
+            },
+            {
+                "question": "How can the Gita help me respond with less anger?",
+                "answer": (
+                    "The Gita asks you to catch the process earlier, before anger becomes speech or action. "
+                    "By reducing attachment and practicing inner steadiness, reactions become more conscious."
+                ),
+            },
+        ],
+    },
 }
 
 
@@ -778,6 +1038,94 @@ SEO_INDEX_FAQ_HI = [
     },
 ]
 
+POPULAR_VERSE_SPOTLIGHTS = [
+    {
+        "reference": "2.47",
+        "label": "Karmanye vadhikaraste",
+        "label_hi": "कर्मण्येवाधिकारस्ते",
+        "search_intent": "duty, fear of failure, work without attachment",
+        "search_intent_hi": "कर्तव्य, असफलता का भय, फल की आसक्ति के बिना कर्म",
+        "summary": (
+            "This is one of the most searched Bhagavad Gita verses because it helps people deal with career pressure, "
+            "performance anxiety, and over-attachment to outcomes."
+        ),
+        "summary_hi": (
+            "यह सबसे अधिक खोजे जाने वाले श्लोकों में से एक है क्योंकि यह करियर दबाव, प्रदर्शन की चिंता और "
+            "परिणामों की आसक्ति से जूझ रहे लोगों की मदद करता है।"
+        ),
+        "prefill": "Explain Bhagavad Gita 2.47 in simple language and apply it to my current situation.",
+        "prefill_hi": "भगवद गीता 2.47 को सरल भाषा में समझाइए और मेरी वर्तमान स्थिति पर लागू कीजिए।",
+    },
+    {
+        "reference": "2.48",
+        "label": "Yogastha kuru karmani",
+        "label_hi": "योगस्थः कुरु कर्माणि",
+        "search_intent": "stress, equanimity, performance pressure",
+        "search_intent_hi": "तनाव, समत्व, प्रदर्शन का दबाव",
+        "summary": (
+            "People search this verse when they want calm action under pressure. It connects directly to stress, "
+            "anxiety, and staying steady in difficult situations."
+        ),
+        "summary_hi": (
+            "लोग इस श्लोक को तब खोजते हैं जब वे दबाव में शांत कर्म करना चाहते हैं। यह सीधे तनाव, चिंता और "
+            "कठिन परिस्थितियों में स्थिर रहने से जुड़ता है।"
+        ),
+        "prefill": "Explain Bhagavad Gita 2.48 for stress and staying calm under pressure.",
+        "prefill_hi": "तनाव और दबाव में शांत रहने के लिए भगवद गीता 2.48 समझाइए।",
+    },
+    {
+        "reference": "4.7",
+        "label": "Yada yada hi dharmasya",
+        "label_hi": "यदा यदा हि धर्मस्य",
+        "search_intent": "famous verse, Krishna, dharma, hope in hard times",
+        "search_intent_hi": "प्रसिद्ध श्लोक, कृष्ण, धर्म, कठिन समय में आशा",
+        "summary": (
+            "This is one of the most famous verses from the Gita and often searched by people looking for Krishna's "
+            "promise of restoration when life feels chaotic or morally confusing."
+        ),
+        "summary_hi": (
+            "यह गीता के सबसे प्रसिद्ध श्लोकों में से एक है और अक्सर उन लोगों द्वारा खोजा जाता है जो जीवन के "
+            "अव्यवस्थित या नैतिक रूप से उलझे समय में कृष्ण के आश्वासन को समझना चाहते हैं।"
+        ),
+        "prefill": "Explain Bhagavad Gita 4.7 and what it means in modern life.",
+        "prefill_hi": "भगवद गीता 4.7 का अर्थ और आधुनिक जीवन में उसका मतलब समझाइए।",
+    },
+    {
+        "reference": "6.5",
+        "label": "Uddhared atmanatmanam",
+        "label_hi": "उद्धरेदात्मनाऽत्मानम्",
+        "search_intent": "self discipline, self growth, inner strength",
+        "search_intent_hi": "आत्म-अनुशासन, आत्म-विकास, आंतरिक शक्ति",
+        "summary": (
+            "This verse draws people searching for self-improvement, discipline, and confidence because it frames "
+            "the self as both the obstacle and the path to upliftment."
+        ),
+        "summary_hi": (
+            "यह श्लोक आत्म-सुधार, अनुशासन और आत्मविश्वास खोजने वाले लोगों को आकर्षित करता है क्योंकि यह बताता है "
+            "कि मनुष्य स्वयं ही बाधा भी हो सकता है और उत्थान का साधन भी।"
+        ),
+        "prefill": "Explain Bhagavad Gita 6.5 for self-discipline and personal growth.",
+        "prefill_hi": "आत्म-अनुशासन और व्यक्तिगत विकास के लिए भगवद गीता 6.5 समझाइए।",
+    },
+    {
+        "reference": "18.66",
+        "label": "Sarva dharman parityajya",
+        "label_hi": "सर्वधर्मान्परित्यज्य",
+        "search_intent": "surrender, faith, fear, ultimate teaching",
+        "search_intent_hi": "समर्पण, श्रद्धा, भय, अंतिम शिक्षा",
+        "summary": (
+            "One of the most discussed closing verses in the Gita. People search it during fear, guilt, or major "
+            "life decisions when they want Krishna's deepest assurance."
+        ),
+        "summary_hi": (
+            "यह गीता के अंतिम और सबसे चर्चित श्लोकों में से एक है। लोग इसे भय, अपराधबोध या बड़े जीवन-निर्णयों के "
+            "समय खोजते हैं जब वे कृष्ण का सबसे गहरा आश्वासन समझना चाहते हैं।"
+        ),
+        "prefill": "Explain Bhagavad Gita 18.66 and how surrender applies to my life right now.",
+        "prefill_hi": "भगवद गीता 18.66 समझाइए और बताइए कि समर्पण अभी मेरे जीवन में कैसे लागू होता है।",
+    },
+]
+
 
 def robots_txt_view(request):
     """Serve robots policy with sitemap hint for search engines."""
@@ -795,11 +1143,10 @@ def robots_txt_view(request):
 def sitemap_xml_view(request):
     """Serve a minimal sitemap.xml for homepage and SEO topic routes."""
     base_url = request.build_absolute_uri("/").rstrip("/")
-    urls = [
-        "/",
-        "/bhagavad-gita-for-anxiety/",
-        "/bhagavad-gita-for-career-confusion/",
-        "/bhagavad-gita-for-relationships/",
+    urls = ["/"] + [
+        f"/{page['slug']}/"
+        for page in SEO_LANDING_PAGES.values()
+    ] + [
         "/api/chat-ui/",
     ]
     rows = [
@@ -848,6 +1195,19 @@ class SeoLandingIndexView(View):
                     "description": _seo_value(page, "description", language),
                 }
             )
+        popular_verse_cards = [
+            {
+                "reference": item["reference"],
+                "label": _seo_value(item, "label", language),
+                "search_intent": _seo_value(item, "search_intent", language),
+                "summary": _seo_value(item, "summary", language),
+                "chat_url_with_prefill": (
+                    f"/api/chat-ui/?mode=simple&language={language}"
+                    f"&prefill={quote_plus(_seo_value(item, 'prefill', language))}"
+                ),
+            }
+            for item in POPULAR_VERSE_SPOTLIGHTS
+        ]
         faq_items = SEO_INDEX_FAQ_HI if language == "hi" else SEO_INDEX_FAQ_EN
         page_title = (
             "भगवद गीता एआई और गीता जीपीटी मार्गदर्शिकाएँ | चिंता, करियर, रिश्ते और जीवन के प्रश्न"
@@ -926,6 +1286,24 @@ class SeoLandingIndexView(View):
                 },
                 {
                     "@context": "https://schema.org",
+                    "@type": "ItemList",
+                    "name": (
+                        "Most searched Bhagavad Gita verses"
+                        if language != "hi"
+                        else "सबसे अधिक खोजे जाने वाले भगवद गीता श्लोक"
+                    ),
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": index + 1,
+                            "name": f"{card['reference']} {card['label']}",
+                            "description": card["summary"],
+                        }
+                        for index, card in enumerate(popular_verse_cards)
+                    ],
+                },
+                {
+                    "@context": "https://schema.org",
                     "@type": "FAQPage",
                     "mainEntity": [
                         {
@@ -949,6 +1327,7 @@ class SeoLandingIndexView(View):
             "page_heading": page_heading,
             "page_intro": page_intro,
             "topics": topics,
+            "popular_verse_cards": popular_verse_cards,
             "faq_items": faq_items,
             "search_intent_copy": search_intent_copy,
             "language": language,

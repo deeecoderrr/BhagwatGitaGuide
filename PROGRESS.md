@@ -21,6 +21,37 @@ Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
   - this should help us compete for adjacent branded/generic searches while keeping the
     page readable and aligned with the actual product
 
+- SEO long-tail expansion completed:
+  - added five more public Bhagavad Gita topic landing pages, each with both
+    English and Hindi copy:
+    - fear of failure
+    - purpose
+    - discipline
+    - stress
+    - anger
+  - each page now has:
+    - dedicated title/description
+    - localized hero copy
+    - localized problem points
+    - starter question
+    - relevant verse set
+    - FAQ content
+  - updated public routing and sitemap generation so new SEO pages are
+    automatically exposed to Google
+  - added a new "Most Searched Bhagavad Gita Verses" section on the SEO index
+    page for famous, high-interest verses like:
+    - 2.47
+    - 2.48
+    - 4.7
+    - 6.5
+    - 18.66
+  - each verse spotlight now includes:
+    - why people search it
+    - visible indexable copy
+    - direct CTA into the full app with prefilled verse-oriented prompts
+  - expanded structured data with an `ItemList` for popular verse spotlights to
+    strengthen search understanding around famous verse intent
+
 - Custom domain HTTPS hardening completed:
   - identified that `https://askbhagavadgita.co.in/` had a valid TLS
     certificate, but the live response was still missing strict HTTPS headers

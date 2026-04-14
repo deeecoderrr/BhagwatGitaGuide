@@ -3,6 +3,7 @@
 from django.urls import path
 
 from guide_api.views import (
+    SEO_LANDING_PAGES,
     SharedAnswerPageView,
     SeoLandingIndexView,
     SeoLandingTopicView,
@@ -25,22 +26,14 @@ urlpatterns = [
         name="shared-answer",
     ),
     path("", SeoLandingIndexView.as_view(), name="seo-index"),
+]
+
+urlpatterns += [
     path(
-        "bhagavad-gita-for-anxiety/",
+        f"{page['slug']}/",
         SeoLandingTopicView.as_view(),
-        {"slug": "bhagavad-gita-for-anxiety"},
-        name="seo-anxiety",
-    ),
-    path(
-        "bhagavad-gita-for-career-confusion/",
-        SeoLandingTopicView.as_view(),
-        {"slug": "bhagavad-gita-for-career-confusion"},
-        name="seo-career",
-    ),
-    path(
-        "bhagavad-gita-for-relationships/",
-        SeoLandingTopicView.as_view(),
-        {"slug": "bhagavad-gita-for-relationships"},
-        name="seo-relationships",
-    ),
+        {"slug": page["slug"]},
+        name=f"seo-{page['slug']}",
+    )
+    for page in SEO_LANDING_PAGES.values()
 ]
