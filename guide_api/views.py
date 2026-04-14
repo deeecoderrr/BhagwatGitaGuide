@@ -2406,166 +2406,6 @@ def _build_contextual_follow_ups(
     return prompts[: 2 if mode == "simple" else 3]
 
 
-def _default_meditation_practice(language: str) -> str:
-    """Return a short calming practice aligned with contemplative mode."""
-    if language == "hi":
-        return (
-            "7 मिनट का अभ्यास: 4-4-6 श्वास चक्र (4 सेकंड श्वास, "
-            "4 सेकंड रोकें, 6 सेकंड छोड़ें), फिर 2 मिनट मौन में "
-            "'मैं कर्म पर केंद्रित हूँ, फल पर नहीं' का मानसिक जप करें।"
-        )
-    return (
-        "7-minute practice: do 4-4-6 breathing cycles "
-        "(inhale 4s, hold 4s, exhale 6s), then sit for 2 minutes in silence "
-        "with the thought 'I focus on right action, not anxious outcomes.'"
-    )
-
-
-def _build_deep_insights(
-    *,
-    mode: str,
-    plan: str,
-    language: str,
-    message: str,
-    verses,
-    query_themes: list[str],
-) -> dict | None:
-    """Build additive deep-mode payload for Plus and Pro tiers.
-
-    Plus: spiritual_principle, modern_life_application,
-          historical_context_from_mahabharata, meditation_practice,
-          contemplative_follow_ups.
-    Pro: adds deep_verse_commentary, cross_verse_links, commentary_access,
-         meditation_program_suggestion, custom_reflection_journal.
-    """
-    if mode != AskEvent.MODE_DEEP:
-        return None
-    if plan not in {UserSubscription.PLAN_PLUS, UserSubscription.PLAN_PRO}:
-        return None
-
-    primary_theme = query_themes[0] if query_themes else "clarity"
-    refs = [f"{verse.chapter}.{verse.verse}" for verse in verses[:3]]
-    primary_ref = refs[0] if refs else "2.47"
-    chapter_num = primary_ref.split(".")[0]
-
-    if language == "hi":
-        base = {
-            "deep_tier": "plus_lite",
-            "spiritual_principle": (
-                "मुख्य आध्यात्मिक सिद्धांत: प्रतिक्रिया नहीं, "
-                f"सजग कर्म। यह प्रश्न '{message[:80]}' में "
-                "स्थिरता और विवेक से निर्णय लेने पर केंद्रित है।"
-            ),
-            "modern_life_application": (
-                "आधुनिक जीवन अनुप्रयोग: अगले 24 घंटों में एक एसा निर्णय लें "
-                "जिसे आप नियंत्रित कर सकते हैं; परिणाम-चिंता को "
-                "कार्रवाई से बदलें।"
-            ),
-            "historical_context_from_mahabharata": (
-                f"भगवद गीता (अध्याय {chapter_num}) में कृष्ण ने अर्जुन को "
-                "कुरुक्षेत्र के युद्धक्षेत्र पर तब मार्गदर्शन दिया जब वह "
-                "कर्तव्य और आसक्ति के द्वंद्व में स्तब्ध हो गए थे। "
-                "आपका यह प्रश्न उसी आंतरिक संघर्ष का आधुनिक प्रतिबिम्ब है।"
-            ),
-            "meditation_practice": _default_meditation_practice(language),
-            "contemplative_follow_ups": [
-                "मैं अभी किस भय के आधार पर निर्णय ले रहा हूँ?",
-                "अगर कृष्ण मेरे सामने होते तो वे आज कौन-सा एक कर्म पहले सुझाते?",
-            ],
-            "primary_theme": primary_theme,
-            "primary_reference": primary_ref,
-        }
-    else:
-        base = {
-            "deep_tier": "plus_lite",
-            "spiritual_principle": (
-                "Core spiritual principle: respond with conscious action, "
-                f"not emotional reactivity. For your concern ‘{message[:80]}’, "
-                "the emphasis is steady discernment over panic."
-            ),
-            "modern_life_application": (
-                "Modern application: choose one decision within your control "
-                "in the next 24 hours and replace outcome-anxiety with "
-                "disciplined action."
-            ),
-            "historical_context_from_mahabharata": (
-                f"In the Bhagavad Gita (Chapter {chapter_num}), Krishna speaks "
-                "to Arjuna on the Kurukshetra battlefield — a warrior paralysed "
-                "not by enemy arrows but by his own grief about duty. "
-                "That same inner conflict between attachment and dharma is the "
-                "mirror your question holds up today."
-            ),
-            "meditation_practice": _default_meditation_practice(language),
-            "contemplative_follow_ups": [
-                "What fear is currently making decisions on my behalf?",
-                "If Krishna advised me today, what one dharmic action would come first?",
-            ],
-            "primary_theme": primary_theme,
-            "primary_reference": primary_ref,
-        }
-
-    if plan == UserSubscription.PLAN_PRO:
-        if language == "hi":
-            base.update(
-                {
-                    "deep_tier": "pro_advanced",
-                    "deep_verse_commentary": (
-                        f"श्लोक {primary_ref}: आदि शंकराचार्य इसे विवेक-आधारित कर्म की "
-                        "प्रेरणा मानते हैं — ज्ञान से क्रिया, कामना से नहीं। "
-                        "रामानुजाचार्य इसे भक्ति में समर्पित कर्म मानते हैं। "
-                        "स्वामी विवेकानंद इसे व्यावहारिक कर्मयोग की कुंजी बताते हैं: "
-                        "श्रेष्ठ कर्म करो, फल की चिंता मुक्त करो।"
-                    ),
-                    "cross_verse_links": refs,
-                    "commentary_access": {
-                        "label": "मल्टी-ऑथर टिप्पणी देखें",
-                        "links": [f"/api/verses/{ref}/" for ref in refs],
-                    },
-                    "meditation_program_suggestion": (
-                        "7-दिवसीय सूक्ष्म साधना: दिन 1-2 श्वास स्थिरता, "
-                        "दिन 3-4 कर्म-जर्नल, दिन 5-6 संबंधों में समत्व, "
-                        "दिन 7 आत्म-चिंतन समीक्षा।"
-                    ),
-                    "custom_reflection_journal": {
-                        "morning_prompt": "आज मैं किस एक धर्मसंगत कर्म पर केंद्रित रहूंगा?",
-                        "evening_prompt": "क्या मैंने परिणाम से अधिक कर्तव्य पर ध्यान दिया?",
-                    },
-                    "priority_response": True,
-                }
-            )
-        else:
-            base.update(
-                {
-                    "deep_tier": "pro_advanced",
-                    "deep_verse_commentary": (
-                        f"Verse {primary_ref}: Adi Shankaracharya reads this as viveka "
-                        "(discriminative wisdom) — acting from inner knowledge, not desire. "
-                        "Ramanujacharya frames it as surrendered action within bhakti, "
-                        "where the Lord is both the means and the end. Swami Vivekananda "
-                        "translated it into practical karma yoga: pursue excellence in "
-                        "action while releasing its fruits."
-                    ),
-                    "cross_verse_links": refs,
-                    "commentary_access": {
-                        "label": "Open multi-author commentary",
-                        "links": [f"/api/verses/{ref}/" for ref in refs],
-                    },
-                    "meditation_program_suggestion": (
-                        "7-day micro-sadhana: days 1-2 breath stability, "
-                        "days 3-4 karma journal, days 5-6 equanimity in relationships, "
-                        "day 7 reflective review."
-                    ),
-                    "custom_reflection_journal": {
-                        "morning_prompt": "What is one dharmic action I will prioritize today?",
-                        "evening_prompt": "Did I stay rooted in duty over outcome anxiety?",
-                    },
-                    "priority_response": True,
-                }
-            )
-
-    return base
-
-
 def _log_follow_up_events(
     *,
     user_id: str,
@@ -2938,16 +2778,6 @@ class AskView(APIView):
             **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
         }
-        deep_insights = _build_deep_insights(
-            mode=data["mode"],
-            plan=subscription.plan,
-            language=data["language"],
-            message=data["message"],
-            verses=verses,
-            query_themes=retrieval.query_themes,
-        )
-        if deep_insights is not None:
-            response_data["deep_insights"] = deep_insights
         follow_ups = []
         if guidance.show_actions:
             follow_ups = _build_contextual_follow_ups(
@@ -4515,20 +4345,6 @@ class ChatUIView(View):
             ),
             "language": language,
         }
-        deep_insights = _build_deep_insights(
-            mode=mode,
-            plan=(
-                quota["subscription"].plan
-                if quota
-                else UserSubscription.PLAN_FREE
-            ),
-            language=language,
-            message=message,
-            verses=verses,
-            query_themes=retrieval.query_themes,
-        )
-        if deep_insights is not None:
-            response_data["deep_insights"] = deep_insights
         follow_ups = []
         if guidance.show_actions:
             follow_ups = _build_contextual_follow_ups(

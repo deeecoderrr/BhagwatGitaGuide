@@ -5190,29 +5190,7 @@
                               {{ response_data.reflection }}
                             </div>
                           {% endif %}
-                          {% if response_data.deep_insights %}
-                            <div class="reply-section warm">
-                              <h4>{% if language == "hi" %}डीप इनसाइट्स{% else %}Deep Insights{% endif %}</h4>
-                              <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}आध्यात्मिक सिद्धांत{% else %}Spiritual Principle{% endif %}:</strong> {{ response_data.deep_insights.spiritual_principle }}</div>
-                              <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}आधुनिक अनुप्रयोग{% else %}Modern Application{% endif %}:</strong> {{ response_data.deep_insights.modern_life_application }}</div>
-                              {% if response_data.deep_insights.historical_context_from_mahabharata %}
-                                <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}महाभारत संदर्भ{% else %}Mahabharata Context{% endif %}:</strong> {{ response_data.deep_insights.historical_context_from_mahabharata }}</div>
-                              {% endif %}
-                              {% if response_data.deep_insights.deep_verse_commentary %}
-                                <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}गहन श्लोक टिप्पणी{% else %}Deep Verse Commentary{% endif %}:</strong> {{ response_data.deep_insights.deep_verse_commentary }}</div>
-                              {% endif %}
-                              <div style="margin-bottom: 8px;"><strong>{% if language == "hi" %}ध्यान अभ्यास{% else %}Meditation Practice{% endif %}:</strong> {{ response_data.deep_insights.meditation_practice }}</div>
-                              {% if response_data.deep_insights.contemplative_follow_ups %}
-                                <div><strong>{% if language == "hi" %}चिंतन प्रश्न{% else %}Contemplative Prompts{% endif %}:</strong></div>
-                                <ul class="reply-list">
-                                  {% for prompt in response_data.deep_insights.contemplative_follow_ups %}
-                                    <li>{{ prompt }}</li>
-                                  {% endfor %}
-                                </ul>
-                              {% endif %}
-                            </div>
-                          {% endif %}
-                              {% if response_data.verses %}
+                          {% if response_data.verses %}
 	                            <div class="reply-section">
 	                              <h4>{% if language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses Used{% endif %}</h4>
 	                              {% for verse in response_data.verses %}

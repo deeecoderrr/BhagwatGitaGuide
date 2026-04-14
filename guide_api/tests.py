@@ -407,7 +407,7 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.data["error"]["code"], "deep_mode_not_included")
 
     @override_settings(ENABLE_FREE_DEEP_MODE=False)
-    def test_ask_endpoint_plus_deep_includes_plus_lite_insights(self):
+    def test_ask_endpoint_plus_deep_succeeds_without_deep_insights_payload(self):
         subscription, _ = UserSubscription.objects.get_or_create(user=self.user)
         subscription.plan = UserSubscription.PLAN_PLUS
         subscription.save(update_fields=["plan"])
@@ -421,13 +421,7 @@ class GuideApiTests(APITestCase):
             format="json",
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("deep_insights", response.data)
-        self.assertEqual(
-            response.data["deep_insights"]["deep_tier"],
-            "plus_lite",
-        )
-        self.assertIn("spiritual_principle", response.data["deep_insights"])
-        self.assertIn("meditation_practice", response.data["deep_insights"])
+        self.assertNotIn("deep_insights", response.data)
 
     @override_settings(
         ENABLE_FREE_DEEP_MODE=False,
@@ -449,11 +443,7 @@ class GuideApiTests(APITestCase):
             )
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertIsNone(response.data["deep_monthly_limit"])
-            self.assertIn("deep_insights", response.data)
-            self.assertEqual(
-                response.data["deep_insights"]["deep_tier"],
-                "pro_advanced",
-            )
+            self.assertNotIn("deep_insights", response.data)
 
     def test_auth_me_includes_plan_and_quota_fields(self):
         response = self.client.get("/api/auth/me/")
