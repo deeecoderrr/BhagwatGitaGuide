@@ -2,9 +2,10 @@ import json
 from datetime import timedelta
 from decimal import Decimal
 from tempfile import NamedTemporaryFile
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import User
+from django.core.cache import cache
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.utils import timezone
@@ -28,9 +29,21 @@ from guide_api.models import (
     Verse,
     WebAudienceProfile,
 )
-from django.test import override_settings
+from django.test import TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+
+from guide_api.services import (
+    _build_query_embedding,
+    _is_grounded_response,
+    _is_professional_ethics_query,
+    _serialize_conversation_context,
+    classify_user_intent,
+    infer_themes_from_text,
+    interpret_query,
+    normalize_chat_user_message,
+    query_embedding_input_text,
+)
 
 
 @override_settings(
@@ -3218,3 +3231,131 @@ class PaymentIntegrationTests(APITestCase):
         response = self.client.get("/api/subscription/status/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["is_pro"])
+
+
+class GuidanceGroundingTests(TestCase):
+    """Unit tests for verse grounding helpers (no OpenAI)."""
+
+    def test_verse_optional_allows_empty_refs_without_numeric_citations(self):
+        self.assertTrue(
+            _is_grounded_response(
+                "Act with truth and steadiness.",
+                "Clarity grows when fear does not steer you.",
+                [],
+                set(),
+                verse_optional=True,
+            ),
+        )
+
+    def test_verse_optional_rejects_numeric_citations_in_prose(self):
+        self.assertFalse(
+            _is_grounded_response(
+                "As 2.47 says, stay steady.",
+                "",
+                [],
+                set(),
+                verse_optional=True,
+            ),
+        )
+
+    def test_professional_ethics_query_detects_lawyer(self):
+        self.assertTrue(
+            _is_professional_ethics_query(
+                "I am a lawyer unsure about representing this client.",
+            ),
+        )
+
+    def test_professional_ethics_query_detects_laywer_typo(self):
+        self.assertTrue(
+            _is_professional_ethics_query(
+                "I am laywer and conflicted about my case.",
+            ),
+        )
+
+    def test_what_should_i_do_routes_life_guidance_not_knowledge(self):
+        intent = classify_user_intent(
+            "i am laywer , i know that the person whose case i am fighting for is "
+            "wrong . what should i do",
+        )
+        self.assertEqual(intent.intent_type, "life_guidance")
+
+    def test_first_person_questions_route_to_life_not_knowledge(self):
+        intent = classify_user_intent("Why am I so sad lately?")
+        self.assertEqual(intent.intent_type, "life_guidance")
+
+    def test_scriptural_topic_question_stays_knowledge(self):
+        intent = classify_user_intent(
+            "What does the Bhagavad Gita say about karma yoga?",
+        )
+        self.assertEqual(intent.intent_type, "knowledge_question")
+
+    def test_normalize_chat_strips_leading_you_i_prefix(self):
+        self.assertEqual(
+            normalize_chat_user_message(
+                "You i am laywer , what should i do",
+            ),
+            "i am laywer , what should i do",
+        )
+
+    def test_professional_ethics_detects_fighting_for_case(self):
+        self.assertTrue(
+            _is_professional_ethics_query(
+                "I am fighting for someone whose case feels wrong to me. What should I do?",
+            ),
+        )
+
+    def test_integrity_theme_for_professional_ethics_language(self):
+        themes = infer_themes_from_text(
+            "As a lawyer I face an ethical conflict between loyalty and truth.",
+        )
+        self.assertIn("integrity", themes)
+
+    def test_interpret_query_maps_integrity_to_life_domain(self):
+        q = interpret_query("Court ethics: my client may be lying; what is my dharma?")
+        self.assertIn("integrity", q.life_domain.lower())
+
+    def test_query_embedding_text_includes_interpretation(self):
+        text = query_embedding_input_text("I feel anxious before every exam.")
+        self.assertIn("Life domain:", text)
+        self.assertIn("inner stability", text.lower())
+
+    @override_settings(OPENAI_QUERY_EMBEDDING_ENRICHED=False)
+    def test_query_embedding_plain_mode_uses_normalized_message_only(self):
+        text = query_embedding_input_text("  You i am worried  ")
+        self.assertEqual(text, "i am worried")
+
+    @override_settings(
+        OPENAI_API_KEY="sk-test-key",
+        OPENAI_QUERY_EMBEDDING_CACHE_ENABLED=True,
+        OPENAI_QUERY_EMBEDDING_CACHE_TTL_SECONDS=3600,
+    )
+    def test_query_embedding_cache_reuses_vector_without_second_api_call(self):
+        cache.clear()
+        fake_emb = [0.25, 0.5, 0.75]
+        mock_resp = MagicMock()
+        mock_resp.data = [MagicMock(embedding=fake_emb)]
+
+        with patch("guide_api.services._openai_client") as mock_client:
+            mock_client.return_value.embeddings.create.return_value = mock_resp
+            first = _build_query_embedding("same retrieval question")
+            second = _build_query_embedding("same retrieval question")
+            self.assertEqual(first, fake_emb)
+            self.assertEqual(second, fake_emb)
+            self.assertEqual(mock_client.return_value.embeddings.create.call_count, 1)
+
+    def test_serialize_conversation_context_respects_char_cap(self):
+        class _Msg:
+            def __init__(self, role, content):
+                self.role = role
+                self.content = content
+
+        long_line = "x" * 500
+        msgs = [
+            _Msg("user", f"old {long_line}"),
+            _Msg("assistant", f"mid {long_line}"),
+            _Msg("user", "keep this tail"),
+        ]
+        with override_settings(MAX_CONVERSATION_CONTEXT_TURNS=6, MAX_CONVERSATION_CONTEXT_CHARS=120):
+            out = _serialize_conversation_context(msgs)
+            self.assertLessEqual(len(out), 120)
+            self.assertIn("keep this tail", out)

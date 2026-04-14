@@ -172,6 +172,14 @@ else:
         }
     }
 
+# Cache (query embedding dedup, etc.). Use Redis in multi-instance prod if needed.
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "bhagwatgita-default",
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
@@ -232,6 +240,16 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+# Commentary-aware verse relevance pass after retrieval (extra LLM call).
+DISABLE_VERSE_RELEVANCE_LLM = os.getenv(
+    "DISABLE_VERSE_RELEVANCE_LLM",
+    "false",
+).lower() == "true"
+# If relevance returns no verses, optional second LLM call to suggest refs.
+DISABLE_LLM_VERSE_SUGGEST_WHEN_EMPTY = os.getenv(
+    "DISABLE_LLM_VERSE_SUGGEST_WHEN_EMPTY",
+    "false",
+).lower() == "true"
 # When heuristics would label a message as casual_chat, optionally call the LLM
 # to choose life_guidance vs knowledge_question vs casual_chat (small JSON response).
 # Default true: heuristic-first already handles most asks; set DISABLE=false to enable
@@ -247,6 +265,29 @@ OPENAI_EMBEDDING_MODEL = os.getenv(
     "OPENAI_EMBEDDING_MODEL",
     "text-embedding-3-small",
 )
+# When true, query embeddings include interpret_query() framing (life domain, themes,
+# keywords) so semantic search matches problem-shaped asks, not raw text alone.
+OPENAI_QUERY_EMBEDDING_ENRICHED = os.getenv(
+    "OPENAI_QUERY_EMBEDDING_ENRICHED",
+    "true",
+).lower() == "true"
+OPENAI_EMBEDDING_QUERY_MAX_CHARS = int(
+    os.getenv("OPENAI_EMBEDDING_QUERY_MAX_CHARS", "8000"),
+)
+# Dedupe identical query embedding API calls (per worker with LocMem; use shared cache in prod).
+OPENAI_QUERY_EMBEDDING_CACHE_ENABLED = os.getenv(
+    "OPENAI_QUERY_EMBEDDING_CACHE_ENABLED",
+    "true",
+).lower() == "true"
+OPENAI_QUERY_EMBEDDING_CACHE_TTL_SECONDS = int(
+    os.getenv("OPENAI_QUERY_EMBEDDING_CACHE_TTL_SECONDS", "86400"),
+)
+# Optional cheaper models for short JSON tasks (default: same as OPENAI_MODEL).
+OPENAI_VERSE_RELEVANCE_MODEL = os.getenv("OPENAI_VERSE_RELEVANCE_MODEL", "").strip()
+OPENAI_VERSE_SUGGEST_MODEL = os.getenv("OPENAI_VERSE_SUGGEST_MODEL", "").strip()
+# Trim prompt cost: recent turns and total character cap for guidance prompts.
+MAX_CONVERSATION_CONTEXT_TURNS = int(os.getenv("MAX_CONVERSATION_CONTEXT_TURNS", "6"))
+MAX_CONVERSATION_CONTEXT_CHARS = int(os.getenv("MAX_CONVERSATION_CONTEXT_CHARS", "4000"))
 ENABLE_SEMANTIC_RETRIEVAL = os.getenv(
     "ENABLE_SEMANTIC_RETRIEVAL",
     "true",

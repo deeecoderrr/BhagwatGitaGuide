@@ -5,6 +5,23 @@ Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
 ## Completed
 
 - Ask/chat guidance quality pass:
+  - Cost controls (default-on / opt-in): Django `cache` for duplicate query embeddings
+    (`OPENAI_QUERY_EMBEDDING_CACHE_*`), optional `OPENAI_VERSE_RELEVANCE_MODEL` /
+    `OPENAI_VERSE_SUGGEST_MODEL` for short JSON passes, `MAX_CONVERSATION_CONTEXT_*`
+    to cap guidance prompt history size.
+  - Retrieval alignment: `verse_embedding_document()` in `services.py` is the single
+    source for verse embedding text (`embed_gita_verses`); query embeddings use
+    `interpret_query()`-enriched text (`OPENAI_QUERY_EMBEDDING_ENRICHED`, default on).
+    New `integrity` theme + priors for ethics/professional language. Re-run
+    `embed_gita_verses --overwrite` (and pgvector sync) after changing embedding text.
+  - Post-retrieval `refine_verses_for_guidance()`: commentary-aware relevance LLM
+    (`_validate_and_correct_verses`) can swap refs, return no verse
+    (`no_appropriate_verse`), or run optional `_suggest_verse_refs_llm` when empty;
+    wired in `_run_guidance_flow` and guest chat. Flags: `DISABLE_VERSE_RELEVANCE_LLM`,
+    `DISABLE_LLM_VERSE_SUGGEST_WHEN_EMPTY`. Verse-optional answers: empty context
+    allows `verse_references=[]` with grounding that forbids sneaked `chapter.verse`
+    in prose; professional/legal heuristic adds non-legal framing. Principle-only
+    fallback when the main LLM fails with no verses.
   - `build_guidance` prompts: parent-like compassionate tone, strict on-topic rules,
     separate instructions for `knowledge_question` vs life-guidance, optional
     `related_verse_references` in JSON for LLM-filtered related verses

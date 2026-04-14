@@ -98,6 +98,8 @@ from guide_api.services import (
     retrieve_verses,
     retrieve_semantic_verses_with_trace,
     retrieve_verses_with_trace,
+    refine_verses_for_guidance,
+    normalize_chat_user_message,
 )
 
 
@@ -451,6 +453,7 @@ def _run_guidance_flow(
     plan: str = UserSubscription.PLAN_FREE,
 ):
     """Run end-to-end ask pipeline and persist conversation messages."""
+    message = normalize_chat_user_message(str(message or "").strip())
     if conversation_id:
         conversation = Conversation.objects.filter(
             id=conversation_id,
@@ -567,7 +570,7 @@ def _run_guidance_flow(
             message=message,
             limit=_plan_max_context_verses(plan, mode),
         )
-        verses = retrieval.verses
+        verses = refine_verses_for_guidance(message, retrieval.verses)
         guidance = build_guidance(
             message,
             verses,
@@ -5022,6 +5025,7 @@ class ChatUIView(View):
         language: str = "en",
     ):
         """Generate a guest-mode answer without persisting any DB history."""
+        message = normalize_chat_user_message(str(message or "").strip())
         guest_messages = self._guest_conversation_objects(request)
         conversation_messages = guest_messages + [
             SimpleNamespace(role=Message.ROLE_USER, content=message)
@@ -5124,7 +5128,7 @@ class ChatUIView(View):
                 message=message,
                 limit=_plan_max_context_verses(UserSubscription.PLAN_FREE, mode),
             )
-            verses = retrieval.verses
+            verses = refine_verses_for_guidance(message, retrieval.verses)
             guidance = build_guidance(
                 message,
                 verses,

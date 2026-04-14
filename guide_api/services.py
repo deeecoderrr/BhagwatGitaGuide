@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 
 from django.conf import settings
+from django.core.cache import cache
 from django.db import connection
 from django.db.utils import OperationalError, ProgrammingError
 from openai import OpenAI
@@ -255,6 +256,34 @@ THEME_KEYWORDS = {
         "सुरक्षा",
         "हथियार",
     },
+    "integrity": {
+        "ethics",
+        "ethical",
+        "integrity",
+        "honest",
+        "honesty",
+        "truthful",
+        "truthfulness",
+        "conflict of interest",
+        "confidential",
+        "confidentiality",
+        "whistleblow",
+        "professional conduct",
+        "professional ethics",
+        "lawyer",
+        "attorney",
+        "counsel",
+        "court",
+        "client",
+        "clients",
+        "bar council",
+        "bribe",
+        "corruption",
+        "नैतिकता",
+        "ईमानदारी",
+        "वकील",
+        "अदालत",
+    },
 }
 STOPWORDS = {
     "a",
@@ -334,6 +363,17 @@ THEME_REFERENCE_PRIORS = {
         "6.5",
         "18.66",
     },
+    "integrity": {
+        "2.19",
+        "2.21",
+        "3.21",
+        "12.16",
+        "12.17",
+        "17.14",
+        "17.15",
+        "18.42",
+        "18.46",
+    },
 }
 
 THEME_CHAPTER_PRIORS = {
@@ -344,6 +384,7 @@ THEME_CHAPTER_PRIORS = {
     "purpose": {2, 3, 18},
     "comparison": {2, 12, 16},
     "mortality": {2, 6, 11, 18},
+    "integrity": {2, 3, 12, 17, 18},
 }
 
 ACTION_OR_DECISION_TERMS = {
@@ -633,33 +674,62 @@ PROBLEM_HINTS = {
     "issue",
 }
 
-KNOWLEDGE_HINTS = {
-    "what",
-    "why",
-    "how",
-    "explain",
-    "meaning",
-    "mean",
-    "context",
-    "summary",
-    "compare",
-    "difference",
-    "teach",
-    "teaches",
-    "teaching",
+# If the user asks how teaching applies to them or what they should do, route to
+# life_guidance before study-style detection — otherwise bare "what"/"?" misroutes.
+_LIFE_APPLICATION_PHRASES = frozenset({
+    "apply",
+    "application",
+    "in my life",
+    "for my life",
+    "for me",
+    "my situation",
+    "today",
+    "what should i do",
+    "how should i act",
+    "what can i do",
+    "how do i",
+    "how can i",
+    "i don't know what to do",
+    "i do not know what to do",
+})
+
+# Word tokens that suggest a scriptural / conceptual question (not "what" alone).
+_KNOWLEDGE_TOPIC_TOKENS = frozenset({
     "verse",
+    "verses",
     "sloka",
     "shloka",
     "chapter",
     "krishna",
     "arjuna",
     "gita",
+    "gitopadesha",
     "bhagavad",
     "dharma",
     "karma",
     "bhakti",
     "yoga",
-}
+    "moksha",
+    "sattva",
+    "rajas",
+    "tamas",
+    "atman",
+    "brahman",
+    "prakriti",
+    "upanishad",
+    "mahabharata",
+    "pandava",
+    "kurukshetra",
+    "kunti",
+    "bhishma",
+    "drona",
+    "duryodhana",
+    "pandu",
+    "vyasa",
+    "sannyasa",
+    "tyaga",
+    "jnana",
+})
 
 _INTENT_TRIVIAL_ACK = frozenset({
     "ok",
@@ -692,7 +762,7 @@ _LIFE_SIGNAL_RE = re.compile(
     r"hurt|hurting|struggle|stuck|lost|confused|stress|anxious|overwhelm|"
     r"divorce|marriage|wedding|wife|husband|spouse|partner|affair|cheat|"
     r"boss|job|career|work|office|salary|fired|quit|money|debt|loan|rent|"
-    r"legal|lawyer|court|custody|mother|father|parent|child|kids|family|"
+    r"legal|lawyer|laywer|court|custody|mother|father|parent|child|kids|family|"
     r"friend|enemy|addict|alcohol|smoke|drug|health|sleep|doctor|death|die|"
     r"kill|fight|abuse|attack|steal|greed|lust|ego|stubborn|hate"
     r")\b",
@@ -707,6 +777,58 @@ _KNOWLEDGE_LEAD_RE = re.compile(
     r"contrast|is\s+it\s+true|list|name)\b",
     re.IGNORECASE,
 )
+
+
+def _heuristic_is_knowledge_question(lowered: str, text: str) -> bool:
+    """Detect definitional / study questions without treating every 'what?' as knowledge.
+
+    The old gate matched any of hundreds of substrings (e.g. ``what``) plus ``?``,
+    which mislabeled almost all personal dilemmas as ``knowledge_question``.
+    """
+    norm = re.sub(r"\s+", " ", lowered.strip())
+    if not norm:
+        return False
+    tokens = set(re.findall(r"[a-z]+", lowered))
+
+    if tokens & _KNOWLEDGE_TOPIC_TOKENS:
+        return True
+
+    scripture_cue = bool(
+        tokens
+        & {
+            "gita",
+            "bhagavad",
+            "krishna",
+            "arjuna",
+            "verse",
+            "verses",
+            "chapter",
+            "sloka",
+            "shloka",
+        }
+    )
+    study_verbs = {
+        "explain",
+        "define",
+        "describe",
+        "compare",
+        "contrast",
+        "summarize",
+        "summary",
+        "teaching",
+        "teaches",
+        "taught",
+    }
+    if scripture_cue and (tokens & study_verbs):
+        return True
+
+    if _KNOWLEDGE_LEAD_RE.match(norm):
+        return True
+
+    word_count = len(norm.split())
+    if "?" in text and 3 <= word_count <= 16 and not _FIRST_PERSON_RE.search(norm):
+        return True
+    return False
 
 
 def _warrants_ambiguous_intent_refinement(text: str) -> bool:
@@ -753,7 +875,7 @@ def _heuristic_resolve_ambiguous_casual(
             show_related_verses=True,
             asks_for_application=True,
         )
-    knowledgeish = bool(_KNOWLEDGE_LEAD_RE.match(norm)) or norm.rstrip().endswith("?")
+    knowledgeish = _heuristic_is_knowledge_question(lowered, text)
     if knowledgeish:
         if life_hit:
             return IntentAnalysis(
@@ -922,24 +1044,13 @@ def _extract_chapter_number(message: str) -> int | None:
 
 def classify_user_intent(message: str, *, mode: str = "simple") -> IntentAnalysis:
     """Classify the user input so answers match the request shape."""
-    text = str(message or "").strip()
+    text = normalize_chat_user_message(str(message or "").strip())
     lowered = text.lower()
     refs = _extract_explicit_references(text)
     chapter_number = _extract_chapter_number(text)
     asks_for_application = any(
         phrase in lowered
-        for phrase in {
-            "apply",
-            "application",
-            "in my life",
-            "for my life",
-            "for me",
-            "my situation",
-            "today",
-            "what should i do",
-            "how should i act",
-            "what can i do",
-        }
+        for phrase in _LIFE_APPLICATION_PHRASES
     )
     asks_for_context = any(
         phrase in lowered
@@ -1020,7 +1131,39 @@ def classify_user_intent(message: str, *, mode: str = "simple") -> IntentAnalysi
             asks_for_application=True,
         )
 
-    if any(word in lowered for word in KNOWLEDGE_HINTS) or "?" in text:
+    if asks_for_application:
+        return IntentAnalysis(
+            intent_type="life_guidance",
+            show_actions=True,
+            show_reflection=True,
+            show_related_verses=True,
+            asks_for_application=True,
+        )
+
+    norm = re.sub(r"\s+", " ", lowered.strip())
+    tokens = set(re.findall(r"[a-z]+", lowered))
+
+    if _LIFE_SIGNAL_RE.search(norm):
+        return IntentAnalysis(
+            intent_type="life_guidance",
+            show_actions=True,
+            show_reflection=True,
+            show_related_verses=True,
+            asks_for_application=asks_for_application,
+        )
+
+    # First-person questions are usually dilemmas, not trivia — unless clearly scriptural.
+    if _FIRST_PERSON_RE.search(norm) and "?" in text:
+        if len(tokens & _KNOWLEDGE_TOPIC_TOKENS) < 2:
+            return IntentAnalysis(
+                intent_type="life_guidance",
+                show_actions=True,
+                show_reflection=True,
+                show_related_verses=True,
+                asks_for_application=asks_for_application,
+            )
+
+    if _heuristic_is_knowledge_question(lowered, text):
         return IntentAnalysis(
             intent_type="knowledge_question",
             needs_retrieval=True,
@@ -1179,6 +1322,15 @@ def interpret_query(message: str) -> QueryInterpretation:
             "do not measure yourself through others",
             "return attention to your own path and duty",
             "inner worth is steadier than praise or blame",
+        ]
+        match_strictness = "interpretive"
+    elif "integrity" in themes:
+        emotional_state = "conscientious"
+        life_domain = "integrity and professional duty"
+        likely_principles = [
+            "truthfulness and steadiness in right action",
+            "duty performed without attachment to gain or ego",
+            "self-mastery so choices align with the higher good",
         ]
         match_strictness = "interpretive"
     else:
@@ -1699,20 +1851,121 @@ def _openai_client() -> OpenAI:
         return OpenAI(api_key=settings.OPENAI_API_KEY)
 
 
+def verse_embedding_document(verse: Verse) -> str:
+    """Single source of truth for text embedded per verse (DB JSON + pgvector sync).
+
+    Kept in sync with ``embed_gita_verses`` / ``sync_pgvector_embeddings`` so
+    query vectors and verse vectors live in the same semantic space.
+    """
+    themes = ", ".join(verse.themes) if verse.themes else "none"
+    ref = f"{verse.chapter}.{verse.verse}"
+    row = _merged_verse_context(ref)
+    additional_angles = _additional_angle_text(ref, limit=3)
+    commentary_text = _author_commentary_text(ref, limit=3)
+    try:
+        synthesis = VerseSynthesis.objects.filter(verse=verse).first()
+    except (OperationalError, ProgrammingError):
+        synthesis = None
+    overview = (getattr(synthesis, "overview_en", "") or "").strip()
+    consensus = (getattr(synthesis, "commentary_consensus_en", "") or "").strip()
+    life_app = (getattr(synthesis, "life_application_en", "") or "").strip()
+    life_snip = life_app[:520] if life_app else ""
+    return (
+        f"Bhagavad Gita {ref} — semantic retrieval document\n"
+        f"Sanskrit: {row.get('sanskrit', '')}\n"
+        f"Transliteration: {row.get('transliteration', '')}\n"
+        f"Hindi Meaning: {row.get('hindi', '')}\n"
+        f"English Meaning: {row.get('english', '')}\n"
+        f"Word Meaning: {row.get('word_meaning', '')}\n"
+        f"Additional Angles: {additional_angles}\n"
+        f"Author Commentary Perspectives: {commentary_text}\n"
+        f"Cached Verse Overview EN: {overview}\n"
+        f"Cached Commentary Consensus EN: {consensus}\n"
+        f"Cached Life Application EN (snippet for matching real-life asks): {life_snip}\n"
+        f"Translation: {verse.translation}\n"
+        f"Commentary: {verse.commentary}\n"
+        f"Themes (for retrieval): {themes}"
+    )
+
+
+def _query_text_for_embedding(message: str) -> str:
+    """Compose text for the query embedding so it aligns with verse documents."""
+    max_chars = int(getattr(settings, "OPENAI_EMBEDDING_QUERY_MAX_CHARS", 8000))
+    normalized = normalize_chat_user_message(message)
+    if not getattr(settings, "OPENAI_QUERY_EMBEDDING_ENRICHED", True):
+        return normalized[:max_chars]
+    interp = interpret_query(normalized)
+    themes = sorted(infer_themes_from_text(normalized))
+    lines = [
+        "Seeker message:",
+        normalized,
+        "",
+        f"Life domain: {interp.life_domain}",
+        f"Emotional tone: {interp.emotional_state}",
+    ]
+    if themes:
+        lines.append(f"Themes: {', '.join(themes)}")
+    lines.append(f"Guidance angles: {'; '.join(interp.likely_principles[:5])}")
+    lines.append(f"Retrieval keywords: {', '.join(interp.search_terms)}")
+    return "\n".join(lines)[:max_chars]
+
+
+def query_embedding_input_text(message: str) -> str:
+    """Public helper: text sent to the embeddings API for user-message retrieval."""
+    return _query_text_for_embedding(message)
+
+
+def _query_embedding_cache_key(input_text: str) -> str:
+    """Stable cache key for query vectors (model + exact embedding input)."""
+    digest = hashlib.sha256()
+    digest.update(str(settings.OPENAI_EMBEDDING_MODEL).encode())
+    digest.update(b"\0")
+    digest.update(input_text.encode("utf-8"))
+    return f"gita:qemb:v1:{digest.hexdigest()}"
+
+
+def _query_embedding_cache_ttl_seconds() -> int | None:
+    ttl = int(getattr(settings, "OPENAI_QUERY_EMBEDDING_CACHE_TTL_SECONDS", 86400))
+    return ttl if ttl > 0 else None
+
+
+def _openai_verse_relevance_model() -> str:
+    """Model for verse relevance JSON (defaults to main chat model)."""
+    alt = getattr(settings, "OPENAI_VERSE_RELEVANCE_MODEL", "").strip()
+    return alt or settings.OPENAI_MODEL
+
+
+def _openai_verse_suggest_model() -> str:
+    """Model for empty-retrieval verse suggest JSON (defaults to main chat model)."""
+    alt = getattr(settings, "OPENAI_VERSE_SUGGEST_MODEL", "").strip()
+    return alt or settings.OPENAI_MODEL
+
+
 def _build_query_embedding(message: str) -> list[float] | None:
     """Build embedding for user query; return None on any failure."""
     if not settings.OPENAI_API_KEY:
         return None
+    input_text = _query_text_for_embedding(message)
+    use_cache = bool(getattr(settings, "OPENAI_QUERY_EMBEDDING_CACHE_ENABLED", True))
+    ttl = _query_embedding_cache_ttl_seconds()
+    cache_key = _query_embedding_cache_key(input_text)
+    if use_cache and ttl is not None:
+        cached = cache.get(cache_key)
+        if isinstance(cached, list) and cached:
+            return cached
     try:
         client = _openai_client()
         response = client.embeddings.create(
             model=settings.OPENAI_EMBEDDING_MODEL,
-            input=message,
+            input=input_text,
         )
-        return response.data[0].embedding
+        embedding = response.data[0].embedding
     except Exception as exc:
         logger.warning("Query embedding generation failed: %s", exc)
         return None
+    if use_cache and ttl is not None and embedding:
+        cache.set(cache_key, embedding, ttl)
+    return embedding
 
 
 def _pgvector_enabled() -> bool:
@@ -2734,15 +2987,80 @@ def _build_mortality_fallback(
     )
 
 
+def _build_principle_only_fallback_guidance(
+    message: str,
+    *,
+    language: str = "en",
+) -> GuidanceResult:
+    """Short Gita-grounded reply without citing specific verse numbers."""
+    language = _normalize_language(language)
+    intent = classify_user_intent(message)
+    if language == "hi":
+        return GuidanceResult(
+            guidance=(
+                "आपके प्रश्न की गहराई स्पष्ट है। भगवद्गीता सिखाती है कि सत्य, विवेक और "
+                "भीतर की स्पष्टता के बिना कर्म भटक सकता है — परिणाम के भय या लोभ में "
+                "निर्णय न करें। जटिल नैतिक या व्यावसायिक मामलों में विवेकी मानव मार्गदर्शन "
+                "और अपने क्षेत्र के नियमों का सम्मान करें। यहाँ चिकित्सा या कानूनी सलाह नहीं दी जा रही।"
+            ),
+            meaning=(
+                "गीता का केंद्र है: मोह से मुक्त होकर धर्म-संगत कर्तव्य की पहचान, "
+                "और मन की स्थिरता।"
+            ),
+            actions=[
+                "अपनी दुविधा को एक वाक्य में लिखें — क्या नैतिक रूप से सबसे महत्वपूर्ण बात क्या है?",
+                "एक विश्वसनीय वरिष्ठ या मार्गदर्शक से मानवीय परामर्श लें (जहाँ लागू हो)।",
+                "आज के लिए एक छोटा कदम चुनें जो सत्य और शांति दोनों की दिशा में हो।",
+            ],
+            reflection=(
+                "क्या मैं स्पष्टता और करुणा दोनों के साथ अगला कदम चुन सकता हूँ?"
+            ),
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_actions=intent.show_actions,
+            show_reflection=intent.show_reflection,
+            show_related_verses=False,
+        )
+    return GuidanceResult(
+        guidance=(
+            "Your question points to a real ethical tension. The Bhagavad Gita teaches "
+            "truthfulness, clear discernment, and steady action without being enslaved "
+            "by fear, greed, or confusion. In complex professional or legal matters, seek "
+            "wise human mentors and follow lawful rules in your jurisdiction. This is not "
+            "medical or legal advice."
+        ),
+        meaning=(
+            "The Gita's core is to see clearly, act with integrity, and cultivate inner "
+            "steadiness rather than reactive grasping."
+        ),
+        actions=[
+            "Write your dilemma in one sentence: what matters most ethically right now?",
+            "Consult a trustworthy elder, teacher, or professional advisor where appropriate.",
+            "Choose one small step today that moves toward clarity and peace without harming integrity.",
+        ],
+        reflection=(
+            "What is one dharmic next step I can take with both courage and humility?"
+        ),
+        response_mode="fallback",
+        intent_type=intent.intent_type,
+        show_actions=intent.show_actions,
+        show_reflection=intent.show_reflection,
+        show_related_verses=False,
+    )
+
+
 def _build_fallback_guidance(
     message: str,
     verses: list[Verse],
     *,
     language: str = "en",
+    honor_empty_verse_context: bool = False,
 ) -> GuidanceResult:
     """Create deterministic, safe guidance when LLM is unavailable."""
     language = _normalize_language(language)
     intent = classify_user_intent(message)
+    if honor_empty_verse_context and not verses:
+        return _build_principle_only_fallback_guidance(message, language=language)
     if _is_greeting_like(message):
         return _build_compassionate_chat_reply(
             message,
@@ -2758,6 +3076,8 @@ def _build_fallback_guidance(
         )
 
     if intent.intent_type == "knowledge_question" and verses:
+        if _should_avoid_knowledge_fallback_template(message):
+            return _build_principle_only_fallback_guidance(message, language=language)
         primary_verse = verses[0]
         ref = _verse_reference(primary_verse)
         detail = get_verse_detail(primary_verse.chapter, primary_verse.verse) or {}
@@ -2804,6 +3124,11 @@ def _build_fallback_guidance(
             show_reflection=False,
             show_related_verses=True,
         )
+
+    if intent.intent_type == "life_guidance" and _should_avoid_knowledge_fallback_template(
+        message,
+    ):
+        return _build_principle_only_fallback_guidance(message, language=language)
 
     if intent.intent_type == "knowledge_question" and not verses:
         ensure_seed_verses()
@@ -2947,15 +3272,30 @@ def _serialize_conversation_context(conversation_messages) -> str:
     if not conversation_messages:
         return ""
 
+    max_turns = int(getattr(settings, "MAX_CONVERSATION_CONTEXT_TURNS", 6))
+    max_chars = int(getattr(settings, "MAX_CONVERSATION_CONTEXT_CHARS", 4000))
+    if max_turns <= 0:
+        return ""
+    recent = conversation_messages[-max_turns:]
+
     lines = []
-    for message in conversation_messages[-6:]:
+    for message in recent:
         role = getattr(message, "role", "")
         content = getattr(message, "content", "")
         if not content:
             continue
         speaker = "User" if role == "user" else "Guide"
         lines.append(f"{speaker}: {content}")
-    return "\n".join(lines)
+    text = "\n".join(lines)
+    if max_chars <= 0 or len(text) <= max_chars:
+        return text
+    parts = text.split("\n")
+    while len(parts) > 1 and len("\n".join(parts)) > max_chars:
+        parts.pop(0)
+    trimmed = "\n".join(parts)
+    if len(trimmed) > max_chars:
+        trimmed = trimmed[-max_chars:].lstrip()
+    return trimmed
 
 
 def _is_minimal_context_life_message(message: str) -> bool:
@@ -2995,58 +3335,192 @@ def _is_grounded_response(
     meaning: str,
     references: list[str],
     allowed_references: set[str],
+    *,
+    verse_optional: bool = False,
 ) -> bool:
-    """Validate that cited references are within retrieved context."""
-    if not references:
-        return False
+    """Validate that cited references are within retrieved context.
 
+    When ``verse_optional`` is True and the model returns no ``verse_references``,
+    the answer must not smuggle chapter.verse numbers into prose (anti-hallucination).
+    """
     normalized_refs = {ref.strip() for ref in references if ref.strip()}
     text_refs = _extract_references(f"{guidance} {meaning}")
+    if verse_optional and not normalized_refs:
+        return not bool(text_refs)
+    if not normalized_refs:
+        return False
     all_refs = normalized_refs | text_refs
     return bool(all_refs) and all_refs.issubset(allowed_references)
+
+
+def _user_seeks_personal_action_or_ethics(message: str) -> bool:
+    """True when the user asks what to do / how it applies to them (aligns with intent)."""
+    lowered = re.sub(r"\s+", " ", str(message or "").strip().lower())
+    return any(phrase in lowered for phrase in _LIFE_APPLICATION_PHRASES)
+
+
+def _should_avoid_knowledge_fallback_template(message: str) -> bool:
+    """When the LLM is off, skip the generic 'verse X is most relevant' knowledge stub."""
+    lowered = re.sub(r"\s+", " ", str(message or "").strip().lower())
+    text = str(message or "").strip()
+    if _user_seeks_personal_action_or_ethics(message):
+        return True
+    if _is_professional_ethics_query(message):
+        return True
+    if _LIFE_SIGNAL_RE.search(lowered):
+        return True
+    tokens = set(re.findall(r"[a-z]+", lowered))
+    if _FIRST_PERSON_RE.search(lowered) and "?" in text:
+        return len(tokens & _KNOWLEDGE_TOPIC_TOKENS) < 2
+    return False
+
+
+def normalize_chat_user_message(message: str) -> str:
+    """Strip accidental leading ``You `` from pasted SEO/UI copy (e.g. ``You i am…``)."""
+    s = str(message or "").strip()
+    if not s:
+        return s
+    prefix = s[:16].lower()
+    if prefix.startswith("you i ") or prefix.startswith("you we "):
+        return s[4:].lstrip()
+    if re.match(r"^you\s+i['’]", s, re.IGNORECASE):
+        return re.sub(r"^you\s+", "", s, count=1, flags=re.IGNORECASE).lstrip()
+    return s
+
+
+def _is_professional_ethics_query(message: str) -> bool:
+    """Heuristic: legal/professional role stress (not legal advice — prompt disclaimer)."""
+    n = re.sub(r"\s+", " ", str(message or "").strip().lower())
+    needles = (
+        "lawyer",
+        "laywer",
+        "attorney",
+        "bar council",
+        "law firm",
+        "legal ethics",
+        "legal advice",
+        "represent a client",
+        "representing a client",
+        "defend someone",
+        "defending someone",
+        "court case",
+        "counsel",
+        "litigation",
+        "plaintiff",
+        "defendant",
+        "fighting for",
+        "whose case",
+        "my case",
+    )
+    if any(s in n for s in needles):
+        return True
+    return re.search(r"\bclients?\b", n) is not None
+
+
+# Verses that catalogue demoniacal nature / destruction — never map to clients or parties.
+_LEGAL_ETHICS_VERSE_DROP_REFS = frozenset({
+    "16.7",
+    "16.8",
+    "16.9",
+    "16.10",
+    "16.11",
+    "16.12",
+    "16.13",
+    "16.14",
+    "16.15",
+    "16.16",
+    "16.17",
+    "16.18",
+})
+
+
+def _strip_inappropriate_verses_for_legal_ethics(
+    message: str,
+    verses: list[Verse],
+) -> list[Verse]:
+    """Remove ślokas that are easily misread as labeling people in advocacy ethics asks."""
+    if not verses or not _is_professional_ethics_query(message):
+        return verses
+    ref_set = {f"{v.chapter}.{v.verse}" for v in verses}
+    if not ref_set & _LEGAL_ETHICS_VERSE_DROP_REFS:
+        return verses
+    kept = [
+        v for v in verses
+        if f"{v.chapter}.{v.verse}" not in _LEGAL_ETHICS_VERSE_DROP_REFS
+    ]
+    return kept
 
 
 def _validate_and_correct_verses(
     message: str,
     verses: list[Verse],
 ) -> list[Verse]:
-    """Ask LLM whether retrieved verses are relevant; swap if not.
+    """Ask LLM whether retrieved verses fit the question (uses commentary + translation).
 
-    Returns original verses when:
-    - no API key configured
-    - LLM confirms verses are relevant
-    - LLM call fails (graceful degradation)
+    Returns:
+    - Same list when verses are relevant or on failure (graceful degradation).
+    - A replaced list when ``better_refs`` load from DB.
+    - An empty list when the model sets ``no_appropriate_verse`` (do not cite ślokas).
     """
     if not settings.OPENAI_API_KEY or not verses:
         return verses
 
-    verse_summaries = []
-    for v in verses[:5]:
-        verse_summaries.append(
-            f"{v.chapter}.{v.verse}: {v.translation[:200]}"
+    blocks = []
+    for v in verses[:6]:
+        ref = _verse_reference(v)
+        comm = _author_commentary_text(ref, limit=4, message=message)
+        angles = _additional_angle_text(ref, limit=2)
+        row = _merged_verse_context(ref)
+        eng_mean = str(row.get("english", "") or "")[:220]
+        blocks.append(
+            f"--- {ref} ---\n"
+            f"Translation (excerpt): {v.translation[:320]}\n"
+            f"English meaning (excerpt): {eng_mean}\n"
+            f"Additional angles (excerpt): {angles[:420]}\n"
+            f"Author commentary (query-ranked excerpts): {comm[:720]}\n"
         )
-    verses_text = "\n".join(verse_summaries)
+    verses_text = "\n".join(blocks)
+
+    legal_ethics_extra = ""
+    if _is_professional_ethics_query(message):
+        legal_ethics_extra = (
+            "\nLEGAL / ADVOCACY ETHICS (user may be a lawyer or officer of the court):\n"
+            "- NEVER treat verses that describe demoniacal nature, 'enemies of the "
+            "world', ruin, or destruction as if they referred to clients, opponents, "
+            "or parties in a case. Reject candidates in that category.\n"
+            "- Prefer satya, measured speech, inner clarity, or verse-free principles "
+            "(no_appropriate_verse) over any śloka that could insult a person.\n"
+            "- When in doubt, choose {\"relevant\": false, \"no_appropriate_verse\": true}.\n"
+        )
 
     prompt = (
-        "You are a Bhagavad Gita verse-relevance evaluator.\n\n"
-        f"User question: {message}\n\n"
-        f"Retrieved verses:\n{verses_text}\n\n"
-        "Task:\n"
-        "1. Decide if the retrieved verses are relevant to the user's question.\n"
-        "2. If YES (at least 1 verse clearly addresses the user's concern), "
-        "respond with EXACTLY this JSON: {\"relevant\": true}\n"
-        "3. If NO (none of the retrieved verses meaningfully address the question), "
-        "respond with JSON: {\"relevant\": false, \"better_refs\": [\"chapter.verse\", ...]} "
-        "where better_refs contains 2-4 Bhagavad Gita verse references (e.g. \"2.47\") "
-        "that would genuinely address the user's concern. Only suggest verses you are "
-        "confident exist in the Bhagavad Gita (chapters 1-18).\n\n"
-        "Return ONLY the JSON object, no other text."
+        "You are a Bhagavad Gita verse-relevance evaluator. You have translation, "
+        "meaning, angles, and classical/modern commentary excerpts so you can judge "
+        "fit beyond surface keywords.\n\n"
+        f"User question:\n{message}\n\n"
+        f"Candidate verses (with commentary context):\n{verses_text}\n\n"
+        "Rules:\n"
+        "- Do NOT map Kurukshetra battlefield 'duty' to modern professional/legal "
+        "rules unless the user clearly asks in that metaphorical spirit; for legal "
+        "ethics, prefer teachings on truthfulness, discernment, non-harm to integrity, "
+        "and humility rather than warrior-role verses.\n"
+        f"{legal_ethics_extra}"
+        "- If at least one candidate truly fits the user's concern, respond with "
+        "EXACTLY: {\"relevant\": true}\n"
+        "- If none fit but you can name better chapter.verse refs that would fit, "
+        "respond: {\"relevant\": false, \"better_refs\": [\"chapter.verse\", ...]} "
+        "(2-5 refs, Bhagavad Gita chapters 1-18 only).\n"
+        "- If no single śloka should be cited (question too narrow, mismatched, or "
+        "only general principles apply), respond: "
+        "{\"relevant\": false, \"no_appropriate_verse\": true}\n"
+        "  In that case omit better_refs or set it to [].\n\n"
+        "Return ONLY JSON, no other text."
     )
 
     try:
         client = _openai_client()
         response = client.responses.create(
-            model=settings.OPENAI_MODEL,
+            model=_openai_verse_relevance_model(),
             input=[{"role": "user", "content": prompt}],
         )
         payload = _parse_json_payload(response.output_text)
@@ -3054,15 +3528,26 @@ def _validate_and_correct_verses(
         if payload.get("relevant", True):
             return verses
 
+        if payload.get("no_appropriate_verse"):
+            logger.info(
+                "Verse relevance: no appropriate verse for query: %s",
+                message[:120],
+            )
+            return []
+
         better_refs = payload.get("better_refs", [])
         if not isinstance(better_refs, list) or not better_refs:
             return verses
 
-        # Sanitise refs — only allow valid chapter.verse format
         sanitised = [
             ref for ref in better_refs
             if isinstance(ref, str) and _parse_reference(ref.strip())
         ][:5]
+        if _is_professional_ethics_query(message):
+            sanitised = [
+                ref for ref in sanitised
+                if ref.strip() not in _LEGAL_ETHICS_VERSE_DROP_REFS
+            ]
 
         if not sanitised:
             return verses
@@ -3082,6 +3567,90 @@ def _validate_and_correct_verses(
     except Exception as exc:
         logger.warning("Verse validation LLM call failed: %s", exc)
         return verses
+
+
+def _suggest_verse_refs_llm(message: str) -> list[Verse]:
+    """Second-pass: propose a few refs when retrieval/relevance left none."""
+    if not settings.OPENAI_API_KEY:
+        return []
+
+    legal_extra = ""
+    if _is_professional_ethics_query(message):
+        legal_extra = (
+            "This may involve legal advocacy: do NOT suggest verses from the "
+            "demoniacal catalogue (Bhagavad Gita chapter 16.7–16.18) or any line that "
+            "could be read as labeling clients or parties. Prefer [] or speech/truth "
+            "verses (e.g. 17.15) only if clearly helpful.\n\n"
+        )
+    prompt = (
+        "You suggest Bhagavad Gita chapter.verse references for a seeker's question.\n"
+        "Use thematic knowledge (truthfulness, disciplined action, inner steadiness, "
+        "discernment, humility). Do not treat Kurukshetra combat duty as direct advice "
+        "for modern professional ethics unless the question is clearly spiritual.\n\n"
+        f"{legal_extra}"
+        f"Question:\n{message}\n\n"
+        "Return ONLY JSON: {\"refs\": [\"2.47\", \"16.1\", ...]} with 1-4 refs, or "
+        "{\"refs\": []} if general principles without numbered verses are better.\n"
+        "Only chapters 1-18."
+    )
+    try:
+        client = _openai_client()
+        response = client.responses.create(
+            model=_openai_verse_suggest_model(),
+            input=[{"role": "user", "content": prompt}],
+        )
+        payload = _parse_json_payload(response.output_text)
+        raw = payload.get("refs", [])
+        if not isinstance(raw, list):
+            return []
+        sanitised = [
+            r for r in raw
+            if isinstance(r, str) and _parse_reference(r.strip())
+        ][:4]
+        if _is_professional_ethics_query(message):
+            sanitised = [
+                r for r in sanitised
+                if r.strip() not in _LEGAL_ETHICS_VERSE_DROP_REFS
+            ]
+        if not sanitised:
+            return []
+        got = _fetch_verses_by_references(sanitised)
+        if got:
+            logger.info(
+                "Verse suggest LLM: proposed [%s] for: %s",
+                ", ".join(f"{v.chapter}.{v.verse}" for v in got),
+                message[:80],
+            )
+        return got
+    except Exception as exc:
+        logger.warning("Verse suggest LLM failed: %s", exc)
+        return []
+
+
+def refine_verses_for_guidance(message: str, verses: list[Verse]) -> list[Verse]:
+    """Post-retrieval: commentary-aware relevance pass; optional verse suggest if empty."""
+    message = normalize_chat_user_message(str(message or "").strip())
+    out: list[Verse] = list(verses)
+    out = _strip_inappropriate_verses_for_legal_ethics(message, out)
+
+    if not settings.OPENAI_API_KEY:
+        return out
+
+    refined: list[Verse] = list(out)
+    if refined and not getattr(settings, "DISABLE_VERSE_RELEVANCE_LLM", False):
+        refined = _validate_and_correct_verses(message, refined)
+
+    refined = _strip_inappropriate_verses_for_legal_ethics(message, refined)
+
+    if refined:
+        return refined
+
+    if getattr(settings, "DISABLE_LLM_VERSE_SUGGEST_WHEN_EMPTY", False):
+        return refined
+
+    suggested = _suggest_verse_refs_llm(message)
+    suggested = _strip_inappropriate_verses_for_legal_ethics(message, suggested)
+    return suggested if suggested else refined
 
 
 def _trim_actions(actions: object, *, limit: int = 3) -> list[str]:
@@ -3490,6 +4059,11 @@ def build_guidance(
 ) -> GuidanceResult:
     """Generate grounded guidance via OpenAI with strict fallback path."""
     language = _normalize_language(language)
+    message = normalize_chat_user_message(str(message or "").strip())
+    # Truncate oversized inputs before any LLM processing.
+    max_chars = getattr(settings, "MAX_ASK_INPUT_CHARS", 2200)
+    if len(message) > max_chars:
+        message = message[:max_chars]
     intent_analysis = intent_analysis or classify_user_intent(
         message,
         mode=mode,
@@ -3498,10 +4072,6 @@ def build_guidance(
     show_actions = bool(intent_analysis.get("show_actions", True))
     show_reflection = bool(intent_analysis.get("show_reflection", True))
     show_related_verses = bool(intent_analysis.get("show_related_verses", True))
-    # Truncate oversized inputs before any LLM processing.
-    max_chars = getattr(settings, "MAX_ASK_INPUT_CHARS", 2200)
-    if len(message) > max_chars:
-        message = message[:max_chars]
     query_interpretation = query_interpretation or interpret_query(message).as_dict()
     emotional_state = str(query_interpretation.get("emotional_state", "")).strip().lower()
     stressed_states = {
@@ -3601,8 +4171,28 @@ def build_guidance(
     if detected_topic in {"ANXIETY AND STRESS", "WAR, DEATH, AND THE IMMORTAL SELF"}:
         is_stressed = True
 
+    if _is_professional_ethics_query(message) and intent_type == "life_guidance":
+        detected_topic = "PROFESSIONAL OR LEGAL ETHICS (SPIRITUAL FRAMING)"
+        topic_advice = (
+            "Speak to truthfulness (satya), courage without cruelty, clarity of motive, "
+            "and humility before complexity. Do NOT equate Kurukshetra battlefield roles "
+            "with modern bar rules, court procedure, or employer policy. Do NOT give legal "
+            "advice; encourage appropriate lawful and professional mentors. Prefer "
+            "verses about discernment and integrity over warrior-duty imagery unless the "
+            "user clearly uses a spiritual-warrior metaphor."
+        )
+
+    verse_optional_mode = len(verses) == 0
     allowed_refs = _verse_reference_set(verses)
-    verses_context = _serialize_verses_for_prompt(verses, message=message)
+    if verse_optional_mode:
+        verses_context = (
+            "NONE SUPPLIED — retrieval returned no verses, or a relevance review judged "
+            "that no specific śloka should be quoted for this question. Answer in the "
+            "spirit of the Gita with principles tied to the user's words. Prefer "
+            "verse_references=[]. Do not invent chapter.verse numbers in prose."
+        )
+    else:
+        verses_context = _serialize_verses_for_prompt(verses, message=message)
     primary_verse = verses[0] if verses else None
     primary_reference = _verse_reference(primary_verse) if primary_verse else ""
     primary_chapter_context = _chapter_perspective(
@@ -3673,9 +4263,39 @@ def build_guidance(
         "LANGUAGE: If language_code is 'hi', user-facing strings in natural Hindi "
         "(Devanagari). If 'en', English."
     )
+    if _is_professional_ethics_query(message):
+        system_prompt += (
+            "\nPROFESSIONAL/LEGAL QUESTION: You are not a lawyer. No procedural "
+            "legal advice. Do not equate Kurukshetra warrior duty with modern "
+            "professional or court obligations. Emphasize satya, integrity, "
+            "humility, and seeking appropriate human counsel.\n"
+        )
+    if verse_optional_mode:
+        system_prompt += (
+            "\nVERSE-OPTIONAL: No verse bundle is attached. You may set "
+            "verse_references to []. If empty, do not write chapter.verse numbers in "
+            "prose. Still give substantive, situation-specific guidance rooted in Gita "
+            "teaching.\n"
+        )
+
+    verse_mode_note = ""
+    if verse_optional_mode:
+        verse_mode_note = (
+            "VERSE CONTEXT: No śloka list is attached (or none passed relevance "
+            "review). Prefer verse_references=[]. Do not fabricate verse numbers in "
+            "prose unless they appear in verse_references and are genuine.\n\n"
+        )
+    ethics_preface = ""
+    if _is_professional_ethics_query(message):
+        ethics_preface = (
+            "Note: The user may be describing a legal/professional role. Offer "
+            "spiritual-ethical framing only; not legal advice.\n\n"
+        )
 
     shared_context_block = (
-        f"language_code: {language}\n\n"
+        verse_mode_note
+        + ethics_preface
+        + f"language_code: {language}\n\n"
         f"Structured query interpretation: "
         f"{json.dumps(query_interpretation, ensure_ascii=False)}\n\n"
         f"Intent analysis: {json.dumps(intent_analysis, ensure_ascii=False)}\n\n"
@@ -3726,7 +4346,7 @@ def build_guidance(
         )
     else:
         vague_life_append = ""
-        if _is_minimal_context_life_message(message):
+        if _is_minimal_context_life_message(message) and not verse_optional_mode:
             vague_life_append = (
                 "\nMINIMAL USER DETAIL: The latest message is very short or only a generic "
                 "plea. Prefer the FIRST verse in Available verse context as anchor when "
@@ -3737,6 +4357,16 @@ def build_guidance(
                 "the same ask. One warm sentence inviting what hurts most now is "
                 "appropriate.\n"
             )
+        verse_use_line = (
+            "- Verse use: one strong anchor; quote a short line from its translation "
+            "in guidance or meaning; say why Krishna pressed this on Arjuna then.\n"
+            if not verse_optional_mode
+            else (
+                "- Verse use: only if a specific śloka truly fits; otherwise set "
+                "verse_references to [] and teach from Gita principles without writing "
+                "numbered verse addresses in prose.\n"
+            )
+        )
         user_prompt = (
             shared_context_block
             + vague_life_append
@@ -3752,15 +4382,14 @@ def build_guidance(
             "(3) one or two humble next steps that feel doable.\n"
             "- Disarm resistance: warmth, respect, no moral superiority; speak to "
             "the part of them that already wants peace.\n"
-            "- Verse use: one strong anchor; quote a short line from its translation "
-            "in guidance or meaning; say why Krishna pressed this on Arjuna then.\n"
-            "- Bridge to today only where it clarifies—no forced allegory.\n"
+            + verse_use_line
+            + "- Bridge to today only where it clarifies—no forced allegory.\n"
             "- guidance: 2-4 sentences unless deep mode.\n"
             "- meaning: 1-3 sentences deepening the verse or principle.\n"
             f"- actions: {actions_instruction}\n"
             f"- reflection: {reflection_instruction}\n"
             "- verse_references: best-fit chapter.verse list (may extend beyond "
-            "provided context if clearly more apt).\n"
+            "provided context if clearly more apt); use [] if no verse should be named.\n"
             "- related_verse_references: optional; only verses that deepen exploration.\n"
             "- write in language_code.\n"
             + deep_append
@@ -3805,7 +4434,8 @@ def build_guidance(
                 allowed_refs.add(f"{v.chapter}.{v.verse}")
 
         if (
-            primary_reference
+            not verse_optional_mode
+            and primary_reference
             and primary_reference in allowed_refs
             and not references
         ):
@@ -3833,12 +4463,14 @@ def build_guidance(
                 meaning,
                 references,
                 allowed_refs,
+                verse_optional=verse_optional_mode,
             )
         ):
             return _build_fallback_guidance(
                 message,
                 verses,
                 language=language,
+                honor_empty_verse_context=verse_optional_mode,
             )
 
         guidance = _guidance_with_primary_quote(
@@ -3866,6 +4498,7 @@ def build_guidance(
             message,
             verses,
             language=language,
+            honor_empty_verse_context=verse_optional_mode,
         )
 
 

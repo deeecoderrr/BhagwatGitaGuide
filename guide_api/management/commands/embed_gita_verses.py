@@ -3,44 +3,10 @@
 from django.conf import settings
 from django.core.management import call_command
 from django.core.management.base import BaseCommand, CommandError
-from django.db.utils import OperationalError, ProgrammingError
 from openai import OpenAI
 
-from guide_api.models import Verse, VerseSynthesis
-from guide_api.services import (
-    _additional_angle_text,
-    _author_commentary_text,
-    _merged_verse_context,
-)
-
-
-def _embedding_text(verse: Verse) -> str:
-    """Create embedding input text from verse content and themes."""
-    themes = ", ".join(verse.themes) if verse.themes else "none"
-    ref = f"{verse.chapter}.{verse.verse}"
-    row = _merged_verse_context(ref)
-    additional_angles = _additional_angle_text(ref, limit=3)
-    commentary_text = _author_commentary_text(ref, limit=3)
-    try:
-        synthesis = VerseSynthesis.objects.filter(verse=verse).first()
-    except (OperationalError, ProgrammingError):
-        synthesis = None
-    return (
-        f"Chapter {verse.chapter} Verse {verse.verse}\n"
-        f"Sanskrit: {row.get('sanskrit', '')}\n"
-        f"Transliteration: {row.get('transliteration', '')}\n"
-        f"Hindi Meaning: {row.get('hindi', '')}\n"
-        f"English Meaning: {row.get('english', '')}\n"
-        f"Word Meaning: {row.get('word_meaning', '')}\n"
-        f"Additional Angles: {additional_angles}\n"
-        f"Author Commentary Perspectives: {commentary_text}\n"
-        f"Cached Verse Overview EN: {getattr(synthesis, 'overview_en', '')}\n"
-        f"Cached Commentary Consensus EN: {getattr(synthesis, 'commentary_consensus_en', '')}\n"
-        f"Cached Life Application EN: {getattr(synthesis, 'life_application_en', '')}\n"
-        f"Translation: {verse.translation}\n"
-        f"Commentary: {verse.commentary}\n"
-        f"Themes: {themes}"
-    )
+from guide_api.models import Verse
+from guide_api.services import verse_embedding_document
 
 
 class Command(BaseCommand):
@@ -103,7 +69,7 @@ class Command(BaseCommand):
 
         for start in range(0, len(verses), batch_size):
             batch = verses[start: start + batch_size]
-            inputs = [_embedding_text(verse) for verse in batch]
+            inputs = [verse_embedding_document(verse) for verse in batch]
             response = client.embeddings.create(model=model, input=inputs)
             embeddings = [item.embedding for item in response.data]
 
