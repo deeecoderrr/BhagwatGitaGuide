@@ -212,6 +212,33 @@
       gap: 14px;
       margin-top: 18px;
     }
+    .question-group-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 18px;
+      margin-top: 18px;
+    }
+    .question-group-card {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 20px;
+    }
+    .question-links {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .question-links a {
+      text-decoration: none;
+      color: var(--blue);
+      border: 1px solid rgba(126, 215, 255, 0.24);
+      background: rgba(126, 215, 255, 0.08);
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-weight: 700;
+      line-height: 1.55;
+    }
     .verse-spotlight-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -383,7 +410,33 @@
       </div>
     </section>
 
-    {% if topics %}
+    {% if archive_mode %}
+      <section class="panel">
+        <h2 class="section-title">{% if language == "hi" %}प्रश्न श्रेणियाँ{% else %}Question Categories{% endif %}</h2>
+        <div class="question-group-grid">
+          {% for group in question_groups %}
+            <div class="question-group-card">
+              <h3>{{ group.title }}</h3>
+              <div class="question-links">
+                {% for question in group.questions %}
+                  <a href="{{ question.chat_url_with_prefill }}">{{ question.text }}</a>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+        {% if archive_backlinks %}
+          <div class="mini-nav">
+            {% for topic in archive_backlinks %}
+              <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">{{ topic.label }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if search_intent_copy %}
+          <div class="intent-strip">{{ search_intent_copy }}</div>
+        {% endif %}
+      </section>
+    {% elif topics %}
       <section class="panel">
         <h2 class="section-title">{% if language == "hi" %}एक केंद्रित गाइड चुनें{% else %}Choose a focused guide{% endif %}</h2>
         <div class="topic-list">

@@ -6,6 +6,7 @@ from guide_api.views import (
     SEO_LANDING_PAGES,
     SharedAnswerPageView,
     SeoLandingIndexView,
+    SeoQuestionArchiveView,
     SeoLandingTopicView,
     robots_txt_view,
     sitemap_xml_view,
@@ -26,6 +27,11 @@ urlpatterns = [
         name="shared-answer",
     ),
     path("", SeoLandingIndexView.as_view(), name="seo-index"),
+    path(
+        "frequently-asked-bhagavad-gita-questions/",
+        SeoQuestionArchiveView.as_view(),
+        name="seo-question-archive",
+    ),
 ]
 
 urlpatterns += [

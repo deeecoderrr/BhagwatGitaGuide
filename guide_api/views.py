@@ -1126,6 +1126,76 @@ POPULAR_VERSE_SPOTLIGHTS = [
     },
 ]
 
+QUESTION_ARCHIVE_GROUPS_EN = [
+    {
+        "title": "Anxiety and Overthinking",
+        "questions": [
+            "What does the Bhagavad Gita say about anxiety?",
+            "Which Gita verse helps with overthinking?",
+            "How can I stop worrying about the future according to Krishna?",
+        ],
+    },
+    {
+        "title": "Career and Purpose",
+        "questions": [
+            "Which Bhagavad Gita verse helps with career confusion?",
+            "What does the Gita say about purpose and dharma?",
+            "How do I work without fear of failure according to the Gita?",
+        ],
+    },
+    {
+        "title": "Relationships and Anger",
+        "questions": [
+            "What does the Bhagavad Gita say about anger in relationships?",
+            "Which Gita verses help with attachment and heartbreak?",
+            "How can I respond calmly when I feel hurt?",
+        ],
+    },
+    {
+        "title": "Discipline and Self Growth",
+        "questions": [
+            "Which Bhagavad Gita verse helps with self-discipline?",
+            "What does Krishna say about controlling the mind?",
+            "How can I stop procrastinating according to the Gita?",
+        ],
+    },
+]
+
+QUESTION_ARCHIVE_GROUPS_HI = [
+    {
+        "title": "चिंता और ओवरथिंकिंग",
+        "questions": [
+            "भगवद गीता चिंता के बारे में क्या कहती है?",
+            "ओवरथिंकिंग के लिए कौन-सा गीता श्लोक मदद करता है?",
+            "कृष्ण के अनुसार मैं भविष्य की चिंता कैसे छोड़ूँ?",
+        ],
+    },
+    {
+        "title": "करियर और उद्देश्य",
+        "questions": [
+            "करियर उलझन के लिए कौन-सा भगवद गीता श्लोक मदद करता है?",
+            "गीता उद्देश्य और धर्म के बारे में क्या कहती है?",
+            "गीता के अनुसार मैं असफलता के भय के बिना कैसे काम करूँ?",
+        ],
+    },
+    {
+        "title": "रिश्ते और क्रोध",
+        "questions": [
+            "रिश्तों में क्रोध के बारे में भगवद गीता क्या कहती है?",
+            "आसक्ति और दिल टूटने के लिए कौन-से गीता श्लोक मदद करते हैं?",
+            "जब मुझे चोट लगे तो मैं शांत प्रतिक्रिया कैसे दूँ?",
+        ],
+    },
+    {
+        "title": "अनुशासन और आत्म-विकास",
+        "questions": [
+            "आत्म-अनुशासन के लिए कौन-सा भगवद गीता श्लोक मदद करता है?",
+            "मन को नियंत्रित करने के बारे में कृष्ण क्या कहते हैं?",
+            "गीता के अनुसार मैं टालमटोल कैसे छोड़ूँ?",
+        ],
+    },
+]
+
 
 def robots_txt_view(request):
     """Serve robots policy with sitemap hint for search engines."""
@@ -1147,6 +1217,7 @@ def sitemap_xml_view(request):
         f"/{page['slug']}/"
         for page in SEO_LANDING_PAGES.values()
     ] + [
+        "/frequently-asked-bhagavad-gita-questions/",
         "/api/chat-ui/",
     ]
     rows = [
@@ -1337,6 +1408,182 @@ class SeoLandingIndexView(View):
             "og_type": "website",
             "structured_data": structured_data,
             "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
+        }
+        _track_web_visit(request, source=WebAudienceProfile.SOURCE_SEO_INDEX)
+        response = render(request, self.template_name, context)
+        _attach_web_audience_cookie(request, response)
+        return response
+
+
+class SeoQuestionArchiveView(View):
+    """Public archive page of common Bhagavad Gita questions for search intent."""
+
+    template_name = "guide_api/seo_landing.html"
+
+    def get(self, request):
+        language = "hi" if request.GET.get("language") == "hi" else "en"
+        path_url = request.build_absolute_uri(request.path)
+        canonical_url = (
+            f"{path_url}?language=hi"
+            if language == "hi"
+            else path_url
+        )
+        alternate_en_url = path_url
+        alternate_hi_url = f"{path_url}?language=hi"
+        site_url = request.build_absolute_uri("/")
+        question_groups_src = (
+            QUESTION_ARCHIVE_GROUPS_HI
+            if language == "hi"
+            else QUESTION_ARCHIVE_GROUPS_EN
+        )
+        question_groups = []
+        for group in question_groups_src:
+            question_groups.append(
+                {
+                    "title": group["title"],
+                    "questions": [
+                        {
+                            "text": q,
+                            "chat_url_with_prefill": (
+                                f"/api/chat-ui/?mode=simple&language={language}"
+                                f"&prefill={quote_plus(q)}"
+                            ),
+                        }
+                        for q in group["questions"]
+                    ],
+                }
+            )
+        page_title = (
+            "भगवद गीता सामान्य प्रश्न | Ask Gita शैली प्रश्न संग्रह"
+            if language == "hi"
+            else "Frequently Asked Bhagavad Gita Questions | Ask Gita Style Question Archive"
+        )
+        meta_description = (
+            "चिंता, करियर, रिश्ते, अनुशासन और जीवन के प्रश्नों पर सामान्य भगवद गीता प्रश्नों का संग्रह देखें।"
+            if language == "hi"
+            else (
+                "Browse a public archive of common Bhagavad Gita questions about anxiety, career, relationships, "
+                "discipline, and real-life struggles."
+            )
+        )
+        meta_keywords = (
+            "भगवद गीता प्रश्न, Ask Gita प्रश्न, गीता एआई प्रश्न, भगवद गीता सामान्य प्रश्न"
+            if language == "hi"
+            else (
+                "Bhagavad Gita questions, Ask Gita questions, Gita AI questions, common Bhagavad Gita questions"
+            )
+        )
+        page_heading = (
+            "अक्सर पूछे जाने वाले भगवद गीता प्रश्न"
+            if language == "hi"
+            else "Frequently Asked Bhagavad Gita Questions"
+        )
+        page_intro = (
+            "ये वे सामान्य प्रश्न हैं जिनके लिए लोग गीता में मार्गदर्शन खोजते हैं। किसी भी प्रश्न पर क्लिक करें और पूरे ऐप में उस प्रश्न का श्लोक-आधारित उत्तर पाएँ।"
+            if language == "hi"
+            else (
+                "These are common question patterns people search when looking for Bhagavad Gita guidance. "
+                "Click any question to open the full app with that question prefilled."
+            )
+        )
+        faq_items = [
+            {
+                "question": (
+                    "क्या यह पेज वास्तविक गीता प्रश्नों के लिए बनाया गया है?"
+                    if language == "hi"
+                    else "Is this page designed around real Bhagavad Gita search questions?"
+                ),
+                "answer": (
+                    "हाँ। इसमें वही प्रकार के प्रश्न शामिल हैं जिन्हें लोग चिंता, करियर, रिश्तों और अनुशासन जैसे विषयों पर खोजते हैं।"
+                    if language == "hi"
+                    else "Yes. It groups together the kinds of questions people commonly search around anxiety, career, relationships, and discipline."
+                ),
+            },
+            {
+                "question": (
+                    "क्या मैं इन प्रश्नों को अपनी स्थिति के अनुसार बदल सकता हूँ?"
+                    if language == "hi"
+                    else "Can I customize these questions for my own situation?"
+                ),
+                "answer": (
+                    "बिल्कुल। किसी भी प्रश्न से शुरुआत करें, फिर पूरे ऐप में अपने शब्दों में उसे और विशिष्ट बना दें।"
+                    if language == "hi"
+                    else "Absolutely. Start with any question here, then make it more specific inside the full app in your own words."
+                ),
+            },
+        ]
+        structured_data = json.dumps(
+            [
+                {
+                    "@context": "https://schema.org",
+                    "@type": "CollectionPage",
+                    "name": page_heading,
+                    "description": meta_description,
+                    "url": canonical_url,
+                    "inLanguage": "hi" if language == "hi" else "en",
+                },
+                {
+                    "@context": "https://schema.org",
+                    "@type": "ItemList",
+                    "name": page_heading,
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": index + 1,
+                            "name": q["text"],
+                        }
+                        for index, group in enumerate(question_groups)
+                        for q in group["questions"]
+                    ],
+                },
+                {
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@type": "Question",
+                            "name": faq["question"],
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": faq["answer"],
+                            },
+                        }
+                        for faq in faq_items
+                    ],
+                },
+            ],
+            ensure_ascii=False,
+        )
+        context = {
+            "page_title": page_title,
+            "meta_description": meta_description,
+            "meta_keywords": meta_keywords,
+            "page_heading": page_heading,
+            "page_intro": page_intro,
+            "language": language,
+            "canonical_url": canonical_url,
+            "alternate_en_url": alternate_en_url,
+            "alternate_hi_url": alternate_hi_url,
+            "og_type": "website",
+            "structured_data": structured_data,
+            "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
+            "question_groups": question_groups,
+            "faq_items": faq_items,
+            "topics": [],
+            "popular_verse_cards": [],
+            "archive_mode": True,
+            "archive_backlinks": [
+                {
+                    "label": _seo_value(page, "topic_label", language),
+                    "slug": page["slug"],
+                }
+                for page in SEO_LANDING_PAGES.values()
+            ],
+            "search_intent_copy": (
+                "यदि आप Ask Gita, Gita AI, या भगवद गीता प्रश्नों का संग्रह खोज रहे हैं, तो यह पेज उसी इरादे के लिए बनाया गया है।"
+                if language == "hi"
+                else "If you searched for Ask Gita questions, Gita AI questions, or a Bhagavad Gita question archive, this page is built for that exact intent."
+            ),
         }
         _track_web_visit(request, source=WebAudienceProfile.SOURCE_SEO_INDEX)
         response = render(request, self.template_name, context)

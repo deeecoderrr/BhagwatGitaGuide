@@ -52,6 +52,27 @@ Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
   - expanded structured data with an `ItemList` for popular verse spotlights to
     strengthen search understanding around famous verse intent
 
+- Search-intent question archive inspired by high-traffic Q&A sites completed:
+  - analyzed `gotquestions.org` and identified the most transferable growth
+    pattern: a large, crawlable archive of plain-language question intent with
+    strong internal linking
+  - implemented a Bhagavad Gita equivalent public archive page:
+    `/frequently-asked-bhagavad-gita-questions/`
+  - added English and Hindi question clusters across:
+    - anxiety and overthinking
+    - career and purpose
+    - relationships and anger
+    - discipline and self growth
+  - each listed question links directly into the full app with a prefilled ask,
+    turning search intent into usable product entry points
+  - archive page includes:
+    - localized metadata
+    - visible question-rich content
+    - FAQ schema
+    - ItemList schema
+    - backlinks to all major topic landing pages
+  - sitemap now includes the archive route for better crawl discovery
+
 - Custom domain HTTPS hardening completed:
   - identified that `https://askbhagavadgita.co.in/` had a valid TLS
     certificate, but the live response was still missing strict HTTPS headers
