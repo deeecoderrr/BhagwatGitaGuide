@@ -13,6 +13,7 @@
 - Python 3.14, Django, Django REST Framework
 - SQLite locally (`db.sqlite3`)
 - OpenAI: chat (`OPENAI_MODEL`, default `gpt-4.1-mini`), embeddings (`OPENAI_EMBEDDING_MODEL`, default `text-embedding-3-small`)
+- **Intent routing** (`guide_api/services.py`): `classify_user_intent` uses **heuristics first** (life/knowledge/casual). An optional **second** small LLM call (`DISABLE_INTENT_LLM_REFINEMENT`, **default true** = disabled) can disambiguate only when heuristics return `casual_chat` and the message passes length checks; set `DISABLE_INTENT_LLM_REFINEMENT=false` in `.env` when edge-case routing quality outweighs cost.
 - Auth: session + basic + `Authorization: Token <token>` (DRF authtoken)
 
 ### Production runtime (current)
@@ -134,6 +135,8 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 ## Security
 
 - Never commit real API keys or production `SECRET_KEY`. Use `.env` locally; `.env.example` documents variables only.
+- Session-backed payment/subscription endpoints should keep normal CSRF protection enabled. Do not reintroduce CSRF-exempt session auth for billing actions.
+- Production must set an explicit `SECRET_KEY`; the app now treats the old fallback key as invalid when `DEBUG=false`.
 
 ---
 
@@ -149,6 +152,8 @@ Deployment/ops snapshot:
 - if `/api/*` loops with repeated 301 redirects, re-check `SECURE_PROXY_SSL_HEADER`
 - if shell shows SQLite in production unexpectedly, validate Fly `DATABASE_URL`
   secret value and redeploy
+- if production fails to boot after deploy, verify Fly has a real `SECRET_KEY`
+  secret set rather than relying on any local/dev fallback
 
 **Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today), SEO FAQ schema markup for topic pages, shareable answer pages with og:image.
 

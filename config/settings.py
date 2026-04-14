@@ -25,13 +25,16 @@ load_dotenv(BASE_DIR / ".env")
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY",
-    "django-insecure-+pn9do9yu-&_qscmk570yk_%@o1z0z8h#ki=)zy9xr18ykf4#u",
-)
+_DEFAULT_SECRET_KEY = "django-insecure-+pn9do9yu-&_qscmk570yk_%@o1z0z8h#ki=)zy9xr18ykf4#u"
+SECRET_KEY = os.getenv("SECRET_KEY", _DEFAULT_SECRET_KEY)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "true").lower() == "true"
+
+if not DEBUG and SECRET_KEY == _DEFAULT_SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY must be set in production and cannot use the default value.",
+    )
 
 # Used by CanonicalHostRedirectMiddleware (prod only)
 CANONICAL_HOST = os.getenv("CANONICAL_HOST", "askbhagavadgita.co.in").strip()
@@ -229,6 +232,17 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+# When heuristics would label a message as casual_chat, optionally call the LLM
+# to choose life_guidance vs knowledge_question vs casual_chat (small JSON response).
+# Default true: heuristic-first already handles most asks; set DISABLE=false to enable
+# this extra call when edge-case routing quality matters more than cost/latency.
+DISABLE_INTENT_LLM_REFINEMENT = os.getenv(
+    "DISABLE_INTENT_LLM_REFINEMENT",
+    "true",
+).lower() == "true"
+INTENT_REFINEMENT_MAX_TOKENS = int(os.getenv("INTENT_REFINEMENT_MAX_TOKENS", "120"))
+# Optional cheaper/faster model for intent JSON only; defaults to OPENAI_MODEL if unset.
+OPENAI_INTENT_MODEL = os.getenv("OPENAI_INTENT_MODEL", "").strip()
 OPENAI_EMBEDDING_MODEL = os.getenv(
     "OPENAI_EMBEDDING_MODEL",
     "text-embedding-3-small",

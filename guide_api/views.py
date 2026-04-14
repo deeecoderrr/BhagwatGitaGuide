@@ -77,7 +77,13 @@ from guide_api.serializers import (
     VerseSerializer,
 )
 from guide_api.services import (
+    build_chapter_explanation,
     build_guidance,
+    build_verse_explanation,
+    classify_user_intent,
+    ensure_seed_verses,
+    empty_retrieval_result,
+    _fetch_verses_by_references,
     get_related_verses,
     generate_quote_art_data,
     get_all_chapters,
@@ -116,6 +122,40 @@ COUNTRY_CODE_TO_NAME = {
     "AU": "Australia",
     "CA": "Canada",
 }
+
+
+def _related_verses_payload_for_response(
+    *,
+    guidance,
+    message: str,
+    verses: list,
+) -> list[dict]:
+    """Related exploration verses: LLM-filtered refs when set, else heuristic."""
+    if not getattr(guidance, "show_related_verses", True) or not verses:
+        return []
+    custom = getattr(guidance, "related_verses_refs", None)
+    if custom is not None:
+        rows = _fetch_verses_by_references(custom)
+        return [
+            {
+                "reference": f"{v.chapter}.{v.verse}",
+                "translation": v.translation,
+                "themes": v.themes,
+            }
+            for v in rows
+        ]
+    return [
+        {
+            "reference": f"{v.chapter}.{v.verse}",
+            "translation": v.translation,
+            "themes": v.themes,
+        }
+        for v in get_related_verses(
+            message=message,
+            seed_verses=verses,
+            limit=6,
+        )
+    ]
 
 
 def _resolve_web_audience_id(request) -> str:
@@ -429,20 +469,115 @@ def _run_guidance_flow(
     )
 
     conversation_messages = list(conversation.messages.order_by("created_at"))
-    retrieval = retrieve_verses_with_trace(
-        message=message,
-        limit=_plan_max_context_verses(plan, mode),
-    )
-    verses = retrieval.verses
-    guidance = build_guidance(
-        message,
-        verses,
-        conversation_messages=conversation_messages,
-        language=language,
-        query_interpretation=retrieval.query_interpretation,
-        mode=mode,
-        max_output_tokens=_plan_max_output_tokens(plan),
-    )
+    intent = classify_user_intent(message, mode=mode)
+    if intent.intent_type == "verse_explanation" and intent.explicit_references:
+        ensure_seed_verses()
+        primary_ref = intent.explicit_references[0]
+        parsed = tuple(int(part) for part in primary_ref.split(".", 1))
+        verse = Verse.objects.filter(
+            chapter=parsed[0],
+            verse=parsed[1],
+        ).first()
+        if verse is not None:
+            verses = [verse]
+            support_verses = [verse, *get_related_verses(message=message, seed_verses=[verse], limit=4)]
+            retrieval = empty_retrieval_result(
+                intent=intent,
+                query_interpretation={
+                    **intent.as_dict(),
+                    "life_domain": "exact verse explanation",
+                    "match_strictness": "exact_reference",
+                    "confidence": 0.99,
+                },
+                retrieval_mode="direct_reference",
+            )
+            guidance = build_verse_explanation(
+                message=message,
+                verse=verse,
+                support_verses=support_verses,
+                language=language,
+                mode=mode,
+                conversation_messages=conversation_messages,
+                max_output_tokens=_plan_max_output_tokens(plan),
+                intent=intent,
+            )
+        else:
+            verses = []
+            retrieval = empty_retrieval_result(
+                intent=intent,
+                query_interpretation={
+                    **intent.as_dict(),
+                    "life_domain": "missing verse reference",
+                    "match_strictness": "exact_reference",
+                    "confidence": 0.25,
+                },
+                retrieval_mode="direct_reference_missing",
+            )
+            guidance = build_guidance(
+                message,
+                verses,
+                conversation_messages=conversation_messages,
+                language=language,
+                query_interpretation=retrieval.query_interpretation,
+                mode=mode,
+                max_output_tokens=_plan_max_output_tokens(plan),
+                intent_analysis=intent.as_dict(),
+            )
+    elif intent.intent_type == "chapter_explanation" and intent.chapter_number:
+        verses = []
+        retrieval = empty_retrieval_result(
+            intent=intent,
+            query_interpretation={
+                **intent.as_dict(),
+                "life_domain": "chapter explanation",
+                "match_strictness": "direct",
+                "confidence": 0.95,
+            },
+            retrieval_mode="direct_chapter",
+        )
+        guidance = build_chapter_explanation(
+            message=message,
+            chapter_number=intent.chapter_number,
+            language=language,
+        )
+    elif intent.intent_type in {"greeting", "casual_chat"}:
+        verses = []
+        retrieval = empty_retrieval_result(
+            intent=intent,
+            query_interpretation={
+                **intent.as_dict(),
+                "life_domain": "conversation",
+                "match_strictness": "none",
+                "confidence": 0.9,
+            },
+            retrieval_mode="none",
+        )
+        guidance = build_guidance(
+            message,
+            verses,
+            conversation_messages=conversation_messages,
+            language=language,
+            query_interpretation=retrieval.query_interpretation,
+            mode=mode,
+            max_output_tokens=_plan_max_output_tokens(plan),
+            intent_analysis=intent.as_dict(),
+        )
+    else:
+        retrieval = retrieve_verses_with_trace(
+            message=message,
+            limit=_plan_max_context_verses(plan, mode),
+        )
+        verses = retrieval.verses
+        guidance = build_guidance(
+            message,
+            verses,
+            conversation_messages=conversation_messages,
+            language=language,
+            query_interpretation=retrieval.query_interpretation,
+            mode=mode,
+            max_output_tokens=_plan_max_output_tokens(plan),
+            intent_analysis=intent.as_dict(),
+        )
 
     Message.objects.create(
         conversation=conversation,
@@ -480,8 +615,8 @@ SEO_LANDING_PAGES = {
         ),
         "hero_body_hi": (
             "यदि मन बेचैन है, भय में है, या लगातार भविष्य की ओर भाग रहा है, तो गीता समस्या को देखने का "
-            "एक शांत दृष्टिकोण देती है। यह पेज आपको प्रासंगिक शिक्षाओं से शुरुआत करने और फिर ऐप में अपना "
-            "सटीक प्रश्न पूछने में मदद करता है।"
+            "एक शांत दृष्टिकोण देती है। आम स्थितियाँ: भय, अनिश्चितता, और अधिक सोचना। यह पेज आपको प्रासंगिक "
+            "शिक्षाओं से शुरुआत करने और फिर ऐप में अपना सटीक प्रश्न पूछने में मदद करता है।"
         ),
         "problem_points": [
             "future fear and uncertainty",
@@ -945,22 +1080,33 @@ def _seo_value(page: dict, key: str, language: str):
 
 def _fetch_curated_verses(reference_list: list[str]) -> list[SimpleNamespace]:
     """Fetch a small stable verse list for SEO landing pages."""
+    ensure_seed_verses()
     verses = []
     for ref in reference_list:
+        chapter_num: int | None = None
+        verse_num: int | None = None
         try:
             chapter_text, verse_text = ref.split(".", 1)
+            chapter_num = int(chapter_text)
+            verse_num = int(verse_text)
             verse = Verse.objects.filter(
-                chapter=int(chapter_text),
-                verse=int(verse_text),
+                chapter=chapter_num,
+                verse=verse_num,
             ).first()
         except (TypeError, ValueError):
             verse = None
 
         if verse is None:
+            placeholder = (
+                "Relevant Bhagavad Gita guidance for this life challenge."
+            )
             verses.append(
                 SimpleNamespace(
                     reference=ref,
-                    translation="Relevant Bhagavad Gita guidance for this life challenge.",
+                    chapter=chapter_num or 0,
+                    verse=verse_num or 0,
+                    translation=placeholder,
+                    text=placeholder,
                     themes=[],
                 )
             )
@@ -969,7 +1115,10 @@ def _fetch_curated_verses(reference_list: list[str]) -> list[SimpleNamespace]:
         verses.append(
             SimpleNamespace(
                 reference=ref,
+                chapter=verse.chapter,
+                verse=verse.verse,
                 translation=verse.translation,
+                text=verse.translation,
                 themes=list(verse.themes or []),
             )
         )
@@ -1309,7 +1458,7 @@ class SeoLandingIndexView(View):
             else "Bhagavad Gita Guides For Real Life Problems"
         )
         page_intro = (
-            "नीचे एक केंद्रित मार्गदर्शिका चुनें, प्रासंगिक श्लोक देखें, और फिर व्यक्तिगत उत्तर के लिए ऐप में जाएँ।"
+            "नीचे एक केंद्रित गाइड चुनें, प्रासंगिक श्लोक देखें, और फिर व्यक्तिगत उत्तर के लिए ऐप में जाएँ।"
             if language == "hi"
             else (
                 "Choose a focused guide below, explore relevant verses, and then continue into the full app "
@@ -1360,7 +1509,7 @@ class SeoLandingIndexView(View):
                     "@context": "https://schema.org",
                     "@type": "ItemList",
                     "name": (
-                        "Most searched Bhagavad Gita verses"
+                        "Most Searched Bhagavad Gita Verses"
                         if language != "hi"
                         else "सबसे अधिक खोजे जाने वाले भगवद गीता श्लोक"
                     ),
@@ -1982,7 +2131,7 @@ def _plan_daily_limit(plan: str) -> int | None:
     return settings.ASK_LIMIT_FREE_DAILY
 
 
-def _plan_max_output_tokens(plan: str) -> int:
+def _plan_max_output_tokens(plan: str) -> int | None:
     """Return LLM max_output_tokens limit for the given plan."""
     if plan == UserSubscription.PLAN_PRO:
         return settings.MAX_OUTPUT_TOKENS_PRO
@@ -2767,21 +2916,21 @@ class AskView(APIView):
             "meaning": guidance.meaning,
             "actions": guidance.actions,
             "reflection": guidance.reflection,
+            "intent_type": guidance.intent_type,
+            "show_meaning": guidance.show_meaning and bool(guidance.meaning),
+            "show_actions": guidance.show_actions and bool(guidance.actions),
+            "show_reflection": (
+                guidance.show_reflection and bool(guidance.reflection)
+            ),
+            "show_related_verses": guidance.show_related_verses,
             "verse_references": [
                 f"{verse.chapter}.{verse.verse}" for verse in verses
             ],
-            "related_verses": [
-                {
-                    "reference": f"{verse.chapter}.{verse.verse}",
-                    "translation": verse.translation,
-                    "themes": verse.themes,
-                }
-                for verse in get_related_verses(
-                    message=data["message"],
-                    seed_verses=verses,
-                    limit=6,
-                )
-            ],
+            "related_verses": _related_verses_payload_for_response(
+                guidance=guidance,
+                message=data["message"],
+                verses=verses,
+            ),
             "language": data["language"],
             **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
@@ -2796,20 +2945,23 @@ class AskView(APIView):
         )
         if deep_insights is not None:
             response_data["deep_insights"] = deep_insights
-        follow_ups = _build_contextual_follow_ups(
-            message=data["message"],
-            mode=data["mode"],
-            language=data["language"],
-            query_themes=retrieval.query_themes,
-        )
+        follow_ups = []
+        if guidance.show_actions:
+            follow_ups = _build_contextual_follow_ups(
+                message=data["message"],
+                mode=data["mode"],
+                language=data["language"],
+                query_themes=retrieval.query_themes,
+            )
         response_data["follow_ups"] = follow_ups
-        _log_follow_up_events(
-            user_id=request.user.get_username(),
-            source=FollowUpEvent.SOURCE_API,
-            event_type=FollowUpEvent.EVENT_SHOWN,
-            mode=data["mode"],
-            follow_ups=follow_ups,
-        )
+        if follow_ups:
+            _log_follow_up_events(
+                user_id=request.user.get_username(),
+                source=FollowUpEvent.SOURCE_API,
+                event_type=FollowUpEvent.EVENT_SHOWN,
+                mode=data["mode"],
+                follow_ups=follow_ups,
+            )
         if settings.DEBUG:
             response_data["response_mode"] = guidance.response_mode
             response_data["retrieval_mode"] = retrieval.retrieval_mode
@@ -3218,6 +3370,7 @@ class DailyVerseView(APIView):
     @staticmethod
     def _resolve_daily_verse(day: date):
         """Pick a stable verse for a given day from the canonical verse table."""
+        ensure_seed_verses()
         queryset = Verse.objects.order_by("chapter", "verse")
         count = queryset.count()
         if count > 0:
@@ -4342,21 +4495,21 @@ class ChatUIView(View):
             "meaning": guidance.meaning,
             "actions": guidance.actions,
             "reflection": guidance.reflection,
+            "intent_type": guidance.intent_type,
+            "show_meaning": guidance.show_meaning and bool(guidance.meaning),
+            "show_actions": guidance.show_actions and bool(guidance.actions),
+            "show_reflection": (
+                guidance.show_reflection and bool(guidance.reflection)
+            ),
+            "show_related_verses": guidance.show_related_verses,
             "verse_references": [
                 f"{verse.chapter}.{verse.verse}" for verse in verses
             ],
-            "related_verses": [
-                {
-                    "reference": f"{verse.chapter}.{verse.verse}",
-                    "translation": verse.translation,
-                    "themes": verse.themes,
-                }
-                for verse in get_related_verses(
-                    message=message,
-                    seed_verses=verses,
-                    limit=6,
-                )
-            ],
+            "related_verses": _related_verses_payload_for_response(
+                guidance=guidance,
+                message=message,
+                verses=verses,
+            ),
             "language": language,
         }
         deep_insights = _build_deep_insights(
@@ -4373,20 +4526,23 @@ class ChatUIView(View):
         )
         if deep_insights is not None:
             response_data["deep_insights"] = deep_insights
-        follow_ups = _build_contextual_follow_ups(
-            message=message,
-            mode=mode,
-            language=language,
-            query_themes=retrieval.query_themes,
-        )
+        follow_ups = []
+        if guidance.show_actions:
+            follow_ups = _build_contextual_follow_ups(
+                message=message,
+                mode=mode,
+                language=language,
+                query_themes=retrieval.query_themes,
+            )
         response_data["follow_ups"] = follow_ups
-        _log_follow_up_events(
-            user_id=analytics_user_id,
-            source=FollowUpEvent.SOURCE_CHAT_UI,
-            event_type=FollowUpEvent.EVENT_SHOWN,
-            mode=mode,
-            follow_ups=follow_ups,
-        )
+        if follow_ups:
+            _log_follow_up_events(
+                user_id=analytics_user_id,
+                source=FollowUpEvent.SOURCE_CHAT_UI,
+                event_type=FollowUpEvent.EVENT_SHOWN,
+                mode=mode,
+                follow_ups=follow_ups,
+            )
         if follow_up_intent:
             _log_follow_up_events(
                 user_id=analytics_user_id,
@@ -4870,20 +5026,115 @@ class ChatUIView(View):
         conversation_messages = guest_messages + [
             SimpleNamespace(role=Message.ROLE_USER, content=message)
         ]
-        retrieval = retrieve_verses_with_trace(
-            message=message,
-            limit=_plan_max_context_verses(UserSubscription.PLAN_FREE, mode),
-        )
-        verses = retrieval.verses
-        guidance = build_guidance(
-            message,
-            verses,
-            conversation_messages=conversation_messages,
-            language=language,
-            query_interpretation=retrieval.query_interpretation,
-            mode=mode,
-            max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
-        )
+        intent = classify_user_intent(message, mode=mode)
+        if intent.intent_type == "verse_explanation" and intent.explicit_references:
+            ensure_seed_verses()
+            primary_ref = intent.explicit_references[0]
+            parsed = tuple(int(part) for part in primary_ref.split(".", 1))
+            verse = Verse.objects.filter(
+                chapter=parsed[0],
+                verse=parsed[1],
+            ).first()
+            if verse is not None:
+                verses = [verse]
+                support_verses = [verse, *get_related_verses(message=message, seed_verses=[verse], limit=4)]
+                retrieval = empty_retrieval_result(
+                    intent=intent,
+                    query_interpretation={
+                        **intent.as_dict(),
+                        "life_domain": "exact verse explanation",
+                        "match_strictness": "exact_reference",
+                        "confidence": 0.99,
+                    },
+                    retrieval_mode="direct_reference",
+                )
+                guidance = build_verse_explanation(
+                    message=message,
+                    verse=verse,
+                    support_verses=support_verses,
+                    language=language,
+                    mode=mode,
+                    conversation_messages=conversation_messages,
+                    max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
+                    intent=intent,
+                )
+            else:
+                verses = []
+                retrieval = empty_retrieval_result(
+                    intent=intent,
+                    query_interpretation={
+                        **intent.as_dict(),
+                        "life_domain": "missing verse reference",
+                        "match_strictness": "exact_reference",
+                        "confidence": 0.25,
+                    },
+                    retrieval_mode="direct_reference_missing",
+                )
+                guidance = build_guidance(
+                    message,
+                    verses,
+                    conversation_messages=conversation_messages,
+                    language=language,
+                    query_interpretation=retrieval.query_interpretation,
+                    mode=mode,
+                    max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
+                    intent_analysis=intent.as_dict(),
+                )
+        elif intent.intent_type == "chapter_explanation" and intent.chapter_number:
+            verses = []
+            retrieval = empty_retrieval_result(
+                intent=intent,
+                query_interpretation={
+                    **intent.as_dict(),
+                    "life_domain": "chapter explanation",
+                    "match_strictness": "direct",
+                    "confidence": 0.95,
+                },
+                retrieval_mode="direct_chapter",
+            )
+            guidance = build_chapter_explanation(
+                message=message,
+                chapter_number=intent.chapter_number,
+                language=language,
+            )
+        elif intent.intent_type in {"greeting", "casual_chat"}:
+            verses = []
+            retrieval = empty_retrieval_result(
+                intent=intent,
+                query_interpretation={
+                    **intent.as_dict(),
+                    "life_domain": "conversation",
+                    "match_strictness": "none",
+                    "confidence": 0.9,
+                },
+                retrieval_mode="none",
+            )
+            guidance = build_guidance(
+                message,
+                verses,
+                conversation_messages=conversation_messages,
+                language=language,
+                query_interpretation=retrieval.query_interpretation,
+                mode=mode,
+                max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
+                intent_analysis=intent.as_dict(),
+            )
+        else:
+            retrieval = retrieve_verses_with_trace(
+                message=message,
+                limit=_plan_max_context_verses(UserSubscription.PLAN_FREE, mode),
+            )
+            verses = retrieval.verses
+            guidance = build_guidance(
+                message,
+                verses,
+                conversation_messages=conversation_messages,
+                language=language,
+                query_interpretation=retrieval.query_interpretation,
+                mode=mode,
+                max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
+                intent_analysis=intent.as_dict(),
+            )
         self._append_guest_exchange(
             request,
             user_message=message,
@@ -5641,12 +5892,6 @@ def _get_user_from_session(request):
     return None
 
 
-class CsrfExemptSessionAuth(SessionAuthentication):
-    """Session auth without CSRF enforcement for API calls."""
-    def enforce_csrf(self, request):
-        return  # Skip CSRF check - we handle it differently
-
-
 def _normalize_paid_plan(raw_value: str | None) -> str | None:
     """Return normalized paid tier (`plus` or `pro`) or None."""
     value = str(raw_value or "").strip().lower()
@@ -5728,7 +5973,6 @@ class CreateOrderView(APIView):
     """Create a Razorpay order for subscription payment."""
 
     permission_classes = [AllowAny]
-    authentication_classes = [CsrfExemptSessionAuth]
 
     def post(self, request) -> Response:
         try:
@@ -5841,7 +6085,6 @@ class VerifyPaymentView(APIView):
     """Verify Razorpay payment signature and activate subscription."""
 
     permission_classes = [AllowAny]
-    authentication_classes = [CsrfExemptSessionAuth]
 
     def post(self, request) -> Response:
         import hmac
@@ -6105,7 +6348,6 @@ class SubscriptionStatusView(APIView):
     """Get current user's subscription status."""
 
     permission_classes = [AllowAny]
-    authentication_classes = [CsrfExemptSessionAuth]
 
     def get(self, request) -> Response:
         user = _get_user_from_session(request)
@@ -6170,7 +6412,6 @@ class PaymentHistoryView(APIView):
     """Return payment/billing ledger rows for the signed-in user."""
 
     permission_classes = [AllowAny]
-    authentication_classes = [CsrfExemptSessionAuth]
 
     def get(self, request) -> Response:
         user = _get_user_from_session(request)

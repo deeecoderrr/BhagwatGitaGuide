@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Domain services for safety checks, retrieval, and guidance generation."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import csv
 import hashlib
 import json
@@ -515,6 +515,45 @@ class GuidanceResult:
     actions: list[str]
     reflection: str
     response_mode: str
+    intent_type: str = "life_guidance"
+    show_meaning: bool = True
+    show_actions: bool = True
+    show_reflection: bool = True
+    show_related_verses: bool = True
+    # If None, API/chat-ui may build "related verses" via get_related_verses.
+    # If set (possibly empty), only these refs are shown as related exploration.
+    related_verses_refs: list[str] | None = None
+
+
+@dataclass
+class IntentAnalysis:
+    """High-level user-intent routing signal for answer generation."""
+
+    intent_type: str
+    explicit_references: list[str] = field(default_factory=list)
+    chapter_number: int | None = None
+    needs_retrieval: bool = True
+    show_actions: bool = True
+    show_reflection: bool = True
+    show_related_verses: bool = True
+    asks_for_application: bool = False
+    asks_for_context: bool = False
+    asks_for_simple_explanation: bool = False
+
+    def as_dict(self) -> dict[str, object]:
+        """Expose stable intent metadata for debugging and prompting."""
+        return {
+            "intent_type": self.intent_type,
+            "explicit_references": list(self.explicit_references),
+            "chapter_number": self.chapter_number,
+            "needs_retrieval": self.needs_retrieval,
+            "show_actions": self.show_actions,
+            "show_reflection": self.show_reflection,
+            "show_related_verses": self.show_related_verses,
+            "asks_for_application": self.asks_for_application,
+            "asks_for_context": self.asks_for_context,
+            "asks_for_simple_explanation": self.asks_for_simple_explanation,
+        }
 
 
 @dataclass
@@ -569,6 +608,284 @@ GREETING_PATTERNS = {
     "good afternoon",
 }
 
+VERSE_REFERENCE_PATTERN = re.compile(
+    r"\b(?:bg\s*)?(\d{1,2})\s*[\.:]\s*(\d{1,3})\b",
+    flags=re.IGNORECASE,
+)
+
+PROBLEM_HINTS = {
+    "feel",
+    "feeling",
+    "stuck",
+    "confused",
+    "anxious",
+    "angry",
+    "worried",
+    "stress",
+    "stressed",
+    "lost",
+    "hurt",
+    "career",
+    "relationship",
+    "discipline",
+    "purpose",
+    "problem",
+    "issue",
+}
+
+KNOWLEDGE_HINTS = {
+    "what",
+    "why",
+    "how",
+    "explain",
+    "meaning",
+    "mean",
+    "context",
+    "summary",
+    "compare",
+    "difference",
+    "teach",
+    "teaches",
+    "teaching",
+    "verse",
+    "sloka",
+    "shloka",
+    "chapter",
+    "krishna",
+    "arjuna",
+    "gita",
+    "bhagavad",
+    "dharma",
+    "karma",
+    "bhakti",
+    "yoga",
+}
+
+_INTENT_TRIVIAL_ACK = frozenset({
+    "ok",
+    "okay",
+    "k",
+    "thanks",
+    "thank you",
+    "ty",
+    "cool",
+    "nice",
+    "bye",
+    "goodbye",
+    "got it",
+    "sure",
+    "yes",
+    "no",
+    "yep",
+    "nope",
+    "lol",
+    "haha",
+})
+
+# When heuristics fall through to casual_chat, catch substantive asks without maintaining
+# an exhaustive keyword list (LLM + these patterns handle the rest).
+_LIFE_SIGNAL_RE = re.compile(
+    r"\b("
+    r"help\s+me|i\s+need|i\s+want|i\s+wish|i\s+feel|'?i'?m\s+|we\s+need|"
+    r"should\s+i|how\s+do\s+i|what\s+should\s+i|can\s+you\s+help|"
+    r"afraid|scared|worried|sad|angry|depressed|lonely|jealous|guilt|ashamed|"
+    r"hurt|hurting|struggle|stuck|lost|confused|stress|anxious|overwhelm|"
+    r"divorce|marriage|wedding|wife|husband|spouse|partner|affair|cheat|"
+    r"boss|job|career|work|office|salary|fired|quit|money|debt|loan|rent|"
+    r"legal|lawyer|court|custody|mother|father|parent|child|kids|family|"
+    r"friend|enemy|addict|alcohol|smoke|drug|health|sleep|doctor|death|die|"
+    r"kill|fight|abuse|attack|steal|greed|lust|ego|stubborn|hate"
+    r")\b",
+    re.IGNORECASE,
+)
+_FIRST_PERSON_RE = re.compile(
+    r"\b(i|me|my|mine|myself|'?i'?m|'?i'?ve|'?i'?ll|we|us|our|ours)\b",
+    re.IGNORECASE,
+)
+_KNOWLEDGE_LEAD_RE = re.compile(
+    r"^\s*(what|why|how|who|when|where|which|define|describe|explain|compare|"
+    r"contrast|is\s+it\s+true|list|name)\b",
+    re.IGNORECASE,
+)
+
+
+def _warrants_ambiguous_intent_refinement(text: str) -> bool:
+    """Whether a message that failed earlier intent rules should be disambiguated."""
+    stripped = str(text or "").strip()
+    if len(stripped) < 8:
+        return False
+    norm = re.sub(r"\s+", " ", stripped.lower())
+    tokens = norm.split()
+    if len(tokens) < 3:
+        return False
+    if norm in _INTENT_TRIVIAL_ACK:
+        return False
+    return True
+
+
+def _heuristic_resolve_ambiguous_casual(
+    *,
+    text: str,
+    lowered: str,
+    asks_for_context: bool,
+    asks_for_simple_explanation: bool,
+) -> IntentAnalysis | None:
+    """Non-LLM fallback when the API key is missing or LLM refinement fails."""
+    norm = re.sub(r"\s+", " ", lowered.strip())
+    words = norm.split()
+    life_hit = bool(_LIFE_SIGNAL_RE.search(norm) or _FIRST_PERSON_RE.search(norm))
+    # Two-word cries for help ("help me", "i need") must still route to guidance +
+    # retrieval; otherwise they become casual_chat with empty verses and the main
+    # LLM habitually cites the same famous verse (e.g. 2.47).
+    if life_hit and len(words) >= 2:
+        return IntentAnalysis(
+            intent_type="life_guidance",
+            show_actions=True,
+            show_reflection=True,
+            show_related_verses=True,
+            asks_for_application=True,
+        )
+    if len(words) >= 10:
+        return IntentAnalysis(
+            intent_type="life_guidance",
+            show_actions=True,
+            show_reflection=True,
+            show_related_verses=True,
+            asks_for_application=True,
+        )
+    knowledgeish = bool(_KNOWLEDGE_LEAD_RE.match(norm)) or norm.rstrip().endswith("?")
+    if knowledgeish:
+        if life_hit:
+            return IntentAnalysis(
+                intent_type="life_guidance",
+                show_actions=True,
+                show_reflection=True,
+                show_related_verses=True,
+                asks_for_application=True,
+            )
+        return IntentAnalysis(
+            intent_type="knowledge_question",
+            needs_retrieval=True,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=True,
+            asks_for_context=asks_for_context,
+            asks_for_simple_explanation=asks_for_simple_explanation,
+        )
+    return None
+
+
+def _refine_intent_via_llm(
+    message: str,
+    *,
+    asks_for_context: bool,
+    asks_for_simple_explanation: bool,
+) -> IntentAnalysis | None:
+    """Use a small LLM call to separate life guidance from study chat from pure casual."""
+    if not getattr(settings, "OPENAI_API_KEY", ""):
+        return None
+    if getattr(settings, "DISABLE_INTENT_LLM_REFINEMENT", False):
+        return None
+    max_in = int(getattr(settings, "MAX_ASK_INPUT_CHARS", 2200))
+    clipped = str(message or "").strip()[:max_in]
+    prompt = (
+        "You route user messages for a Bhagavad Gita guidance app.\n"
+        "Return ONLY valid JSON: "
+        '{"intent_type":"life_guidance"|"knowledge_question"|"casual_chat",'
+        '"reason":"one short phrase"}\n\n'
+        "Definitions:\n"
+        "- life_guidance: personal situations, emotions, relationships, work, money, "
+        "health stress, ethical dilemmas, decisions, pain, anger, desire, family "
+        "conflict, or any message mainly seeking support or practical wisdom "
+        '(including "help me…", "should I…"). Include legal-adjacent life problems '
+        "(classify here so the app can respond compassionately; it does not give "
+        "legal advice).\n"
+        "- knowledge_question: wants scripture/teaching explanation—definitions, "
+        "verse/chapter meaning, concepts—without mainly venting a personal story.\n"
+        "- casual_chat: thanks-only, hi-only, idle filler, meta about the app, or "
+        "clearly off-topic with no sincere ask.\n\n"
+        "User message:\n---\n"
+        f"{clipped}\n---"
+    )
+    intent_model = getattr(settings, "OPENAI_INTENT_MODEL", "") or settings.OPENAI_MODEL
+    try:
+        client = _openai_client()
+        response = client.responses.create(
+            model=intent_model,
+            max_output_tokens=int(
+                getattr(settings, "INTENT_REFINEMENT_MAX_TOKENS", 120),
+            ),
+            input=[{"role": "user", "content": prompt}],
+        )
+        payload = _parse_json_payload(response.output_text)
+        it = str(payload.get("intent_type", "")).strip()
+    except Exception as exc:
+        logger.warning("Intent LLM refinement failed: %s", exc)
+        return None
+
+    if it == "life_guidance":
+        return IntentAnalysis(
+            intent_type="life_guidance",
+            show_actions=True,
+            show_reflection=True,
+            show_related_verses=True,
+            asks_for_application=True,
+        )
+    if it == "knowledge_question":
+        return IntentAnalysis(
+            intent_type="knowledge_question",
+            needs_retrieval=True,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=True,
+            asks_for_context=asks_for_context,
+            asks_for_simple_explanation=asks_for_simple_explanation,
+        )
+    if it == "casual_chat":
+        return IntentAnalysis(
+            intent_type="casual_chat",
+            needs_retrieval=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+    return None
+
+
+def _resolve_default_casual_intent(
+    *,
+    text: str,
+    lowered: str,
+    asks_for_context: bool,
+    asks_for_simple_explanation: bool,
+) -> IntentAnalysis:
+    """Last-resort intent when earlier heuristics did not classify the message."""
+    # Heuristic first: avoids an extra LLM round-trip when patterns already match
+    # (e.g. "help me…", first-person, long messages, define/… questions).
+    heur = _heuristic_resolve_ambiguous_casual(
+        text=text,
+        lowered=lowered,
+        asks_for_context=asks_for_context,
+        asks_for_simple_explanation=asks_for_simple_explanation,
+    )
+    if heur is not None:
+        return heur
+    if _warrants_ambiguous_intent_refinement(text):
+        refined = _refine_intent_via_llm(
+            message=text,
+            asks_for_context=asks_for_context,
+            asks_for_simple_explanation=asks_for_simple_explanation,
+        )
+        if refined is not None:
+            return refined
+    return IntentAnalysis(
+        intent_type="casual_chat",
+        needs_retrieval=False,
+        show_actions=False,
+        show_reflection=False,
+        show_related_verses=False,
+    )
+
 
 def _is_greeting_like(message: str) -> bool:
     """Detect short greeting-only messages that do not present a real issue yet."""
@@ -582,6 +899,168 @@ def _is_greeting_like(message: str) -> bool:
     return len(tokens) <= 3 and normalized in GREETING_PATTERNS
 
 
+def _extract_explicit_references(message: str) -> list[str]:
+    """Return direct chapter.verse references mentioned in user text."""
+    refs = []
+    for chapter, verse in VERSE_REFERENCE_PATTERN.findall(str(message or "")):
+        ref = f"{int(chapter)}.{int(verse)}"
+        if ref not in refs:
+            refs.append(ref)
+    return refs
+
+
+def _extract_chapter_number(message: str) -> int | None:
+    """Return requested chapter number for chapter-summary questions."""
+    match = re.search(r"\bchapter\s+(\d{1,2})\b", str(message or ""), re.IGNORECASE)
+    if not match:
+        return None
+    chapter = int(match.group(1))
+    if 1 <= chapter <= 18:
+        return chapter
+    return None
+
+
+def classify_user_intent(message: str, *, mode: str = "simple") -> IntentAnalysis:
+    """Classify the user input so answers match the request shape."""
+    text = str(message or "").strip()
+    lowered = text.lower()
+    refs = _extract_explicit_references(text)
+    chapter_number = _extract_chapter_number(text)
+    asks_for_application = any(
+        phrase in lowered
+        for phrase in {
+            "apply",
+            "application",
+            "in my life",
+            "for my life",
+            "for me",
+            "my situation",
+            "today",
+            "what should i do",
+            "how should i act",
+            "what can i do",
+        }
+    )
+    asks_for_context = any(
+        phrase in lowered
+        for phrase in {
+            "why did krishna",
+            "why krishna said",
+            "context",
+            "to arjuna",
+            "when krishna said",
+            "why did he say",
+        }
+    )
+    asks_for_simple_explanation = any(
+        phrase in lowered
+        for phrase in {
+            "simple language",
+            "simple words",
+            "simply explain",
+            "easy language",
+            "easy words",
+        }
+    )
+
+    if _is_greeting_like(text):
+        return IntentAnalysis(
+            intent_type="greeting",
+            needs_retrieval=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+
+    if refs:
+        return IntentAnalysis(
+            intent_type="verse_explanation",
+            explicit_references=refs,
+            needs_retrieval=False,
+            show_actions=asks_for_application or mode == "deep",
+            show_reflection=asks_for_application and mode == "deep",
+            show_related_verses=True,
+            asks_for_application=asks_for_application,
+            asks_for_context=asks_for_context,
+            asks_for_simple_explanation=asks_for_simple_explanation,
+        )
+
+    if chapter_number and any(
+        token in lowered for token in {"summary", "about", "teach", "teaches", "meaning", "explain"}
+    ):
+        return IntentAnalysis(
+            intent_type="chapter_explanation",
+            chapter_number=chapter_number,
+            needs_retrieval=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+            asks_for_context=True,
+        )
+
+    if any(phrase in lowered for phrase in {"what can you do", "who are you", "help me use this app"}):
+        return IntentAnalysis(
+            intent_type="casual_chat",
+            needs_retrieval=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+
+    has_problem_shape = (
+        any(word in lowered for word in PROBLEM_HINTS)
+        or (" i " in f" {lowered} " and any(theme in lowered for theme in THEME_KEYWORDS))
+    )
+    if has_problem_shape:
+        return IntentAnalysis(
+            intent_type="life_guidance",
+            show_actions=True,
+            show_reflection=True,
+            show_related_verses=True,
+            asks_for_application=True,
+        )
+
+    if any(word in lowered for word in KNOWLEDGE_HINTS) or "?" in text:
+        return IntentAnalysis(
+            intent_type="knowledge_question",
+            needs_retrieval=True,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=True,
+            asks_for_context=asks_for_context,
+            asks_for_simple_explanation=asks_for_simple_explanation,
+        )
+
+    return _resolve_default_casual_intent(
+        text=text,
+        lowered=lowered,
+        asks_for_context=asks_for_context,
+        asks_for_simple_explanation=asks_for_simple_explanation,
+    )
+
+
+def empty_retrieval_result(
+    *,
+    intent: IntentAnalysis,
+    query_interpretation: dict[str, object] | None = None,
+    retrieval_mode: str = "none",
+) -> RetrievalResult:
+    """Return a trace object for non-retrieval answer paths."""
+    return RetrievalResult(
+        verses=[],
+        retrieval_mode=retrieval_mode,
+        query_themes=[],
+        query_tokens=[],
+        retrieval_scores=[],
+        query_interpretation=query_interpretation or {
+            "intent_type": intent.intent_type,
+            "life_domain": "conversation",
+            "match_strictness": "none",
+            "confidence": 0.4,
+        },
+    )
+
+
 def is_risky_prompt(message: str) -> bool:
     """Block crisis/medical/legal style prompts with keyword checks."""
     lowered = message.lower()
@@ -591,12 +1070,10 @@ def is_risky_prompt(message: str) -> bool:
 def ensure_seed_verses() -> None:
     """Ensure default verse seed data exists for local/dev environments."""
     global _seed_synced
-    # Production already has the full corpus. On process restart, _seed_synced
-    # resets, so avoid re-seeding (hundreds of update_or_create calls) just
-    # because the worker booted.
-    if Verse.objects.exists():
-        _seed_synced = True
-        return
+    # Tests roll back the DB between cases, but this module flag survives. If the
+    # table is empty we must seed again even when _seed_synced is True.
+    if not Verse.objects.exists():
+        _seed_synced = False
     if _seed_synced:
         return
 
@@ -1155,6 +1632,30 @@ def _fetch_verses_by_references(refs: list[str]) -> list[Verse]:
             seen.add(ref)
             verses.append(obj)
     return verses
+
+
+def _parse_related_verse_references_from_llm(
+    payload: dict,
+    *,
+    primary_refs: list[str],
+) -> list[str] | None:
+    """Parse optional LLM-chosen related verse refs; None means caller may use heuristics."""
+    if "related_verse_references" not in payload:
+        return None
+    raw = payload.get("related_verse_references")
+    if not isinstance(raw, list):
+        return []
+    primary_set = {str(p).strip() for p in primary_refs if p}
+    seen: set[str] = set()
+    candidates: list[str] = []
+    for item in raw:
+        s = str(item).strip()
+        if not s or s in primary_set or s in seen:
+            continue
+        seen.add(s)
+        candidates.append(s)
+    verified = _fetch_verses_by_references(candidates[:8])
+    return [f"{v.chapter}.{v.verse}" for v in verified]
 
 
 def _verse_reference(verse: Verse) -> str:
@@ -1744,9 +2245,12 @@ def _load_vedic_slok_row(reference: str) -> dict[str, object]:
 
 def _merged_verse_context(reference: str) -> dict[str, object]:
     """Return one merged context payload for a verse reference."""
+    global _merged_verse_context_cache
     reference = str(reference or "").strip()
     if not reference:
         return {}
+    if _merged_verse_context_cache is None:
+        _merged_verse_context_cache = {}
     cached = _merged_verse_context_cache.get(reference)
     if cached is not None:
         return cached
@@ -2238,40 +2742,82 @@ def _build_fallback_guidance(
 ) -> GuidanceResult:
     """Create deterministic, safe guidance when LLM is unavailable."""
     language = _normalize_language(language)
+    intent = classify_user_intent(message)
     if _is_greeting_like(message):
+        return _build_compassionate_chat_reply(
+            message,
+            language=language,
+            intent=intent,
+        )
+
+    if intent.intent_type == "casual_chat":
+        return _build_compassionate_chat_reply(
+            message,
+            language=language,
+            intent=intent,
+        )
+
+    if intent.intent_type == "knowledge_question" and verses:
+        primary_verse = verses[0]
+        ref = _verse_reference(primary_verse)
+        detail = get_verse_detail(primary_verse.chapter, primary_verse.verse) or {}
+        chapter_context = _chapter_perspective(
+            chapter=primary_verse.chapter,
+            language=language,
+        )
         if language == "hi":
             return GuidanceResult(
                 guidance=(
-                    "नमस्ते। मैं यहाँ भगवद्गीता के आधार पर शांत, स्पष्ट और व्यावहारिक "
-                    "मार्गदर्शन देने के लिए हूँ।"
+                    f"आपके प्रश्न के संदर्भ में {ref} सबसे प्रासंगिक श्लोकों में से है। "
+                    f"कृष्ण ने यह बात अर्जुन से इसलिए कही क्योंकि {chapter_context}। "
+                    "इसलिए उत्तर को केवल सलाह की तरह नहीं, बल्कि एक दार्शनिक "
+                    "स्पष्टता की तरह समझना चाहिए।"
                 ),
                 meaning=(
-                    "आप अपनी स्थिति सरल शब्दों में लिखिए, और मैं सबसे प्रासंगिक "
-                    "शिक्षा, श्लोक और अगला कदम खोजने की कोशिश करूंगा।"
-                ),
-                actions=[
-                    "एक वाक्य में लिखिए: अभी आपको सबसे ज़्यादा किस बात की चिंता है?",
-                    "यदि चाहें, अपनी भावना और तात्कालिक प्रश्न भी साथ में लिखें।",
-                ],
-                reflection="इस समय आपके मन में सबसे मुख्य प्रश्न क्या है?",
+                    f"{detail.get('translation', primary_verse.translation)} "
+                    "इसका सार यह है कि गीता बाहरी घटना से अधिक भीतरी दृष्टि को बदलती है।"
+                ).strip(),
+                actions=[],
+                reflection="",
                 response_mode="fallback",
+                intent_type=intent.intent_type,
+                show_actions=False,
+                show_reflection=False,
+                show_related_verses=True,
             )
         return GuidanceResult(
             guidance=(
-                "Hello. I’m here to offer calm, practical guidance rooted in the "
-                "Bhagavad Gita."
+                f"For your question, {ref} is one of the most relevant verses. "
+                f"Krishna says this to Arjuna because {chapter_context}. So the answer "
+                "should be understood first as clarification, not as forced self-help advice."
             ),
             meaning=(
-                "You can share your situation in simple words, and I’ll try to find "
-                "the most relevant teaching, verse, and next step."
-            ),
-            actions=[
-                "Write your issue in one sentence, using your own words.",
-                "If helpful, mention what you feel and what decision or pain is most present right now.",
-            ],
-            reflection="What is the one thing most active in your heart or mind right now?",
+                f"{detail.get('translation', primary_verse.translation)} "
+                "The deeper point is that the Gita changes the seeker's way of seeing, "
+                "not just their immediate mood."
+            ).strip(),
+            actions=[],
+            reflection="",
             response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=True,
         )
+
+    if intent.intent_type == "knowledge_question" and not verses:
+        ensure_seed_verses()
+        filled = _curated_fallback_verses(message=message, limit=3)
+        if not filled:
+            filled = list(Verse.objects.order_by("chapter", "verse")[:3])
+        if filled:
+            return _build_fallback_guidance(message, filled, language=language)
+
+    ensure_seed_verses()
+    if not verses:
+        verses = _curated_fallback_verses(message=message, limit=3)
+    if not verses:
+        verses = list(Verse.objects.order_by("chapter", "verse")[:3])
 
     refs = ", ".join(f"{verse.chapter}.{verse.verse}" for verse in verses)
     primary_verse = verses[0] if verses else None
@@ -2349,6 +2895,10 @@ def _build_fallback_guidance(
         actions=actions,
         reflection=reflection,
         response_mode="fallback",
+        intent_type=intent.intent_type,
+        show_actions=intent.show_actions,
+        show_reflection=intent.show_reflection,
+        show_related_verses=intent.show_related_verses,
     )
 
 
@@ -2406,6 +2956,20 @@ def _serialize_conversation_context(conversation_messages) -> str:
         speaker = "User" if role == "user" else "Guide"
         lines.append(f"{speaker}: {content}")
     return "\n".join(lines)
+
+
+def _is_minimal_context_life_message(message: str) -> bool:
+    """Detect very short generic pleas so prompts can avoid repetitive default verses."""
+    norm = re.sub(r"\s+", " ", str(message or "").strip().lower())
+    if len(norm.split()) > 6:
+        return False
+    return bool(
+        re.match(
+            r"^(help(\s+me|\s+us)?|please\s+help|need\s+help|i\s+need\s+help|"
+            r"someone\s+help|support\s+me|save\s+me)\s*!*\??$",
+            norm,
+        )
+    )
 
 
 def _extract_references(text: str) -> set[str]:
@@ -2520,6 +3084,400 @@ def _validate_and_correct_verses(
         return verses
 
 
+def _trim_actions(actions: object, *, limit: int = 3) -> list[str]:
+    """Normalize optional action items returned by the model."""
+    if not isinstance(actions, list):
+        return []
+    return [
+        str(action).strip()
+        for action in actions
+        if str(action).strip()
+    ][:limit]
+
+
+def _build_compassionate_chat_reply(
+    message: str,
+    *,
+    language: str,
+    intent: IntentAnalysis,
+) -> GuidanceResult:
+    """Return a warm, non-forced reply for greetings and casual chat."""
+    if language == "hi":
+        if intent.intent_type == "greeting":
+            return GuidanceResult(
+                guidance=(
+                    "नमस्ते। मैं यहाँ शांत मन से आपकी बात सुनने और भगवद्गीता के "
+                    "प्रकाश में उत्तर देने के लिए हूँ।"
+                ),
+                meaning="",
+                actions=[],
+                reflection="",
+                response_mode="fallback",
+                intent_type=intent.intent_type,
+                show_meaning=False,
+                show_actions=False,
+                show_reflection=False,
+                show_related_verses=False,
+            )
+        return GuidanceResult(
+            guidance=(
+                "मैं आपकी बात उसी रूप में उत्तर दूँगा जैसी आपने पूछी है। यदि प्रश्न "
+                "गीता, कृष्ण, अर्जुन, किसी श्लोक, या जीवन-संदर्भ से जुड़ा होगा, तो "
+                "मैं उसी के अनुसार सरल और स्नेहपूर्ण उत्तर दूँगा।"
+            ),
+            meaning="",
+            actions=[],
+            reflection="",
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_meaning=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+    if intent.intent_type == "greeting":
+        return GuidanceResult(
+            guidance=(
+                "Hello. I’m here to answer you gently and clearly in the light "
+                "of the Bhagavad Gita, without forcing your question into advice "
+                "if that is not what you asked."
+            ),
+            meaning="",
+            actions=[],
+            reflection="",
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_meaning=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+    return GuidanceResult(
+        guidance=(
+            "I’ll answer your question as it was asked. If you want scripture "
+            "explanation, I’ll explain it. If you want life guidance, I’ll make it "
+            "practical and compassionate in the spirit of the Bhagavad Gita."
+        ),
+        meaning="",
+        actions=[],
+        reflection="",
+        response_mode="fallback",
+        intent_type=intent.intent_type,
+        show_meaning=False,
+        show_actions=False,
+        show_reflection=False,
+        show_related_verses=False,
+    )
+
+
+def _supporting_verses_for_reference(reference: str) -> list[Verse]:
+    """Return a small support set for exact-verse explanation questions."""
+    parsed = _parse_reference(reference)
+    if not parsed:
+        return []
+    chapter, verse_no = parsed
+    seed = Verse.objects.filter(chapter=chapter, verse=verse_no).first()
+    if seed is None:
+        return []
+    support = [seed]
+    for verse in get_related_verses(message=reference, seed_verses=[seed], limit=4):
+        if all(_verse_reference(existing) != _verse_reference(verse) for existing in support):
+            support.append(verse)
+    return support[:4]
+
+
+def _build_fallback_verse_explanation(
+    *,
+    message: str,
+    verse: Verse,
+    support_verses: list[Verse],
+    language: str,
+    intent: IntentAnalysis,
+) -> GuidanceResult:
+    """Create a deterministic exact-verse explanation when LLM is unavailable."""
+    ref = _verse_reference(verse)
+    detail = get_verse_detail(verse.chapter, verse.verse) or {}
+    synthesis = get_or_create_verse_synthesis(verse)
+    chapter_context = _chapter_perspective(chapter=verse.chapter, language=language)
+    commentary_entries = detail.get("commentaries", []) if isinstance(detail, dict) else []
+    commentary_summary = ", ".join(
+        str(item.get("author", "")).strip()
+        for item in commentary_entries[:3]
+        if str(item.get("author", "")).strip()
+    )
+    support_refs = [_verse_reference(item) for item in support_verses if _verse_reference(item) != ref][:3]
+    if language == "hi":
+        guidance = (
+            f"भगवद्गीता {ref} का सरल अर्थ यह है कि कृष्ण अर्जुन को कर्म पर टिकना "
+            "सिखा रहे हैं, फल पर नहीं। उन्होंने यह बात इसलिए कही क्योंकि "
+            f"{chapter_context}। यह श्लोक अर्जुन के मोह को शांत करके उसे "
+            "कर्तव्य की स्पष्टता देना चाहता है।"
+        )
+        meaning = (
+            f"मुख्य संदेश: {detail.get('translation', verse.translation)} "
+            f"{synthesis.get('commentary_consensus_hi', '')}".strip()
+        )
+        if commentary_summary:
+            meaning = (
+                f"{meaning} उपलब्ध प्रसिद्ध टीकाकारों के दृष्टिकोण में भी यही बात "
+                "उभरती है कि यह श्लोक आसक्ति छोड़कर सजग कर्म की शिक्षा देता है।"
+            ).strip()
+        actions = []
+        reflection = ""
+        if intent.asks_for_application:
+            actions = [
+                "आज एक ऐसा काम चुनिए जिसे आप ईमानदारी से कर सकते हैं, बिना परिणाम के भय में फँसे।",
+                "अपने मन से पूछिए: मैं अभी कर्म पर केंद्रित हूँ या फल की चिंता पर?",
+            ]
+            reflection = "मेरे जीवन में कहाँ परिणाम-चिंता मुझे सही कर्म से दूर ले जाती है?"
+        return GuidanceResult(
+            guidance=guidance,
+            meaning=meaning,
+            actions=actions,
+            reflection=reflection,
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_actions=bool(actions),
+            show_reflection=bool(reflection),
+            show_related_verses=bool(support_refs),
+        )
+    guidance = (
+        f"Bhagavad Gita {ref} is Krishna teaching Arjuna to stay rooted in right "
+        f"action rather than becoming emotionally owned by the result. He says this "
+        f"because {chapter_context}. The verse is meant to steady Arjuna's mind so "
+        "he can act clearly instead of collapsing into attachment, fear, or paralysis."
+    )
+    meaning = (
+        f"Simple meaning: {detail.get('translation', verse.translation)} "
+        f"{synthesis.get('commentary_consensus_en', '')}".strip()
+    )
+    if commentary_summary:
+        meaning = (
+            f"{meaning} Across major commentarial traditions, the shared emphasis is "
+            "on disciplined action, inner steadiness, and freedom from possessiveness "
+            "about outcomes."
+        ).strip()
+    actions = []
+    reflection = ""
+    if intent.asks_for_application:
+        actions = [
+            "Choose one duty in front of you today and do it sincerely without mentally bargaining over the result.",
+            "When anxiety about outcome rises, remind yourself: my work is effort and clarity, not ownership of the fruit.",
+        ]
+        reflection = (
+            "Where in my present life am I letting fear of results disturb the quality of my action?"
+        )
+    return GuidanceResult(
+        guidance=guidance,
+        meaning=meaning,
+        actions=actions,
+        reflection=reflection,
+        response_mode="fallback",
+        intent_type=intent.intent_type,
+        show_actions=bool(actions),
+        show_reflection=bool(reflection),
+        show_related_verses=bool(support_refs),
+    )
+
+
+def build_verse_explanation(
+    *,
+    message: str,
+    verse: Verse,
+    support_verses: list[Verse],
+    language: str = "en",
+    mode: str = "simple",
+    conversation_messages=None,
+    max_output_tokens: int = 350,
+    intent: IntentAnalysis | None = None,
+) -> GuidanceResult:
+    """Explain a specific verse directly, with context and selective application."""
+    language = _normalize_language(language)
+    intent = intent or IntentAnalysis(intent_type="verse_explanation", explicit_references=[_verse_reference(verse)])
+    detail = get_verse_detail(verse.chapter, verse.verse) or {}
+    chapter_context = _chapter_perspective(chapter=verse.chapter, language=language)
+    synthesis = get_or_create_verse_synthesis(verse)
+    commentary_entries = detail.get("commentaries", []) if isinstance(detail, dict) else []
+    commentary_text = "\n".join(
+        f"- {item.get('author', '').strip()}: {str(item.get('text', '')).strip()[:240]}"
+        for item in commentary_entries[:5]
+        if str(item.get("author", "")).strip() and str(item.get("text", "")).strip()
+    )
+    support_text = _serialize_verses_for_prompt(support_verses, message=message)
+    conversation_context = _serialize_conversation_context(conversation_messages)
+    ref = _verse_reference(verse)
+    if not settings.OPENAI_API_KEY:
+        return _build_fallback_verse_explanation(
+            message=message,
+            verse=verse,
+            support_verses=support_verses,
+            language=language,
+            intent=intent,
+        )
+
+    system_prompt = (
+        "You are a deeply compassionate Bhagavad Gita teacher—voice of a loving "
+        "parent or creator with a beloved child. Return valid JSON only with keys: "
+        "guidance, meaning, actions, reflection, verse_references. "
+        "Answer exactly what was asked; no filler, no unrelated domains. "
+        "When you unpack the śloka: (1) what Arjuna was facing in that beat of the "
+        "dialogue, (2) why Krishna chose this reply, (3) weave classical voices "
+        "(Advaita emphasis, Viśiṣṭādvaita devotion, Dvaita distinction) only as "
+        "plain-language insight from commentary_samples—no name-dropping parade. "
+        "If application is not requested, do not prescribe habits or homework."
+    )
+    user_prompt = (
+        f"language_code: {language}\n"
+        f"user_question: {message}\n"
+        f"requested_verse: {ref}\n"
+        f"asks_for_application: {intent.asks_for_application}\n"
+        f"asks_for_context: {intent.asks_for_context}\n"
+        f"asks_for_simple_explanation: {intent.asks_for_simple_explanation}\n\n"
+        f"Recent conversation context:\n{conversation_context or 'None'}\n\n"
+        f"Verse detail:\nreference: {ref}\ntranslation: {detail.get('translation', verse.translation)}\n"
+        f"english_meaning: {detail.get('english_meaning', '')}\n"
+        f"hindi_meaning: {detail.get('hindi_meaning', '')}\n"
+        f"word_meaning: {detail.get('word_meaning', '')}\n"
+        f"chapter_context: {chapter_context}\n"
+        f"cached_overview_en: {synthesis.get('overview_en', '')}\n"
+        f"cached_overview_hi: {synthesis.get('overview_hi', '')}\n"
+        f"cached_commentary_consensus_en: {synthesis.get('commentary_consensus_en', '')}\n"
+        f"cached_commentary_consensus_hi: {synthesis.get('commentary_consensus_hi', '')}\n"
+        f"commentary_samples:\n{commentary_text or 'None'}\n\n"
+        f"supporting_verses:\n{support_text or 'None'}\n\n"
+        "Instructions:\n"
+        "- Open with the heart of this verse in the user's terms; stay on-topic.\n"
+        "- Explain why Krishna said this to Arjuna then—not a generic war story.\n"
+        "- Synthesize commentary_samples into one coherent thread; resolve tension "
+        "between views in one gentle sentence if needed.\n"
+        "- If asks_for_application: one short bridge from the battlefield to the "
+        "user's scenario—concrete, kind, non-shaming.\n"
+        "- If not asking application: actions=[] and reflection='' unless a tiny "
+        "prompt truly serves understanding.\n"
+        "- Do not lead with a different verse; keep this verse central.\n"
+        "- verse_references: requested verse first; add only support verses that "
+        "directly illuminate this line.\n"
+        "- guidance: 3-6 sentences (main teaching).\n"
+        "- meaning: 1-3 sentences (deeper layer or crisp summary).\n"
+    )
+    try:
+        client = _openai_client()
+        response = client.responses.create(
+            model=settings.OPENAI_MODEL,
+            max_output_tokens=max_output_tokens,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        )
+        payload = _parse_json_payload(response.output_text)
+        guidance = str(payload.get("guidance", "")).strip()
+        meaning = str(payload.get("meaning", "")).strip()
+        reflection = str(payload.get("reflection", "")).strip()
+        actions = _trim_actions(payload.get("actions"), limit=3)
+        refs = payload.get("verse_references", [])
+        if not isinstance(refs, list):
+            refs = []
+        refs = [str(item).strip() for item in refs if str(item).strip()]
+        if not refs or refs[0] != ref:
+            refs = [ref, *[item for item in refs if item != ref]]
+        if not guidance:
+            return _build_fallback_verse_explanation(
+                message=message,
+                verse=verse,
+                support_verses=support_verses,
+                language=language,
+                intent=intent,
+            )
+        return GuidanceResult(
+            guidance=guidance,
+            meaning=meaning,
+            actions=actions if intent.show_actions else [],
+            reflection=reflection if intent.show_reflection else "",
+            response_mode="llm",
+            intent_type=intent.intent_type,
+            show_actions=bool(actions) and intent.show_actions,
+            show_reflection=bool(reflection) and intent.show_reflection,
+            show_related_verses=intent.show_related_verses and len(refs) > 1,
+        )
+    except Exception as exc:
+        logger.warning("Verse explanation generation failed: %s", exc)
+        return _build_fallback_verse_explanation(
+            message=message,
+            verse=verse,
+            support_verses=support_verses,
+            language=language,
+            intent=intent,
+        )
+
+
+def build_chapter_explanation(
+    *,
+    message: str,
+    chapter_number: int,
+    language: str = "en",
+) -> GuidanceResult:
+    """Explain a chapter directly when the user asks about a chapter."""
+    chapter = get_chapter_detail(chapter_number)
+    if chapter is None:
+        if language == "hi":
+            return GuidanceResult(
+                guidance=f"मुझे अध्याय {chapter_number} का विश्वसनीय विवरण नहीं मिला। कृपया अध्याय संख्या जाँचें।",
+                meaning="",
+                actions=[],
+                reflection="",
+                response_mode="fallback",
+                intent_type="chapter_explanation",
+                show_meaning=False,
+                show_actions=False,
+                show_reflection=False,
+                show_related_verses=False,
+            )
+        return GuidanceResult(
+            guidance=f"I could not find a reliable chapter summary for Chapter {chapter_number}. Please check the chapter number.",
+            meaning="",
+            actions=[],
+            reflection="",
+            response_mode="fallback",
+            intent_type="chapter_explanation",
+            show_meaning=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+    if language == "hi":
+        return GuidanceResult(
+            guidance=(
+                f"अध्याय {chapter_number} ({chapter.get('name', '')}) का मुख्य स्वर "
+                f"{chapter.get('summary_hi', '') or chapter.get('meaning_hi', '')}"
+            ).strip(),
+            meaning="",
+            actions=[],
+            reflection="",
+            response_mode="fallback",
+            intent_type="chapter_explanation",
+            show_meaning=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+    return GuidanceResult(
+        guidance=(
+            f"Chapter {chapter_number} ({chapter.get('name', '')}) is mainly about "
+            f"{chapter.get('summary_en', '') or chapter.get('meaning_en', '')}"
+        ).strip(),
+        meaning="",
+        actions=[],
+        reflection="",
+        response_mode="fallback",
+        intent_type="chapter_explanation",
+        show_meaning=False,
+        show_actions=False,
+        show_reflection=False,
+        show_related_verses=False,
+    )
+
+
 def build_guidance(
     message: str,
     verses: list[Verse],
@@ -2528,9 +3486,18 @@ def build_guidance(
     query_interpretation: dict[str, object] | None = None,
     mode: str = "simple",
     max_output_tokens: int = 350,
+    intent_analysis: dict[str, object] | None = None,
 ) -> GuidanceResult:
     """Generate grounded guidance via OpenAI with strict fallback path."""
     language = _normalize_language(language)
+    intent_analysis = intent_analysis or classify_user_intent(
+        message,
+        mode=mode,
+    ).as_dict()
+    intent_type = str(intent_analysis.get("intent_type", "life_guidance"))
+    show_actions = bool(intent_analysis.get("show_actions", True))
+    show_reflection = bool(intent_analysis.get("show_reflection", True))
+    show_related_verses = bool(intent_analysis.get("show_related_verses", True))
     # Truncate oversized inputs before any LLM processing.
     max_chars = getattr(settings, "MAX_ASK_INPUT_CHARS", 2200)
     if len(message) > max_chars:
@@ -2550,10 +3517,10 @@ def build_guidance(
     is_stressed = emotional_state in stressed_states
     tone = "plain" if wants_plain_language else "classic"
     if _is_greeting_like(message):
-        return _build_fallback_guidance(
+        return _build_compassionate_chat_reply(
             message,
-            verses=[],
             language=language,
+            intent=classify_user_intent(message, mode=mode),
         )
     if not settings.OPENAI_API_KEY:
         return _build_fallback_guidance(
@@ -2562,12 +3529,23 @@ def build_guidance(
             language=language,
         )
 
-    # Detect specific topic from user message
+    # Detect specific topic from user message (skip keyword heuristics for pure
+    # knowledge questions so we do not force "life coaching" framing).
     message_lower = message.lower()
     detected_topic = "general life guidance"
     topic_advice = ""
 
-    if any(word in message_lower for word in ["study", "studies", "exam", "school", "college", "learn", "education", "marks", "grades", "homework", "test"]):
+    if intent_type == "knowledge_question":
+        detected_topic = "Scriptural or conceptual question"
+        topic_advice = (
+            "Answer what was asked first—directly and faithfully in Bhagavad Gita "
+            "terms. Do not invent a personal struggle the user did not describe. "
+            "Include verses, Krishna–Arjuna context, and named commentary traditions "
+            "only when they sharpen the answer. If the question is factual or "
+            "definitional, keep meaning tight; use actions=[] and reflection='' unless "
+            "the user clearly wants practical steps or self-inquiry."
+        )
+    elif any(word in message_lower for word in ["study", "studies", "exam", "school", "college", "learn", "education", "marks", "grades", "homework", "test"]):
         detected_topic = "STUDIES AND EDUCATION"
         topic_advice = (
             "Give advice about: concentration techniques, study schedules, "
@@ -2634,128 +3612,159 @@ def build_guidance(
     conversation_context = _serialize_conversation_context(
         conversation_messages,
     )
+    actions_instruction = (
+        "array of 2-3 concrete actions SPECIFIC to their problem"
+        if show_actions
+        else "[] unless truly needed for the question"
+    )
+    reflection_instruction = (
+        "one question about THEIR specific situation"
+        if show_reflection
+        else "'' unless truly needed for the question"
+    )
     tone_directive = ""
-    if mode != "deep":
+    if intent_type == "knowledge_question":
         tone_directive = (
-            "TONE: Use simple, modern, non-formal language. Avoid phrases like "
-            "'Dear seeker'. Keep sentences short. Explain like a supportive friend. "
+            "TONE: A loving parent or creator explaining to a beloved child—patient, "
+            "dignifying, never shaming, never performatively formal. No 'Dear seeker'. "
+            "Answer the question directly first; expand only where it helps. "
+        )
+    elif mode != "deep":
+        tone_directive = (
+            "TONE: A deeply loving parent or creator speaking to a beloved child—"
+            "clear, warm, steady. No 'Dear seeker', no cold sermonizing. "
+            "Simple modern language; short sentences. Invite change without shame; "
+            "acknowledge the good in the person even when correcting course. "
         )
         if is_stressed:
             tone_directive += (
-                "Because the user sounds stressed, keep it extra simple and reassuring. "
-                "Focus on one idea at a time. "
+                "The user sounds strained—go slower, one main idea, extra reassurance. "
             )
     else:
         tone_directive = (
-            "TONE: Speak in a compassionate, serene, guru-like voice inspired by "
-            "Krishna's wisdom, without claiming literal divine identity. "
+            "TONE: Compassionate, luminous, serene—Krishna's voice as mentor, not "
+            "performative deity. Never claim literal divine identity. "
         )
 
     system_prompt = (
-        "You are a Bhagavad Gita guidance assistant. Return valid JSON only "
-        "with keys: "
-        "guidance, meaning, actions, reflection, verse_references. "
+        "You are a Bhagavad Gita guidance assistant. Return valid JSON only.\n"
+        "Required keys: guidance, meaning, actions, reflection, verse_references.\n"
+        "Optional key: related_verse_references — array of chapter.verse strings "
+        "(max 4, no duplicates of verse_references). Use it ONLY for extra verses "
+        "worth exploring next; omit this key if you prefer the app to choose "
+        "related verses automatically; use [] if no extra verses deserve a name.\n"
         + tone_directive
-        + "Be calm, emotionally satisfying, and spiritually grounding. "
-        "CRITICAL: Your advice must be DIRECTLY RELEVANT to the user's specific "
-        "problem. If they ask about studies, give study advice. If they ask about "
-        "relationships, give relationship advice. DO NOT default to generic "
-        "'do your duty' responses. Make your guidance PRACTICAL and ACTIONABLE "
-        "for their exact situation. "
-        "VERSE RELEVANCE: First evaluate whether the provided verses "
-        "truly address the user's concern. If they do, use them. If none of "
-        "the provided verses are relevant, you may reference other Bhagavad "
-        "Gita verses you know are more appropriate — include those in "
-        "verse_references. Prefer provided verses when they fit. "
-        "Keep advice safe and "
-        "non-medical/non-legal. Always answer the user's latest message "
-        "as the primary task. Use conversation history only as supporting "
-        "context for continuity, not as the main question to answer. "
-        "If language_code is 'hi', write all user-facing text in natural "
-        "Hindi (Devanagari). If language_code is 'en', write in English."
+        + "ON-TOPIC: Answer what the user actually asked. No tangents, no filler "
+        "stories, no generic duty slogans. If they did not ask for life advice, "
+        "do not invent a crisis or prescribe habits.\n"
+        "WHEN A VERSE MATTERS: briefly say why Krishna said it to Arjuna in that "
+        "moment; weave in how major traditions read it (e.g., Shankara's "
+        "non-dual emphasis, Ramanuja's surrender lens, Madhva's distinction of "
+        "selves—only as light commentary, not academic name-dropping); then, only "
+        "if the user seeks guidance, bridge to their situation without forcing.\n"
+        "VERSE RELEVANCE: Prefer verses from the provided context when they fit. "
+        "If none fit, you may cite other chapter.verse refs you are confident "
+        "about. Omit verse clutter—fewer, sharper verses beat many weak ones. "
+        "Do not reflexively pick the same famous verse (e.g. 2.47) when retrieval "
+        "offers a different primary verse or when conversation history already used "
+        "that line—vary or follow retrieval order.\n"
+        "SAFETY: non-medical, non-legal. Latest user message is the primary task; "
+        "history is supporting context only.\n"
+        "LANGUAGE: If language_code is 'hi', user-facing strings in natural Hindi "
+        "(Devanagari). If 'en', English."
     )
-    user_prompt = (
+
+    shared_context_block = (
         f"language_code: {language}\n\n"
-        f"DETECTED TOPIC: {detected_topic}\n"
-        f"TOPIC-SPECIFIC GUIDANCE REQUIRED: {topic_advice}\n\n"
-        f"Structured query interpretation: {json.dumps(query_interpretation, ensure_ascii=False)}\n\n"
-        f"User problem:\n{message}\n\n"
+        f"Structured query interpretation: "
+        f"{json.dumps(query_interpretation, ensure_ascii=False)}\n\n"
+        f"Intent analysis: {json.dumps(intent_analysis, ensure_ascii=False)}\n\n"
+        f"User message:\n{message}\n\n"
         f"Recent conversation context:\n{conversation_context or 'None'}\n\n"
-        f"Primary verse candidate by retrieval rank: "
-        f"{primary_reference or 'None'}\n"
-        f"Context for why Krishna said this to Arjuna: "
+        f"Primary verse candidate by retrieval rank: {primary_reference or 'None'}\n"
+        f"Chapter / battlefield context (why Krishna speaks here): "
         f"{primary_chapter_context}\n\n"
         f"Available verse context:\n{verses_context}\n\n"
-        "Requirements:\n"
-        f"- MANDATORY: This is about {detected_topic}. Your entire response MUST be "
-        f"specifically about {detected_topic.lower()}. DO NOT give generic duty advice.\n"
-        f"- {topic_advice}\n"
-        "- answer the latest user problem above, not the older history\n"
-        "- first line must directly address the user's exact situation using THEIR words\n"
-        "- give PRACTICAL, SPECIFIC advice for their exact problem:\n"
-        "  * For studies: concentration techniques, discipline, overcoming procrastination\n"
-        "  * For relationships: trust, communication, attachment vs love\n"
-        "  * For anxiety: calming techniques, present-moment focus\n"
-        "  * For work: prioritization, dealing with colleagues, finding purpose\n"
-        "- use a soothing, reassuring, devotional-guru tone that increases "
-        "the seeker's calmness and curiosity for the next step\n"
-        "- structure the answer logic in this order: "
-        "1) acknowledge the user's specific struggle with empathy, "
-        "2) what Krishna taught about this type of challenge, "
-        "3) concrete steps the user can take TODAY for their specific situation\n"
-        "- explicitly connect Krishna's teaching to the user's exact problem, "
-        "not just quote verses generically\n"
-        "- use the structured query interpretation to decide whether the best verse match "
-        "is direct, interpretive, or exploratory, and shape the answer honestly\n"
-        "- choose one most relevant verse as the primary anchor (prefer the "
-        "first retrieved verse unless another is clearly more relevant)\n"
-        "- include one short direct quote from the chosen primary verse "
-        "translation in guidance or meaning\n"
-        "- do not merely summarize the verse; interpret Krishna's intention "
-        "and bridge it to the user's SPECIFIC dilemma\n"
-        "- if author commentary perspectives are present in the verse context, "
-        "use them only to better understand the verse, not to override the verse "
-        "itself or cite authors in place of Krishna's teaching\n"
-        "- if the user asks a practical or emotional question, show how the "
-        "battlefield teaching becomes a life principle for that modern context\n"
-        "- for decision dilemmas (e.g., option A vs option B), give one clear "
-        "recommended default path for the next 14 days, explain why, and include "
-        "a measurable decision checkpoint\n"
-        "- for every question type, explicitly reference the user's concrete context "
-        "and keywords from their message\n"
-        "- avoid generic motivational wording; ensure recommendation is specific "
-        "to the user query\n"
-        "- when recent conversation context exists, use it only to better "
-        "understand the latest problem and maintain continuity\n"
-        "- do not drift back to older unresolved topics unless the latest "
-        "message clearly asks to revisit them\n"
-        "- guidance: 2-4 sentences, MUST mention user's specific topic\n"
-        "- meaning: 1-2 sentences explaining how this applies to THEIR situation\n"
-        "- actions: array of 2-3 concrete actions SPECIFIC to their problem "
-        "(e.g., for studies: 'Set a 25-minute focused study timer', "
-        "NOT generic 'do your duty')\n"
-        "- reflection: one question about THEIR specific situation\n"
-        "- verse_references: array of chapter.verse references. Prefer "
-        "verses from the provided context, but if none are relevant you may "
-        "include other Gita verse references you are confident about\n"
-        "- write guidance/meaning/actions/reflection in the specified "
-        "language_code\n"
-        + (
-            "\n"
-            "DEEP MODE ACTIVE — this is a paid deep-reflection request. "
-            "Expand every section significantly beyond the simple baseline:\n"
-            "- guidance: 4-6 sentences with richer emotional and spiritual depth\n"
-            "- meaning: 2-3 sentences with Mahabharata/Upanishad historical context "
-            "for why Krishna said this to Arjuna in that exact moment\n"
-            "- actions: 3-5 concrete, sequenced actions with reasoning for each\n"
-            "- reflection: 2-3 deep introspective questions, not just one\n"
-            "- Include the emotional/psychological dimension: name the inner state "
-            "the user is probably experiencing and validate it before offering guidance\n"
-            "- Connect to a yogic or breathwork practice specifically aligned to "
-            "the verse's energy (e.g., pranayama for anger, nadi shodhana for anxiety)\n"
-            if mode == "deep" else ""
-        )
     )
+
+    deep_append = ""
+    if mode == "deep" and intent_type == "knowledge_question":
+        deep_append = (
+            "\nDEEP MODE (knowledge): Add richer scriptural texture—why this teaching "
+            "landed on the Kurukshetra moment, and how classical commentators "
+            "differ—still without unsolicited life coaching unless the user asked.\n"
+        )
+    elif mode == "deep":
+        deep_append = (
+            "\nDEEP MODE ACTIVE — paid deep-reflection request. Expand beyond baseline:\n"
+            "- guidance: 4-6 sentences, emotionally and spiritually layered\n"
+            "- meaning: 2-4 sentences including why Krishna said this to Arjuna then "
+            "and there (Mahabharata beat), without losing relevance to the user\n"
+            "- actions: 3-5 sequenced, each with brief 'why'\n"
+            "- reflection: 2-3 probing questions tied to their words\n"
+            "- name likely inner states and validate before redirecting\n"
+            "- optional: one breath or ethical practice aligned to the teaching\n"
+        )
+
+    if intent_type == "knowledge_question":
+        user_prompt = (
+            shared_context_block
+            + f"QUESTION TYPE: {detected_topic}\n"
+            f"Instructions: {topic_advice}\n\n"
+            "Requirements:\n"
+            "- Answer the user's question first; stay in Bhagavad Gita context.\n"
+            "- Do not redirect into unrelated life domains.\n"
+            "- guidance: concise, directly responsive (2-5 sentences unless deep mode).\n"
+            "- meaning: clarify the idea or verse logic; avoid repeating guidance "
+            "unless helpful.\n"
+            f"- actions: {actions_instruction}\n"
+            f"- reflection: {reflection_instruction}\n"
+            "- verse_references: only verses that truly help; [] if none needed.\n"
+            "- related_verse_references: optional; only clearly relevant exploration.\n"
+            "- write in language_code.\n"
+            + deep_append
+        )
+    else:
+        vague_life_append = ""
+        if _is_minimal_context_life_message(message):
+            vague_life_append = (
+                "\nMINIMAL USER DETAIL: The latest message is very short or only a generic "
+                "plea. Prefer the FIRST verse in Available verse context as anchor when "
+                "listed; do not habitually default to 2.47 if another retrieved verse fits "
+                "better. If Recent conversation context already states a situation, "
+                "stay with that thread; avoid repeating the same verse-and-paragraph "
+                "framing as the last assistant message unless the user truly repeats "
+                "the same ask. One warm sentence inviting what hurts most now is "
+                "appropriate.\n"
+            )
+        user_prompt = (
+            shared_context_block
+            + vague_life_append
+            + f"DETECTED TOPIC: {detected_topic}\n"
+            f"TOPIC-SPECIFIC ANGLE: {topic_advice}\n\n"
+            "Requirements:\n"
+            f"- Center the response on {detected_topic.lower()}; avoid generic "
+            f"'do your duty' unless it truly fits their words.\n"
+            f"- {topic_advice}\n"
+            "- Address the latest message; first sentences should mirror their situation.\n"
+            "- Structure (life-guidance): (1) empathic acknowledgment using their words, "
+            "(2) what Krishna's teaching offers for this kind of bind, "
+            "(3) one or two humble next steps that feel doable.\n"
+            "- Disarm resistance: warmth, respect, no moral superiority; speak to "
+            "the part of them that already wants peace.\n"
+            "- Verse use: one strong anchor; quote a short line from its translation "
+            "in guidance or meaning; say why Krishna pressed this on Arjuna then.\n"
+            "- Bridge to today only where it clarifies—no forced allegory.\n"
+            "- guidance: 2-4 sentences unless deep mode.\n"
+            "- meaning: 1-3 sentences deepening the verse or principle.\n"
+            f"- actions: {actions_instruction}\n"
+            f"- reflection: {reflection_instruction}\n"
+            "- verse_references: best-fit chapter.verse list (may extend beyond "
+            "provided context if clearly more apt).\n"
+            "- related_verse_references: optional; only verses that deepen exploration.\n"
+            "- write in language_code.\n"
+            + deep_append
+        )
 
     try:
         client = _openai_client()
@@ -2775,13 +3784,7 @@ def build_guidance(
         actions = payload.get("actions", [])
         references = payload.get("verse_references", [])
 
-        if not isinstance(actions, list):
-            actions = []
-        actions = [
-            str(action).strip()
-            for action in actions
-            if str(action).strip()
-        ][:3]
+        actions = _trim_actions(actions, limit=3)
 
         if not isinstance(references, list):
             references = []
@@ -2802,10 +3805,24 @@ def build_guidance(
                 allowed_refs.add(f"{v.chapter}.{v.verse}")
 
         if (
+            primary_reference
+            and primary_reference in allowed_refs
+            and not references
+        ):
+            references = [primary_reference]
+
+        related_verses_refs = _parse_related_verse_references_from_llm(
+            payload,
+            primary_refs=references,
+        )
+
+        reflection_ok = (not show_reflection) or bool(reflection)
+        actions_ok = (not show_actions) or (len(actions) >= 2)
+        if (
             not guidance
             or not meaning
-            or not reflection
-            or len(actions) < 2
+            or not reflection_ok
+            or not actions_ok
             or not _is_context_relevant_response(
                 message=message,
                 guidance=guidance,
@@ -2834,9 +3851,14 @@ def build_guidance(
         return GuidanceResult(
             guidance=guidance,
             meaning=meaning,
-            actions=actions,
-            reflection=reflection,
+            actions=actions if show_actions else [],
+            reflection=reflection if show_reflection else "",
             response_mode="llm",
+            intent_type=intent_type,
+            show_actions=bool(actions) and show_actions,
+            show_reflection=bool(reflection) and show_reflection,
+            show_related_verses=show_related_verses,
+            related_verses_refs=related_verses_refs,
         )
     except Exception as exc:
         logger.warning("OpenAI guidance generation failed: %s", exc)

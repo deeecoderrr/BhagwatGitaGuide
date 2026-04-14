@@ -622,7 +622,7 @@
       <div class="topbar-actions">
         <form method="get" class="lang-pill">
           <span>{% if language == "hi" %}भाषा{% else %}Language{% endif %}</span>
-          <select name="language" onchange="this.form.submit()">
+          <select id="nav_language" name="language" onchange="this.form.submit()">
             <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
             <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
           </select>
@@ -657,10 +657,15 @@
             If you’re arriving here in stress, confusion, heartbreak, or uncertainty, you should be able to ask immediately.
           {% endif %}
         </p>
-        <form action="/api/chat-ui/" method="get">
+        <form class="cta-form" method="get" action="/api/chat-ui/">
           <input type="hidden" name="mode" value="simple">
           <input type="hidden" name="language" value="{{ language|default:'en' }}">
           <textarea name="prefill" placeholder="{% if starter_question %}{{ starter_question }}{% else %}{% if language == 'hi' %}उदा. मैं बहुत चिंतित हूं और समझ नहीं पा रहा/रही कि क्या करूं। गीता क्या कहती है?{% else %}e.g. I feel overwhelmed and do not know what to do next. What does the Gita say?{% endif %}{% endif %}"></textarea>
+          {% if language == "hi" %}
+            <p class="muted" style="margin: 0 0 10px; font-size: 14px;"><a href="/api/chat-ui/?mode=simple&amp;language=hi">ऐप खोलें</a></p>
+          {% else %}
+            <p class="muted" style="margin: 0 0 10px; font-size: 14px;">Ask This In The App</p>
+          {% endif %}
           <div class="ask-card-actions">
             <button class="btn primary" type="submit">
               {% if language == "hi" %}पूर्ण मार्गदर्शन खोलें{% else %}Open Full Guidance{% endif %}
@@ -809,7 +814,7 @@
 
         {% if popular_verse_cards %}
           <section class="panel span-12">
-            <h2>{% if language == "hi" %}सबसे अधिक खोजे जाने वाले श्लोक{% else %}Most searched Bhagavad Gita verses{% endif %}</h2>
+            <h2>{% if language == "hi" %}सबसे अधिक खोजे जाने वाले श्लोक{% else %}Most Searched Bhagavad Gita Verses{% endif %}</h2>
             <p class="section-copy">
               {% if language == "hi" %}
                 कई लोग श्लोक से शुरुआत करना पसंद करते हैं। यदि कोई श्लोक पहले से परिचित है, तो वहीं से प्रवेश करना आसान लगता है।
@@ -860,9 +865,9 @@
           <h2>{% if language == "hi" %}चुने हुए श्लोक{% else %}Selected verses{% endif %}</h2>
           <p class="section-copy">
             {% if language == "hi" %}
-              इस विषय के लिए ये श्लोक अक्सर सबसे अधिक मददगार होते हैं।
+              इस विषय के लिए ये श्लोक अक्सर सबसे अधिक मददगार होते हैं। प्रासंगिक भगवद गीता श्लोक देखें।
             {% else %}
-              These verses are often the most grounding starting points for this theme.
+              Relevant Bhagavad Gita verses — these are often the most grounding starting points for this theme.
             {% endif %}
           </p>
           {% if featured_verses %}
@@ -880,7 +885,7 @@
 
       {% if faq_items %}
         <section class="panel span-12">
-          <h2>{% if language == "hi" %}अक्सर पूछे जाने वाले प्रश्न{% else %}Frequently asked questions{% endif %}</h2>
+          <h2>{% if language == "hi" %}अक्सर पूछे जाने वाले प्रश्न{% else %}Frequently Asked Questions{% endif %}</h2>
           <div class="faq-section">
             {% for faq in faq_items %}
               <details class="faq-item">

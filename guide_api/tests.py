@@ -545,10 +545,132 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.data["retrieved_references"], [])
         self.assertEqual(
             response.data["query_interpretation"]["life_domain"],
-            "conversation opening",
+            "conversation",
         )
         self.assertIn("Bhagavad Gita", response.data["guidance"])
-        self.assertTrue(len(response.data["actions"]) >= 2)
+        self.assertEqual(response.data["actions"], [])
+        self.assertEqual(response.data["reflection"], "")
+        self.assertEqual(response.data["related_verses"], [])
+
+    def test_ask_endpoint_explains_exact_verse_without_switching_primary_reference(self):
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "Explain Bhagavad Gita 2.47 in simple language",
+                "mode": "simple",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["intent_type"], "verse_explanation")
+        self.assertEqual(response.data["verse_references"][0], "2.47")
+        self.assertEqual(response.data["verses"][0]["reference"], "2.47")
+        self.assertIn("2.47", response.data["guidance"])
+        self.assertEqual(response.data["actions"], [])
+        self.assertEqual(response.data["reflection"], "")
+
+    def test_ask_endpoint_general_knowledge_question_does_not_force_actions(self):
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "What does the Bhagavad Gita say about karma yoga?",
+                "mode": "simple",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["intent_type"], "knowledge_question")
+        self.assertEqual(response.data["actions"], [])
+        self.assertEqual(response.data["reflection"], "")
+        self.assertTrue(response.data["guidance"])
+
+    def test_ask_endpoint_casual_chat_does_not_force_verses(self):
+        response = self.client.post(
+            "/api/ask/",
+            {
+                "message": "what can you do?",
+                "mode": "simple",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["intent_type"], "casual_chat")
+        self.assertEqual(response.data["verses"], [])
+        self.assertEqual(response.data["related_verses"], [])
+        self.assertEqual(response.data["actions"], [])
+        self.assertEqual(response.data["reflection"], "")
+
+    def test_ambiguous_intent_heuristic_personal_help_is_life_guidance(self):
+        from guide_api.services import classify_user_intent
+
+        intent = classify_user_intent("help me get divorce from my wife")
+        self.assertEqual(intent.intent_type, "life_guidance")
+
+    def test_two_word_help_me_routes_to_life_guidance_for_retrieval(self):
+        from guide_api.services import classify_user_intent
+
+        intent = classify_user_intent("help me")
+        self.assertEqual(intent.intent_type, "life_guidance")
+
+    def test_heuristic_intent_runs_before_llm_skips_refinement_call(self):
+        """Heuristic match must not invoke intent LLM (latency + cost)."""
+        from unittest.mock import patch
+
+        from guide_api.services import classify_user_intent
+
+        with patch(
+            "guide_api.services._refine_intent_via_llm",
+        ) as mock_refine:
+            with self.settings(OPENAI_API_KEY="sk-test"):
+                intent = classify_user_intent(
+                    "help me get divorce from my wife",
+                )
+        mock_refine.assert_not_called()
+        self.assertEqual(intent.intent_type, "life_guidance")
+
+    def test_ambiguous_intent_heuristic_define_without_gita_keywords(self):
+        from guide_api.services import classify_user_intent
+
+        intent = classify_user_intent("define sattva in one sentence")
+        self.assertEqual(intent.intent_type, "knowledge_question")
+
+    def test_intent_llm_refinement_returns_life_guidance_when_configured(self):
+        from unittest.mock import MagicMock, patch
+
+        from guide_api.services import classify_user_intent
+
+        mock_resp = MagicMock()
+        mock_resp.output_text = (
+            '{"intent_type":"life_guidance","reason":"personal dilemma"}'
+        )
+        with patch(
+            "guide_api.services._openai_client",
+        ) as mock_client_factory:
+            mock_client = MagicMock()
+            mock_client_factory.return_value = mock_client
+            mock_client.responses.create.return_value = mock_resp
+            with self.settings(
+                OPENAI_API_KEY="sk-test",
+                DISABLE_INTENT_LLM_REFINEMENT=False,
+            ):
+                intent = classify_user_intent(
+                    "something vague that would fall through heuristics",
+                )
+        self.assertEqual(intent.intent_type, "life_guidance")
+
+    def test_intent_llm_skipped_by_default_when_ambiguous(self):
+        """With DISABLE_INTENT_LLM_REFINEMENT default, vague text stays casual without API."""
+        from unittest.mock import patch
+
+        from guide_api.services import classify_user_intent
+
+        with patch("guide_api.services._openai_client") as mock_client_factory:
+            mock_client_factory.side_effect = AssertionError("intent LLM should not run")
+            with self.settings(OPENAI_API_KEY="sk-test"):
+                intent = classify_user_intent(
+                    "something vague that would fall through heuristics",
+                )
+        self.assertEqual(intent.intent_type, "casual_chat")
 
     def test_ask_endpoint_supports_hindi_language(self):
         response = self.client.post(
@@ -831,6 +953,21 @@ class GuideApiTests(APITestCase):
             ).count(),
             1,
         )
+
+    def test_chat_ui_hides_action_panels_for_exact_verse_explanation(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "Explain Bhagavad Gita 2.47 in simple language",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.context["response_data"]["show_actions"])
+        self.assertFalse(response.context["response_data"]["show_reflection"])
+        self.assertContains(response, "Verses Used")
 
     def test_chat_ui_guest_telemetry_uses_unique_guest_identifier(self):
         self.client.force_authenticate(user=None)

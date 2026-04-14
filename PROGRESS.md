@@ -4,6 +4,17 @@ Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
 
 ## Completed
 
+- Ask/chat guidance quality pass:
+  - `build_guidance` prompts: parent-like compassionate tone, strict on-topic rules,
+    separate instructions for `knowledge_question` vs life-guidance, optional
+    `related_verse_references` in JSON for LLM-filtered related verses
+  - `GuidanceResult.related_verses_refs` + `_related_verses_payload_for_response` in
+    views (API + chat UI) to honor LLM picks or fall back to `get_related_verses`
+  - `build_verse_explanation` prompts: clearer Krishna–Arjuna "why," commentary synthesis
+  - Ambiguous intent routing: **heuristic-first** (incl. two-word “help me” →
+    `life_guidance`); optional intent JSON LLM when `DISABLE_INTENT_LLM_REFINEMENT=false`
+    (default **skips** it for cost/latency; turn off disable for edge-case quality)
+
 - SEO intent expansion against "Gita GPT / Ask Gita / Bhagavad Gita AI" search demand completed:
   - inspected `gitagpt.org` and found its strongest advantage was not technical SEO depth,
     but exact-match query coverage in homepage title/description for terms users search:
@@ -1000,6 +1011,9 @@ At the end of each coding session:
 
 ## 2026-04-14
 
+- Restored CSRF protection on the session-backed payment and subscription endpoints so browser sessions cannot create orders or verify payments without normal Django CSRF checks.
+- Hardened production startup so the app now refuses to boot with the public fallback `SECRET_KEY` when `DEBUG=false`.
+- Sanitized `.env.example` so it no longer suggests real-looking Razorpay credentials.
 - Fixed intermittent prod chat resets by preserving `conversation_id` in the live-chat DOM swap URL (previously the client always rewrote the URL without the id, so the next render fell back to the landing state even though the thread was created).
 - Fixed intermittent prod slow/partial replies by preventing `ensure_seed_verses()` from re-seeding/updating the verse corpus on every worker boot when verses already exist.
 - Fixed intermittent prod worker timeouts by lazily loading verse commentaries (`data/slok/*.json`) per-verse instead of loading the full 36MB dataset on the first request.

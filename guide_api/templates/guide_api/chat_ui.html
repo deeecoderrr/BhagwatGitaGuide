@@ -5168,24 +5168,28 @@
                           <span class="typing-text">{{ item.content }}</span><span class="typing-cursor" aria-hidden="true">|</span>
                         </div>
                         <div class="reply-grid">
-                          <div class="reply-section warm">
-                            <h4>{% if language == "hi" %}अर्थ{% else %}Meaning{% endif %}</h4>
-                            {{ response_data.meaning }}
-                          </div>
-                          <div class="reply-section">
-                            <h4>{% if language == "hi" %}कार्य{% else %}Actions{% endif %}</h4>
-                            <ul class="reply-list">
-                              {% for action in response_data.actions %}
-                                <li>{{ action }}</li>
-                              {% empty %}
-                                <li>{% if language == "hi" %}कोई कार्य बिंदु नहीं मिला।{% else %}No action items returned.{% endif %}</li>
-                              {% endfor %}
-                            </ul>
-                          </div>
-                          <div class="reply-section cool">
-                            <h4>{% if language == "hi" %}चिंतन{% else %}Reflection{% endif %}</h4>
-                            {{ response_data.reflection }}
-                          </div>
+                          {% if response_data.show_meaning %}
+                            <div class="reply-section warm">
+                              <h4>{% if language == "hi" %}अर्थ{% else %}Meaning{% endif %}</h4>
+                              {{ response_data.meaning }}
+                            </div>
+                          {% endif %}
+                          {% if response_data.show_actions %}
+                            <div class="reply-section">
+                              <h4>{% if language == "hi" %}कार्य{% else %}Actions{% endif %}</h4>
+                              <ul class="reply-list">
+                                {% for action in response_data.actions %}
+                                  <li>{{ action }}</li>
+                                {% endfor %}
+                              </ul>
+                            </div>
+                          {% endif %}
+                          {% if response_data.show_reflection %}
+                            <div class="reply-section cool">
+                              <h4>{% if language == "hi" %}चिंतन{% else %}Reflection{% endif %}</h4>
+                              {{ response_data.reflection }}
+                            </div>
+                          {% endif %}
                           {% if response_data.deep_insights %}
                             <div class="reply-section warm">
                               <h4>{% if language == "hi" %}डीप इनसाइट्स{% else %}Deep Insights{% endif %}</h4>
@@ -5208,33 +5212,11 @@
                               {% endif %}
                             </div>
                           {% endif %}
-	                          <div class="reply-section">
-	                            <h4>{% if language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses Used{% endif %}</h4>
-	                            {% for verse in response_data.verses %}
-	                              <div class="verse-item">
-	                                <button type="button" class="verse-item-trigger" data-open-verse-reference="{{ verse.reference }}">
-	                                  <div><strong>{{ verse.reference }}</strong></div>
-	                                  <div>{{ verse.translation }}</div>
-	                                  {% if verse.themes %}
-	                                    <div class="muted">{% if language == "hi" %}थीम{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
-	                                  {% endif %}
-	                                </button>
-	                              </div>
-	                            {% empty %}
-	                              <div class="muted">
-	                                {% if language == "hi" %}
-	                                  अभी कोई श्लोक नहीं चुना गया है। अपना प्रश्न थोड़ा और स्पष्ट लिखें।
-	                                {% else %}
-	                                  No verse has been selected yet. Share your actual question and I’ll find the most relevant one.
-	                                {% endif %}
-	                              </div>
-	                            {% endfor %}
-	                            {% if response_data.related_verses %}
-	                              <div class="muted" style="margin-top: 12px;">
-	                                {% if language == "hi" %}संबंधित श्लोक (आगे पढ़ें){% else %}Explore Related Verses{% endif %}
-	                              </div>
-	                              {% for verse in response_data.related_verses %}
-	                                <div class="verse-item" style="opacity: 0.92;">
+                              {% if response_data.verses %}
+	                            <div class="reply-section">
+	                              <h4>{% if language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses Used{% endif %}</h4>
+	                              {% for verse in response_data.verses %}
+	                                <div class="verse-item">
 	                                  <button type="button" class="verse-item-trigger" data-open-verse-reference="{{ verse.reference }}">
 	                                    <div><strong>{{ verse.reference }}</strong></div>
 	                                    <div>{{ verse.translation }}</div>
@@ -5244,8 +5226,24 @@
 	                                  </button>
 	                                </div>
 	                              {% endfor %}
-	                            {% endif %}
-	                          </div>
+	                              {% if response_data.related_verses %}
+	                                <div class="muted" style="margin-top: 12px;">
+	                                  {% if language == "hi" %}संबंधित श्लोक (आगे पढ़ें){% else %}Explore Related Verses{% endif %}
+	                                </div>
+	                                {% for verse in response_data.related_verses %}
+	                                  <div class="verse-item" style="opacity: 0.92;">
+	                                    <button type="button" class="verse-item-trigger" data-open-verse-reference="{{ verse.reference }}">
+	                                      <div><strong>{{ verse.reference }}</strong></div>
+	                                      <div>{{ verse.translation }}</div>
+	                                      {% if verse.themes %}
+	                                        <div class="muted">{% if language == "hi" %}थीम{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
+	                                      {% endif %}
+	                                    </button>
+	                                  </div>
+	                                {% endfor %}
+	                              {% endif %}
+	                            </div>
+                              {% endif %}
 	                        </div>
                         <div class="reply-share-row">
                           <button
@@ -5459,9 +5457,9 @@
                     {% endif %}
                   {% else %}
                     {% if language == "hi" %}
-                      <strong>स्पष्ट लिखें:</strong> अपनी परिस्थिति, भावना और असली उलझन लिखेंगे तो मार्गदर्शन अधिक सटीक होगा।
+                      <strong>संकेत:</strong> जितना संदर्भ देंगे (स्थिति, भाव), उतना मार्गदर्शन अनुकूल होगा।
                     {% else %}
-                      <strong>Ask clearly:</strong> include your situation, emotion, and actual dilemma for the most relevant guidance.
+                      <strong>Tip:</strong> a sentence about what you’re facing and how you feel helps tailor the reply.
                     {% endif %}
                   {% endif %}
                 </span>
