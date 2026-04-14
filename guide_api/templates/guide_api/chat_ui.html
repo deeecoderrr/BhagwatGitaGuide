@@ -855,6 +855,7 @@
       overflow-y: auto;
       padding: 6px 8px 6px 2px;
       scroll-behavior: smooth;
+      margin-left: 100px;
     }
 
     .transcript::-webkit-scrollbar,
@@ -3402,9 +3403,9 @@
 
     /* 2026 redesign pass: chat-first sacred editorial layout */
     .top-nav {
-      position: sticky;
-      top: 14px;
-      z-index: 12;
+      position: relative;
+      top: 0;
+      z-index: 2;
       padding: 10px 12px;
       border-radius: 22px;
       border-color: rgba(245, 199, 107, 0.16);
@@ -3542,8 +3543,8 @@
     .sidebar-stack {
       grid-area: aside;
       gap: 14px;
-      position: sticky;
-      top: 88px;
+      position: static;
+      top: auto;
       align-self: start;
     }
 
@@ -3582,9 +3583,9 @@
     }
 
     .conversation-panel-head {
-      position: sticky;
-      top: 0;
-      z-index: 3;
+      position: relative;
+      top: auto;
+      z-index: 1;
       padding-bottom: 12px;
       margin-bottom: 12px;
       background: linear-gradient(180deg, rgba(8, 14, 25, 0.96), rgba(8, 14, 25, 0.82) 72%, transparent);
@@ -3667,18 +3668,19 @@
 
     .landing-actions {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 14px;
+      gap: 12px;
     }
 
     .landing-card {
-      min-height: 208px;
-      justify-content: center;
-      padding: 26px;
-      border-radius: 24px;
+      min-height: 156px;
+      justify-content: flex-start;
+      padding: 18px;
+      border-radius: 22px;
+      gap: 8px;
     }
 
     .landing-card-title {
-      font-size: 18px;
+      font-size: 15px;
     }
 
     .landing-growth {
@@ -3702,11 +3704,11 @@
     }
 
     .chat-bottom-composer {
-      position: sticky;
-      bottom: 0;
-      z-index: 4;
-      padding-top: 14px;
-      background: linear-gradient(180deg, transparent, rgba(8, 14, 25, 0.96) 24%);
+      position: relative;
+      bottom: auto;
+      z-index: 1;
+      padding-top: 10px;
+      background: transparent;
     }
 
     .chat-bottom-composer form {
@@ -3796,6 +3798,250 @@
         max-width: 100%;
       }
     }
+
+    /* 2026 second-pass refinement: cleaner nav, toolbar, and new-thread landing */
+    .top-nav .auth-pill {
+      flex-shrink: 0;
+    }
+
+    .conversation-toolbar {
+      display: grid;
+      justify-items: end;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .conversation-toolbar-main,
+    .conversation-toolbar-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .conversation-toolbar-meta {
+      padding: 8px 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .conversation-language-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(7, 14, 25, 0.72);
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .conversation-language-pill strong {
+      color: #eef5ff;
+      font-weight: 600;
+    }
+
+    .conversation-reset-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(121, 217, 239, 0.22);
+      background: rgba(121, 217, 239, 0.08);
+      color: #9fe8f3;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .conversation-reset-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(121, 217, 239, 0.38);
+      background: rgba(121, 217, 239, 0.14);
+    }
+
+    .landing-hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .landing-intro {
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      justify-items: center;
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(245, 199, 107, 0.14);
+      background:
+        radial-gradient(circle at top right, rgba(121, 217, 239, 0.08), transparent 28%),
+        linear-gradient(180deg, rgba(255,255,255,0.04), transparent 26%),
+        rgba(6, 13, 24, 0.68);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .landing-kicker {
+      display: inline-flex;
+      align-items: center;
+      width: fit-content;
+      padding: 7px 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 199, 107, 0.16);
+      background: rgba(245, 199, 107, 0.06);
+      color: #f3d79c;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      justify-self: center;
+    }
+
+    .landing-logo {
+      display: grid;
+      margin: 0;
+      transform: scale(0.82);
+      transform-origin: center top;
+      justify-self: center;
+    }
+
+    .landing-intro-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      justify-content: center;
+    }
+
+    .landing-intro-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      color: #dfe8f6;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .landing-actions {
+      max-width: 100%;
+      margin-top: -2px;
+      gap: 10px;
+    }
+
+    .landing-card {
+      min-height: 118px;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 14px;
+      border-radius: 18px;
+      gap: 6px;
+      text-align: center;
+    }
+
+    .landing-card-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 14px;
+    }
+
+    .landing-card-icon,
+    .landing-card-title,
+    .landing-card-desc {
+      text-align: center;
+      align-self: center;
+    }
+
+    .landing-card-desc {
+      font-size: 10.5px;
+      line-height: 1.35;
+    }
+
+    .hero-signal-card .today-kicker {
+      margin: 0;
+      color: #f1d48e;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .hero-signal-verse {
+      margin: 0;
+      font-size: clamp(24px, 2.7vw, 36px);
+      line-height: 1.28;
+      color: #fff7df;
+      font-weight: 700;
+    }
+
+    .hero-signal-note {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .landing-title {
+      font-size: clamp(24px, 3.1vw, 38px);
+      line-height: 1.04;
+      max-width: 18ch;
+      text-align: center;
+    }
+
+    .landing-subtitle {
+      max-width: 72ch;
+      font-size: 14px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .landing-intro-pill {
+      padding: 7px 11px;
+      font-size: 10.5px;
+    }
+
+    @media (max-width: 980px) {
+      .conversation-panel-head {
+        align-items: stretch;
+      }
+
+      .conversation-toolbar {
+        justify-items: stretch;
+      }
+
+      .conversation-toolbar-main,
+      .conversation-toolbar-meta {
+        justify-content: flex-start;
+      }
+
+      .landing-intro {
+        padding: 16px;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .conversation-toolbar-main,
+      .conversation-toolbar-meta {
+        width: 100%;
+      }
+
+      .conversation-language-pill,
+      .conversation-reset-btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .landing-intro-pills {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
@@ -3858,11 +4104,6 @@
             </button>
           </form>
         {% endif %}
-        {% if active_conversation_id %}
-          <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="nav-btn">
-            {% if language == "hi" %}नई बातचीत शुरू करें{% else %}Start New Conversation{% endif %}
-          </a>
-        {% endif %}
         {% if not request.session.chat_ui_auth_username %}
           <a href="#guest-auth-target" class="nav-btn" data-nav-auth-target="register">
             {% if language == "hi" %}रजिस्टर{% else %}Register{% endif %}
@@ -3871,17 +4112,19 @@
             {% if language == "hi" %}लॉगिन{% else %}Login{% endif %}
           </a>
         {% endif %}
-        <div class="auth-pill">
-          {% if request.session.chat_ui_auth_username %}
+        {% if request.session.chat_ui_auth_username %}
+          <div class="auth-pill">
             {% if language == "hi" %}
               लॉगिन: {{ request.session.chat_ui_auth_username }}
             {% else %}
               Signed in: {{ request.session.chat_ui_auth_username }}
             {% endif %}
-          {% else %}
+          </div>
+        {% else %}
+          <div class="auth-pill">
             {% if language == "hi" %}लॉगिन नहीं है{% else %}Not signed in{% endif %}
-          {% endif %}
-        </div>
+          </div>
+        {% endif %}
       </div>
     </nav>
 
@@ -3923,8 +4166,8 @@
             </span>
           </div>
         </div>
-        <div class="hero-blessing" data-parallax data-depth="20">
-          <div class="hero-quick-ask">
+        <div id="today-signal-panel" class="hero-blessing" data-parallax data-depth="20" data-daily-signal-card data-language="{{ language|default:'en' }}">
+          <div class="hero-quick-ask hero-signal-card">
             <div class="hero-blessing-kicker">
               <span class="asset-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3934,41 +4177,35 @@
                   <circle cx="4" cy="20" r="2" />
                 </svg>
               </span>
-              {% if language == "hi" %}यहीं से पूछें{% else %}Ask from here{% endif %}
+              {% if language == "hi" %}आज का संकेत{% else %}Today's Signal{% endif %}
             </div>
-            <h2>{% if language == "hi" %}सीधे अपना प्रश्न लिखें{% else %}Write your question directly{% endif %}</h2>
-            <p>
+            <div class="today-kicker">{% if language == "hi" %}आज{% else %}Today{% endif %}</div>
+            <p class="today-verse hero-signal-verse" data-daily-signal-quote>
               {% if language == "hi" %}
-                यदि आप तनाव, डर, उलझन या निर्णयहीनता में हैं, तो तुरंत लिखें। आपको नीचे स्क्रोल करके संरचना समझने की ज़रूरत नहीं होनी चाहिए।
+                "चिंतित परिणाम-आसक्ति से अधिक महत्वपूर्ण है स्थिर प्रयास।"
               {% else %}
-                If you arrived here stressed, uncertain, or emotionally overloaded, you should be able to ask immediately without first figuring out the whole page.
+                "Steady effort matters more than anxious attachment to outcomes."
               {% endif %}
             </p>
-            <form method="post" class="hero-quick-form quick-submit">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="ask">
-              <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
-              <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-              <input type="hidden" name="language" value="{{ language|default:'en' }}">
-              {% if active_conversation_id %}
-                <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
-              {% endif %}
-              <textarea name="message" placeholder="{% if language == 'hi' %}उदा. मैं भविष्य को लेकर बहुत चिंतित हूं और समझ नहीं पा रहा/रही कि क्या करूं। गीता क्या कहती है?{% else %}e.g. I feel deeply anxious about my future and do not know what to do next. What does the Gita say?{% endif %}">{% if not conversation_messages %}{{ message|default:'' }}{% endif %}</textarea>
-              <div class="hero-quick-actions">
-                <button type="submit">
-                  {% if language == "hi" %}मार्गदर्शन शुरू करें{% else %}Start Guidance{% endif %}
-                </button>
-                <a class="hero-soft-link" href="/api/chat-ui/?mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}#chat_message">
-                  {% if language == "hi" %}पूर्ण संवाद क्षेत्र पर जाएँ{% else %}Jump to full chat area{% endif %}
-                </a>
-              </div>
-            </form>
-            <div class="hero-support-note">
+            <p class="today-note hero-signal-note" data-daily-signal-meaning>
               {% if language == "hi" %}
-                हर उत्तर केवल श्लोक उद्धृत नहीं करता। यह समझाता है कि कृष्ण ने वह बात अर्जुन से क्यों कही और वही शिक्षा आपकी स्थिति में कैसे लागू हो सकती है।
+                आज का संकल्प: एक सच्चा कर्म, एक शांत प्रतिक्रिया, और प्रतिक्रिया से पहले
+                एक क्षण का चिंतन।
               {% else %}
-                Each response is meant to do more than quote a verse. It explains why Krishna said it to Arjuna and how that same principle can apply to your situation now.
+                Let today be about one sincere action, one calmer response, and one
+                moment of reflection before reacting.
               {% endif %}
+            </p>
+            <div class="hero-quick-actions">
+              <a class="hero-soft-link" href="/api/chat-ui/?mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}#chat_message">
+                {% if language == "hi" %}नीचे प्रश्न लिखें{% else %}Ask your question below{% endif %}
+              </a>
+            </div>
+            <div class="hero-support-note">
+              <span data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</span>
+              <span style="font-size: 11px;">
+                • {% if language == "hi" %}मोड{% else %}Approach{% endif %}: <strong>{{ mode|default:"simple" }}</strong>
+              </span>
             </div>
           </div>
         </div>
@@ -3992,50 +4229,6 @@
             Account Register Login
           {% endif %}
         </span>
-        <div class="panel today-card fx-glow" data-aos="fade-right" data-aos-delay="40" data-daily-signal-card data-language="{{ language|default:'en' }}">
-          <div class="panel-kicker">
-            <span class="asset-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
-                <path d="M20 2v4" />
-                <path d="M22 4h-4" />
-                <circle cx="4" cy="20" r="2" />
-              </svg>
-            </span>
-            {% if language == "hi" %}आज का संकेत{% else %}Today's Signal{% endif %}
-          </div>
-          <div class="today-kicker">{% if language == "hi" %}आज{% else %}Today{% endif %}</div>
-          <p class="today-verse" data-daily-signal-quote>
-            {% if language == "hi" %}
-              "चिंतित परिणाम-आसक्ति से अधिक महत्वपूर्ण है स्थिर प्रयास।"
-            {% else %}
-              "Steady effort matters more than anxious attachment to outcomes."
-            {% endif %}
-          </p>
-          <p class="today-note" data-daily-signal-meaning>
-            {% if language == "hi" %}
-              आज का संकल्प: एक सच्चा कर्म, एक शांत प्रतिक्रिया, और प्रतिक्रिया से पहले
-              एक क्षण का चिंतन।
-            {% else %}
-              Let today be about one sincere action, one calmer response, and one
-              moment of reflection before reacting.
-            {% endif %}
-          </p>
-          <div class="today-footer">
-            <span data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</span>
-            <span style="font-size: 11px;">
-              📍 {% if language == "hi" %}मोड{% else %}Approach{% endif %}:
-              <strong>{{ mode|default:"simple" }}</strong>
-              {% if mode == "simple" %}
-                ({% if language == "hi" %}तुरंत उत्तर{% else %}Quick answers{% endif %})
-              {% elif mode == "deep" %}
-                ({% if language == "hi" %}गहन विश्लेषण{% else %}Deep insights{% endif %})
-              {% endif %}
-              • {% if language == "hi" %}भाषा{% else %}Language{% endif %}: <strong>{{ language|default:"en" }}</strong>
-            </span>
-          </div>
-        </div>
-
         {% if conversations %}
           <div class="panel panel-primary" data-aos="fade-right" data-aos-delay="90">
             <div class="panel-kicker">
@@ -4869,34 +5062,39 @@
                 {% endif %}
               </p>
             </div>
-            <div class="nav-actions">
-              <div class="conversation-mode-switcher">
-                <span class="conversation-mode-switcher-label">
-                  {% if language == "hi" %}मोड{% else %}Approach{% endif %}
-                </span>
-                <a
-                  href="/api/chat-ui/?conversation_id={{ active_conversation_id|default:'' }}&mode=simple&language={{ language|default:'en' }}"
-                  class="mode-switch-btn {% if mode == 'simple' %}active{% endif %}"
-                  title="{% if language == 'hi' %}जल्दी, स्पष्ट उत्तर{% else %}Quick, clear guidance{% endif %}"
-                >
-                  <span>{% if language == "hi" %}Simple{% else %}Simple{% endif %}</span>
-                </a>
-                <a
-                  href="/api/chat-ui/?conversation_id={{ active_conversation_id|default:'' }}&mode=deep&language={{ language|default:'en' }}"
-                  class="mode-switch-btn {% if mode == 'deep' %}active{% endif %}"
-                  title="{% if language == 'hi' %}गहराई से विश्लेषण{% else %}Deeper reflection{% endif %}"
-                >
-                  <span>{% if language == "hi" %}Deep{% else %}Deep{% endif %}</span>
-                </a>
+            <div class="conversation-toolbar">
+              <div class="conversation-toolbar-main">
+                <div class="conversation-mode-switcher">
+                  <span class="conversation-mode-switcher-label">
+                    {% if language == "hi" %}मोड{% else %}Approach{% endif %}
+                  </span>
+                  <a
+                    href="/api/chat-ui/?conversation_id={{ active_conversation_id|default:'' }}&mode=simple&language={{ language|default:'en' }}"
+                    class="mode-switch-btn {% if mode == 'simple' %}active{% endif %}"
+                    title="{% if language == 'hi' %}जल्दी, स्पष्ट उत्तर{% else %}Quick, clear guidance{% endif %}"
+                  >
+                    <span>{% if language == "hi" %}Simple{% else %}Simple{% endif %}</span>
+                  </a>
+                  <a
+                    href="/api/chat-ui/?conversation_id={{ active_conversation_id|default:'' }}&mode=deep&language={{ language|default:'en' }}"
+                    class="mode-switch-btn {% if mode == 'deep' %}active{% endif %}"
+                    title="{% if language == 'hi' %}गहराई से विश्लेषण{% else %}Deeper reflection{% endif %}"
+                  >
+                    <span>{% if language == "hi" %}Deep{% else %}Deep{% endif %}</span>
+                  </a>
+                </div>
               </div>
-              <span class="auth-pill">
-                {% if language == "hi" %}भाषा{% else %}Language{% endif %}: {{ language|default:"en" }}
-              </span>
-              {% if active_conversation_id %}
-                <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="chip-btn" style="text-decoration: none;">
-                  {% if language == "hi" %}नई शुरू करें{% else %}Start New{% endif %}
-                </a>
-              {% endif %}
+              <div class="conversation-toolbar-meta">
+                <span class="conversation-language-pill">
+                  {% if language == "hi" %}भाषा{% else %}Language{% endif %}:
+                  <strong>{{ language|default:"en" }}</strong>
+                </span>
+                {% if active_conversation_id %}
+                  <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="conversation-reset-btn">
+                    {% if language == "hi" %}नई बातचीत{% else %}Start New{% endif %}
+                  </a>
+                {% endif %}
+              </div>
             </div>
           </div>
 
@@ -5080,15 +5278,27 @@
               {% else %}
                 <!-- Landing Page - shown when no conversation is active -->
                 <div class="landing-page">
-                  <div class="landing-logo">🙏</div>
-                  <h1 class="landing-title">{% if language == "hi" %}अपने प्रश्न का श्लोक-आधारित उत्तर पाएँ{% else %}Get Verse-Based Guidance For Your Problem{% endif %}</h1>
-                  <p class="landing-subtitle">
-                    {% if language == "hi" %}
-                      चिंता, करियर, संबंध, अनुशासन, भय या जीवन-दिशा जैसे प्रश्न पूछें और गीता से प्रासंगिक मार्गदर्शन पाएँ।
-                    {% else %}
-                      Ask about anxiety, career, relationships, discipline, fear, or purpose and receive relevant Bhagavad Gita guidance.
-                    {% endif %}
-                  </p>
+                  <div class="landing-hero-grid">
+                    <div class="landing-intro">
+                      <div class="landing-logo">🙏</div>
+                      <div class="landing-kicker">
+                        {% if language == "hi" %}जीवित संवाद{% else %}Living Dialogue{% endif %}
+                      </div>
+                      <h1 class="landing-title">{% if language == "hi" %}अपने प्रश्न का श्लोक-आधारित उत्तर पाएँ{% else %}Get Verse-Based Guidance For Your Problem{% endif %}</h1>
+                      <p class="landing-subtitle">
+                        {% if language == "hi" %}
+                          चिंता, करियर, संबंध, अनुशासन, भय या जीवन-दिशा जैसे प्रश्न पूछें और गीता से प्रासंगिक मार्गदर्शन पाएँ।
+                        {% else %}
+                          Ask about anxiety, career, relationships, discipline, fear, or purpose and receive relevant Bhagavad Gita guidance.
+                        {% endif %}
+                      </p>
+                      <div class="landing-intro-pills">
+                        <span class="landing-intro-pill">{% if language == "hi" %}प्रासंगिक श्लोक{% else %}Relevant verses{% endif %}</span>
+                        <span class="landing-intro-pill">{% if language == "hi" %}सरल व्याख्या{% else %}Plain-language meaning{% endif %}</span>
+                        <span class="landing-intro-pill">{% if language == "hi" %}अगला स्पष्ट कदम{% else %}A grounded next step{% endif %}</span>
+                      </div>
+                    </div>
+                  </div>
 
                   <div class="landing-actions">
                     <div class="landing-card landing-card-chat{% if is_guest_chat and guest_quota_snapshot and guest_quota_snapshot.limit_reached %} is-disabled{% endif %}" {% if not is_guest_chat or not guest_quota_snapshot or not guest_quota_snapshot.limit_reached %}data-start-conversation{% endif %}>
