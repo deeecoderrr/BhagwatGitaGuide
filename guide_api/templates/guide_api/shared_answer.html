@@ -8,15 +8,12 @@
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="{{ canonical_url }}">
 
-  <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:site_name" content="Bhagavad Gita Guide">
   <meta property="og:title" content="{{ question_short }}">
   <meta property="og:description" content="{{ guidance_short }}">
   <meta property="og:url" content="{{ canonical_url }}">
-
-  <!-- Twitter / X card -->
-  <meta name="twitter:card" content="summary">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{{ question_short }}">
   <meta name="twitter:description" content="{{ guidance_short }}">
 
@@ -26,253 +23,414 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+
   <style>
     :root {
-      --bg-start: #0d2233;
-      --bg-end: #2a1840;
-      --panel: rgba(10, 18, 36, 0.82);
-      --panel-strong: rgba(16, 23, 44, 0.94);
-      --border: rgba(236, 193, 106, 0.22);
+      --bg-1: #081321;
+      --bg-2: #12253c;
+      --bg-3: #27163d;
+      --surface: rgba(11, 20, 35, 0.8);
+      --surface-strong: rgba(12, 19, 32, 0.92);
+      --line: rgba(241, 203, 120, 0.18);
+      --line-strong: rgba(241, 203, 120, 0.32);
       --text: #f8f2e8;
       --muted: rgba(241, 232, 219, 0.78);
-      --gold: #f0c46a;
-      --blue: #7ed7ff;
-      --shadow: 0 20px 80px rgba(0, 0, 0, 0.32);
+      --gold: #f1cb78;
+      --gold-strong: #d69a38;
+      --sky: #8fdaf7;
+      --shadow: 0 28px 70px rgba(2, 7, 18, 0.34);
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: "Manrope", sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at 12% 18%, rgba(78, 160, 255, 0.16), transparent 28%),
-        radial-gradient(circle at 82% 74%, rgba(204, 78, 167, 0.20), transparent 22%),
-        linear-gradient(135deg, var(--bg-start), var(--bg-end));
       min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 20%, rgba(115, 186, 255, 0.16), transparent 26%),
+        radial-gradient(circle at 84% 18%, rgba(241, 203, 120, 0.12), transparent 18%),
+        radial-gradient(circle at 84% 76%, rgba(215, 121, 162, 0.16), transparent 24%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
     }
-    .shell {
-      width: min(720px, calc(100% - 40px));
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), transparent 18%),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: auto, 72px 72px, 72px 72px;
+      mask-image: radial-gradient(circle at center, black 34%, transparent 90%);
+      opacity: 0.26;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(960px, calc(100% - 28px));
       margin: 0 auto;
-      padding: 40px 0 80px;
+      padding: 24px 0 72px;
     }
+
     .topbar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 32px;
+      gap: 14px;
+      margin-bottom: 18px;
+      padding: 12px 14px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(10, 17, 29, 0.74);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 34px rgba(2, 7, 18, 0.22);
     }
+
     .brand {
-      text-decoration: none;
-      color: var(--text);
-      font-family: "Sora", sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-    }
-    .navlink {
-      text-decoration: none;
-      color: var(--text);
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-      padding: 10px 16px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 14px;
-    }
-    .card {
-      border: 1px solid var(--border);
-      background: var(--panel);
-      backdrop-filter: blur(18px);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-    .card-eyebrow {
-      display: flex;
-      align-items: center;
       gap: 10px;
-      padding: 22px 28px 0;
-      color: var(--gold);
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-    }
-    .card-eyebrow svg {
-      width: 16px;
-      height: 16px;
-      stroke: var(--gold);
-      fill: none;
-      stroke-width: 2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .card-question {
-      padding: 14px 28px 20px;
       font-family: "Sora", sans-serif;
-      font-size: clamp(20px, 3vw, 26px);
-      font-weight: 700;
-      line-height: 1.25;
-      border-bottom: 1px solid var(--border);
+      font-size: 18px;
+      font-weight: 800;
     }
-    .card-body {
-      padding: 24px 28px;
-    }
-    .section-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--gold);
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-    .guidance-text {
-      color: var(--muted);
-      line-height: 1.8;
-      font-size: 16px;
-      white-space: pre-line;
-    }
-    .verse-chips {
+
+    .nav-actions {
       display: flex;
+      gap: 10px;
       flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 20px;
+      justify-content: flex-end;
     }
-    .verse-chip {
-      border: 1px solid var(--border);
+
+    .pill,
+    .btn {
       border-radius: 999px;
-      padding: 6px 14px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--gold);
-      background: rgba(240, 196, 106, 0.08);
-    }
-    .cta-row {
-      padding: 20px 28px 28px;
-      border-top: 1px solid var(--border);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 800;
+      display: inline-flex;
       align-items: center;
+      justify-content: center;
     }
+
+    .pill {
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+    }
+
     .btn {
       appearance: none;
       border: 0;
       cursor: pointer;
-      border-radius: 999px;
-      padding: 14px 20px;
-      font-weight: 800;
-      font-family: inherit;
-      font-size: 15px;
       text-decoration: none;
+    }
+
+    .btn.primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-strong));
+      color: #20150b;
+      box-shadow: 0 16px 34px rgba(214, 154, 56, 0.3);
+    }
+
+    .btn.secondary {
+      color: var(--sky);
+      border: 1px solid rgba(143, 218, 247, 0.24);
+      background: rgba(143, 218, 247, 0.08);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.92fr);
+      gap: 20px;
+      align-items: stretch;
+      border-radius: 28px;
+      border: 1px solid var(--line-strong);
+      background:
+        radial-gradient(circle at top left, rgba(241, 203, 120, 0.14), transparent 26%),
+        linear-gradient(145deg, rgba(9, 18, 30, 0.84), rgba(17, 31, 49, 0.78) 45%, rgba(43, 23, 54, 0.74));
+      padding: 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+
+    .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      width: fit-content;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(241, 203, 120, 0.08);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      padding: 10px 14px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #f0c46a, #d79b37);
-      color: #1e1d1b;
+
+    h1, h2, h3 {
+      font-family: "Sora", sans-serif;
+      margin: 0;
     }
-    .btn-ghost {
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--blue);
-      border: 1px solid rgba(126, 215, 255, 0.24);
+
+    h1 {
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin-bottom: 14px;
     }
-    .footer-note {
-      margin-top: 28px;
-      text-align: center;
+
+    .hero-copy p,
+    .card-copy,
+    .section-copy,
+    .footnote {
       color: var(--muted);
-      font-size: 13px;
+      line-height: 1.78;
     }
-    @media (max-width: 480px) {
-      .shell { width: calc(100% - 24px); }
-      .topbar { flex-direction: column; align-items: flex-start; gap: 14px; }
+
+    .hero-side,
+    .section-card,
+    .question-card {
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.04), transparent 36%),
+        var(--surface);
+      padding: 20px;
+    }
+
+    .hero-side {
+      display: grid;
+      gap: 14px;
+      background:
+        radial-gradient(circle at top right, rgba(143, 218, 247, 0.12), transparent 34%),
+        var(--surface-strong);
+    }
+
+    .hero-side h2 {
+      font-size: 22px;
+    }
+
+    .verse-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .verse-chip {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(241, 203, 120, 0.08);
+      color: var(--gold);
+      padding: 9px 13px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .stack {
+      display: grid;
+      gap: 18px;
+    }
+
+    .section-card h3 {
+      font-size: 15px;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 10px;
+    }
+
+    .guidance-text {
+      white-space: pre-line;
+      color: var(--text);
+      line-height: 1.85;
+      font-size: 16px;
+    }
+
+    .actions-list {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--muted);
+      line-height: 1.78;
+    }
+
+    .question-card h2 {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    @media (max-width: 820px) {
+      .page {
+        width: min(100% - 20px, 960px);
+        padding-top: 14px;
+      }
+
+      .topbar,
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        align-items: flex-start;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="page">
     <div class="topbar">
-      <a class="brand" href="/">🙏 Bhagavad Gita Guide</a>
-      <a class="navlink" href="{{ chat_url }}">Ask your own question →</a>
+      <a class="brand" href="/">
+        <span>🙏</span>
+        <span>Bhagavad Gita Guide</span>
+      </a>
+      <div class="nav-actions">
+        <a class="pill" href="/">Home</a>
+        <a class="btn primary" href="{{ chat_url }}">Ask your own question</a>
+      </div>
     </div>
 
-    <div class="card">
-      <div class="card-eyebrow">
-        <svg viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/></svg>
-        Bhagavad Gita Guidance
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">Shared Gita Guidance</div>
+        <h1>{{ shared.question }}</h1>
+        <p>
+          {% if shared.language == "hi" %}
+            यह उत्तर भगवद गीता की शिक्षा पर आधारित है और किसी वास्तविक जीवन स्थिति को शांत, स्पष्ट और लागू करने योग्य भाषा में समझाने के लिए साझा किया गया है।
+          {% else %}
+            This guidance is rooted in the Bhagavad Gita and shared as a calm, practical response to a real-life question.
+          {% endif %}
+        </p>
       </div>
 
-      <div class="card-question">{{ shared.question }}</div>
-
-      <div class="card-body">
-        <div class="section-label">Guidance</div>
-        <div class="guidance-text">{{ shared.guidance }}</div>
-
-        {% if shared.meaning %}
-          <div class="section-label" style="margin-top:18px;">Meaning</div>
-          <div class="guidance-text">{{ shared.meaning }}</div>
-        {% endif %}
-
-        {% if shared.actions %}
-          <div class="section-label" style="margin-top:18px;">Actions</div>
-          <ul class="guidance-text" style="margin:0; padding-left:20px;">
-            {% for action in shared.actions %}
-              <li>{{ action }}</li>
-            {% endfor %}
-          </ul>
-        {% endif %}
-
-        {% if shared.reflection %}
-          <div class="section-label" style="margin-top:18px;">Reflection</div>
-          <div class="guidance-text">{{ shared.reflection }}</div>
-        {% endif %}
-
+      <div class="hero-side">
+        <h2>{% if shared.language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses used{% endif %}</h2>
         {% if shared.verse_references %}
-          <div class="verse-chips">
+          <div class="verse-list">
             {% for ref in shared.verse_references %}
               <span class="verse-chip">BG {{ ref }}</span>
             {% endfor %}
           </div>
+        {% else %}
+          <p class="card-copy">
+            {% if shared.language == "hi" %}
+              इस उत्तर के लिए श्लोक संदर्भ उपलब्ध नहीं है।
+            {% else %}
+              No verse references were stored for this answer.
+            {% endif %}
+          </p>
         {% endif %}
+        <div class="cta-row">
+          <a class="btn primary" href="{{ chat_url }}">
+            {% if shared.language == "hi" %}अपना प्रश्न पूछें{% else %}Ask your own question{% endif %}
+          </a>
+          <button type="button" class="btn secondary" id="shareBtn">
+            {% if shared.language == "hi" %}इस उत्तर को शेयर करें{% else %}Share this answer{% endif %}
+          </button>
+        </div>
       </div>
+    </section>
 
-      <div class="cta-row">
-        <a class="btn btn-primary" href="{{ chat_url }}">
-          Ask your own question
-        </a>
-        <button type="button" class="btn btn-ghost" id="shareBtn">
-          Share this answer
-        </button>
-      </div>
+    <div class="stack">
+      <section class="section-card">
+        <h3>{% if shared.language == "hi" %}मार्गदर्शन{% else %}Guidance{% endif %}</h3>
+        <div class="guidance-text">{{ shared.guidance }}</div>
+      </section>
+
+      {% if shared.meaning %}
+        <section class="section-card">
+          <h3>{% if shared.language == "hi" %}अर्थ{% else %}Meaning{% endif %}</h3>
+          <div class="guidance-text">{{ shared.meaning }}</div>
+        </section>
+      {% endif %}
+
+      {% if shared.actions %}
+        <section class="section-card">
+          <h3>{% if shared.language == "hi" %}अगले कदम{% else %}Next steps{% endif %}</h3>
+          <ul class="actions-list">
+            {% for action in shared.actions %}
+              <li>{{ action }}</li>
+            {% endfor %}
+          </ul>
+        </section>
+      {% endif %}
+
+      {% if shared.reflection %}
+        <section class="section-card">
+          <h3>{% if shared.language == "hi" %}चिंतन{% else %}Reflection{% endif %}</h3>
+          <div class="guidance-text">{{ shared.reflection }}</div>
+        </section>
+      {% endif %}
+
+      <section class="question-card">
+        <h2>{% if shared.language == "hi" %}क्या आपके मन में भी ऐसा ही प्रश्न है?{% else %}Do you want guidance for your own situation too?{% endif %}</h2>
+        <p class="section-copy">
+          {% if shared.language == "hi" %}
+            यहाँ से आप उसी प्रवाह में अपना प्रश्न पूछ सकते हैं और अपनी परिस्थिति के लिए श्लोक-आधारित उत्तर पा सकते हैं।
+          {% else %}
+            You can continue from here and ask your own life question for a verse-grounded, situation-specific answer.
+          {% endif %}
+        </p>
+        <div class="cta-row">
+          <a class="btn primary" href="{{ chat_url }}">
+            {% if shared.language == "hi" %}पूर्ण ऐप खोलें{% else %}Open the full app{% endif %}
+          </a>
+        </div>
+      </section>
     </div>
 
     <p class="footer-note">
-      Guidance rooted in the Bhagavad Gita · <a href="/" style="color:var(--gold);text-decoration:none;">Bhagavad Gita Guide</a>
+      Guidance rooted in the Bhagavad Gita · <a href="/" style="color:var(--gold);font-weight:700;">Bhagavad Gita Guide</a>
     </p>
   </div>
 
   <script>
-    document.getElementById('shareBtn').addEventListener('click', async () => {
+    document.getElementById("shareBtn").addEventListener("click", async () => {
       const url = window.location.href;
       try {
         if (navigator.share) {
           await navigator.share({
-            title: 'Bhagavad Gita Guidance',
-            text: '{{ question_short|escapejs }}',
+            title: document.title,
+            text: "{{ question_short|escapejs }}",
             url,
           });
           return;
         }
+      } catch (error) {
+        // Fall through to clipboard copy.
+      }
+
+      try {
         await navigator.clipboard.writeText(url);
-        const btn = document.getElementById('shareBtn');
-        const orig = btn.textContent;
-        btn.textContent = '✓ Link copied';
-        setTimeout(() => { btn.textContent = orig; }, 1400);
-      } catch (_) { /* dismissed */ }
+        window.alert("Link copied.");
+      } catch (error) {
+        window.prompt("Copy this link:", url);
+      }
     });
   </script>
 </body>

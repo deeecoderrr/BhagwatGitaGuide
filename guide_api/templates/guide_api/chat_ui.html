@@ -3399,6 +3399,403 @@
       max-width: 600px;
       margin: 0 auto;
     }
+
+    /* 2026 redesign pass: chat-first sacred editorial layout */
+    .top-nav {
+      position: sticky;
+      top: 14px;
+      z-index: 12;
+      padding: 10px 12px;
+      border-radius: 22px;
+      border-color: rgba(245, 199, 107, 0.16);
+      background: rgba(8, 15, 26, 0.86);
+      box-shadow: 0 18px 30px rgba(2, 7, 18, 0.2);
+    }
+
+    .top-nav a,
+    .nav-btn,
+    .nav-language-select,
+    .auth-pill {
+      font-size: 12px;
+    }
+
+    .hero {
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .hero-grid {
+      grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .hero h1 {
+      max-width: 11ch;
+      margin-bottom: 14px;
+    }
+
+    .hero-copy {
+      gap: 16px;
+    }
+
+    .hero-copy p {
+      font-size: 15px;
+      max-width: 62ch;
+    }
+
+    .hero-meta {
+      margin-bottom: 2px;
+    }
+
+    .hero-blessing {
+      padding: 18px;
+      gap: 16px;
+      background:
+        radial-gradient(circle at top right, rgba(121, 217, 239, 0.12), transparent 35%),
+        linear-gradient(180deg, rgba(255,255,255,0.045), transparent 34%),
+        rgba(7, 14, 25, 0.74);
+    }
+
+    .hero-quick-ask {
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-quick-ask h2 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.12;
+      font-family: var(--font-display);
+    }
+
+    .hero-quick-ask p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .hero-quick-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-quick-form textarea {
+      min-height: 118px;
+      margin-top: 0;
+      border-radius: 20px;
+      background: rgba(4, 10, 19, 0.88);
+      border-color: rgba(255, 255, 255, 0.12);
+      line-height: 1.65;
+      padding: 16px 17px;
+    }
+
+    .hero-quick-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .hero-quick-actions button,
+    .hero-quick-actions a {
+      margin-top: 0;
+      text-decoration: none;
+    }
+
+    .hero-soft-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 11px 15px;
+      border-radius: 999px;
+      border: 1px solid rgba(121, 217, 239, 0.24);
+      background: rgba(121, 217, 239, 0.08);
+      color: var(--accent-2);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .hero-support-note {
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(245, 199, 107, 0.14);
+      background: rgba(245, 199, 107, 0.06);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .layout {
+      grid-template-columns: minmax(0, 1fr) 318px;
+      grid-template-areas: "main aside";
+      gap: 20px;
+    }
+
+    .main-stack {
+      grid-area: main;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .sidebar-stack {
+      grid-area: aside;
+      gap: 14px;
+      position: sticky;
+      top: 88px;
+      align-self: start;
+    }
+
+    .layout.guest-home-layout {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas: "main";
+    }
+
+    .layout.guest-home-layout .main-stack {
+      max-width: 1040px;
+    }
+
+    .sidebar-stack .panel {
+      padding: 16px;
+      border-radius: 20px;
+    }
+
+    .sidebar-stack .panel h2,
+    .sidebar-stack .panel h3 {
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .conversation-scroll {
+      max-height: 320px;
+    }
+
+    .chat-shell {
+      padding: 22px;
+      min-height: 760px;
+      border-radius: 26px;
+      background:
+        radial-gradient(circle at top right, rgba(121, 217, 239, 0.08), transparent 24%),
+        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%),
+        rgba(8, 14, 25, 0.8);
+    }
+
+    .conversation-panel-head {
+      position: sticky;
+      top: 0;
+      z-index: 3;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      background: linear-gradient(180deg, rgba(8, 14, 25, 0.96), rgba(8, 14, 25, 0.82) 72%, transparent);
+      backdrop-filter: blur(10px);
+    }
+
+    .conversation-title-block h2 {
+      font-size: clamp(32px, 4vw, 50px);
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .conversation-panel-meta {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 62ch;
+    }
+
+    .chat-scroll-area {
+      padding-right: 2px;
+    }
+
+    .transcript {
+      gap: 16px;
+      max-height: 600px;
+      padding: 4px 4px 12px 1px;
+    }
+
+    .chat-bubble {
+      max-width: min(86%, 760px);
+      border-radius: 24px;
+      padding: 16px 18px;
+      line-height: 1.78;
+    }
+
+    .chat-bubble.assistant {
+      background:
+        linear-gradient(180deg, rgba(241, 203, 120, 0.08), rgba(255, 255, 255, 0.02)),
+        rgba(12, 21, 35, 0.82);
+    }
+
+    .reply-grid {
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .reply-section {
+      border-radius: 18px;
+      padding: 16px;
+    }
+
+    .landing-page {
+      padding: 18px 0 6px;
+      display: grid;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .landing-logo {
+      display: none;
+    }
+
+    .landing-title {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 4vw, 46px);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+      margin: 0;
+      max-width: 13ch;
+    }
+
+    .landing-subtitle {
+      max-width: 62ch;
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .landing-actions {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .landing-card {
+      min-height: 208px;
+      justify-content: center;
+      padding: 26px;
+      border-radius: 24px;
+    }
+
+    .landing-card-title {
+      font-size: 18px;
+    }
+
+    .landing-growth {
+      gap: 16px;
+    }
+
+    .landing-sharebar {
+      padding: 16px 18px;
+      border-radius: 20px;
+    }
+
+    .landing-starter-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .landing-starter {
+      min-height: 114px;
+      border-radius: 20px;
+      padding: 18px;
+    }
+
+    .chat-bottom-composer {
+      position: sticky;
+      bottom: 0;
+      z-index: 4;
+      padding-top: 14px;
+      background: linear-gradient(180deg, transparent, rgba(8, 14, 25, 0.96) 24%);
+    }
+
+    .chat-bottom-composer form {
+      border-radius: 22px;
+      border: 1px solid rgba(245, 199, 107, 0.16);
+      background: rgba(6, 12, 22, 0.9);
+      padding: 14px;
+      box-shadow: 0 20px 36px rgba(2, 7, 18, 0.28);
+    }
+
+    .chat-bottom-composer textarea {
+      min-height: 92px;
+      border-radius: 18px;
+      background: rgba(3, 8, 17, 0.88);
+    }
+
+    .chat-bottom-composer .form-row,
+    .chat-bottom-composer .composer-actions {
+      align-items: center;
+    }
+
+    .panel.panel-secondary,
+    .panel.panel-utility {
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.028), transparent 34%),
+        rgba(8, 14, 25, 0.66);
+    }
+
+    .auth-modal {
+      width: min(92vw, 720px);
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: minmax(0, 1fr) 292px;
+      }
+
+      .hero-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(290px, 0.9fr);
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid,
+      .layout {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+          "main"
+          "aside";
+      }
+
+      .sidebar-stack {
+        position: static;
+      }
+
+      .landing-actions,
+      .landing-starter-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .chat-shell {
+        min-height: auto;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .app {
+        padding: 16px 14px 36px;
+      }
+
+      .top-nav {
+        top: 8px;
+      }
+
+      .hero,
+      .chat-shell,
+      .panel {
+        padding: 18px;
+      }
+
+      .conversation-title-block h2,
+      .landing-title {
+        font-size: clamp(28px, 10vw, 40px);
+      }
+
+      .chat-bubble {
+        max-width: 100%;
+      }
+    }
   </style>
 </head>
 <body>
@@ -3527,33 +3924,53 @@
           </div>
         </div>
         <div class="hero-blessing" data-parallax data-depth="20">
-          <div class="hero-blessing-kicker">
-            <span class="asset-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M15 12h-5" />
-                <path d="M15 8h-5" />
-                <path d="M19 17V5a2 2 0 0 0-2-2H4" />
-                <path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3" />
-              </svg>
-            </span>
-            {% if language == "hi" %}यह ऐप कैसे मदद करता है{% else %}How This Helps{% endif %}
+          <div class="hero-quick-ask">
+            <div class="hero-blessing-kicker">
+              <span class="asset-icon" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+                  <path d="M20 2v4" />
+                  <path d="M22 4h-4" />
+                  <circle cx="4" cy="20" r="2" />
+                </svg>
+              </span>
+              {% if language == "hi" %}यहीं से पूछें{% else %}Ask from here{% endif %}
+            </div>
+            <h2>{% if language == "hi" %}सीधे अपना प्रश्न लिखें{% else %}Write your question directly{% endif %}</h2>
+            <p>
+              {% if language == "hi" %}
+                यदि आप तनाव, डर, उलझन या निर्णयहीनता में हैं, तो तुरंत लिखें। आपको नीचे स्क्रोल करके संरचना समझने की ज़रूरत नहीं होनी चाहिए।
+              {% else %}
+                If you arrived here stressed, uncertain, or emotionally overloaded, you should be able to ask immediately without first figuring out the whole page.
+              {% endif %}
+            </p>
+            <form method="post" class="hero-quick-form quick-submit">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="ask">
+              <input type="hidden" name="user_id" value="{{ user_id|default:'guest' }}">
+              <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+              <input type="hidden" name="language" value="{{ language|default:'en' }}">
+              {% if active_conversation_id %}
+                <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
+              {% endif %}
+              <textarea name="message" placeholder="{% if language == 'hi' %}उदा. मैं भविष्य को लेकर बहुत चिंतित हूं और समझ नहीं पा रहा/रही कि क्या करूं। गीता क्या कहती है?{% else %}e.g. I feel deeply anxious about my future and do not know what to do next. What does the Gita say?{% endif %}">{% if not conversation_messages %}{{ message|default:'' }}{% endif %}</textarea>
+              <div class="hero-quick-actions">
+                <button type="submit">
+                  {% if language == "hi" %}मार्गदर्शन शुरू करें{% else %}Start Guidance{% endif %}
+                </button>
+                <a class="hero-soft-link" href="/api/chat-ui/?mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}#chat_message">
+                  {% if language == "hi" %}पूर्ण संवाद क्षेत्र पर जाएँ{% else %}Jump to full chat area{% endif %}
+                </a>
+              </div>
+            </form>
+            <div class="hero-support-note">
+              {% if language == "hi" %}
+                हर उत्तर केवल श्लोक उद्धृत नहीं करता। यह समझाता है कि कृष्ण ने वह बात अर्जुन से क्यों कही और वही शिक्षा आपकी स्थिति में कैसे लागू हो सकती है।
+              {% else %}
+                Each response is meant to do more than quote a verse. It explains why Krishna said it to Arjuna and how that same principle can apply to your situation now.
+              {% endif %}
+            </div>
           </div>
-          <p class="hero-blessing-quote">
-            {% if language == "hi" %}
-              “प्रश्न आपका आधुनिक हो सकता है, पर उत्तर गीता के शाश्वत सिद्धांतों से निकल सकता है।”
-            {% else %}
-              "Your problem may be modern, but the Gita can still reveal the principle beneath it."
-            {% endif %}
-          </p>
-          <p class="hero-blessing-note">
-            {% if language == "hi" %}
-              हर उत्तर में लक्ष्य केवल श्लोक दिखाना नहीं, बल्कि यह समझाना है कि कृष्ण ने वह बात अर्जुन से क्यों कही,
-              और वही शिक्षा आज आपकी स्थिति में कैसे लागू होती है।
-            {% else %}
-              The goal is not only to quote a verse, but to explain why Krishna said it to Arjuna,
-              and how that same teaching applies to your life right now.
-            {% endif %}
-          </p>
         </div>
       </div>
     </section>

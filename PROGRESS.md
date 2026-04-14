@@ -1008,3 +1008,7 @@ At the end of each coding session:
 - Implemented a plain-language tone path for `mode=simple` (especially for anxious/stressed prompts) and added “Explore Related Verses” under “Verses Used”.
 - Added custom domain support for `askbhagavadgita.co.in` (allowed hosts + CSRF trusted origins) to unblock GoDaddy DNS + Google Search Console verification.
 - Added canonical host redirect in prod to avoid duplicate SEO indexing across `www`, apex, and `*.fly.dev`.
+- Revisited the full user-facing visual system across the three public templates (`chat_ui`, `seo_landing`, `shared_answer`) and shifted the product toward a calmer, chat-first hierarchy.
+- Redesigned SEO/public landing pages so users can ask immediately above the fold while topic discovery, daily verse, archive, and FAQ sections now support that primary action instead of delaying it.
+- Redesigned the shared-answer page into a cleaner reading and conversion flow so shared links feel like a first-class product surface instead of a utility card.
+- Reworked the chat UI hierarchy to put the active dialogue visually first: stronger hero ask box, main-first desktop layout, sticky conversation shell/header, and a more secondary right rail for utilities.

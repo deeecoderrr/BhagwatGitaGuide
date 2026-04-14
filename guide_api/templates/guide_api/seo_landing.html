@@ -28,587 +28,878 @@
   {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-start: #0d2233;
-      --bg-end: #2a1840;
-      --panel: rgba(10, 18, 36, 0.78);
-      --panel-strong: rgba(16, 23, 44, 0.92);
-      --border: rgba(236, 193, 106, 0.22);
-      --text: #f8f2e8;
-      --muted: rgba(241, 232, 219, 0.78);
-      --gold: #f0c46a;
-      --blue: #7ed7ff;
-      --shadow: 0 20px 80px rgba(0, 0, 0, 0.28);
+      --bg-1: #081321;
+      --bg-2: #10233a;
+      --bg-3: #25173d;
+      --surface: rgba(11, 20, 35, 0.74);
+      --surface-strong: rgba(12, 19, 32, 0.9);
+      --surface-soft: rgba(255, 255, 255, 0.05);
+      --line: rgba(243, 209, 143, 0.16);
+      --line-strong: rgba(243, 209, 143, 0.3);
+      --text: #f7f1e6;
+      --muted: rgba(235, 228, 214, 0.78);
+      --gold: #f1cb78;
+      --gold-strong: #d69a38;
+      --sky: #8fdaf7;
+      --rose: #e7a4b8;
+      --shadow: 0 28px 70px rgba(2, 7, 18, 0.38);
+      --radius-xl: 30px;
+      --radius-lg: 24px;
+      --radius-md: 18px;
+      --reading: 68ch;
     }
+
     * { box-sizing: border-box; }
+
     body {
       margin: 0;
       font-family: "Manrope", sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(circle at 12% 18%, rgba(78, 160, 255, 0.18), transparent 28%),
-        radial-gradient(circle at 82% 74%, rgba(204, 78, 167, 0.22), transparent 22%),
-        linear-gradient(135deg, var(--bg-start), var(--bg-end));
       min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 14%, rgba(115, 186, 255, 0.18), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(241, 203, 120, 0.13), transparent 20%),
+        radial-gradient(circle at 82% 72%, rgba(216, 112, 160, 0.16), transparent 24%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
+      overflow-x: hidden;
     }
-    .shell {
-      width: min(1180px, calc(100% - 40px));
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 18%),
+        linear-gradient(90deg, rgba(255,255,255,0.035) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: auto, 72px 72px, 72px 72px;
+      mask-image: radial-gradient(circle at center, black 34%, transparent 90%);
+      opacity: 0.28;
+      z-index: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .page {
+      position: relative;
+      z-index: 1;
+      width: min(1220px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 28px 0 64px;
+      padding: 24px 0 72px;
     }
+
     .topbar {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: center;
       gap: 16px;
-      margin-bottom: 26px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--line);
+      background: rgba(10, 17, 29, 0.74);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 18px 34px rgba(2, 7, 18, 0.22);
     }
-    .brand, .navlink, .cta-link {
-      text-decoration: none;
-      color: var(--text);
-    }
-    .brand {
-      font-family: "Sora", sans-serif;
-      font-weight: 700;
-      font-size: 18px;
-    }
-    .navlink, .cta-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-      padding: 12px 16px;
-      border-radius: 999px;
-      font-weight: 700;
-    }
-    .nav-lang-form {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.04);
-      border-radius: 999px;
-      padding: 8px 10px;
-    }
-    .nav-lang-form label {
-      font-size: 12px;
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .nav-lang-form select {
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      background: rgba(7, 14, 28, 0.92);
-      color: var(--text);
-      font: inherit;
-      font-size: 12px;
-      padding: 8px 10px;
-      cursor: pointer;
-    }
-    .hero, .panel {
-      border: 1px solid var(--border);
-      background: var(--panel);
-      backdrop-filter: blur(18px);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-    }
-    .hero {
-      padding: 36px;
+
+    .brand-lockup {
       display: grid;
-      grid-template-columns: 1.4fr .9fr;
-      gap: 24px;
-      margin-bottom: 24px;
+      gap: 4px;
     }
-    .eyebrow {
+
+    .brand-mark {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      border: 1px solid var(--border);
-      padding: 10px 14px;
-      border-radius: 999px;
-      color: var(--gold);
-      font-size: 13px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      margin-bottom: 18px;
+      font-family: "Sora", sans-serif;
+      font-weight: 800;
+      font-size: 18px;
     }
-    h1, h2, h3 { font-family: "Sora", sans-serif; margin: 0; }
-    h1 {
-      font-size: clamp(32px, 5vw, 54px);
-      line-height: 1.05;
-      margin-bottom: 14px;
+
+    .brand-mark span:last-child {
+      color: var(--text);
     }
-    .hero p, .hint, .verse-copy, .body-copy {
+
+    .brand-note {
       color: var(--muted);
-      line-height: 1.75;
-      font-size: 17px;
+      font-size: 13px;
     }
-    .hero-actions {
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .nav-pill,
+    .lang-pill select {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      font: inherit;
+      font-size: 14px;
+      padding: 12px 16px;
+    }
+
+    .lang-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      padding: 6px 8px 6px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .lang-pill select {
+      padding: 8px 12px;
+      background: rgba(5, 10, 20, 0.72);
+      cursor: pointer;
+    }
+
+    .nav-pill.primary,
+    .btn.primary {
+      background: linear-gradient(135deg, var(--gold), var(--gold-strong));
+      color: #20150b;
+      border-color: transparent;
+      font-weight: 800;
+      box-shadow: 0 16px 34px rgba(214, 154, 56, 0.3);
+    }
+
+    .nav-pill.secondary,
+    .btn.secondary {
+      color: var(--sky);
+      border-color: rgba(143, 218, 247, 0.24);
+      background: rgba(143, 218, 247, 0.08);
+      font-weight: 700;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 24px;
+      align-items: stretch;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-xl);
+      background:
+        radial-gradient(circle at top left, rgba(241, 203, 120, 0.18), transparent 28%),
+        linear-gradient(145deg, rgba(9, 18, 30, 0.84), rgba(17, 31, 49, 0.78) 45%, rgba(43, 23, 54, 0.74));
+      padding: 30px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      position: relative;
+      margin-bottom: 24px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: 5%;
+      top: 16%;
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      border: 1px solid rgba(241, 203, 120, 0.14);
+      box-shadow:
+        0 0 0 18px rgba(241, 203, 120, 0.03),
+        0 0 0 42px rgba(241, 203, 120, 0.02);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      width: fit-content;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(241, 203, 120, 0.08);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      padding: 10px 14px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1, h2, h3 {
+      font-family: "Sora", sans-serif;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(34px, 5.2vw, 62px);
+      line-height: 1.04;
+      letter-spacing: -0.03em;
+      max-width: 12ch;
+      margin-bottom: 16px;
+    }
+
+    .hero-copy > p,
+    .section-copy,
+    .problem-points,
+    .verse-copy,
+    .body-copy {
+      color: var(--muted);
+      line-height: 1.76;
+      font-size: 16px;
+    }
+
+    .hero-copy > p {
+      max-width: var(--reading);
+      margin: 0;
+    }
+
+    .trust-row {
       display: flex;
       flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 22px;
+      gap: 10px;
+      margin-top: 18px;
     }
+
+    .trust-pill {
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      padding: 10px 14px;
+      color: #edf3fb;
+      font-size: 13px;
+    }
+
+    .ask-card {
+      position: relative;
+      z-index: 1;
+      border-radius: 26px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.06), transparent 34%),
+        rgba(9, 16, 28, 0.86);
+      padding: 22px;
+      display: grid;
+      gap: 14px;
+      box-shadow: 0 18px 32px rgba(2, 7, 18, 0.26);
+    }
+
+    .ask-card h2 {
+      font-size: 24px;
+      line-height: 1.15;
+    }
+
+    .ask-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .ask-card textarea {
+      width: 100%;
+      min-height: 124px;
+      resize: vertical;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(4, 10, 19, 0.86);
+      color: var(--text);
+      padding: 16px 18px;
+      font: inherit;
+      line-height: 1.65;
+      outline: none;
+      transition: border-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .ask-card textarea:focus {
+      border-color: rgba(241, 203, 120, 0.64);
+      box-shadow: 0 0 0 3px rgba(241, 203, 120, 0.14);
+    }
+
+    .ask-card-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
     .btn {
       appearance: none;
       border: 0;
       cursor: pointer;
       border-radius: 999px;
       padding: 14px 18px;
+      font: inherit;
       font-weight: 800;
-      font-family: inherit;
-      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      text-decoration: none;
     }
-    .btn-primary {
-      background: linear-gradient(135deg, #f0c46a, #d79b37);
-      color: #1e1d1b;
-    }
-    .btn-secondary {
-      background: rgba(126, 215, 255, 0.12);
-      color: var(--blue);
-      border: 1px solid rgba(126, 215, 255, 0.24);
-    }
-    .hero-side {
-      padding: 24px;
-      border-radius: 24px;
-      background: var(--panel-strong);
-      border: 1px solid var(--border);
-    }
-    .hero-side ul {
-      margin: 16px 0 0;
-      padding-left: 20px;
-      color: var(--muted);
-      line-height: 1.8;
-    }
+
     .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(12, minmax(0, 1fr));
       gap: 24px;
+      align-items: start;
     }
+
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+
     .panel {
-      padding: 28px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), transparent 38%),
+        var(--surface);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      backdrop-filter: blur(14px);
     }
-    .topic-list {
+
+    .panel h2 {
+      font-size: 28px;
+      margin-bottom: 12px;
+    }
+
+    .section-copy {
+      margin: 0 0 18px;
+      max-width: var(--reading);
+    }
+
+    .topic-grid,
+    .question-group-grid,
+    .verse-spotlight-grid,
+    .daily-history-grid,
+    .faq-grid {
       display: grid;
       gap: 16px;
     }
-    .topic-card {
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 20px;
-      background: rgba(255, 255, 255, 0.03);
-      text-decoration: none;
-      color: var(--text);
+
+    .topic-grid,
+    .question-group-grid,
+    .verse-spotlight-grid,
+    .faq-grid {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     }
-    .topic-card p { margin: 10px 0 0; color: var(--muted); }
-    .verse-list {
-      display: grid;
-      gap: 14px;
-      margin-top: 18px;
-    }
-    .question-group-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 18px;
-      margin-top: 18px;
-    }
-    .question-group-card {
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
-      padding: 20px;
-    }
-    .question-links {
-      display: grid;
-      gap: 10px;
-      margin-top: 14px;
-    }
-    .question-links a {
-      text-decoration: none;
-      color: var(--blue);
-      border: 1px solid rgba(126, 215, 255, 0.24);
-      background: rgba(126, 215, 255, 0.08);
-      border-radius: 16px;
-      padding: 12px 14px;
-      font-weight: 700;
-      line-height: 1.55;
-    }
-    .verse-spotlight-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-top: 18px;
-    }
-    .verse-card {
-      border-radius: 20px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
+
+    .topic-card,
+    .question-group-card,
+    .verse-card,
+    .daily-mini-card,
+    .faq-card,
+    .problem-card,
+    .link-card {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--line);
+      background: var(--surface-soft);
       padding: 18px;
     }
-    .verse-ref {
-      color: var(--gold);
-      font-weight: 800;
+
+    .topic-card h3,
+    .question-group-card h3,
+    .verse-card h3,
+    .faq-card h3 {
+      font-size: 19px;
       margin-bottom: 8px;
     }
-    .mini-nav {
+
+    .topic-card p,
+    .verse-card p,
+    .faq-card p,
+    .problem-card p,
+    .daily-mini-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .topic-card {
+      transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+    }
+
+    .topic-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(241, 203, 120, 0.3);
+      background: rgba(241, 203, 120, 0.08);
+    }
+
+    .problem-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .problem-card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+
+    .mini-nav,
+    .question-links,
+    .cta-links {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+    }
+
+    .mini-nav a,
+    .question-links a,
+    .cta-links a {
+      border-radius: 999px;
+      padding: 11px 14px;
+      border: 1px solid rgba(143, 218, 247, 0.24);
+      background: rgba(143, 218, 247, 0.08);
+      color: var(--sky);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .verse-ref {
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .verse-copy {
+      margin: 0 0 10px;
+      color: var(--text);
+      font-size: 16px;
+      line-height: 1.7;
+      font-weight: 600;
+    }
+
+    .intent-strip {
+      border-radius: 20px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.035);
+      color: var(--muted);
+      line-height: 1.75;
+      padding: 18px 20px;
+    }
+
+    .daily-feature-card {
+      border-radius: 24px;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at top right, rgba(143, 218, 247, 0.12), transparent 36%),
+        rgba(255,255,255,0.035);
+      padding: 22px;
       margin-top: 18px;
     }
-    .mini-nav a {
-      text-decoration: none;
-      color: var(--blue);
-      border: 1px solid rgba(126, 215, 255, 0.24);
-      background: rgba(126, 215, 255, 0.08);
-      border-radius: 999px;
-      padding: 10px 14px;
-      font-weight: 700;
+
+    .daily-history-grid {
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      margin-top: 18px;
     }
-    .faq-section { margin-top: 24px; }
-    .faq-item {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: rgba(255,255,255,0.03);
-      margin-bottom: 10px;
-      overflow: hidden;
-    }
-    .faq-item summary {
-      cursor: pointer;
-      padding: 18px 22px;
-      font-weight: 700;
-      font-size: 16px;
-      list-style: none;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+
+    .faq-section {
+      margin-top: 12px;
+      display: grid;
       gap: 12px;
     }
+
+    .faq-item {
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      overflow: hidden;
+    }
+
+    .faq-item summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 18px 20px;
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      font-weight: 800;
+    }
+
     .faq-item summary::-webkit-details-marker { display: none; }
+
     .faq-item summary::after {
       content: "+";
       color: var(--gold);
       font-size: 20px;
       flex-shrink: 0;
     }
+
     .faq-item[open] summary::after { content: "−"; }
+
     .faq-answer {
-      padding: 0 22px 18px;
       color: var(--muted);
-      line-height: 1.75;
-      font-size: 16px;
+      line-height: 1.72;
+      padding: 0 20px 18px;
     }
-    .cta-form {
-      display: grid;
-      gap: 12px;
-      margin-top: 18px;
-    }
-    .cta-form textarea {
-      width: 100%;
-      min-height: 110px;
-      border-radius: 18px;
-      border: 1px solid var(--border);
-      background: rgba(7, 14, 28, 0.92);
-      color: var(--text);
-      padding: 16px;
-      font: inherit;
-      resize: vertical;
-    }
-    .section-title {
-      margin-bottom: 10px;
-      font-size: 24px;
-    }
-    .footnote {
-      margin-top: 12px;
+
+    .footer-note {
+      margin-top: 28px;
+      text-align: center;
       color: var(--muted);
       font-size: 14px;
     }
-    .daily-feature-card {
-      margin-top: 18px;
-      border-radius: 22px;
-      border: 1px solid var(--border);
-      background: rgba(255, 255, 255, 0.03);
-      padding: 22px;
+
+    @media (max-width: 1040px) {
+      .hero,
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .span-8,
+      .span-7,
+      .span-6,
+      .span-5,
+      .span-4 {
+        grid-column: span 12;
+      }
     }
-    .daily-feature-card .verse-copy {
-      margin-top: 10px;
-    }
-    .daily-history-grid {
-      display: grid;
-      gap: 14px;
-      margin-top: 18px;
-    }
-    .intent-strip {
-      margin-top: 24px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      background: rgba(255,255,255,0.03);
-      padding: 18px 20px;
-      color: var(--muted);
-      line-height: 1.7;
-    }
-    .intent-strip strong {
-      color: var(--gold);
-    }
-    @media (max-width: 900px) {
-      .hero, .grid { grid-template-columns: 1fr; }
-      .shell { width: min(100% - 24px, 1180px); }
-      .topbar { flex-direction: column; align-items: flex-start; }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100% - 20px, 1220px);
+        padding-top: 14px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .topbar-actions {
+        justify-content: flex-start;
+      }
+
+      .hero,
+      .panel {
+        padding: 22px;
+      }
+
+      h1 {
+        font-size: clamp(30px, 9vw, 44px);
+      }
+
+      .ask-card textarea {
+        min-height: 110px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="shell">
+  <div class="page">
     <div class="topbar">
-      <a class="brand" href="/?language={{ language|default:'en' }}">
-        {% if language == "hi" %}भगवद गीता गाइड{% else %}Bhagavad Gita Guide{% endif %}
-      </a>
-      <div style="display:flex; gap:12px; flex-wrap:wrap;">
-        <form method="get" class="nav-lang-form">
-          <label for="nav_language">{% if language == "hi" %}भाषा{% else %}Language{% endif %}</label>
-          <select id="nav_language" name="language" onchange="this.form.submit()">
+      <div class="brand-lockup">
+        <a class="brand-mark" href="/?language={{ language|default:'en' }}">
+          <span>🙏</span>
+          <span>{% if language == "hi" %}भगवद गीता गाइड{% else %}Bhagavad Gita Guide{% endif %}</span>
+        </a>
+        <div class="brand-note">
+          {% if language == "hi" %}
+            जीवन की उलझनों के लिए श्लोक-आधारित, सरल और शांत मार्गदर्शन
+          {% else %}
+            Verse-based guidance for anxiety, purpose, relationships, and difficult decisions
+          {% endif %}
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <form method="get" class="lang-pill">
+          <span>{% if language == "hi" %}भाषा{% else %}Language{% endif %}</span>
+          <select name="language" onchange="this.form.submit()">
             <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
             <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
           </select>
         </form>
-        <a class="navlink" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}">
-          {% if language == "hi" %}ऐप खोलें{% else %}Open App{% endif %}
+        <a class="nav-pill secondary" href="/daily-bhagavad-gita-verse/?language={{ language|default:'en' }}">
+          {% if language == "hi" %}आज का श्लोक{% else %}Daily Verse{% endif %}
         </a>
-        <a class="navlink" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}">
-          {% if language == "hi" %}प्रश्न पूछें{% else %}Ask A Question{% endif %}
+        <a class="nav-pill primary" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}">
+          {% if language == "hi" %}अभी पूछें{% else %}Ask Now{% endif %}
         </a>
       </div>
     </div>
 
     <section class="hero">
-      <div>
-        <div class="eyebrow">
-          {{ topic_label|default:"Focused Gita Guidance" }}
-        </div>
+      <div class="hero-copy">
+        <div class="eyebrow">{{ topic_label|default:"Bhagavad Gita guidance" }}</div>
         <h1>{{ page_heading }}</h1>
         <p>{{ page_intro }}</p>
-        {% if starter_question %}
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="{{ chat_url }}">
-              {% if language == "hi" %}पूरा गाइड खोलें{% else %}Open The Full Guide{% endif %}
-            </a>
-            <a class="btn btn-secondary" href="{{ chat_url_with_prefill }}">
-              {% if language == "hi" %}उदाहरण प्रश्न उपयोग करें{% else %}Use Example Question{% endif %}
-            </a>
-          </div>
-        {% endif %}
+        <div class="trust-row">
+          <div class="trust-pill">{% if language == "hi" %}गीता श्लोक आधारित{% else %}Verse-grounded guidance{% endif %}</div>
+          <div class="trust-pill">{% if language == "hi" %}आधुनिक जीवन से जुड़ा हुआ{% else %}Connected to modern life{% endif %}</div>
+          <div class="trust-pill">{% if language == "hi" %}सरल, शांत, उपयोगी{% else %}Simple, calm, practical{% endif %}</div>
+        </div>
       </div>
-      <div class="hero-side">
-        {% if problem_points %}
-          <h2 class="section-title">{% if language == "hi" %}आम स्थितियाँ{% else %}Common situations{% endif %}</h2>
-          <ul>
-            {% for point in problem_points %}
-              <li>{{ point }}</li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <h2 class="section-title">{% if language == "hi" %}केंद्रित गाइड खोजें{% else %}Explore focused guides{% endif %}</h2>
-          <p class="body-copy">
-            {% if language == "hi" %}
-              किसी जीवन-क्षेत्र से शुरुआत करें, प्रासंगिक भगवद गीता श्लोक देखें, फिर अपने व्यक्तिगत प्रश्न के लिए ऐप में जाएँ।
-            {% else %}
-              Start with a life area, see relevant Bhagavad Gita verses, then continue into the full app for your personal question.
+
+      <div class="ask-card">
+        <h2>{% if language == "hi" %}यहीं से शुरू करें{% else %}Ask right away{% endif %}</h2>
+        <p>
+          {% if language == "hi" %}
+            यदि आप अभी तनाव, डर, उलझन, संबंध या करियर की स्थिति में हैं, तो सीधे अपना प्रश्न लिखें।
+          {% else %}
+            If you’re arriving here in stress, confusion, heartbreak, or uncertainty, you should be able to ask immediately.
+          {% endif %}
+        </p>
+        <form action="/api/chat-ui/" method="get">
+          <input type="hidden" name="mode" value="simple">
+          <input type="hidden" name="language" value="{{ language|default:'en' }}">
+          <textarea name="prefill" placeholder="{% if starter_question %}{{ starter_question }}{% else %}{% if language == 'hi' %}उदा. मैं बहुत चिंतित हूं और समझ नहीं पा रहा/रही कि क्या करूं। गीता क्या कहती है?{% else %}e.g. I feel overwhelmed and do not know what to do next. What does the Gita say?{% endif %}{% endif %}"></textarea>
+          <div class="ask-card-actions">
+            <button class="btn primary" type="submit">
+              {% if language == "hi" %}पूर्ण मार्गदर्शन खोलें{% else %}Open Full Guidance{% endif %}
+            </button>
+            {% if starter_question %}
+              <a class="btn secondary" href="{{ chat_url_with_prefill }}">
+                {% if language == "hi" %}उदाहरण से शुरू करें{% else %}Use Example Prompt{% endif %}
+              </a>
             {% endif %}
-          </p>
-        {% endif %}
+          </div>
+        </form>
       </div>
     </section>
 
-    {% if daily_verse_mode %}
-      <section class="panel">
-        <h2 class="section-title">{% if language == "hi" %}आज का श्लोक और चिंतन{% else %}Today's Verse and Reflection{% endif %}</h2>
-        <div class="daily-feature-card">
-          <div class="verse-ref">{{ featured_daily_verse.reference }}</div>
-          <div class="verse-copy">{{ featured_daily_verse.quote }}</div>
-          <div class="body-copy">{{ featured_daily_verse.meaning }}</div>
-          <div class="footnote">{{ featured_daily_verse.reflection }}</div>
-          <div class="hero-actions">
-            <a class="btn btn-primary" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}&prefill={{ featured_daily_verse.prefill|urlencode }}">
-              {% if language == "hi" %}इस श्लोक को अपने जीवन से जोड़ें{% else %}Apply This Verse To My Life{% endif %}
-            </a>
-          </div>
-        </div>
-        {% if recent_daily_verses %}
-          <div class="daily-history-grid">
-            {% for item in recent_daily_verses %}
-              <div class="verse-card">
-                <div class="verse-ref">{{ item.reference }} · {{ item.date }}</div>
-                <div class="verse-copy">{{ item.quote }}</div>
-                <div class="footnote">{{ item.meaning }}</div>
-                <div class="hero-actions">
-                  <a class="btn btn-secondary" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}&prefill={{ item.prefill|urlencode }}">
-                    {% if language == "hi" %}इस श्लोक को समझें{% else %}Explore This Verse{% endif %}
-                  </a>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if archive_backlinks %}
-          <div class="mini-nav">
-            {% for topic in archive_backlinks %}
-              <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">{{ topic.label }}</a>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if search_intent_copy %}
-          <div class="intent-strip">{{ search_intent_copy }}</div>
-        {% endif %}
-        <div class="mini-nav">
-          <a href="/daily-bhagavad-gita-verse/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}आज का श्लोक देखें{% else %}See Today's Verse{% endif %}
-          </a>
-          <a href="/frequently-asked-bhagavad-gita-questions/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}सामान्य प्रश्न देखें{% else %}Browse Common Questions{% endif %}
-          </a>
-        </div>
-      </section>
-    {% elif archive_mode %}
-      <section class="panel">
-        <h2 class="section-title">{% if language == "hi" %}प्रश्न श्रेणियाँ{% else %}Question Categories{% endif %}</h2>
-        <div class="question-group-grid">
-          {% for group in question_groups %}
-            <div class="question-group-card">
-              <h3>{{ group.title }}</h3>
-              <div class="question-links">
-                {% for question in group.questions %}
-                  <a href="{{ question.chat_url_with_prefill }}">{{ question.text }}</a>
-                {% endfor %}
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-        {% if archive_backlinks %}
-          <div class="mini-nav">
-            {% for topic in archive_backlinks %}
-              <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">{{ topic.label }}</a>
-            {% endfor %}
-          </div>
-        {% endif %}
-        {% if search_intent_copy %}
-          <div class="intent-strip">{{ search_intent_copy }}</div>
-        {% endif %}
-      </section>
-    {% elif topics %}
-      <section class="panel">
-        <h2 class="section-title">{% if language == "hi" %}एक केंद्रित गाइड चुनें{% else %}Choose a focused guide{% endif %}</h2>
-        <div class="topic-list">
-          {% for topic in topics %}
-            <a class="topic-card" href="/{{ topic.slug }}/?language={{ language|default:'en' }}">
-              <h3>{{ topic.topic_label }}</h3>
-              <p>{{ topic.description }}</p>
-            </a>
-          {% endfor %}
-        </div>
-        {% if search_intent_copy %}
-          <div class="intent-strip">{{ search_intent_copy }}</div>
-        {% endif %}
-      </section>
-      {% if popular_verse_cards %}
-        <section class="panel">
-          <h2 class="section-title">{% if language == "hi" %}सबसे अधिक खोजे जाने वाले भगवद गीता श्लोक{% else %}Most Searched Bhagavad Gita Verses{% endif %}</h2>
-          <p class="hint">
+    <div class="grid">
+      {% if daily_verse_mode %}
+        <section class="panel span-8">
+          <h2>{% if language == "hi" %}आज का श्लोक और चिंतन{% else %}Today's Verse and Reflection{% endif %}</h2>
+          <p class="section-copy">
             {% if language == "hi" %}
-              ये वे प्रसिद्ध श्लोक हैं जिन्हें लोग सबसे अधिक खोजते हैं। हर कार्ड आपको सीधे पूरे ऐप में ले जाता है जहाँ उसी श्लोक को आपकी स्थिति से जोड़कर समझाया जा सकता है।
+              हर दिन एक श्लोक, एक अर्थ, और एक छोटा चिंतन। यदि यह आपसे जुड़ता है, तो उसी श्लोक को अपने जीवन पर लागू करके तुरंत पूछें।
             {% else %}
-              These are some of the Bhagavad Gita verses people search most often. Each card takes you into the full app with a ready-made prompt so the verse can be explained for your exact situation.
+              One verse, one meaning, and one reflection for today. If it resonates, continue into the app and ask how it applies to your life.
             {% endif %}
           </p>
-          <div class="verse-spotlight-grid">
-            {% for verse in popular_verse_cards %}
-              <div class="verse-card">
-                <div class="verse-ref">{{ verse.reference }} · {{ verse.label }}</div>
-                <div class="body-copy">{{ verse.summary }}</div>
-                <div class="footnote">{% if language == "hi" %}लोग इसे क्यों खोजते हैं{% else %}Why people search it{% endif %}: {{ verse.search_intent }}</div>
-                <div class="hero-actions">
-                  <a class="btn btn-secondary" href="{{ verse.chat_url_with_prefill }}">
-                    {% if language == "hi" %}इस श्लोक को समझें{% else %}Explore This Verse{% endif %}
-                  </a>
+
+          <div class="daily-feature-card">
+            <div class="verse-ref">{{ featured_daily_verse.reference }}</div>
+            <p class="verse-copy">{{ featured_daily_verse.quote }}</p>
+            <p class="body-copy">{{ featured_daily_verse.meaning }}</p>
+            <p class="body-copy">{{ featured_daily_verse.reflection }}</p>
+            <div class="cta-links">
+              <a href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}&prefill={{ featured_daily_verse.prefill|urlencode }}">
+                {% if language == "hi" %}इस श्लोक को अपने जीवन से जोड़ें{% else %}Apply This Verse To My Life{% endif %}
+              </a>
+            </div>
+          </div>
+
+          {% if recent_daily_verses %}
+            <div class="daily-history-grid">
+              {% for item in recent_daily_verses %}
+                <div class="daily-mini-card">
+                  <div class="verse-ref">{{ item.reference }} · {{ item.date }}</div>
+                  <p class="verse-copy">{{ item.quote }}</p>
+                  <p>{{ item.meaning }}</p>
+                  <div class="cta-links" style="margin-top:12px;">
+                    <a href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}&prefill={{ item.prefill|urlencode }}">
+                      {% if language == "hi" %}इस श्लोक को समझें{% else %}Explore this verse{% endif %}
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </section>
+
+        <aside class="panel span-4">
+          <h2>{% if language == "hi" %}आगे कहाँ जाएँ{% else %}Where to go next{% endif %}</h2>
+          <p class="section-copy">{{ search_intent_copy }}</p>
+          {% if archive_backlinks %}
+            <div class="problem-grid">
+              {% for topic in archive_backlinks|slice:":5" %}
+                <div class="link-card">
+                  <strong>{{ topic.label }}</strong>
+                  <div class="cta-links" style="margin-top:10px;">
+                    <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">
+                      {% if language == "hi" %}यह मार्गदर्शिका खोलें{% else %}Open this guide{% endif %}
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </aside>
+
+      {% elif archive_mode %}
+        <section class="panel span-8">
+          <h2>{% if language == "hi" %}वास्तविक जीवन के सामान्य प्रश्न{% else %}Common real-life Bhagavad Gita questions{% endif %}</h2>
+          <p class="section-copy">{{ page_intro }}</p>
+          <div class="question-group-grid">
+            {% for group in question_groups %}
+              <div class="question-group-card">
+                <h3>{{ group.title }}</h3>
+                <div class="question-links">
+                  {% for question in group.questions %}
+                    <a href="{{ question.chat_url_with_prefill }}">{{ question.text }}</a>
+                  {% endfor %}
                 </div>
               </div>
+            {% endfor %}
+          </div>
+        </section>
+
+        <aside class="panel span-4">
+          <h2>{% if language == "hi" %}खोज इरादा{% else %}Search intent match{% endif %}</h2>
+          <p class="section-copy">{{ search_intent_copy }}</p>
+          {% if archive_backlinks %}
+            <div class="problem-grid">
+              {% for topic in archive_backlinks|slice:":5" %}
+                <div class="problem-card">
+                  <strong>{{ topic.label }}</strong>
+                  <p>{% if language == "hi" %}इस विषय पर केंद्रित गाइड और श्लोक देखें।{% else %}See a focused guide and matching verses for this life area.{% endif %}</p>
+                  <div class="cta-links" style="margin-top:10px;">
+                    <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">
+                      {% if language == "hi" %}गाइड खोलें{% else %}Open guide{% endif %}
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </aside>
+
+      {% elif topics %}
+        <section class="panel span-8">
+          <h2>{% if language == "hi" %}जिस स्थिति में हैं, वहीं से शुरू करें{% else %}Start from the situation you are actually in{% endif %}</h2>
+          <p class="section-copy">
+            {% if language == "hi" %}
+              यदि आप अभी चिंता, करियर, संबंध, अनुशासन या किसी भावनात्मक उलझन में हैं, तो नीचे का सबसे निकट विषय चुनें।
+            {% else %}
+              If you are here because of anxiety, career confusion, relationship pain, discipline struggle, or emotional overload, choose the closest situation below.
+            {% endif %}
+          </p>
+          <div class="topic-grid">
+            {% for topic in topics %}
+              <a class="topic-card" href="/{{ topic.slug }}/?language={{ language|default:'en' }}">
+                <h3>{{ topic.topic_label }}</h3>
+                <p>{{ topic.description }}</p>
+              </a>
+            {% endfor %}
+          </div>
+        </section>
+
+        <aside class="panel span-4">
+          <h2>{% if language == "hi" %}लोग क्या खोजते हैं{% else %}What people search most{% endif %}</h2>
+          <p class="section-copy">{{ search_intent_copy }}</p>
+          <div class="mini-nav">
+            <a href="/frequently-asked-bhagavad-gita-questions/?language={{ language|default:'en' }}">
+              {% if language == "hi" %}सामान्य प्रश्न संग्रह{% else %}Common question archive{% endif %}
+            </a>
+            <a href="/daily-bhagavad-gita-verse/?language={{ language|default:'en' }}">
+              {% if language == "hi" %}दैनिक श्लोक{% else %}Daily verse{% endif %}
+            </a>
+          </div>
+        </aside>
+
+        {% if popular_verse_cards %}
+          <section class="panel span-12">
+            <h2>{% if language == "hi" %}सबसे अधिक खोजे जाने वाले श्लोक{% else %}Most searched Bhagavad Gita verses{% endif %}</h2>
+            <p class="section-copy">
+              {% if language == "hi" %}
+                कई लोग श्लोक से शुरुआत करना पसंद करते हैं। यदि कोई श्लोक पहले से परिचित है, तो वहीं से प्रवेश करना आसान लगता है।
+              {% else %}
+                Many people arrive through a famous verse before they are ready to ask their own question. These are strong entry points into the app.
+              {% endif %}
+            </p>
+            <div class="verse-spotlight-grid">
+              {% for card in popular_verse_cards %}
+                <div class="verse-card">
+                  <div class="verse-ref">{{ card.reference }}</div>
+                  <h3>{{ card.label }}</h3>
+                  <p>{{ card.summary }}</p>
+                  <p style="margin-top:10px;color:var(--sky);font-size:13px;font-weight:700;">{{ card.search_intent }}</p>
+                  <div class="cta-links" style="margin-top:12px;">
+                    <a href="{{ card.chat_url_with_prefill }}">
+                      {% if language == "hi" %}इस श्लोक से प्रश्न पूछें{% else %}Ask with this verse{% endif %}
+                    </a>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+
+      {% else %}
+        <section class="panel span-8">
+          <h2>{% if language == "hi" %}आपकी स्थिति क्या है?{% else %}What are you going through?{% endif %}</h2>
+          <p class="section-copy">{{ page_intro }}</p>
+          {% if problem_points %}
+            <div class="problem-grid">
+              {% for point in problem_points %}
+                <div class="problem-card">
+                  <strong>{{ point }}</strong>
+                  <p>{% if language == "hi" %}यह वही स्थिति है जहाँ गीता का सिद्धांत व्यावहारिक बनता है।{% else %}This is exactly the kind of moment where a verse becomes practical guidance instead of just philosophy.{% endif %}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          <div class="cta-links" style="margin-top:18px;">
+            <a href="{{ chat_url_with_prefill }}">
+              {% if language == "hi" %}इस विषय पर तुरंत पूछें{% else %}Ask about this immediately{% endif %}
+            </a>
+          </div>
+        </section>
+
+        <aside class="panel span-4">
+          <h2>{% if language == "hi" %}चुने हुए श्लोक{% else %}Selected verses{% endif %}</h2>
+          <p class="section-copy">
+            {% if language == "hi" %}
+              इस विषय के लिए ये श्लोक अक्सर सबसे अधिक मददगार होते हैं।
+            {% else %}
+              These verses are often the most grounding starting points for this theme.
+            {% endif %}
+          </p>
+          {% if featured_verses %}
+            <div class="problem-grid">
+              {% for verse in featured_verses %}
+                <div class="problem-card">
+                  <strong>{{ verse.chapter }}.{{ verse.verse }}</strong>
+                  <p>{{ verse.translation|default:verse.text }}</p>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </aside>
+      {% endif %}
+
+      {% if faq_items %}
+        <section class="panel span-12">
+          <h2>{% if language == "hi" %}अक्सर पूछे जाने वाले प्रश्न{% else %}Frequently asked questions{% endif %}</h2>
+          <div class="faq-section">
+            {% for faq in faq_items %}
+              <details class="faq-item">
+                <summary>{{ faq.question }}</summary>
+                <div class="faq-answer">{{ faq.answer }}</div>
+              </details>
             {% endfor %}
           </div>
         </section>
       {% endif %}
-    {% else %}
-      <div class="grid">
-        <section class="panel">
-          <h2 class="section-title">{% if language == "hi" %}प्रासंगिक भगवद गीता श्लोक{% else %}Relevant Bhagavad Gita verses{% endif %}</h2>
-          <p class="hint">
-            {% if language == "hi" %}
-              ये श्लोक इस विषय के लिए मजबूत शुरुआत हैं। पूरा ऐप खोलें, अपना सटीक प्रश्न पूछें और श्लोक-आधारित उत्तर पाएँ।
-            {% else %}
-              These verses are strong starting points for this topic. Open the full app to ask your exact question and get a verse-grounded answer.
-            {% endif %}
-          </p>
-          <div class="verse-list">
-            {% for verse in featured_verses %}
-              <div class="verse-card">
-                <div class="verse-ref">{{ verse.reference }}</div>
-                <div class="verse-copy">{{ verse.translation }}</div>
-                {% if verse.themes %}
-                  <div class="footnote">{% if language == "hi" %}विषय{% else %}Themes{% endif %}: {{ verse.themes|join:", " }}</div>
-                {% endif %}
-              </div>
-            {% endfor %}
-          </div>
-        </section>
+    </div>
 
-        <section class="panel">
-          <h2 class="section-title">{% if language == "hi" %}अपनी सटीक स्थिति पूछें{% else %}Ask your exact situation{% endif %}</h2>
-          <p class="hint">
-            {% if language == "hi" %}
-              सबसे अच्छा अनुभव तब मिलता है जब आप अपनी वास्तविक समस्या अपने शब्दों में लिखते हैं। ऐप तब सबसे प्रासंगिक श्लोक, अर्थ और अगला कदम खोजने की कोशिश करता है।
-            {% else %}
-              The strongest experience is when you describe your real problem in your own words. The app will then try to find the most relevant verse, meaning, and next step.
-            {% endif %}
-          </p>
-          <form class="cta-form" method="get" action="/api/chat-ui/">
-            <input type="hidden" name="mode" value="simple">
-            <input type="hidden" name="language" value="{{ language|default:'en' }}">
-            <textarea name="prefill">{{ starter_question }}</textarea>
-            <button class="btn btn-primary" type="submit">
-              {% if language == "hi" %}ऐप में यह प्रश्न पूछें{% else %}Ask This In The App{% endif %}
-            </button>
-          </form>
-          <div class="mini-nav">
-            {% for topic in other_topics %}
-              <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">{{ topic.topic_label }}</a>
-            {% endfor %}
-          </div>
-          <div class="footnote">
-            {% if language == "hi" %}
-              ये पेज खोज और सीखने के लिए हैं। व्यक्तिगत उत्तर के लिए पूरे चैट अनुभव में जाएँ।
-            {% else %}
-              These pages are for discovery and education. For a personalized answer, continue into the full chat experience.
-            {% endif %}
-          </div>
-        </section>
-      </div>
-    {% endif %}
-
-    {% if faq_items %}
-      <section class="panel faq-section">
-        <h2 class="section-title">{% if language == "hi" %}अक्सर पूछे जाने वाले प्रश्न{% else %}Frequently Asked Questions{% endif %}</h2>
-        {% for faq in faq_items %}
-          <details class="faq-item">
-            <summary>{{ faq.question }}</summary>
-            <div class="faq-answer">{{ faq.answer }}</div>
-          </details>
-        {% endfor %}
-      </section>
-    {% endif %}
+    <p class="footer-note">
+      {% if language == "hi" %}
+        Bhagavad Gita Guide · पहले समझें, फिर पूछें, फिर अपने जीवन में लागू करें
+      {% else %}
+        Bhagavad Gita Guide · understand the verse, ask your question, and apply it to your life
+      {% endif %}
+    </p>
   </div>
 </body>
 </html>
