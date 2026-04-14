@@ -73,6 +73,23 @@ Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
     - backlinks to all major topic landing pages
   - sitemap now includes the archive route for better crawl discovery
 
+- Daily verse hub completed:
+  - promoted the existing daily-verse API logic into reusable helpers so both
+    API consumers and public landing pages use the same deterministic
+    day-seeded verse selection
+  - added a new public route:
+    `/daily-bhagavad-gita-verse/`
+  - added English and Hindi daily-verse hub rendering with:
+    - today's verse
+    - compact meaning
+    - reflection
+    - recent 7-day history
+    - deep-link CTA into the full app with verse-prefilled prompts
+  - added structured data (`CollectionPage` + `ItemList`) so search engines can
+    understand the page as a daily verse archive / recency hub
+  - linked the daily verse hub from the main SEO index and added it to the
+    sitemap for crawl discovery
+
 - Custom domain HTTPS hardening completed:
   - identified that `https://askbhagavadgita.co.in/` had a valid TLS
     certificate, but the live response was still missing strict HTTPS headers

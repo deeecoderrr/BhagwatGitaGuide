@@ -1,6 +1,6 @@
 """HTTP views for chat, retrieval evaluation, and feedback flows."""
 
-from datetime import timedelta
+from datetime import date, timedelta
 import json
 import logging
 import re
@@ -1218,6 +1218,7 @@ def sitemap_xml_view(request):
         for page in SEO_LANDING_PAGES.values()
     ] + [
         "/frequently-asked-bhagavad-gita-questions/",
+        "/daily-bhagavad-gita-verse/",
         "/api/chat-ui/",
     ]
     rows = [
@@ -1583,6 +1584,156 @@ class SeoQuestionArchiveView(View):
                 "यदि आप Ask Gita, Gita AI, या भगवद गीता प्रश्नों का संग्रह खोज रहे हैं, तो यह पेज उसी इरादे के लिए बनाया गया है।"
                 if language == "hi"
                 else "If you searched for Ask Gita questions, Gita AI questions, or a Bhagavad Gita question archive, this page is built for that exact intent."
+            ),
+        }
+        _track_web_visit(request, source=WebAudienceProfile.SOURCE_SEO_INDEX)
+        response = render(request, self.template_name, context)
+        _attach_web_audience_cookie(request, response)
+        return response
+
+
+class SeoDailyVerseHubView(View):
+    """Public SEO page for today's verse plus recent daily verse history."""
+
+    template_name = "guide_api/seo_landing.html"
+
+    def get(self, request):
+        language = "hi" if request.GET.get("language") == "hi" else "en"
+        path_url = request.build_absolute_uri(request.path)
+        canonical_url = (
+            f"{path_url}?language=hi"
+            if language == "hi"
+            else path_url
+        )
+        alternate_en_url = path_url
+        alternate_hi_url = f"{path_url}?language=hi"
+        today = timezone.localdate()
+        recent_daily_verses = [
+            DailyVerseView._build_daily_payload(
+                day=today - timedelta(days=offset),
+                language=language,
+            )
+            for offset in range(7)
+        ]
+        featured = recent_daily_verses[0]
+        page_title = (
+            "आज का भगवद गीता श्लोक | दैनिक गीता मार्गदर्शन"
+            if language == "hi"
+            else "Today's Bhagavad Gita Verse | Daily Gita Guidance and Reflection"
+        )
+        meta_description = (
+            "आज का भगवद गीता श्लोक, उसका अर्थ, चिंतन और पिछले दिनों के श्लोक एक ही पेज पर देखें।"
+            if language == "hi"
+            else (
+                "Read today's Bhagavad Gita verse, its meaning, reflection, and recent daily verses in one place."
+            )
+        )
+        meta_keywords = (
+            "आज का गीता श्लोक, दैनिक भगवद गीता श्लोक, गीता का आज का विचार"
+            if language == "hi"
+            else "today's Bhagavad Gita verse, daily Gita verse, Bhagavad Gita daily quote"
+        )
+        page_heading = (
+            "आज का भगवद गीता श्लोक"
+            if language == "hi"
+            else "Today's Bhagavad Gita Verse"
+        )
+        page_intro = (
+            "हर दिन एक श्लोक, एक अर्थ, और एक चिंतन। यदि कोई श्लोक आपसे जुड़ता है, तो उसी श्लोक को पूरे ऐप में अपनी स्थिति से जोड़कर समझ सकते हैं।"
+            if language == "hi"
+            else (
+                "One verse, one meaning, and one reflection for today. If a verse resonates, continue into the full app "
+                "to connect it with your own situation."
+            )
+        )
+        structured_data = json.dumps(
+            [
+                {
+                    "@context": "https://schema.org",
+                    "@type": "CollectionPage",
+                    "name": page_heading,
+                    "description": meta_description,
+                    "url": canonical_url,
+                    "inLanguage": "hi" if language == "hi" else "en",
+                },
+                {
+                    "@context": "https://schema.org",
+                    "@type": "ItemList",
+                    "name": (
+                        "Recent daily Bhagavad Gita verses"
+                        if language != "hi"
+                        else "हाल के दैनिक भगवद गीता श्लोक"
+                    ),
+                    "itemListElement": [
+                        {
+                            "@type": "ListItem",
+                            "position": index + 1,
+                            "name": f"{item['reference']}",
+                            "description": item["quote"],
+                        }
+                        for index, item in enumerate(recent_daily_verses)
+                    ],
+                },
+            ],
+            ensure_ascii=False,
+        )
+        context = {
+            "page_title": page_title,
+            "meta_description": meta_description,
+            "meta_keywords": meta_keywords,
+            "page_heading": page_heading,
+            "page_intro": page_intro,
+            "language": language,
+            "canonical_url": canonical_url,
+            "alternate_en_url": alternate_en_url,
+            "alternate_hi_url": alternate_hi_url,
+            "og_type": "website",
+            "structured_data": structured_data,
+            "google_site_verification": settings.GOOGLE_SITE_VERIFICATION,
+            "archive_mode": True,
+            "daily_verse_mode": True,
+            "featured_daily_verse": featured,
+            "recent_daily_verses": recent_daily_verses[1:],
+            "faq_items": [
+                {
+                    "question": (
+                        "क्या आज का गीता श्लोक हर दिन बदलता है?"
+                        if language == "hi"
+                        else "Does the daily Bhagavad Gita verse change every day?"
+                    ),
+                    "answer": (
+                        "हाँ, यह पेज दिन के आधार पर एक स्थिर श्लोक चुनता है ताकि सभी उपयोगकर्ताओं को उसी दिन वही दैनिक श्लोक दिखे।"
+                        if language == "hi"
+                        else "Yes. The page selects a stable verse based on the current day so everyone sees the same daily verse for that date."
+                    ),
+                },
+                {
+                    "question": (
+                        "क्या मैं इसी श्लोक को अपनी समस्या पर लागू करके पूछ सकता हूँ?"
+                        if language == "hi"
+                        else "Can I ask how this verse applies to my own life?"
+                    ),
+                    "answer": (
+                        "हाँ। हर दैनिक श्लोक कार्ड से आप पूरे ऐप में जा सकते हैं और उसी श्लोक को अपनी स्थिति से जोड़कर समझ सकते हैं।"
+                        if language == "hi"
+                        else "Yes. Each daily verse can open the full app with a prefilled prompt so you can apply that verse to your own situation."
+                    ),
+                },
+            ],
+            "topics": [],
+            "popular_verse_cards": [],
+            "question_groups": [],
+            "archive_backlinks": [
+                {
+                    "label": _seo_value(page, "topic_label", language),
+                    "slug": page["slug"],
+                }
+                for page in SEO_LANDING_PAGES.values()
+            ],
+            "search_intent_copy": (
+                "यदि आप आज का गीता श्लोक, दैनिक भगवद गीता विचार, या daily Gita verse खोज रहे हैं, तो यह पेज उसी इरादे के लिए बनाया गया है।"
+                if language == "hi"
+                else "If you searched for today's Gita verse, daily Bhagavad Gita verse, or a daily spiritual reflection, this page is built for that exact intent."
             ),
         }
         _track_web_visit(request, source=WebAudienceProfile.SOURCE_SEO_INDEX)
@@ -3064,59 +3215,88 @@ class DailyVerseView(APIView):
             return candidate
         return candidate[: limit - 1].rstrip() + "…"
 
-    def get(self, request):
-        """Serve one date-seeded verse with language-aware meaning."""
-        language = str(request.query_params.get("language", "en")).strip()
-        if language not in {"en", "hi"}:
-            language = "en"
-
+    @staticmethod
+    def _resolve_daily_verse(day: date):
+        """Pick a stable verse for a given day from the canonical verse table."""
         queryset = Verse.objects.order_by("chapter", "verse")
         count = queryset.count()
         if count > 0:
-            day_seed = timezone.localdate().isoformat()
-            verse = queryset[Random(day_seed).randrange(count)]
-        else:
-            verse = None
+            return queryset[Random(day.isoformat()).randrange(count)]
 
+        verses = retrieve_verses("daily verse", limit=1)
+        return verses[0] if verses else None
+
+    @classmethod
+    def _build_daily_payload(cls, *, day: date, language: str) -> dict:
+        """Return one date-seeded verse payload for API and public pages."""
+        verse = cls._resolve_daily_verse(day)
         if verse is None:
-            verses = retrieve_verses("daily verse", limit=1)
-            verse = verses[0]
-            detail = get_verse_detail(verse.chapter, verse.verse) or {}
-        else:
-            detail = get_verse_detail(verse.chapter, verse.verse) or {}
+            return {
+                "date": day.isoformat(),
+                "verse": None,
+                "quote": "",
+                "meaning": "",
+                "reflection": "",
+            }
 
-        english_quote = self._clean_signal_text(detail.get("english_meaning", ""))
-        hindi_quote = self._clean_signal_text(detail.get("slok", ""))
-        english_meaning = self._clean_signal_text(
+        detail = get_verse_detail(verse.chapter, verse.verse) or {}
+
+        english_quote = cls._clean_signal_text(detail.get("english_meaning", ""))
+        hindi_quote = cls._clean_signal_text(detail.get("slok", ""))
+        english_meaning = cls._clean_signal_text(
             str(detail.get("translation", "")).strip()
             or verse.translation.strip()
         )
-        hindi_meaning = self._clean_signal_text(detail.get("hindi_meaning", ""))
-        commentary = self._clean_signal_text(verse.commentary or "")
+        hindi_meaning = cls._clean_signal_text(detail.get("hindi_meaning", ""))
+        commentary = cls._clean_signal_text(verse.commentary or "")
         meaning = (
-            self._compact_signal_text(hindi_meaning, 260)
+            cls._compact_signal_text(hindi_meaning, 260)
             if language == "hi" and hindi_meaning
-            else self._compact_signal_text(english_meaning, 260)
-            or self._compact_signal_text(commentary, 260)
+            else cls._compact_signal_text(english_meaning, 260)
+            or cls._compact_signal_text(commentary, 260)
         )
         quote = (
-            self._compact_signal_text(hindi_quote, 260)
+            cls._compact_signal_text(hindi_quote, 260)
             if language == "hi" and hindi_quote
-            else self._compact_signal_text(english_quote, 260)
-            or self._compact_signal_text(english_meaning, 260)
+            else cls._compact_signal_text(english_quote, 260)
+            or cls._compact_signal_text(english_meaning, 260)
         )
         reflection = (
             "आज इस श्लोक को अपने एक निर्णय, एक प्रतिक्रिया, और एक कर्म में उतारने का अभ्यास करें।"
             if language == "hi"
             else "Practice applying this verse today in one decision, one reaction, and one concrete action."
         )
+        reference = f"{verse.chapter}.{verse.verse}"
+        prefill = (
+            f"Explain Bhagavad Gita {reference} in simple Hindi and show how I can apply it today."
+            if language == "hi"
+            else f"Explain Bhagavad Gita {reference} in simple language and help me apply it today."
+        )
+        return {
+            "date": day.isoformat(),
+            "verse": VerseSerializer(verse).data,
+            "reference": reference,
+            "quote": quote,
+            "meaning": meaning,
+            "reflection": reflection,
+            "prefill": prefill,
+        }
 
+    def get(self, request):
+        """Serve one date-seeded verse with language-aware meaning."""
+        language = str(request.query_params.get("language", "en")).strip()
+        if language not in {"en", "hi"}:
+            language = "en"
+        payload = self._build_daily_payload(
+            day=timezone.localdate(),
+            language=language,
+        )
         return Response(
             {
-                "verse": VerseSerializer(verse).data,
-                "quote": quote,
-                "meaning": meaning,
-                "reflection": reflection,
+                "verse": payload["verse"],
+                "quote": payload["quote"],
+                "meaning": payload["meaning"],
+                "reflection": payload["reflection"],
             }
         )
 

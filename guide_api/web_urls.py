@@ -5,6 +5,7 @@ from django.urls import path
 from guide_api.views import (
     SEO_LANDING_PAGES,
     SharedAnswerPageView,
+    SeoDailyVerseHubView,
     SeoLandingIndexView,
     SeoQuestionArchiveView,
     SeoLandingTopicView,
@@ -31,6 +32,11 @@ urlpatterns = [
         "frequently-asked-bhagavad-gita-questions/",
         SeoQuestionArchiveView.as_view(),
         name="seo-question-archive",
+    ),
+    path(
+        "daily-bhagavad-gita-verse/",
+        SeoDailyVerseHubView.as_view(),
+        name="seo-daily-verse-hub",
     ),
 ]
 

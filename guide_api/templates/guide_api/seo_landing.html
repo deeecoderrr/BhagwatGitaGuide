@@ -329,6 +329,21 @@
       color: var(--muted);
       font-size: 14px;
     }
+    .daily-feature-card {
+      margin-top: 18px;
+      border-radius: 22px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 22px;
+    }
+    .daily-feature-card .verse-copy {
+      margin-top: 10px;
+    }
+    .daily-history-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
     .intent-strip {
       margin-top: 24px;
       border: 1px solid var(--border);
@@ -410,7 +425,56 @@
       </div>
     </section>
 
-    {% if archive_mode %}
+    {% if daily_verse_mode %}
+      <section class="panel">
+        <h2 class="section-title">{% if language == "hi" %}आज का श्लोक और चिंतन{% else %}Today's Verse and Reflection{% endif %}</h2>
+        <div class="daily-feature-card">
+          <div class="verse-ref">{{ featured_daily_verse.reference }}</div>
+          <div class="verse-copy">{{ featured_daily_verse.quote }}</div>
+          <div class="body-copy">{{ featured_daily_verse.meaning }}</div>
+          <div class="footnote">{{ featured_daily_verse.reflection }}</div>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}&prefill={{ featured_daily_verse.prefill|urlencode }}">
+              {% if language == "hi" %}इस श्लोक को अपने जीवन से जोड़ें{% else %}Apply This Verse To My Life{% endif %}
+            </a>
+          </div>
+        </div>
+        {% if recent_daily_verses %}
+          <div class="daily-history-grid">
+            {% for item in recent_daily_verses %}
+              <div class="verse-card">
+                <div class="verse-ref">{{ item.reference }} · {{ item.date }}</div>
+                <div class="verse-copy">{{ item.quote }}</div>
+                <div class="footnote">{{ item.meaning }}</div>
+                <div class="hero-actions">
+                  <a class="btn btn-secondary" href="/api/chat-ui/?mode=simple&language={{ language|default:'en' }}&prefill={{ item.prefill|urlencode }}">
+                    {% if language == "hi" %}इस श्लोक को समझें{% else %}Explore This Verse{% endif %}
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if archive_backlinks %}
+          <div class="mini-nav">
+            {% for topic in archive_backlinks %}
+              <a href="/{{ topic.slug }}/?language={{ language|default:'en' }}">{{ topic.label }}</a>
+            {% endfor %}
+          </div>
+        {% endif %}
+        {% if search_intent_copy %}
+          <div class="intent-strip">{{ search_intent_copy }}</div>
+        {% endif %}
+        <div class="mini-nav">
+          <a href="/daily-bhagavad-gita-verse/?language={{ language|default:'en' }}">
+            {% if language == "hi" %}आज का श्लोक देखें{% else %}See Today's Verse{% endif %}
+          </a>
+          <a href="/frequently-asked-bhagavad-gita-questions/?language={{ language|default:'en' }}">
+            {% if language == "hi" %}सामान्य प्रश्न देखें{% else %}Browse Common Questions{% endif %}
+          </a>
+        </div>
+      </section>
+    {% elif archive_mode %}
       <section class="panel">
         <h2 class="section-title">{% if language == "hi" %}प्रश्न श्रेणियाँ{% else %}Question Categories{% endif %}</h2>
         <div class="question-group-grid">

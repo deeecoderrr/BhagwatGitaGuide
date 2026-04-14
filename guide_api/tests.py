@@ -90,6 +90,7 @@ class GuideApiTests(APITestCase):
         self.assertIn("/bhagavad-gita-for-anxiety/", body)
         self.assertIn("/bhagavad-gita-for-purpose/", body)
         self.assertIn("/frequently-asked-bhagavad-gita-questions/", body)
+        self.assertIn("/daily-bhagavad-gita-verse/", body)
         self.assertIn("/api/chat-ui/", body)
 
     def test_public_seo_topic_page_loads(self):
@@ -197,6 +198,13 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "Frequently Asked Bhagavad Gita Questions")
         self.assertContains(response, "What does the Bhagavad Gita say about anxiety?")
+        self.assertContains(response, '"@type": "ItemList"')
+
+    def test_public_daily_verse_hub_page_loads(self):
+        response = self.client.get("/daily-bhagavad-gita-verse/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Today's Bhagavad Gita Verse")
+        self.assertContains(response, "Apply This Verse To My Life")
         self.assertContains(response, '"@type": "ItemList"')
 
     @override_settings(GOOGLE_SITE_VERIFICATION="token-abc-123")
