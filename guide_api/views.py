@@ -716,6 +716,69 @@ def _fetch_curated_verses(reference_list: list[str]) -> list[SimpleNamespace]:
     return verses
 
 
+SEO_INTENT_KEYWORDS_EN = (
+    "Bhagavad Gita AI, Gita GPT, Gita AI, Ask Gita, Ask Bhagavad Gita, "
+    "Bhagavad Gita chatbot, Krishna guidance, Bhagavad Gita guidance for life questions"
+)
+SEO_INTENT_KEYWORDS_HI = (
+    "भगवद गीता एआई, गीता जीपीटी, गीता एआई, आस्क गीता, भगवद गीता मार्गदर्शन, "
+    "कृष्ण मार्गदर्शन, जीवन के प्रश्नों के लिए भगवद गीता"
+)
+
+SEO_INDEX_FAQ_EN = [
+    {
+        "question": "Is this a Bhagavad Gita AI or Gita GPT style app?",
+        "answer": (
+            "Yes. Ask Bhagavad Gita is a Bhagavad Gita AI experience that many users would also describe "
+            "as a Gita GPT or Ask Gita tool. You can ask a life question in plain English or Hindi, see "
+            "relevant Bhagavad Gita verses, and get a simpler modern explanation connected to your situation."
+        ),
+    },
+    {
+        "question": "What can I ask in this Ask Gita app?",
+        "answer": (
+            "You can ask about anxiety, overthinking, career confusion, relationship pain, discipline, "
+            "fear, purpose, or other real-life problems. The app tries to retrieve relevant Bhagavad Gita "
+            "verses, explain the teaching in simple language, and suggest a practical next step."
+        ),
+    },
+    {
+        "question": "How is this different from just reading the Bhagavad Gita directly?",
+        "answer": (
+            "Reading the scripture directly is invaluable, but many people need help finding where to start. "
+            "This tool works like a guided Bhagavad Gita search and reflection layer: it narrows to relevant "
+            "verses, summarizes their meaning, and helps you continue into the full app for a personal question."
+        ),
+    },
+]
+SEO_INDEX_FAQ_HI = [
+    {
+        "question": "क्या यह भगवद गीता एआई या गीता जीपीटी जैसा ऐप है?",
+        "answer": (
+            "हाँ। Ask Bhagavad Gita एक भगवद गीता एआई अनुभव है जिसे कई लोग गीता जीपीटी या Ask Gita "
+            "टूल जैसा मानेंगे। आप अंग्रेज़ी या हिंदी में जीवन का प्रश्न पूछ सकते हैं, प्रासंगिक श्लोक देख "
+            "सकते हैं और अपनी स्थिति से जुड़ा सरल आधुनिक अर्थ पा सकते हैं।"
+        ),
+    },
+    {
+        "question": "इस Ask Gita ऐप में मैं क्या पूछ सकता हूँ?",
+        "answer": (
+            "आप चिंता, ओवरथिंकिंग, करियर उलझन, रिश्तों की परेशानी, अनुशासन, भय, उद्देश्य या अन्य "
+            "जीवन समस्याओं के बारे में पूछ सकते हैं। ऐप प्रासंगिक भगवद गीता श्लोक खोजने, सरल भाषा में "
+            "अर्थ समझाने और व्यावहारिक अगले कदम देने की कोशिश करता है।"
+        ),
+    },
+    {
+        "question": "यह केवल भगवद गीता पढ़ने से कैसे अलग है?",
+        "answer": (
+            "गीता को सीधे पढ़ना अमूल्य है, लेकिन कई लोगों को यह समझने में मदद चाहिए कि शुरुआत कहाँ से करें। "
+            "यह टूल एक निर्देशित भगवद गीता खोज और चिंतन परत की तरह काम करता है: यह प्रासंगिक श्लोकों तक "
+            "ले जाता है, उनका सार बताता है, और फिर आपको पूरे ऐप में व्यक्तिगत प्रश्न पूछने देता है।"
+        ),
+    },
+]
+
+
 def robots_txt_view(request):
     """Serve robots policy with sitemap hint for search engines."""
     base_url = request.build_absolute_uri("/").rstrip("/")
@@ -785,18 +848,28 @@ class SeoLandingIndexView(View):
                     "description": _seo_value(page, "description", language),
                 }
             )
+        faq_items = SEO_INDEX_FAQ_HI if language == "hi" else SEO_INDEX_FAQ_EN
         page_title = (
-            "भगवद गीता मार्गदर्शिकाएँ: चिंता, करियर, रिश्ते और जीवन के प्रश्न"
-            if language == "hi"
-            else "Bhagavad Gita Guides For Anxiety, Career, Relationships, and Real Life Questions"
-        )
-        meta_description = (
-            "चिंता, करियर उलझन, रिश्तों और अन्य जीवन चुनौतियों के लिए केंद्रित भगवद गीता पेज देखें।"
+            "भगवद गीता एआई और गीता जीपीटी मार्गदर्शिकाएँ | चिंता, करियर, रिश्ते और जीवन के प्रश्न"
             if language == "hi"
             else (
-                "Explore focused Bhagavad Gita landing pages for anxiety, career confusion, relationships, "
-                "and other real-life challenges."
+                "Bhagavad Gita AI, Gita GPT, and Ask Gita Guides For Anxiety, Career, "
+                "Relationships, and Real Life Questions"
             )
+        )
+        meta_description = (
+            "भगवद गीता एआई, गीता जीपीटी या Ask Gita जैसी खोज करने वालों के लिए चिंता, करियर उलझन, "
+            "रिश्तों और जीवन चुनौतियों पर केंद्रित भगवद गीता मार्गदर्शिकाएँ देखें।"
+            if language == "hi"
+            else (
+                "Explore Bhagavad Gita AI, Gita GPT, and Ask Gita style landing pages for anxiety, "
+                "career confusion, relationships, and other real-life challenges."
+            )
+        )
+        meta_keywords = (
+            SEO_INTENT_KEYWORDS_HI
+            if language == "hi"
+            else SEO_INTENT_KEYWORDS_EN
         )
         page_heading = (
             "जीवन की वास्तविक समस्याओं के लिए भगवद गीता मार्गदर्शन"
@@ -811,6 +884,16 @@ class SeoLandingIndexView(View):
                 "for a personalized answer."
             )
         )
+        search_intent_copy = (
+            "यदि आप भगवद गीता एआई, गीता जीपीटी, Ask Gita, या कृष्ण से प्रश्न पूछने वाला टूल खोज रहे हैं, "
+            "तो यह पेज उसी इरादे के लिए बनाया गया है—पहले विषय चुनें, फिर पूरे ऐप में अपना सटीक प्रश्न पूछें।"
+            if language == "hi"
+            else (
+                "If you searched for Bhagavad Gita AI, Gita GPT, Ask Gita, or a Krishna guidance app, "
+                "this page is built for that same intent: start with a topic, then continue into the full "
+                "app to ask your exact question."
+            )
+        )
         structured_data = json.dumps(
             [
                 {
@@ -818,6 +901,12 @@ class SeoLandingIndexView(View):
                     "@type": "WebSite",
                     "name": "Bhagavad Gita Guide",
                     "url": site_url,
+                    "alternateName": [
+                        "Ask Bhagavad Gita",
+                        "Ask Gita",
+                        "Bhagavad Gita AI",
+                        "Gita GPT",
+                    ],
                 },
                 {
                     "@context": "https://schema.org",
@@ -835,15 +924,33 @@ class SeoLandingIndexView(View):
                         for topic in topics
                     ],
                 },
+                {
+                    "@context": "https://schema.org",
+                    "@type": "FAQPage",
+                    "mainEntity": [
+                        {
+                            "@type": "Question",
+                            "name": faq["question"],
+                            "acceptedAnswer": {
+                                "@type": "Answer",
+                                "text": faq["answer"],
+                            },
+                        }
+                        for faq in faq_items
+                    ],
+                },
             ],
             ensure_ascii=False,
         )
         context = {
             "page_title": page_title,
             "meta_description": meta_description,
+            "meta_keywords": meta_keywords,
             "page_heading": page_heading,
             "page_intro": page_intro,
             "topics": topics,
+            "faq_items": faq_items,
+            "search_intent_copy": search_intent_copy,
             "language": language,
             "canonical_url": canonical_url,
             "alternate_en_url": alternate_en_url,
@@ -886,6 +993,14 @@ class SeoLandingTopicView(View):
         breadcrumb_title = _seo_value(page, "topic_label", language)
         page_title = _seo_value(page, "title", language)
         meta_description = _seo_value(page, "description", language)
+        meta_keywords = (
+            f"{_seo_value(page, 'topic_label', language)}, "
+            + (
+                SEO_INTENT_KEYWORDS_HI
+                if language == "hi"
+                else SEO_INTENT_KEYWORDS_EN
+            )
+        )
         faq_items = page.get("faq", [])
         structured_data = json.dumps(
             [
@@ -942,6 +1057,7 @@ class SeoLandingTopicView(View):
         context = {
             "page_title": page_title,
             "meta_description": meta_description,
+            "meta_keywords": meta_keywords,
             "page_heading": _seo_value(page, "hero_title", language),
             "page_intro": _seo_value(page, "hero_body", language),
             "topic_label": _seo_value(page, "topic_label", language),

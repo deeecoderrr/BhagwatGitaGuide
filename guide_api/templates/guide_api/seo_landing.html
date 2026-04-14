@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{{ page_title }}</title>
   <meta name="description" content="{{ meta_description }}">
+  {% if meta_keywords %}
+    <meta name="keywords" content="{{ meta_keywords }}">
+  {% endif %}
   <meta name="robots" content="index,follow,max-image-preview:large">
   <link rel="canonical" href="{{ canonical_url|default:'' }}">
   <link rel="alternate" hreflang="en" href="{{ alternate_en_url|default:'' }}">
@@ -293,6 +296,18 @@
       color: var(--muted);
       font-size: 14px;
     }
+    .intent-strip {
+      margin-top: 24px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: rgba(255,255,255,0.03);
+      padding: 18px 20px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+    .intent-strip strong {
+      color: var(--gold);
+    }
     @media (max-width: 900px) {
       .hero, .grid { grid-template-columns: 1fr; }
       .shell { width: min(100% - 24px, 1180px); }
@@ -373,6 +388,9 @@
             </a>
           {% endfor %}
         </div>
+        {% if search_intent_copy %}
+          <div class="intent-strip">{{ search_intent_copy }}</div>
+        {% endif %}
       </section>
     {% else %}
       <div class="grid">

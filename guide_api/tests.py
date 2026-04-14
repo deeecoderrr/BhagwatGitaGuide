@@ -169,6 +169,9 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, 'rel="canonical"')
         self.assertContains(response, 'application/ld+json')
         self.assertContains(response, 'hreflang="hi"')
+        self.assertContains(response, 'name="keywords"')
+        self.assertContains(response, "Gita GPT")
+        self.assertContains(response, '"@type": "FAQPage"')
 
     def test_public_seo_topic_includes_canonical_and_json_ld(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
@@ -176,6 +179,7 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, 'rel="canonical"')
         self.assertContains(response, 'application/ld+json')
         self.assertContains(response, 'BreadcrumbList')
+        self.assertContains(response, 'name="keywords"')
 
     @override_settings(GOOGLE_SITE_VERIFICATION="token-abc-123")
     def test_public_seo_page_renders_google_verification_meta(self):

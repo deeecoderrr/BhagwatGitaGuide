@@ -4,6 +4,23 @@ Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
 
 ## Completed
 
+- SEO intent expansion against "Gita GPT / Ask Gita / Bhagavad Gita AI" search demand completed:
+  - inspected `gitagpt.org` and found its strongest advantage was not technical SEO depth,
+    but exact-match query coverage in homepage title/description for terms users search:
+    `gitagpt`, `gita gpt`, `ask gita`, and `bhagavad gita ai`
+  - updated our public SEO index page title and meta description to cover the same search
+    intent cluster more naturally, without low-quality keyword stuffing
+  - added optional `meta keywords` support to SEO landing pages and wired it into both
+    the public index page and topic pages
+  - expanded homepage structured data with `alternateName` entries:
+    `Ask Bhagavad Gita`, `Ask Gita`, `Bhagavad Gita AI`, `Gita GPT`
+  - added a visible intent-alignment content strip on the SEO index page so the phrases
+    people search also appear in indexable body copy
+  - added FAQ content + FAQPage schema on the SEO index page so Google gets explicit
+    answers around "Is this a Bhagavad Gita AI / Gita GPT style app?"
+  - this should help us compete for adjacent branded/generic searches while keeping the
+    page readable and aligned with the actual product
+
 - Custom domain HTTPS hardening completed:
   - identified that `https://askbhagavadgita.co.in/` had a valid TLS
     certificate, but the live response was still missing strict HTTPS headers
