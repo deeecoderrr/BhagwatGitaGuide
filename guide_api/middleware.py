@@ -42,3 +42,23 @@ class CanonicalHostRedirectMiddleware:
 
         return self.get_response(request)
 
+
+class MixedContentProtectionMiddleware:
+    """Add safe CSP directives to prevent/upgrade mixed content in browsers."""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        if settings.DEBUG:
+            return response
+
+        # This does not block any domains. It only upgrades accidental http://
+        # subresource requests to https:// and blocks mixed content if it can't
+        # be upgraded.
+        response.headers.setdefault(
+            "Content-Security-Policy",
+            "upgrade-insecure-requests; block-all-mixed-content",
+        )
+        return response

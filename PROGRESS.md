@@ -1,8 +1,24 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-12 (commit 40852d4, deployed to production version 22)
+Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
 
 ## Completed
+
+- Custom domain HTTPS hardening completed:
+  - identified that `https://askbhagavadgita.co.in/` had a valid TLS
+    certificate, but the live response was still missing strict HTTPS headers
+    that help browsers consistently treat the site as secure
+  - enabled `MixedContentProtectionMiddleware` in Django middleware so
+    production responses now emit a CSP with:
+    `upgrade-insecure-requests; block-all-mixed-content`
+  - enabled HSTS in production with preload-friendly settings:
+    - `SECURE_HSTS_SECONDS=31536000`
+    - `SECURE_HSTS_INCLUDE_SUBDOMAINS=True`
+    - `SECURE_HSTS_PRELOAD=True`
+  - tightened referrer policy to `strict-origin-when-cross-origin`
+  - this ensures browsers learn to use HTTPS for the domain, prevents accidental
+    mixed-content subresource loads, and reduces "Not Secure" behavior on the
+    new custom domain
 
 - Production guest chat resilience improved:
   - identified that guest-mode prod asks could blank back to the landing state
