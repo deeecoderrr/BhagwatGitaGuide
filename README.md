@@ -3,7 +3,7 @@
 DRF backend for a Bhagavad Gita–based life guidance app (RAG + OpenAI, auth, quota, growth analytics).
 
 See `PROGRESS.md` for live build status and next milestones.
-**Current production version: 22** (commit `40852d4`) — 118 tests passing.
+Run `make test` for the current test count (see `guide_api/tests.py`).
 
 ## Documentation
 
@@ -147,8 +147,15 @@ Versioning:
 - `PATCH /api/engagement/me/` (auth required)
 - `POST /api/ask/` (auth required)
 - `POST /api/follow-ups/` (auth required)
-- `POST /api/eval/retrieval/` (retrieval trace only, no generation)
+- `POST /api/eval/retrieval/` (auth required; retrieval trace only, no generation)
+- `POST /api/mantra/` (auth required)
 - `GET /api/daily-verse/`
+- `GET /api/chapters/` — list chapters (reader)
+- `GET /api/chapters/<chapter_number>/` — chapter detail + verse list
+- `GET /api/verses/<chapter>.<verse>/` — full verse + commentary
+- `GET /api/quote-art/styles/`, `POST /api/quote-art/generate/`,
+  `GET /api/quote-art/featured/` — same token rule as chapter browse (browser
+  without token OK; token auth requires Plus or Pro)
 - `GET /api/history/me/` (auth required)
 - `GET /api/history/<user_id>/` (auth required, owner-only)
 - `GET /api/feedback/` (auth required)
@@ -170,6 +177,11 @@ Versioning:
 Authentication:
 - Uses Django/DRF authentication (session or basic auth).
 - Also supports token auth via `Authorization: Token <token>`.
+- Chapter/verse **browse** and **quote-art** JSON endpoints: same-origin web
+  requests without an `Authorization` header are allowed (chat UI). Requests
+  that authenticate with a **token** require **Plus or Pro**; **Free** token
+  clients receive `403`. See `guide_api/permissions.py` —
+  `GitaBrowseAPIPermission`.
 - `ask`, `history`, and `feedback` endpoints are tied to authenticated user.
 - `ask` and `follow-ups` accept `language` (`en` or `hi`) and default to
   `en` when omitted.

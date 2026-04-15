@@ -1,8 +1,8 @@
 # Razorpay Payment Integration - Comprehensive Analysis
 
-**Status**: ✅ **COMPLETE & TESTED** (as of 2026-04-11)
-**Test Coverage**: 21 dedicated payment tests + full end-to-end flow validation
-**Total Tests Passing**: 107/107 (86 existing + 21 new payment tests)
+**Status**: ✅ **COMPLETE & TESTED** (as of 2026-04-11; payment flows unchanged since)
+**Test Coverage**: dedicated payment scenarios in `guide_api/tests.py` plus full-suite runs
+**Total tests**: run `make test` — the full `guide_api` count grows over time; payment tests remain included
 
 ---
 

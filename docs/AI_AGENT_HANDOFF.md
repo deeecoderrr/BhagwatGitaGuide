@@ -51,7 +51,7 @@ Useful `Makefile` targets: `make run`, `make test`, `make setup`,
 
 | Area | Primary files |
 |------|-----------------|
-| HTTP / API surface | `guide_api/views.py`, `guide_api/urls.py` |
+| HTTP / API surface | `guide_api/views.py`, `guide_api/urls.py`, `guide_api/permissions.py` |
 | Retrieval + LLM + safety | `guide_api/services.py` |
 | Serializers / validation | `guide_api/serializers.py` |
 | Models | `guide_api/models.py` |
@@ -85,15 +85,21 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - `GET|PATCH engagement/me/` — streak, reminder prefs (delivery not implemented yet)
 - `POST ask/` — main Q&A (structured JSON: guidance, meaning, actions, reflection, verse_references, follow_ups, engagement snapshot, quota fields)
 - `POST follow-ups/` — contextual follow-up prompts
-- `POST mantra/` — verse as mantra for mood (calm/focus/courage/peace/strength/clarity)
+- `POST mantra/` — verse as mantra for mood (calm/focus/courage/peace/strength/clarity); **auth required**
+- `GET|POST quote-art/...` — styles, generate, featured; same **browser vs token** rule as chapter browse
 - `GET chapters/` — list all 18 chapters with metadata for browsing
 - `GET chapters/<chapter_number>/` — chapter detail with verse list
 - `GET verses/<chapter>.<verse>/` — full verse detail with multi-author commentary
+  - **Browse policy:** same-origin / browser-style `GET` (no `Authorization`
+    header) is allowed so the chat UI reader works for guests and all plans.
+    Requests authenticated with `Authorization: Token …` require **Plus or
+    Pro**; **Free** token clients get `403` (`GitaBrowseAPIPermission` in
+    `guide_api/permissions.py`).
 - `GET|POST feedback/`
 - `POST support/` — guest/auth support ticket intake
 - `GET|POST saved-reflections/`, `DELETE saved-reflections/<id>/`
 - `GET daily-verse/`, history under `history/me/`, `history/<user_id>/` (owner)
-- `POST eval/retrieval/` — retrieval trace / benchmark (no generation)
+- `POST eval/retrieval/` — retrieval trace / benchmark (no generation); **auth required**
 - `GET|POST chat-ui/` — browser test UI (forms, CSRF, session-backed UX,
   separate threads, and sidebar conversation selection)
 
@@ -137,6 +143,10 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - Never commit real API keys or production `SECRET_KEY`. Use `.env` locally; `.env.example` documents variables only.
 - Session-backed payment/subscription endpoints should keep normal CSRF protection enabled. Do not reintroduce CSRF-exempt session auth for billing actions.
 - Production must set an explicit `SECRET_KEY`; the app now treats the old fallback key as invalid when `DEBUG=false`.
+- Chapter/verse browse APIs are not intended as a public token-authenticated
+  free tier: token auth on those routes requires Plus or Pro (see
+  `GitaBrowseAPIPermission`). Unguarded anonymous HTTP access is unchanged for
+  the web reader; further abuse mitigation would be rate limits or edge rules.
 
 ---
 
@@ -145,9 +155,9 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 **Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI).
 
 Deployment/ops snapshot:
-- live deployment on Fly is active (version 22, commit `40852d4`)
-- Neon-backed Postgres connectivity verified; all 16 migrations applied
-- 118 tests passing
+- live deployment on Fly is active
+- Neon-backed Postgres connectivity verified; migrations applied as released
+- run `make test` locally for current count (`guide_api` suite is the main gate)
 - if app appears slow after idle, this is expected in free mode due to cold starts
 - if `/api/*` loops with repeated 301 redirects, re-check `SECURE_PROXY_SSL_HEADER`
 - if shell shows SQLite in production unexpectedly, validate Fly `DATABASE_URL`
@@ -173,7 +183,7 @@ Deployment/ops snapshot:
 
 ---
 
-*Last aligned with repo state: 2026-04-12 (commit `40852d4`). Regenerate or edit this file when major architecture or endpoints change.*
+*Last aligned with repo state: 2026-04-15. Edit this file when architecture, permissions, or major endpoints change.*
 
 Current operational note:
 - the app supports `DISABLE_ALL_QUOTAS=true` as a temporary operator switch to

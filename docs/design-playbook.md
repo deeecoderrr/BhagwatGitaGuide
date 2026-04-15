@@ -1,6 +1,6 @@
 # Design Playbook
 
-Last reviewed: 2026-04-11
+Last reviewed: 2026-04-15
 
 This document helps AI coding agents choose a fitting UI direction before
 editing the frontend. It is especially important for automated redesign or UX

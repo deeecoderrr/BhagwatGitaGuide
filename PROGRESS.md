@@ -1,8 +1,33 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-14 (HTTPS hardening in progress for custom domain)
+Last updated: 2026-04-15
 
 ## Completed
+
+- Tightened open API surface:
+  - `POST /api/eval/retrieval/` now requires **authentication** (retrieval work
+    no longer anonymously callable)
+  - `POST /api/mantra/` now requires **authentication**
+  - **Quote art** JSON routes (`quote-art/styles`, `generate`, `featured`) use
+    the same **`GitaBrowseAPIPermission`** rule as chapter browse (browser OK
+    without token; Free **token** → `403`)
+
+- Gita browse API access control + docs sync:
+  - `GET /api/chapters/`, `GET /api/chapters/<n>/`, `GET /api/verses/...` (and
+    `/api/v1/` aliases) use `GitaBrowseAPIPermission` (`guide_api/permissions.py`):
+    browser requests **without** `Authorization: Token` remain allowed (chat UI
+    reader for guests and signed-in users); **token-authenticated** calls require
+    **Plus or Pro**, **Free** plan tokens receive `403` to limit external API
+    abuse on hosted infrastructure
+  - regression tests: anonymous GET still `200`, token+Free `403`, token+Pro `200`
+  - `README.md`, `AGENTS.md`, `docs/AI_AGENT_HANDOFF.md`, `docs/USER_GUIDE.md`,
+    `docs/DEVELOPER_GUIDE.md` updated to describe the policy
+
+- Chat UI guest parity (landing):
+  - guests see **Today's Signal** on the guest home hero (same card behavior as
+    signed-in; driven by `/api/daily-verse/`)
+  - **Read Gita** is available from top nav and landing cards for guests, not
+    only signed-in users (shared descriptive copy for all users)
 
 - Ask/chat guidance quality pass:
   - Cost controls (default-on / opt-in): Django `cache` for duplicate query embeddings

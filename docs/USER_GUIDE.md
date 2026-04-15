@@ -81,6 +81,24 @@ Use token in header for protected endpoints:
 
 `Authorization: Token your-token-value`
 
+### Browse chapters and verses (reader)
+
+- `GET /api/chapters/`
+- `GET /api/chapters/<chapter_number>/`
+- `GET /api/verses/<chapter>.<verse>/`
+
+Same routes work under `/api/v1/...`.
+
+**Web / chat UI:** call these from the app with normal same-origin `fetch`
+(without an `Authorization` token) so the reader works for guests and all
+plans.
+
+**Mobile or scripts using a token:** you must be on **Plus** or **Pro**; **Free**
+plan users receive `403 Forbidden` on these browse endpoints and on
+**quote-art** JSON routes when the request includes `Authorization: Token ...`.
+Upgrade the subscription before relying on token-based access to chapter/verse
+or quote-art JSON.
+
 `GET /api/auth/me/` also returns plan usage info:
 - `plan` (`free` or `pro`)
 - `daily_limit`
@@ -100,6 +118,15 @@ make auth-flow-benchmark-summary USERNAME=demo-user PASSWORD=demo-pass-123
 ### Health check
 
 - `GET /api/health/`
+
+### Retrieval eval (developers / QA)
+
+- `POST /api/eval/retrieval/` requires a logged-in user (session or token). It
+  is not available to anonymous callers.
+
+### Mantra by mood
+
+- `POST /api/mantra/` requires authentication (same as `/api/ask/`).
 
 ### Ask for guidance
 
@@ -139,6 +166,10 @@ On `GET /api/chat-ui/`:
 - logged-in users get saved conversation history scoped to their own account
 - only logged-in users can use the plan selector, feedback form, saved
   reflections, and conversation sidebar/history
+- on the **landing** view, guests see **Today's Signal** (daily verse card) and
+  can open **Read Gita** from the top nav or landing cards, same entry points
+  as signed-in users; the reader loads chapter/verse data via same-origin API
+  calls without a token
 
 `chat-ui` also includes:
 - a `Today` card in the sidebar for a daily spiritual framing moment

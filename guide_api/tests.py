@@ -783,6 +783,15 @@ class GuideApiTests(APITestCase):
             1,
         )
 
+    def test_retrieval_eval_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/eval/retrieval/",
+            {"message": "test", "mode": "simple"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_retrieval_eval_endpoint_returns_trace(self):
         payload = {
             "message": "I get angry quickly with my family",
@@ -2072,6 +2081,15 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertEqual(response.data["error"]["code"], "verse_not_found")
 
+    def test_mantra_endpoint_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/mantra/",
+            {"mood": "calm", "language": "en"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
     def test_mantra_endpoint_returns_verse_for_mood(self):
         """Test mantra endpoint returns appropriate verse."""
         # Create all verses that might be selected for 'calm' mood
@@ -2124,6 +2142,58 @@ class GuideApiTests(APITestCase):
     def test_chapters_v1_alias_works(self):
         """Test chapter listing works via /api/v1/ alias."""
         response = self.client.get("/api/v1/chapters/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("chapters", response.data)
+
+    def test_gita_browse_unauthenticated_get_still_works(self):
+        """Browser-style requests without a token must load chapter browse data."""
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/chapters/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("chapters", response.data)
+
+    def test_gita_browse_token_free_plan_forbidden(self):
+        """Token clients on Free cannot use chapter/verse browse APIs."""
+        self.client.force_authenticate(user=None)
+        login_response = self.client.post(
+            "/api/auth/login/",
+            {
+                "username": "demo-user",
+                "password": "demo-pass-123",
+            },
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        token = login_response.data["token"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {token}")
+        UserSubscription.objects.update_or_create(
+            user=self.user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+        response = self.client.get("/api/chapters/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_gita_browse_token_pro_plan_allowed(self):
+        """Token clients with Pro may use chapter browse APIs."""
+        self.client.force_authenticate(user=None)
+        login_response = self.client.post(
+            "/api/auth/login/",
+            {
+                "username": "demo-user",
+                "password": "demo-pass-123",
+            },
+            format="json",
+        )
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        token = login_response.data["token"]
+        self.client.credentials(HTTP_AUTHORIZATION=f"Token {token}")
+        plan_response = self.client.post(
+            "/api/auth/plan/",
+            {"plan": "pro"},
+            format="json",
+        )
+        self.assertEqual(plan_response.status_code, status.HTTP_200_OK)
+        response = self.client.get("/api/chapters/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("chapters", response.data)
 

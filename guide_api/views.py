@@ -76,6 +76,7 @@ from guide_api.serializers import (
     VerseDetailSerializer,
     VerseSerializer,
 )
+from guide_api.permissions import GitaBrowseAPIPermission
 from guide_api.services import (
     build_chapter_explanation,
     build_guidance,
@@ -2891,6 +2892,8 @@ class FollowUpGenerateView(APIView):
 class RetrievalEvalView(APIView):
     """Retrieval debugging endpoint without response generation."""
 
+    permission_classes = [IsAuthenticated]
+
     @staticmethod
     def _serialize_trace(retrieval):
         """Serialize retrieval result object into API-safe JSON payload."""
@@ -3350,6 +3353,8 @@ class DailyVerseView(APIView):
 class ChapterListView(APIView):
     """List all 18 chapters with metadata for browsing screen."""
 
+    permission_classes = [GitaBrowseAPIPermission]
+
     def get(self, request):
         """Return all chapters with name, verse count, and translations."""
         chapters = get_all_chapters()
@@ -3358,6 +3363,8 @@ class ChapterListView(APIView):
 
 class ChapterDetailView(APIView):
     """Get full detail for a single chapter including summary."""
+
+    permission_classes = [GitaBrowseAPIPermission]
 
     def get(self, request, chapter_number: int):
         """Return chapter metadata, summary, and verse list."""
@@ -3379,6 +3386,8 @@ class ChapterDetailView(APIView):
 class VerseDetailView(APIView):
     """Get full detail for a single verse with all commentaries."""
 
+    permission_classes = [GitaBrowseAPIPermission]
+
     def get(self, request, chapter: int, verse: int):
         """Return verse with sanskrit, translations, and multi-author commentary."""
         verse_data = get_verse_detail(chapter, verse)
@@ -3393,6 +3402,8 @@ class VerseDetailView(APIView):
 
 class MantraView(APIView):
     """Generate a mantra/verse recommendation based on mood."""
+
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         """Return a verse as mantra for the requested mood."""
@@ -3416,6 +3427,8 @@ class MantraView(APIView):
 class QuoteArtStylesView(APIView):
     """List available quote art styles for UI selection."""
 
+    permission_classes = [GitaBrowseAPIPermission]
+
     def get(self, request):
         """Return all quote art style options."""
         styles = get_quote_art_styles()
@@ -3424,6 +3437,8 @@ class QuoteArtStylesView(APIView):
 
 class QuoteArtView(APIView):
     """Generate shareable quote art data from a Gita verse."""
+
+    permission_classes = [GitaBrowseAPIPermission]
 
     def post(self, request):
         """Generate quote art data for mobile rendering."""
@@ -3451,6 +3466,8 @@ class QuoteArtView(APIView):
 
 class FeaturedQuotesView(APIView):
     """Return featured verse quotes for art creation suggestions."""
+
+    permission_classes = [GitaBrowseAPIPermission]
 
     def get(self, request):
         """Suggest popular verses for quote art creation."""

@@ -452,10 +452,6 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .hero.guest-home-hero .hero-blessing {
-      display: none;
-    }
-
     .guest-access-panel .split {
       align-items: start;
     }
@@ -4098,21 +4094,21 @@
             <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
           </select>
         </form>
+        <button
+          type="button"
+          class="nav-btn nav-btn-secondary"
+          data-open-gita-reader
+          data-language="{{ language|default:'en' }}"
+        >
+          <span class="asset-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 7v14" />
+              <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+            </svg>
+          </span>
+          {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
+        </button>
         {% if request.session.chat_ui_auth_username %}
-          <button
-            type="button"
-            class="nav-btn nav-btn-secondary"
-            data-open-gita-reader
-            data-language="{{ language|default:'en' }}"
-          >
-            <span class="asset-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 7v14" />
-                <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-              </svg>
-            </span>
-            {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
-          </button>
           <form method="post" class="nav-inline-form">
             {% csrf_token %}
             <input type="hidden" name="action" value="logout">
@@ -5326,28 +5322,26 @@
                       </div>
                     </div>
 
-                    {% if request.session.chat_ui_auth_username %}
-                      <div class="landing-card landing-card-gita" data-open-gita-reader data-language="{{ language|default:'en' }}">
-                        <div class="landing-card-icon">
-                          <span class="asset-icon large" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                              <path d="M12 7v14" />
-                              <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-                            </svg>
-                          </span>
-                        </div>
-                        <div class="landing-card-title">
-                          {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
-                        </div>
-                        <div class="landing-card-desc">
-                          {% if language == "hi" %}
-                            18 अध्याय, 700 श्लोक और विस्तृत व्याख्या पढ़ें
-                          {% else %}
-                            Explore all 18 chapters, 700 verses, and rich commentary
-                          {% endif %}
-                        </div>
+                    <div class="landing-card landing-card-gita" data-open-gita-reader data-language="{{ language|default:'en' }}">
+                      <div class="landing-card-icon">
+                        <span class="asset-icon large" aria-hidden="true">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 7v14" />
+                            <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+                          </svg>
+                        </span>
                       </div>
-                    {% endif %}
+                      <div class="landing-card-title">
+                        {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
+                      </div>
+                      <div class="landing-card-desc">
+                        {% if language == "hi" %}
+                          18 अध्याय, 700 श्लोक और विस्तृत व्याख्या पढ़ें
+                        {% else %}
+                          Explore all 18 chapters, 700 verses, and rich commentary
+                        {% endif %}
+                      </div>
+                    </div>
                   </div>
 
                   <div class="landing-growth">
@@ -6583,6 +6577,22 @@
         scrollRoot.addEventListener("scroll", maybeLoadMore);
       }
 
+      /**
+       * Fetch for same-origin routes guarded by GitaBrowseAPIPermission: browser
+       * access must not send Authorization: Token (Free plan would get 403).
+       * Always sends cookies (session) for CSRF on POST.
+       */
+      function fetchPublicBrowse(url, options = {}) {
+        const { headers: rawHeaders, ...rest } = options;
+        const h = new Headers(rawHeaders || {});
+        h.delete("Authorization");
+        return fetch(url, {
+          ...rest,
+          credentials: "same-origin",
+          headers: h,
+        });
+      }
+
       // Quote Art functionality
       function initQuoteArt() {
         const panel = document.querySelector('[data-quote-art-panel]');
@@ -6678,7 +6688,7 @@
               headers['X-CSRFToken'] = csrfToken;
             }
 
-            const response = await fetch('/api/v1/quote-art/generate/', {
+            const response = await fetchPublicBrowse('/api/v1/quote-art/generate/', {
               method: 'POST',
               headers: headers,
               body: JSON.stringify({
@@ -6689,8 +6699,21 @@
             });
 
             if (!response.ok) {
-              const errorData = await response.json();
-              throw new Error(errorData.message || 'Failed to generate quote art');
+              let detail = language === 'hi'
+                ? 'कला बनाने में समस्या आई। कृपया फिर से प्रयास करें।'
+                : 'Could not generate quote art. Please try again.';
+              try {
+                const errorData = await response.json();
+                detail = (
+                  errorData.detail
+                  || errorData.message
+                  || (errorData.error && errorData.error.message)
+                  || detail
+                );
+              } catch (e) {
+                /* use default detail */
+              }
+              throw new Error(detail);
             }
 
             const data = await response.json();
@@ -6815,6 +6838,7 @@
             shareVerse: 'Share',
             createArt: 'Create Art',
             verseCount: 'verses',
+            loadFailed: 'Could not load this section. Please try again.',
           },
           hi: {
             title: 'श्रीमद्भगवद्गीता',
@@ -6841,6 +6865,7 @@
             shareVerse: 'शेयर करें',
             createArt: 'कला बनाएं',
             verseCount: 'श्लोक',
+            loadFailed: 'यह भाग लोड नहीं हो सका। कृपया पुनः प्रयास करें।',
           }
         };
         const t = labels[lang] || labels.en;
@@ -6905,12 +6930,16 @@
               return;
             }
 
-            const response = await fetch('/api/v1/chapters/');
+            const response = await fetchPublicBrowse('/api/v1/chapters/');
+            if (!response.ok) {
+              content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
+              return;
+            }
             const data = await response.json();
             chaptersCache = data.chapters;
             renderChapters(data.chapters);
           } catch (error) {
-            content.innerHTML = `<div class="message error">Failed to load chapters.</div>`;
+            content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
           }
         }
 
@@ -6973,11 +7002,15 @@
           updateNav('verses', chapterNum);
 
           try {
-            const response = await fetch(`/api/v1/chapters/${chapterNum}/`);
+            const response = await fetchPublicBrowse(`/api/v1/chapters/${chapterNum}/`);
+            if (!response.ok) {
+              content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
+              return;
+            }
             const data = await response.json();
             renderChapterDetail(data);
           } catch (error) {
-            content.innerHTML = `<div class="message error">Failed to load chapter.</div>`;
+            content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
           }
         }
 
@@ -7045,11 +7078,15 @@
           }
 
           try {
-            const response = await fetch(`/api/v1/verses/${chapter}.${verse}/`);
+            const response = await fetchPublicBrowse(`/api/v1/verses/${chapter}.${verse}/`);
+            if (!response.ok) {
+              content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
+              return;
+            }
             const data = await response.json();
             renderVerseDetail(data);
           } catch (error) {
-            content.innerHTML = `<div class="message error">Failed to load verse.</div>`;
+            content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
           }
         }
 
@@ -7746,7 +7783,7 @@
         const referenceNode = card.querySelector("[data-daily-signal-reference]");
         const language = card.dataset.language || "en";
 
-        fetch(`/api/daily-verse/?language=${encodeURIComponent(language)}`)
+        fetchPublicBrowse(`/api/daily-verse/?language=${encodeURIComponent(language)}`)
           .then((response) => {
             if (!response.ok) {
               throw new Error("daily_verse_fetch_failed");

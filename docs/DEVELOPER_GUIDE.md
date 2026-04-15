@@ -14,6 +14,8 @@ API compatibility strategy:
   `AskEvent`, `SavedReflection`, `WebAudienceProfile`, `GrowthEvent`)
 - `guide_api/services.py`: retrieval, safety checks, and guidance build
 - `guide_api/views.py`: API/UI endpoints and orchestration
+- `guide_api/permissions.py`: DRF permission classes (e.g.
+  `GitaBrowseAPIPermission` on chapter/verse browse routes)
 - `guide_api/management/commands/`: import, theme tagging, embeddings
 - `guide_api/templates/guide_api/chat_ui.html`: manual test UI
 
@@ -137,6 +139,7 @@ Use this map to understand the exact call chain for each endpoint.
 
 1. `guide_api/urls.py` -> `RetrievalEvalView`
 2. `guide_api/views.py` -> `RetrievalEvalView.post()`
+3. Permission: `IsAuthenticated` (not publicly callable)
 3. Input validation with `RetrievalEvalRequestSerializer`
 4. Retrieval paths:
    - `mode=simple|deep` -> `retrieve_verses_with_trace()`
@@ -154,6 +157,18 @@ Use this map to understand the exact call chain for each endpoint.
 2. `guide_api/views.py` -> `DailyVerseView.get()`
 3. Reads first verse from DB, or seeds/fetches via `retrieve_verses()`
 4. Returns one verse + short reflection.
+
+### `GET /api/chapters/`, `GET /api/chapters/<n>/`, `GET /api/verses/<ch>.<v>/`
+
+1. `guide_api/urls.py` -> `ChapterListView`, `ChapterDetailView`, `VerseDetailView`
+2. `guide_api/views.py` -> corresponding `get()` handlers; data from
+   `get_all_chapters()`, `get_chapter_detail()`, `get_chapter_verses()`,
+   `get_verse_detail()` in `services.py`
+3. Permission: `GitaBrowseAPIPermission` (`guide_api/permissions.py`):
+   - if `request.auth` is **unset** (no token), allow — supports browser reader
+     and same-origin `fetch` without `Authorization`
+   - if `request.auth` is set (**Token** authentication), require
+     `UserSubscription.plan` in `{plus, pro}`; **free** returns `403`
 
 ### `GET /api/history/<user_id>/`
 
