@@ -3271,26 +3271,42 @@ class DailyVerseView(APIView):
 
         detail = get_verse_detail(verse.chapter, verse.verse) or {}
 
-        english_quote = cls._clean_signal_text(detail.get("english_meaning", ""))
-        hindi_quote = cls._clean_signal_text(detail.get("slok", ""))
-        english_meaning = cls._clean_signal_text(
+        sanskrit_sloka = cls._clean_signal_text(detail.get("slok", ""))
+        transliteration = cls._clean_signal_text(detail.get("transliteration", ""))
+        english_prose = cls._clean_signal_text(detail.get("english_meaning", ""))
+        english_translation = cls._clean_signal_text(
             str(detail.get("translation", "")).strip()
             or verse.translation.strip()
         )
         hindi_meaning = cls._clean_signal_text(detail.get("hindi_meaning", ""))
         commentary = cls._clean_signal_text(verse.commentary or "")
+        # Meaning line: UI language — English gloss vs Hindi gloss (not duplicate prose).
         meaning = (
             cls._compact_signal_text(hindi_meaning, 260)
             if language == "hi" and hindi_meaning
-            else cls._compact_signal_text(english_meaning, 260)
+            else cls._compact_signal_text(english_translation, 260)
+            or cls._compact_signal_text(english_prose, 260)
             or cls._compact_signal_text(commentary, 260)
         )
-        quote = (
-            cls._compact_signal_text(hindi_quote, 260)
-            if language == "hi" and hindi_quote
-            else cls._compact_signal_text(english_quote, 260)
-            or cls._compact_signal_text(english_meaning, 260)
-        )
+        # Quote line: always show the śloka in Devanagari when available, then
+        # IAST/transliteration; avoid repeating the same English as ``meaning``.
+        quote = cls._compact_signal_text(sanskrit_sloka, 260)
+        if not quote:
+            quote = cls._compact_signal_text(transliteration, 260)
+        if not quote:
+            quote = (
+                cls._compact_signal_text(hindi_meaning, 260)
+                if language == "hi" and hindi_meaning
+                else cls._compact_signal_text(english_prose, 260)
+                or cls._compact_signal_text(english_translation, 260)
+            )
+        if (
+            meaning
+            and quote
+            and quote.strip() == meaning.strip()
+            and transliteration
+        ):
+            quote = cls._compact_signal_text(transliteration, 260)
         reflection = (
             "आज इस श्लोक को अपने एक निर्णय, एक प्रतिक्रिया, और एक कर्म में उतारने का अभ्यास करें।"
             if language == "hi"

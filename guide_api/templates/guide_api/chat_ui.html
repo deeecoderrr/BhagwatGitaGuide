@@ -3593,6 +3593,8 @@
       z-index: 1;
       padding-bottom: 12px;
       margin-bottom: 12px;
+      padding-inline: 4px 6px;
+      gap: 18px;
       background: linear-gradient(180deg, rgba(8, 14, 25, 0.96), rgba(8, 14, 25, 0.82) 72%, transparent);
       backdrop-filter: blur(10px);
     }
@@ -3830,6 +3832,9 @@
       justify-items: end;
       gap: 10px;
       min-width: 0;
+      padding-left: 8px;
+      padding-right: max(14px, env(safe-area-inset-right, 0px));
+      box-sizing: border-box;
     }
 
     .conversation-toolbar-main,
@@ -3842,28 +3847,10 @@
     }
 
     .conversation-toolbar-meta {
-      padding: 8px 10px;
+      padding: 10px 14px 10px 16px;
       border-radius: 16px;
       border: 1px solid rgba(255, 255, 255, 0.08);
       background: rgba(255, 255, 255, 0.03);
-    }
-
-    .conversation-language-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(7, 14, 25, 0.72);
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-
-    .conversation-language-pill strong {
-      color: #eef5ff;
-      font-weight: 600;
     }
 
     .conversation-reset-btn {
@@ -4064,7 +4051,6 @@
         width: 100%;
       }
 
-      .conversation-language-pill,
       .conversation-reset-btn {
         width: 100%;
         justify-content: center;
@@ -5116,17 +5102,13 @@
                   </a>
                 </div>
               </div>
-              <div class="conversation-toolbar-meta">
-                <span class="conversation-language-pill">
-                  {% if language == "hi" %}भाषा{% else %}Language{% endif %}:
-                  <strong>{{ language|default:"en" }}</strong>
-                </span>
-                {% if active_conversation_id %}
+              {% if active_conversation_id %}
+                <div class="conversation-toolbar-meta">
                   <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="conversation-reset-btn">
                     {% if language == "hi" %}नई बातचीत{% else %}Start New{% endif %}
                   </a>
-                {% endif %}
-              </div>
+                </div>
+              {% endif %}
             </div>
           </div>
 
