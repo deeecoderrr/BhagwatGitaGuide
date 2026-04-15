@@ -22,7 +22,86 @@ from guide_api.models import Verse, VerseSynthesis
 
 logger = logging.getLogger(__name__)
 _seed_synced = False
-SUPPORTED_LANGUAGE_CODES = {"en", "hi"}
+SUPPORTED_LANGUAGE_CODES = {"en", "hi", "hinglish"}
+
+# Roman Hindi tokens often mixed with English (Hinglish). Used when UI language
+# is English but the user writes in casual Romanized Hindi.
+_HINGLISH_LEXICON = frozenset({
+    "aaj", "aane", "aapse", "aap", "aapka", "aapke", "aapko", "aati", "aaya",
+    "aaye", "abhi", "agar", "aisa", "aise", "aisi", "andar", "apna", "apne",
+    "apni", "aur", "bahut", "bas", "bata", "batao", "bataiye", "bhi", "bilkul",
+    "bura", "chaahiye", "chaiye", "chahiye", "chal", "chale", "chalta", "chalo",
+    "chhod", "chhodo", "dikkat", "dil", "dimaag", "din", "dunga", "dungi",
+    "dukh", "ek", "galat", "ghar", "gussa", "hai", "hain", "halat", "ham",
+    "hamara", "hamare", "hamko", "han", "haan", "hoga", "hogi", "hoon", "ho",
+    "hoga", "hua", "hue", "hum", "humko", "jaisa", "jaise", "jaana", "jab",
+    "jaldi", "jindagi", "zindagi", "kab", "kabhi", "karna", "karte", "karti",
+    "karun", "karu", "kar", "karke", "karo", "karta", "karti", "kaise", "kaisa",
+    "kaisi", "kuch", "kuchh", "kyun", "kyu", "kya", "khud", "lag", "lagta",
+    "lagti", "lagte", "liye", "lo", "mat", "matlab", "mujhe", "mujhko", "mera",
+    "meri", "mere", "mana", "mann", "mein", "main", "mai", "mil", "mila",
+    "nahi", "nahin", "na", "pata", "par", "pehle", "phir", "pyaar", "pyar",
+    "raat", "raha", "rahe", "rahi", "raho", "raha", "reh", "sab", "sabse",
+    "saath", "samajh", "samajhta", "samajhti", "samay", "sahi", "sach", "se",
+    "sirf", "soch", "sochta", "sochti", "suno", "tab", "tera", "teri", "tere",
+    "tum", "tumhara", "tumhari", "tumko", "tumhe", "theek", "thik", "thi",
+    "the", "tha", "thi", "tension", "pareshaan", "pareshan", "shaanti", "shanti",
+    "sakta", "sakti", "sakte", "sabko", "unko", "unhe", "unka", "usi", "uska",
+    "uski", "uske", "uss", "usse", "waqt", "waise", "waisa", "wahi", "yeh",
+    "ye", "yahi", "zaroor", "zyada", "zada", "baar", "baarish", "bekaar",
+    "bekar", "bhagwan", "bhagwan", "bhool", "bura", "cheez", "darr", "dar",
+    "dekho", "dekha", "dost", "dosti", "duniya", "fir", "fikar", "galat",
+    "ghabra", "har", "humne", "humko", "izzat", "jhoot", "jhooth", "kaha",
+    "kahaa", "kahin", "kam", "karne", "khushi", "kitna", "kitni", "koi",
+    "koshish", "kripya", "lagao", "ladai", "ladna", "maaf", "mafi", "mano",
+    "manta", "mat", "mehnat", "milna", "milta", "milti", "mujhse", "naam",
+    "neeche", "nikal", "pakka", "pal", "pehchaan", "pyaara", "pyaari",
+    "qismat", "kismat", "ro", "rona", "ruk", "rukna", "sachchi", "sachha",
+    "samay", "samjho", "shaam", "shuru", "sir", "subah", "sukh", "taaki",
+    "tak", "tarah", "tha", "the", "thoda", "thodi", "toh", "to", "tyohar",
+    "udhar", "uff", "ufff", "uljhan", "upar", "waala", "waale", "wali",
+    "wala", "wali", "wale", "yaad", "yaar", "yahan", "yeh", "yun", "yoon",
+})
+
+
+def _devanagari_letter_ratio(text: str) -> float:
+    """Share of alphabetic characters that are Devanagari (Hindi script)."""
+    letters = [c for c in text if c.isalpha()]
+    if not letters:
+        return 0.0
+    dev = sum(0x0900 <= ord(c) <= 0x097F for c in letters)
+    return dev / len(letters)
+
+
+def _detect_roman_hinglish(text: str) -> bool:
+    """True when the message is mostly Latin script but uses Roman Hindi."""
+    raw = re.findall(r"[a-zA-Z]+", str(text or "").lower())
+    if len(raw) < 2:
+        return False
+    hits = sum(1 for w in raw if w in _HINGLISH_LEXICON)
+    if hits < 2:
+        return False
+    return hits >= 3 or (hits / len(raw)) >= 0.18
+
+
+def resolve_guidance_language(requested_language: str, message: str) -> str:
+    """Map UI language + message script/register to a guidance language code.
+
+    When the user selects English but writes in Roman Hinglish, answers should
+    come back in the same casual Roman Hindi + English mix. When they write in
+    Devanagari with English UI selected, prefer full Hindi.
+    """
+    base = _normalize_language(requested_language)
+    if base == "hi":
+        return "hi"
+    if base != "en":
+        return base
+    msg = str(message or "").strip()
+    if _devanagari_letter_ratio(msg) >= 0.18:
+        return "hi"
+    if _detect_roman_hinglish(msg):
+        return "hinglish"
+    return "en"
 VERSE_SYNTHESIS_SCHEMA_VERSION = "v2"
 _verse_quote_cache: dict[str, dict[str, str]] | None = None
 _verse_additional_angle_cache: dict[str, list[dict[str, str]]] | None = None
@@ -2368,6 +2447,7 @@ def _chapter_perspective(*, chapter: int, language: str) -> str:
     language = _normalize_language(language)
     if language == "hi":
         return CHAPTER_PERSPECTIVE_HI.get(chapter, CHAPTER_PERSPECTIVE_HI[2])
+    # English and Hinglish prompts use the same English chapter blurbs.
     return CHAPTER_PERSPECTIVE_EN.get(chapter, CHAPTER_PERSPECTIVE_EN[2])
 
 
@@ -2879,6 +2959,14 @@ def _guidance_with_primary_quote(
             if is_plain
             else f"गीता {ref} में कृष्ण कहते हैं: \"{quote}\""
         )
+    elif language == "hinglish":
+        prefix = (
+            f"Bhagavad Gita {ref}: \"{quote}\""
+            if is_plain
+            else (
+                f"Bhagavad Gita {ref} mein Krishna kehte hain: \"{quote}\""
+            )
+        )
     else:
         prefix = (
             f"Bhagavad Gita {ref}: \"{quote}\""
@@ -2943,6 +3031,33 @@ def _build_mortality_fallback(
             "केवल विश्वसनीय समाचार स्रोत देखो; भय बढ़ाने वाली सूचनाओं से दूर रहो।",
         ]
         reflection = "क्या मैं कल्पित विनाश में जी रहा हूँ, या इस क्षण में स्थिरता और विवेक के साथ?"
+    elif language == "hinglish":
+        guidance = (
+            "Dost, tumhare dil mein war, destruction aur death ka darr hai. "
+            "Gita bilkul aisi hi battlefield par boli gayi — Kurukshetra — jahan "
+            "Arjuna bhi waise hi freeze ho gaya tha. Krishna ne sabse pehle "
+            "yeh sikhaya: atma na kabhi paida hoti hai na marti (2.20); shastra "
+            "use kaat nahi sakte, agni jala nahi sakti (2.23). Sharir mortal hai, "
+            "par tumhari sabse geheri reality destruction se pare hai. Krishna kehte "
+            f"hain: Ma shuchah — despair mat karo (18.66). Dar ko apni wisdom par "
+            f"hawi mat hone do. In verses se direction lo: {refs}."
+        )
+        meaning = (
+            "Gita ke hisaab se destruction shuru hota hai weapons se nahi, mind ke "
+            "andar — attachment, desire, anger, delusion ki chain se (2.62–63). "
+            "Tumhare context mein: fear natural hai, par har fear truth nahi. "
+            "Tumhara Self indestructible hai; abhi tumhara duty steady rehna, wisely "
+            "protect karna, aur panic ke bajay clarity se act karna hai."
+        )
+        actions = [
+            "Baitho, slow breath lo, aur khud se bolo: yeh dar guzar raha hai, main clarity se act karunga.",
+            "Gita 2.20 aur 2.23 padho — Self ki immortality par thoda reflect karo.",
+            "Sirf trustworthy news sources; doom-scroll mat karo — yeh fear cycle (2.62–63) ko feed karta hai.",
+        ]
+        reflection = (
+            "Main imagined destruction mein toh nahi ji raha, ya is moment ko "
+            "steadiness aur wisdom ke saath meet kar sakta hoon?"
+        )
     else:
         guidance = (
             "Dear seeker, your heart is gripped by fear of war, destruction, "
@@ -3014,6 +3129,33 @@ def _build_principle_only_fallback_guidance(
             ],
             reflection=(
                 "क्या मैं स्पष्टता और करुणा दोनों के साथ अगला कदम चुन सकता हूँ?"
+            ),
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_actions=intent.show_actions,
+            show_reflection=intent.show_reflection,
+            show_related_verses=False,
+        )
+    if language == "hinglish":
+        return GuidanceResult(
+            guidance=(
+                "Tumhare sawal mein sach-much ek ethical tension hai. Bhagavad Gita "
+                "sikhati hai: satya, clear discernment, aur steady action—bina iske "
+                "ki fear, greed ya confusion tumhe slave bana de. Complex professional "
+                "ya legal matters mein wise human mentors lo aur apne jurisdiction ke "
+                "rules follow karo. Yeh medical ya legal advice nahi hai."
+            ),
+            meaning=(
+                "Gita ka core yeh hai: clearly dekho, integrity se act karo, aur inner "
+                "steadiness cultivate karo—reactive grasping ke bajay."
+            ),
+            actions=[
+                "Apni dilemma ek sentence mein likho: abhi ethically sabse important kya hai?",
+                "Trustworthy elder, teacher, ya professional advisor se consult karo jahan zaroori ho.",
+                "Aaj ek chhota step chuno jo clarity aur peace ki taraf ho, integrity hurt kiye bina.",
+            ],
+            reflection=(
+                "Ek dharmic next step main courage aur humility dono ke saath kaise le sakta hoon?"
             ),
             response_mode="fallback",
             intent_type=intent.intent_type,
@@ -3105,6 +3247,27 @@ def _build_fallback_guidance(
                 show_reflection=False,
                 show_related_verses=True,
             )
+        if language == "hinglish":
+            return GuidanceResult(
+                guidance=(
+                    f"Tumhare sawal ke liye {ref} sabse relevant verses mein se ek hai. "
+                    f"Krishna ne yeh Arjuna se isliye kaha kyunki {chapter_context}. "
+                    "Isliye answer ko pehle clarification ki tarah samjho—forced self-help "
+                    "advice ki tarah nahi."
+                ),
+                meaning=(
+                    f"{detail.get('translation', primary_verse.translation)} "
+                    "Gehera point yeh hai ki Gita seeker ki way of seeing badalti hai—sirf "
+                    "immediate mood par fix nahi."
+                ).strip(),
+                actions=[],
+                reflection="",
+                response_mode="fallback",
+                intent_type=intent.intent_type,
+                show_actions=False,
+                show_reflection=False,
+                show_related_verses=True,
+            )
         return GuidanceResult(
             guidance=(
                 f"For your question, {ref} is one of the most relevant verses. "
@@ -3125,8 +3288,12 @@ def _build_fallback_guidance(
             show_related_verses=True,
         )
 
-    if intent.intent_type == "life_guidance" and _should_avoid_knowledge_fallback_template(
-        message,
+    # Principle-only disclaimer: legal/professional-role stressors. Do not use
+    # the broad life-signal heuristic here — it matches normal emotions (e.g.
+    # anger) and skipped verse-grounded fallbacks when the LLM was unavailable.
+    if (
+        intent.intent_type == "life_guidance"
+        and _is_professional_ethics_query(message)
     ):
         return _build_principle_only_fallback_guidance(message, language=language)
 
@@ -3187,6 +3354,27 @@ def _build_fallback_guidance(
             "कर्म के बाद परिणाम-चिंता छोड़कर समीक्षा करो: क्या यह कदम मुझे अधिक स्पष्टता और शांति दे रहा है?",
         ]
         reflection = "मेरे प्रश्न के संदर्भ में आज का सबसे धर्मसंगत और व्यावहारिक एक कदम क्या है?"
+    elif language == "hinglish":
+        guidance = (
+            f"Tumhare exact sawal '{message}' ke liye {primary_ref} ki teaching bahut relevant hai. "
+            f"Krishna ne yeh Arjuna se isliye kaha kyunki {chapter_context}. "
+            "Wahi principle tumhari situation par bhi lagta hai: pehle confusion ya pain "
+            "ka asli source pehchano, phir abhi ek clear, dharmic next action chuno—outcomes "
+            f"ke dar mein phase karne ke bajay. In verses se direction lo: {refs}."
+        )
+        meaning = (
+            "Yeh teaching dikhati hai Krishna ne Arjuna ko emotional confusion se nikaal kar "
+            "right action ki taraf kaise guide kiya. Tumhare context mein matlab: fear, "
+            "attachment, ya agitation ko tumhare decision-maker mat banne do."
+        )
+        actions = [
+            f"Apni dilemma ek sentence mein likho: '{message}'.",
+            "Agle 24 ghante mein ek concrete step chuno aur use poora karo.",
+            "Action ke baad calmly review karo: kya is step ne clarity, steadiness, integrity badhayi?",
+        ]
+        reflection = (
+            "Aaj meri exact situation ke liye sabse dharmic aur practical next action kya hai?"
+        )
     else:
         guidance = (
             f"Dear seeker, for your exact question '{message}', the teaching of "
@@ -3704,6 +3892,39 @@ def _build_compassionate_chat_reply(
             show_reflection=False,
             show_related_verses=False,
         )
+    if language == "hinglish":
+        if intent.intent_type == "greeting":
+            return GuidanceResult(
+                guidance=(
+                    "Namaste. Main yahan hoon tumhe Bhagavad Gita ki roshni mein "
+                    "aram se aur seedha jawab dene ke liye—bina zabardasti ke."
+                ),
+                meaning="",
+                actions=[],
+                reflection="",
+                response_mode="fallback",
+                intent_type=intent.intent_type,
+                show_meaning=False,
+                show_actions=False,
+                show_reflection=False,
+                show_related_verses=False,
+            )
+        return GuidanceResult(
+            guidance=(
+                "Main tumhari baat waise hi jawab dunga jaise tumne puchi hai. "
+                "Agar tum scripture ya life guidance chahte ho, toh usi hisaab se "
+                "practical aur dayalu jawab milega—Gita ke spirit mein."
+            ),
+            meaning="",
+            actions=[],
+            reflection="",
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_meaning=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
     if intent.intent_type == "greeting":
         return GuidanceResult(
             guidance=(
@@ -3810,6 +4031,48 @@ def _build_fallback_verse_explanation(
             show_reflection=bool(reflection),
             show_related_verses=bool(support_refs),
         )
+    if language == "hinglish":
+        tr = detail.get("translation", verse.translation)
+        guidance = (
+            f"Bhagavad Gita {ref} mein Krishna Arjuna ko yeh sikha rahe hain ki "
+            f"sahi karma par tikna hai, result par emotional ownership nahi. "
+            f"Unhone yeh isliye kaha kyunki {chapter_context}. Yeh shloka Arjuna "
+            "ke mann ko steady karna chahta hai taaki woh attachment ya fear mein "
+            "collapse na karein."
+        )
+        meaning = (
+            f"Seedha matlab: {tr} "
+            f"{synthesis.get('commentary_consensus_en', '')}".strip()
+        )
+        if commentary_summary:
+            meaning = (
+                f"{meaning} Bade commentaries bhi yahi stress karte hain: disciplined "
+                "action, inner steadiness, aur outcome par possessiveness chhodna."
+            ).strip()
+        actions = []
+        reflection = ""
+        if intent.asks_for_application:
+            actions = [
+                "Aaj ek kaam chuno jo tum sincerely kar sako—bina result ke saath deal "
+                "karne ke pressure ke.",
+                "Jab outcome ki anxiety aaye, yaad karo: mera kaam effort aur clarity "
+                "hai, fruit ka owner main nahi hoon.",
+            ]
+            reflection = (
+                "Meri life mein kahan result ka dar meri action ki quality kharab kar "
+                "raha hai?"
+            )
+        return GuidanceResult(
+            guidance=guidance,
+            meaning=meaning,
+            actions=actions,
+            reflection=reflection,
+            response_mode="fallback",
+            intent_type=intent.intent_type,
+            show_actions=bool(actions),
+            show_reflection=bool(reflection),
+            show_related_verses=bool(support_refs),
+        )
     guidance = (
         f"Bhagavad Gita {ref} is Krishna teaching Arjuna to stay rooted in right "
         f"action rather than becoming emotionally owned by the result. He says this "
@@ -3893,7 +4156,10 @@ def build_verse_explanation(
         "dialogue, (2) why Krishna chose this reply, (3) weave classical voices "
         "(Advaita emphasis, Viśiṣṭādvaita devotion, Dvaita distinction) only as "
         "plain-language insight from commentary_samples—no name-dropping parade. "
-        "If application is not requested, do not prescribe habits or homework."
+        "If application is not requested, do not prescribe habits or homework. "
+        "LANGUAGE: follow language_code — hi = Devanagari Hindi; en = English; "
+        "hinglish = casual Roman Hinglish (Roman Hindi + everyday English), not "
+        "formal Devanagari."
     )
     user_prompt = (
         f"language_code: {language}\n"
@@ -3987,6 +4253,7 @@ def build_chapter_explanation(
     language: str = "en",
 ) -> GuidanceResult:
     """Explain a chapter directly when the user asks about a chapter."""
+    language = _normalize_language(language)
     chapter = get_chapter_detail(chapter_number)
     if chapter is None:
         if language == "hi":
@@ -4019,6 +4286,25 @@ def build_chapter_explanation(
             guidance=(
                 f"अध्याय {chapter_number} ({chapter.get('name', '')}) का मुख्य स्वर "
                 f"{chapter.get('summary_hi', '') or chapter.get('meaning_hi', '')}"
+            ).strip(),
+            meaning="",
+            actions=[],
+            reflection="",
+            response_mode="fallback",
+            intent_type="chapter_explanation",
+            show_meaning=False,
+            show_actions=False,
+            show_reflection=False,
+            show_related_verses=False,
+        )
+    if language == "hinglish":
+        body = (
+            str(chapter.get("summary_en", "") or chapter.get("meaning_en", "")).strip()
+        )
+        name = str(chapter.get("name", "")).strip()
+        return GuidanceResult(
+            guidance=(
+                f"Chapter {chapter_number} ({name}) ka main focus yeh hai: {body}"
             ).strip(),
             meaning="",
             actions=[],
@@ -4261,7 +4547,12 @@ def build_guidance(
         "SAFETY: non-medical, non-legal. Latest user message is the primary task; "
         "history is supporting context only.\n"
         "LANGUAGE: If language_code is 'hi', user-facing strings in natural Hindi "
-        "(Devanagari). If 'en', English."
+        "(Devanagari). If 'en', English. If 'hinglish', write guidance, meaning, "
+        "actions, and reflection in casual Roman Hinglish (Roman Hindi mixed with "
+        "everyday English the way urban Indian users type): short sentences, "
+        "natural code-switching, warm and clear—NOT formal Devanagari prose. "
+        "Quoted verse lines may stay as in context (English translation); "
+        "chapter.verse labels stay numeric."
     )
     if _is_professional_ethics_query(message):
         system_prompt += (

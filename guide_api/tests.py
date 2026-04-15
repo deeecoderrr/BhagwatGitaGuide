@@ -43,6 +43,7 @@ from guide_api.services import (
     interpret_query,
     normalize_chat_user_message,
     query_embedding_input_text,
+    resolve_guidance_language,
 )
 
 
@@ -323,6 +324,39 @@ class GuideApiTests(APITestCase):
             response.status_code,
             {status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN},
         )
+
+    def test_resolve_guidance_language_roman_hinglish_with_english_ui(self):
+        msg = (
+            "mujhe bahut tension hai aur samajh nahi aa raha main kya karun "
+            "life mein"
+        )
+        self.assertEqual(resolve_guidance_language("en", msg), "hinglish")
+
+    def test_resolve_guidance_language_devanagari_with_english_ui_prefers_hi(self):
+        msg = "मुझे चिंता है और मैं बहुत सोचता हूँ। गीता क्या कहती है?"
+        self.assertEqual(resolve_guidance_language("en", msg), "hi")
+
+    def test_resolve_guidance_language_pure_english_stays_en(self):
+        self.assertEqual(
+            resolve_guidance_language(
+                "en",
+                "What does the Bhagavad Gita teach about anxiety?",
+            ),
+            "en",
+        )
+
+    def test_ask_endpoint_reports_response_language_hinglish(self):
+        payload = {
+            "message": (
+                "mujhe gussa bahut jaldi aata hai aur baad mein regret hota hai "
+                "gita kya sikhati hai"
+            ),
+            "mode": "simple",
+            "language": "en",
+        }
+        response = self.client.post("/api/ask/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data.get("response_language"), "hinglish")
 
     @override_settings(ASK_LIMIT_FREE_DAILY=2)
     def test_ask_endpoint_enforces_free_plan_daily_limit(self):

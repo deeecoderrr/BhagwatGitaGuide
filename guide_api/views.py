@@ -100,6 +100,7 @@ from guide_api.services import (
     retrieve_verses_with_trace,
     refine_verses_for_guidance,
     normalize_chat_user_message,
+    resolve_guidance_language,
 )
 
 
@@ -454,6 +455,7 @@ def _run_guidance_flow(
 ):
     """Run end-to-end ask pipeline and persist conversation messages."""
     message = normalize_chat_user_message(str(message or "").strip())
+    language = resolve_guidance_language(language, message)
     if conversation_id:
         conversation = Conversation.objects.filter(
             id=conversation_id,
@@ -2346,10 +2348,42 @@ def _build_contextual_follow_ups(
 ) -> list[dict]:
     """Build deterministic, mobile-friendly follow-up prompts."""
     primary_theme = query_themes[0] if query_themes else "life"
-    normalized_language = "hi" if language == "hi" else "en"
+    if language == "hi":
+        normalized_language = "hi"
+    elif language == "hinglish":
+        normalized_language = "hinglish"
+    else:
+        normalized_language = "en"
     label_prefix = primary_theme.replace("_", " ").title()
 
-    if normalized_language == "hi":
+    if normalized_language == "hinglish":
+        prompts = [
+            {
+                "label": f"{label_prefix}: 3-step plan",
+                "prompt": (
+                    f"Agle 24 ghante ke liye is issue par practical 3-step plan do: "
+                    f"{message}"
+                ),
+                "intent": "action_plan",
+            },
+            {
+                "label": f"{label_prefix}: deeper meaning",
+                "prompt": (
+                    "Ek key verse ko simple Hinglish mein samjhao aur batao main aaj "
+                    "kaise apply karoon."
+                ),
+                "intent": "deeper_meaning",
+            },
+            {
+                "label": "Self-reflection",
+                "prompt": (
+                    "Is guidance ke basis par ek reflection sawal aur ek journaling "
+                    "prompt poochho."
+                ),
+                "intent": "self_reflection",
+            },
+        ]
+    elif normalized_language == "hi":
         prompts = [
             {
                 "label": f"{label_prefix}: 3-स्टेप योजना",
@@ -2727,6 +2761,10 @@ class AskView(APIView):
                 extra=snapshot,
             )
 
+        response_language = resolve_guidance_language(
+            data["language"],
+            data["message"],
+        )
         conversation, verses, guidance, retrieval = _run_guidance_flow(
             user_id=request.user.get_username(),
             message=data["message"],
@@ -2775,6 +2813,7 @@ class AskView(APIView):
                 verses=verses,
             ),
             "language": data["language"],
+            "response_language": response_language,
             **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
         }
@@ -2783,7 +2822,7 @@ class AskView(APIView):
             follow_ups = _build_contextual_follow_ups(
                 message=data["message"],
                 mode=data["mode"],
-                language=data["language"],
+                language=response_language,
                 query_themes=retrieval.query_themes,
             )
         response_data["follow_ups"] = follow_ups
@@ -2821,10 +2860,14 @@ class FollowUpGenerateView(APIView):
             message=data["message"],
             limit=4 if data["mode"] == "deep" else 3,
         )
+        response_language = resolve_guidance_language(
+            data["language"],
+            data["message"],
+        )
         follow_ups = _build_contextual_follow_ups(
             message=data["message"],
             mode=data["mode"],
-            language=data["language"],
+            language=response_language,
             query_themes=retrieval.query_themes,
         )
         _log_follow_up_events(
@@ -2838,6 +2881,7 @@ class FollowUpGenerateView(APIView):
             {
                 "mode": data["mode"],
                 "language": data["language"],
+                "response_language": response_language,
                 "query_themes": retrieval.query_themes,
                 "follow_ups": follow_ups,
             }
@@ -4344,13 +4388,14 @@ class ChatUIView(View):
                 verses=verses,
             ),
             "language": language,
+            "response_language": resolve_guidance_language(language, message),
         }
         follow_ups = []
         if guidance.show_actions:
             follow_ups = _build_contextual_follow_ups(
                 message=message,
                 mode=mode,
-                language=language,
+                language=response_data["response_language"],
                 query_themes=retrieval.query_themes,
             )
         response_data["follow_ups"] = follow_ups
@@ -4842,6 +4887,7 @@ class ChatUIView(View):
     ):
         """Generate a guest-mode answer without persisting any DB history."""
         message = normalize_chat_user_message(str(message or "").strip())
+        language = resolve_guidance_language(language, message)
         guest_messages = self._guest_conversation_objects(request)
         conversation_messages = guest_messages + [
             SimpleNamespace(role=Message.ROLE_USER, content=message)
