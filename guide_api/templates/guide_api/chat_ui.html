@@ -1972,7 +1972,12 @@
       display: block;
       border-top: 0;
       margin-top: 0;
-      padding: 0 18px 6px;
+      padding: 0 0 10px;
+      width: 100%;
+      max-width: min(760px, 100%);
+      margin-left: auto;
+      margin-right: auto;
+      box-sizing: border-box;
     }
 
     .chat-shell.on-landing .chat-scroll-area {
@@ -1984,7 +1989,8 @@
 
     .chat-shell.on-landing .landing-page {
       overflow: visible;
-      justify-content: flex-start;
+      justify-content: safe center;
+      justify-items: center;
       padding-top: 20px;
       padding-bottom: 10px;
     }
@@ -3612,7 +3618,7 @@
     .transcript {
       gap: 16px;
       max-height: 600px;
-      padding: 4px 4px 12px 1px;
+      padding: 4px 8px 12px 8px;
     }
 
     .chat-bubble {
@@ -3639,10 +3645,16 @@
     }
 
     .landing-page {
-      padding: 18px 0 6px;
+      padding: 18px 16px 12px;
       display: grid;
       gap: 22px;
-      align-items: start;
+      align-items: stretch;
+      justify-items: center;
+      text-align: center;
+      width: 100%;
+      max-width: min(760px, 100%);
+      margin: 0 auto;
+      box-sizing: border-box;
     }
 
     .landing-logo {
@@ -3654,20 +3666,26 @@
       font-size: clamp(30px, 4vw, 46px);
       line-height: 1.08;
       letter-spacing: -0.03em;
-      margin: 0;
-      max-width: 13ch;
+      margin: 0 auto;
+      max-width: min(40ch, 100%);
+      text-align: center;
     }
 
     .landing-subtitle {
-      max-width: 62ch;
-      margin: 0;
+      max-width: min(62ch, 100%);
+      margin: 0 auto;
       color: var(--muted);
       line-height: 1.75;
+      text-align: center;
     }
 
     .landing-actions {
+      display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       gap: 12px;
+      width: 100%;
+      max-width: min(640px, 100%);
+      margin: 0 auto;
     }
 
     .landing-card {
@@ -3684,6 +3702,10 @@
 
     .landing-growth {
       gap: 16px;
+      width: 100%;
+      max-width: min(820px, 100%);
+      margin-left: auto;
+      margin-right: auto;
     }
 
     .landing-sharebar {
@@ -3871,6 +3893,10 @@
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
       align-items: stretch;
+      width: 100%;
+      max-width: min(720px, 100%);
+      margin: 0 auto;
+      justify-items: center;
     }
 
     .landing-intro {
@@ -3878,6 +3904,8 @@
       gap: 8px;
       align-content: start;
       justify-items: center;
+      width: 100%;
+      max-width: 100%;
       padding: 14px 16px;
       border-radius: 20px;
       border: 1px solid rgba(245, 199, 107, 0.14);
@@ -3886,6 +3914,7 @@
         linear-gradient(180deg, rgba(255,255,255,0.04), transparent 26%),
         rgba(6, 13, 24, 0.68);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      box-sizing: border-box;
     }
 
     .landing-kicker {
@@ -3990,12 +4019,16 @@
     .landing-title {
       font-size: clamp(24px, 3.1vw, 38px);
       line-height: 1.04;
-      max-width: 18ch;
+      max-width: min(38ch, 100%);
+      margin-left: auto;
+      margin-right: auto;
       text-align: center;
     }
 
     .landing-subtitle {
-      max-width: 72ch;
+      max-width: min(72ch, 100%);
+      margin-left: auto;
+      margin-right: auto;
       font-size: 14px;
       line-height: 1.55;
       text-align: center;
