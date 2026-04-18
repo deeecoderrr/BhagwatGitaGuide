@@ -5657,6 +5657,7 @@ class ChatUIView(View):
         current_language = self._chat_ui_language(
             request.POST.get("language", "en"),
         )
+        current_mode = self._chat_ui_mode(request.POST.get("mode", "simple"))
         token_key = request.session.get("chat_ui_auth_token")
         if token_key:
             Token.objects.filter(key=token_key).delete()
@@ -5664,24 +5665,31 @@ class ChatUIView(View):
         request.session.pop("chat_ui_auth_username", None)
         request.session.pop("chat_ui_auth_token", None)
         self._clear_guest_conversation(request)
-        return render(
+        # Must use ``_render_chat_ui`` so OAuth client id, billing defaults, and
+        # guest quota snapshots merge like GET — raw ``render()`` omitted them and
+        # hid the Google Sign-In block after logout.
+        return self._render_chat_ui(
             request,
-            self.template_name,
             {
                 "response_data": None,
                 "error": "",
                 "feedback_message": "Logged out.",
-                "user_id": "guest",
-                "is_guest_chat": True,
-                "mode": "simple",
-                "language": current_language,
-                "message": "",
+                "selected_plan": UserSubscription.PLAN_FREE,
+                "quota_snapshot": None,
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
                 "follow_up_prompts": [],
                 "saved_reflections": [],
-                "conversation_messages": [],
+                "active_conversation_id": "",
+                "conversation_messages": self._guest_conversation_messages(request),
                 "conversations": [],
+                "conversations_has_more": False,
+                "conversations_next_offset": None,
+                "user_id": "guest",
+                "is_guest_chat": True,
+                "mode": current_mode,
+                "language": current_language,
+                "message": "",
             },
         )
 

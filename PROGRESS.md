@@ -4,6 +4,10 @@ Last updated: 2026-04-18
 
 ## Completed
 
+- Chat UI **logout** now routes through `_render_chat_ui()` so **`google_oauth_client_id`**
+  and related context are preserved; the Google button and GSI script render again
+  after logout (`guide_api/views.py::_handle_logout`, regression test).
+
 - **Google Sign-In popup blank screen (production):** set
   `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` so GIS popups
   can `postMessage` the opener (Django’s default `same-origin` COOP breaks that).

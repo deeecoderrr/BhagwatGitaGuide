@@ -449,10 +449,6 @@
       margin: 0 auto;
     }
 
-    .hero.guest-home-hero .hero-grid {
-      grid-template-columns: minmax(0, 1fr);
-    }
-
     .guest-access-panel .split {
       align-items: start;
     }
@@ -4567,7 +4563,7 @@
       </div>
     </nav>
 
-    <section class="hero animate__animated animate__fadeInDown {% if not request.session.chat_ui_auth_username and not active_conversation_id and not conversation_messages %}guest-home-hero{% endif %}" data-aos="fade-up" data-parallax data-depth="16">
+    <section class="hero animate__animated animate__fadeInDown" data-aos="fade-up" data-parallax data-depth="16">
       <div class="hero-grid">
         <div class="hero-copy" data-parallax data-depth="10">
           <div class="eyebrow">

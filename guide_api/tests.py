@@ -957,6 +957,31 @@ class GuideApiTests(APITestCase):
         self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
         self.assertContains(logout_response, "Logged out.")
 
+    @override_settings(
+        GOOGLE_OAUTH_CLIENT_ID="test-id.apps.googleusercontent.com",
+    )
+    def test_chat_ui_logout_response_includes_google_sign_in_assets(self):
+        """Logout must use ``_render_chat_ui`` so OAuth markup is not dropped."""
+        register_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "register",
+                "register_username": "oauth-after-logout-user",
+                "register_password": "oauth-pass-1234",
+            },
+        )
+        self.assertEqual(register_response.status_code, status.HTTP_200_OK)
+
+        logout_response = self.client.post(
+            "/api/chat-ui/",
+            data={"action": "logout", "language": "en"},
+        )
+        self.assertEqual(logout_response.status_code, status.HTTP_200_OK)
+        self.assertContains(logout_response, "Logged out.")
+        self.assertContains(logout_response, "accounts.google.com/gsi/client")
+        self.assertContains(logout_response, "data-google-signin-container")
+        self.assertContains(logout_response, "Continue with Google")
+
     def test_chat_ui_login_immediately_loads_users_own_conversation_list(self):
         other_user = User.objects.create_user(
             username="other-user",
