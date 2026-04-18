@@ -39,6 +39,12 @@ if not DEBUG and SECRET_KEY == _DEFAULT_SECRET_KEY:
 # Used by CanonicalHostRedirectMiddleware (prod only)
 CANONICAL_HOST = os.getenv("CANONICAL_HOST", "askbhagavadgita.co.in").strip()
 
+# Cross-Origin-Opener-Policy: Django's default is ``same-origin``, which breaks
+# Google Identity Services Sign-In popups (blank window; opener postMessage fails).
+# ``same-origin-allow-popups`` preserves isolation for the main document while
+# allowing OAuth/GIS popup completion.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"
+
 # Production security settings
 if not DEBUG:
     # Fly terminates TLS at the edge and forwards requests to the app.

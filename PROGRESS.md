@@ -1,8 +1,17 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-15
+Last updated: 2026-04-18
 
 ## Completed
+
+- **Google Sign-In popup blank screen (production):** set
+  `SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin-allow-popups"` so GIS popups
+  can `postMessage` the opener (Django’s default `same-origin` COOP breaks that).
+
+- Chat UI **naam japa / Hari śaraṇam** sanctuary block: expandable calm-glow panel
+  under the hero with Hindi + English copy, pronunciation play control (`hari-saranam-chant.mp3`
+  in static audio), reduced-motion respect,
+  and GSAP entrance (`guide_api/templates/guide_api/chat_ui.html`).
 
 - Tightened open API surface:
   - `POST /api/eval/retrieval/` now requires **authentication** (retrieval work
