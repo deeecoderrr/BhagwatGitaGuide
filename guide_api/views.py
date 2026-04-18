@@ -4100,7 +4100,11 @@ class ChatUIView(View):
         context.setdefault(
             "billing_name_default",
             (
-                billing_user.get_full_name() or billing_user.username
+                (
+                    billing_user.get_full_name().strip()
+                    or (billing_user.email or "").strip()
+                    or billing_user.username
+                )
                 if billing_user
                 else str(request.session.get("chat_ui_auth_username", "")).strip()
             ),
@@ -4134,9 +4138,15 @@ class ChatUIView(View):
             **default_plan_limits,
             **context_plan_limits,
         }
+        display_label = ChatUIView._chat_ui_display_label(request)
         context.setdefault(
             "support_name",
-            str(request.session.get("chat_ui_auth_username", "")).strip(),
+            display_label
+            or str(request.session.get("chat_ui_auth_username", "")).strip(),
+        )
+        context.setdefault(
+            "chat_ui_auth_display_name",
+            display_label,
         )
         context.setdefault(
             "support_form_email",
@@ -5970,6 +5980,20 @@ class ChatUIView(View):
         if request.user and request.user.is_authenticated:
             return request.user
         return None
+
+    @staticmethod
+    def _chat_ui_display_label(request) -> str:
+        """Human-facing sign-in label: real name, then email, then Django username."""
+        user = ChatUIView._chat_ui_authenticated_user(request)
+        if not user:
+            return ""
+        name = user.get_full_name().strip()
+        if name:
+            return name
+        email = (user.email or "").strip()
+        if email:
+            return email
+        return user.username
 
     @staticmethod
     def _guest_conversation_messages(request) -> list[dict]:

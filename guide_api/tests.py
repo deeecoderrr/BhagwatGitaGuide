@@ -263,6 +263,8 @@ class GuideApiTests(APITestCase):
             "email": "google_tester@example.com",
             "email_verified": True,
             "iss": "https://accounts.google.com",
+            "given_name": "Google",
+            "family_name": "Tester",
         }
         with self.settings(GOOGLE_OAUTH_CLIENT_ID="cid.apps.googleusercontent.com"):
             self.client.force_authenticate(user=None)
@@ -274,6 +276,10 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "google_test-subject-001")
         self.assertIn("token", response.data)
+        saved = get_user_model().objects.get(username="google_test-subject-001")
+        self.assertEqual(saved.first_name, "Google")
+        self.assertEqual(saved.last_name, "Tester")
+        self.assertEqual(saved.email, "google_tester@example.com")
 
     def test_auth_google_disabled_without_client_id(self):
         self.client.force_authenticate(user=None)

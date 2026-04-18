@@ -27,6 +27,40 @@ def verify_google_id_token(raw_token: str, audience: str) -> dict:
     return info
 
 
+def apply_google_claims_to_user(user, claims: dict) -> None:
+    """Copy human-readable profile fields from OIDC claims onto the user instance."""
+    email = str(claims.get("email") or "").strip().lower()
+    given = str(claims.get("given_name") or "").strip()[:150]
+    family = str(claims.get("family_name") or "").strip()[:150]
+    full = str(claims.get("name") or "").strip()
+
+    update_fields = []
+    if email and getattr(user, "email", "") != email:
+        user.email = email
+        update_fields.append("email")
+
+    if given or family:
+        if given and user.first_name != given:
+            user.first_name = given
+            update_fields.append("first_name")
+        if family and user.last_name != family:
+            user.last_name = family
+            update_fields.append("last_name")
+    elif full:
+        parts = full.split(None, 1)
+        first = parts[0][:150]
+        last = parts[1][:150] if len(parts) > 1 else ""
+        if user.first_name != first:
+            user.first_name = first
+            update_fields.append("first_name")
+        if last and user.last_name != last:
+            user.last_name = last
+            update_fields.append("last_name")
+
+    if user.pk and update_fields:
+        user.save(update_fields=sorted(set(update_fields)))
+
+
 def get_or_create_user_from_google_claims(claims: dict):
     """Return ``(user, error_code)`` where error_code is set on failure."""
     user_model = get_user_model()
@@ -38,9 +72,7 @@ def get_or_create_user_from_google_claims(claims: dict):
 
     existing_google = user_model.objects.filter(username=uname).first()
     if existing_google:
-        if email and not existing_google.email:
-            existing_google.email = email
-            existing_google.save(update_fields=["email"])
+        apply_google_claims_to_user(existing_google, claims)
         return existing_google, None
 
     conflict = (
@@ -53,5 +85,6 @@ def get_or_create_user_from_google_claims(claims: dict):
 
     user = user_model(username=uname, email=email)
     user.set_unusable_password()
+    apply_google_claims_to_user(user, claims)
     user.save()
     return user, None

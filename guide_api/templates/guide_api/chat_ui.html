@@ -4996,9 +4996,9 @@
         {% if request.session.chat_ui_auth_username %}
           <div class="auth-pill nav-session-pill">
             {% if language == "hi" %}
-              लॉगिन: {{ request.session.chat_ui_auth_username }}
+              लॉगिन: {{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}
             {% else %}
-              Signed in: {{ request.session.chat_ui_auth_username }}
+              Signed in: {{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}
             {% endif %}
           </div>
         {% else %}
@@ -5440,9 +5440,9 @@
               {% if request.session.chat_ui_auth_username %}
                 <div class="quota">
                   {% if language == "hi" %}
-                    आपकी सेव की गई चैट्स <strong>{{ request.session.chat_ui_auth_username }}</strong> के अंतर्गत रहती हैं।
+                    आपकी सेव की गई चैट्स <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong> के अंतर्गत रहती हैं।
                   {% else %}
-                    Your saved chats stay under <strong>{{ request.session.chat_ui_auth_username }}</strong>.
+                    Your saved chats stay under <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong>.
                   {% endif %}
                 </div>
               {% else %}
@@ -5970,10 +5970,10 @@
               {% if request.session.chat_ui_auth_username %}
                 <p class="hint">
                   {% if language == "hi" %}
-                    <strong>{{ request.session.chat_ui_auth_username }}</strong> के रूप में लॉगिन।
+                    <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong> के रूप में लॉगिन।
                     कोटा, सेव किए गए चिंतन और एंगेजमेंट के लिए यही अकाउंट उपयोग करें।
                   {% else %}
-                    Logged in as <strong>{{ request.session.chat_ui_auth_username }}</strong>.
+                    Logged in as <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong>.
                     Use this account for quota, saved reflections, and engagement.
                   {% endif %}
                 </p>
