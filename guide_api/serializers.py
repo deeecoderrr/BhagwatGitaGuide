@@ -85,6 +85,12 @@ class LoginRequestSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
 
+class GoogleAuthRequestSerializer(serializers.Serializer):
+    """Validate Google Identity Services credential (JWT string)."""
+
+    id_token = serializers.CharField()
+
+
 class PlanUpdateRequestSerializer(serializers.Serializer):
     """Validate mock billing plan update payload for testing gates."""
 

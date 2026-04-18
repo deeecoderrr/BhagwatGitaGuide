@@ -4,6 +4,7 @@ from decimal import Decimal
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
 
+from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from django.core.management import call_command
@@ -253,6 +254,60 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn("token", response.data)
         self.assertEqual(response.data["username"], "new-user")
+
+    @patch("guide_api.google_auth.google_id_token.verify_oauth2_token")
+    def test_auth_google_creates_user_and_returns_token(self, mock_verify):
+        mock_verify.return_value = {
+            "sub": "test-subject-001",
+            "email": "google_tester@example.com",
+            "email_verified": True,
+            "iss": "https://accounts.google.com",
+        }
+        with self.settings(GOOGLE_OAUTH_CLIENT_ID="cid.apps.googleusercontent.com"):
+            self.client.force_authenticate(user=None)
+            response = self.client.post(
+                "/api/auth/google/",
+                {"id_token": "fake.jwt.token"},
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "google_test-subject-001")
+        self.assertIn("token", response.data)
+
+    def test_auth_google_disabled_without_client_id(self):
+        self.client.force_authenticate(user=None)
+        with self.settings(GOOGLE_OAUTH_CLIENT_ID=""):
+            response = self.client.post(
+                "/api/auth/google/",
+                {"id_token": "x"},
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    def test_auth_google_conflict_when_email_registered_elsewhere(self):
+        user_model = get_user_model()
+        user_model.objects.create_user(
+            username="manual-user",
+            password="secret-pass-99",
+            email="taken@gmail.com",
+        )
+        with patch(
+            "guide_api.google_auth.google_id_token.verify_oauth2_token",
+            return_value={
+                "sub": "new-google-only",
+                "email": "taken@gmail.com",
+                "email_verified": True,
+                "iss": "https://accounts.google.com",
+            },
+        ):
+            self.client.force_authenticate(user=None)
+            with self.settings(GOOGLE_OAUTH_CLIENT_ID="cid.apps.googleusercontent.com"):
+                response = self.client.post(
+                    "/api/auth/google/",
+                    {"id_token": "fake"},
+                    format="json",
+                )
+        self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
     def test_auth_login_returns_token_and_me_works(self):
         self.client.force_authenticate(user=None)

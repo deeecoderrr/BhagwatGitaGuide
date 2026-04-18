@@ -11,3 +11,4 @@ gunicorn
 dj-database-url
 whitenoise
 razorpay
+google-auth>=2.29.0

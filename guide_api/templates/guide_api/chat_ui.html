@@ -2902,6 +2902,46 @@
       display: block;
     }
 
+    .auth-google-section {
+      margin: 4px 0 14px;
+    }
+
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 14px 0 12px;
+      color: rgba(235, 228, 214, 0.55);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+    }
+
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(243, 209, 143, 0.16);
+    }
+
+    .auth-google-label {
+      margin: 0 0 10px;
+      font-size: 13px;
+      color: rgba(235, 228, 214, 0.72);
+    }
+
+    .auth-google-signin {
+      display: flex;
+      justify-content: stretch;
+      width: 100%;
+    }
+
+    .auth-google-signin > div {
+      width: 100% !important;
+    }
+
     .gita-reader-modal {
       position: fixed;
       inset: 0;
@@ -4058,7 +4098,10 @@
     }
   </style>
 </head>
-<body>
+<body
+  data-google-client-id="{{ google_oauth_client_id|default:'' }}"
+  data-ui-language="{{ language|default:'en' }}"
+>
   <div class="page-progress" data-page-progress></div>
   <div class="aurora-veils"></div>
   <div class="sacred-grid"></div>
@@ -5898,6 +5941,16 @@
           </button>
         </div>
 
+        {% if google_oauth_client_id %}
+          <div class="auth-google-section" data-google-auth-section>
+            <div class="auth-divider"><span>{% if language == "hi" %}या{% else %}or{% endif %}</span></div>
+            <p class="auth-google-label">
+              {% if language == "hi" %}Google से जारी रखें{% else %}Continue with Google{% endif %}
+            </p>
+            <div class="auth-google-signin" data-google-signin-container></div>
+          </div>
+        {% endif %}
+
         <div class="auth-modal-panels">
           <div class="auth-modal-panel active" data-auth-panel="register">
             <form method="post" class="quick-submit">
@@ -5931,6 +5984,9 @@
   <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  {% if google_oauth_client_id %}
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+  {% endif %}
   <script
     src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"
   ></script>
@@ -7704,6 +7760,104 @@
         });
       }
 
+      function initGoogleSignIn() {
+        const clientId = (
+          document.body.dataset.googleClientId || ""
+        ).trim();
+        const container = document.querySelector("[data-google-signin-container]");
+        if (!clientId || !container) {
+          return;
+        }
+
+        function getCsrfTokenFromCookie() {
+          const name = "csrftoken";
+          if (document.cookie && document.cookie !== "") {
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === name + "=") {
+                return decodeURIComponent(cookie.substring(name.length + 1));
+              }
+            }
+          }
+          return "";
+        }
+
+        function renderButton() {
+          if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+            return false;
+          }
+          const uiLang =
+            document.body.dataset.uiLanguage ||
+            document.querySelector("#sidebar_language")?.value ||
+            document.querySelector("#nav_language")?.value ||
+            "en";
+
+          window.handleGoogleCredentialResponse = async function (response) {
+            const idToken = response && response.credential;
+            if (!idToken) {
+              return;
+            }
+            const csrf = getCsrfTokenFromCookie();
+            try {
+              const res = await fetch("/api/auth/google/", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                  "Content-Type": "application/json",
+                  ...(csrf ? { "X-CSRFToken": csrf } : {}),
+                },
+                body: JSON.stringify({ id_token: idToken }),
+              });
+              if (res.ok) {
+                window.location.reload();
+                return;
+              }
+              let msg = "Google sign-in failed.";
+              try {
+                const data = await res.json();
+                const inner = data && (data.error || data.detail);
+                if (inner && typeof inner === "object" && inner.message) {
+                  msg = inner.message;
+                } else if (typeof inner === "string") {
+                  msg = inner;
+                }
+              } catch (_) {
+                /* ignore */
+              }
+              window.alert(msg);
+            } catch (_) {
+              window.alert("Google sign-in failed. Please try again.");
+            }
+          };
+
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: window.handleGoogleCredentialResponse,
+            ux_mode: "popup",
+          });
+          window.google.accounts.id.renderButton(container, {
+            theme: "filled_blue",
+            size: "large",
+            text: "continue_with",
+            width: Math.min(container.offsetWidth || 360, 400),
+            locale: uiLang === "hi" ? "hi" : "en",
+          });
+          return true;
+        }
+
+        let tries = 0;
+        (function waitForGsi() {
+          if (renderButton()) {
+            return;
+          }
+          tries += 1;
+          if (tries < 80) {
+            window.setTimeout(waitForGsi, 100);
+          }
+        })();
+      }
+
       function initGuestNavAuth() {
         const authLinks = document.querySelectorAll('[data-nav-auth-target]');
         const overlay = document.querySelector('[data-auth-modal-overlay]');
@@ -7817,6 +7971,7 @@
       initGitaReader();
       initLandingPage();
       initShareAnswerBtn();
+      initGoogleSignIn();
       initGuestNavAuth();
       initTodaySignal();
       scrollTranscriptToLatestReplyStart();

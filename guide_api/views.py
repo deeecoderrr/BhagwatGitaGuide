@@ -61,6 +61,7 @@ from guide_api.serializers import (
     CommentarySerializer,
     EngagementProfileUpdateSerializer,
     FollowUpRequestSerializer,
+    GoogleAuthRequestSerializer,
     LoginRequestSerializer,
     MantraRequestSerializer,
     MessageSerializer,
@@ -75,6 +76,10 @@ from guide_api.serializers import (
     SupportRequestSerializer,
     VerseDetailSerializer,
     VerseSerializer,
+)
+from guide_api.google_auth import (
+    get_or_create_user_from_google_claims,
+    verify_google_id_token,
 )
 from guide_api.permissions import GitaBrowseAPIPermission
 from guide_api.services import (
@@ -2620,6 +2625,62 @@ class LoginView(APIView):
         return Response({"token": token.key, "username": user.username})
 
 
+class GoogleAuthView(APIView):
+    """Sign in or register using a Google Identity Services ID token (JWT)."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        """Verify credential, create or load user, session-login, return API token."""
+        if not settings.GOOGLE_OAUTH_CLIENT_ID:
+            return _error_response(
+                message="Google sign-in is not enabled on this server.",
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                code="google_auth_disabled",
+            )
+        serializer = GoogleAuthRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        raw = serializer.validated_data["id_token"]
+        try:
+            claims = verify_google_id_token(
+                raw,
+                settings.GOOGLE_OAUTH_CLIENT_ID,
+            )
+        except ValueError as exc:
+            return _error_response(
+                message=str(exc),
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_google_token",
+            )
+        user, err = get_or_create_user_from_google_claims(claims)
+        if err == "email_exists_password":
+            return _error_response(
+                message=(
+                    "An account with this email already exists. "
+                    "Sign in with your username and password, "
+                    "or use a different Google account."
+                ),
+                status_code=status.HTTP_409_CONFLICT,
+                code="email_registered",
+            )
+        if user is None:
+            return _error_response(
+                message="Could not create an account from this Google sign-in.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="google_user_error",
+            )
+        auth_login(
+            request,
+            user,
+            backend="django.contrib.auth.backends.ModelBackend",
+        )
+        token, _ = Token.objects.get_or_create(user=user)
+        ChatUIView._clear_guest_conversation(request)
+        request.session["chat_ui_auth_username"] = user.username
+        request.session["chat_ui_auth_token"] = token.key
+        return Response({"token": token.key, "username": user.username})
+
+
 class LogoutView(APIView):
     """Logout by deleting the caller's current token."""
 
@@ -3786,6 +3847,7 @@ class ChatUIView(View):
         )
         context.setdefault("debug", settings.DEBUG)
         context.setdefault("support_email", settings.SUPPORT_EMAIL)
+        context.setdefault("google_oauth_client_id", settings.GOOGLE_OAUTH_CLIENT_ID)
         # Single source of truth for all plan limits exposed to the template.
         # Change settings.py (or env vars) and every UI reference updates automatically.
         plus_price_inr = settings.SUBSCRIPTION_PRICE_PLUS_INR // 100
