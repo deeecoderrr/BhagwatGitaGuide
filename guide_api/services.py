@@ -1100,6 +1100,38 @@ def _is_greeting_like(message: str) -> bool:
     return len(tokens) <= 3 and normalized in GREETING_PATTERNS
 
 
+def _is_short_gratitude_like(message: str) -> bool:
+    """Thanks / closing lines that are not scripture questions (avoid ethics fallback)."""
+    n = re.sub(r"\s+", " ", str(message or "").strip().lower())
+    if not n:
+        return False
+    if n in _INTENT_TRIVIAL_ACK:
+        return True
+    tokens = re.findall(r"[a-z]+", n)
+    gratitude_markers = frozenset({"thank", "thanks", "grateful", "blessed"})
+    if not any(t in gratitude_markers for t in tokens):
+        return False
+    if len(tokens) > 14:
+        return False
+    # Real follow-up questions mixed with thanks should use normal guidance.
+    if any(
+        phrase in n
+        for phrase in (
+            "explain",
+            "what does",
+            "why did",
+            "chapter",
+            "verse",
+            "shloka",
+            "sloka",
+            "mean ",
+            "meaning ",
+        )
+    ):
+        return False
+    return True
+
+
 def _extract_explicit_references(message: str) -> list[str]:
     """Return direct chapter.verse references mentioned in user text."""
     refs = []
@@ -3201,8 +3233,9 @@ def _build_fallback_guidance(
     """Create deterministic, safe guidance when LLM is unavailable."""
     language = _normalize_language(language)
     intent = classify_user_intent(message)
-    if honor_empty_verse_context and not verses:
-        return _build_principle_only_fallback_guidance(message, language=language)
+    # Gratitude / short acks must never hit the legal-ethics principle-only stub.
+    if _is_short_gratitude_like(message):
+        return _build_gratitude_ack_reply(language=language, intent=intent)
     if _is_greeting_like(message):
         return _build_compassionate_chat_reply(
             message,
@@ -3216,6 +3249,16 @@ def _build_fallback_guidance(
             language=language,
             intent=intent,
         )
+
+    # Verse-optional fallbacks used to always use the ethics template; restrict
+    # that path to professional-role questions so other empty-retrieval cases get
+    # normal verse-grounded or curated fallbacks below.
+    if (
+        honor_empty_verse_context
+        and not verses
+        and _is_professional_ethics_query(message)
+    ):
+        return _build_principle_only_fallback_guidance(message, language=language)
 
     if intent.intent_type == "knowledge_question" and verses:
         if _should_avoid_knowledge_fallback_template(message):
@@ -3577,9 +3620,19 @@ def normalize_chat_user_message(message: str) -> str:
 
 
 def _is_professional_ethics_query(message: str) -> bool:
-    """Heuristic: legal/professional role stress (not legal advice — prompt disclaimer)."""
+    """Heuristic: legal/professional-role stress (not legal advice — prompt disclaimer).
+
+    Kept intentionally **narrow**. Broad substring matches previously misfired:
+    - ``"counsel"`` matches inside ``counselling`` / counselor words.
+    - Bare ``clients`` matches freelancers, therapists, designers, etc.
+    - ``fighting for`` matches non-legal struggle; pair with legal cues.
+    - ``my case`` matches the idiom ``in my case`` (unrelated to courts).
+    """
     n = re.sub(r"\s+", " ", str(message or "").strip().lower())
-    needles = (
+    if not n:
+        return False
+
+    phrase_needles = (
         "lawyer",
         "laywer",
         "attorney",
@@ -3592,17 +3645,78 @@ def _is_professional_ethics_query(message: str) -> bool:
         "defend someone",
         "defending someone",
         "court case",
-        "counsel",
         "litigation",
         "plaintiff",
         "defendant",
-        "fighting for",
         "whose case",
-        "my case",
     )
-    if any(s in n for s in needles):
+    if any(p in n for p in phrase_needles):
         return True
-    return re.search(r"\bclients?\b", n) is not None
+
+    # Standalone word — substring "counsel" must NOT match inside "counselling".
+    if re.search(r"\bcounsel\b", n):
+        return True
+
+    # "fighting for" alone is too broad (family, health, ideals). Require legal-ish
+    # context similar to the lawyer / court ethical-conflict scenarios we test.
+    if "fighting for" in n and any(
+        k in n
+        for k in (
+            "case",
+            "court",
+            "client",
+            "lawyer",
+            "laywer",
+            "attorney",
+            "legal",
+            "trial",
+            "lawsuit",
+            "litigation",
+            "innocent",
+            "guilty",
+            "defendant",
+            "plaintiff",
+            "witness",
+            "evidence",
+        )
+    ):
+        return True
+
+    # Skip the English idiom "in my case, ..." (not a lawsuit).
+    if re.search(r"\bmy case\b", n) and not re.search(r"\bin my case\b", n):
+        return True
+
+    # "Client(s)" appears in many professions — only flag with legal/court cues.
+    if re.search(r"\bclients?\b", n):
+        legal_cues = (
+            "lawyer",
+            "laywer",
+            "attorney",
+            "legal",
+            "court",
+            "litigation",
+            "lawsuit",
+            "plaintiff",
+            "defendant",
+            "trial",
+            "judge",
+            "jurisdiction",
+            "testimony",
+            "evidence",
+            "appeal",
+            "barrister",
+            "solicitor",
+            "subpoena",
+            "affidavit",
+            "arraignment",
+            "prosecut",
+            "defense counsel",
+            "district attorney",
+        )
+        if any(c in n for c in legal_cues):
+            return True
+
+    return False
 
 
 # Verses that catalogue demoniacal nature / destruction — never map to clients or parties.
@@ -3852,6 +3966,42 @@ def _trim_actions(actions: object, *, limit: int = 3) -> list[str]:
     ][:limit]
 
 
+def _build_gratitude_ack_reply(
+    *,
+    language: str,
+    intent: IntentAnalysis,
+) -> GuidanceResult:
+    """Short acknowledgment for thanks-only messages (not the legal-ethics fallback)."""
+    language = _normalize_language(language)
+    if language == "hi":
+        guidance = (
+            "आपका धन्यवाद। यदि मन में कोई और प्रश्न उठे—चाहे छोटा हो या भारी—"
+            "आप यहाँ फिर से पूछ सकते हैं। शांति के साथ अपना मार्ग जारी रखें।"
+        )
+    elif language == "hinglish":
+        guidance = (
+            "Thank you—dil se. Agar aur koi sawal ho, chhota ho ya bada, yahan "
+            "wapas pooch sakte ho. Apna raasta shaanti ke saath chalate raho."
+        )
+    else:
+        guidance = (
+            "You’re welcome—truly. If another question arises, small or heavy, "
+            "you can ask again here. May you walk your path with steadiness."
+        )
+    return GuidanceResult(
+        guidance=guidance,
+        meaning="",
+        actions=[],
+        reflection="",
+        response_mode="fallback",
+        intent_type=intent.intent_type,
+        show_meaning=False,
+        show_actions=False,
+        show_reflection=False,
+        show_related_verses=False,
+    )
+
+
 def _build_compassionate_chat_reply(
     message: str,
     *,
@@ -3859,6 +4009,8 @@ def _build_compassionate_chat_reply(
     intent: IntentAnalysis,
 ) -> GuidanceResult:
     """Return a warm, non-forced reply for greetings and casual chat."""
+    if _is_short_gratitude_like(message):
+        return _build_gratitude_ack_reply(language=language, intent=intent)
     if language == "hi":
         if intent.intent_type == "greeting":
             return GuidanceResult(
@@ -4375,6 +4527,11 @@ def build_guidance(
     if _is_greeting_like(message):
         return _build_compassionate_chat_reply(
             message,
+            language=language,
+            intent=classify_user_intent(message, mode=mode),
+        )
+    if _is_short_gratitude_like(message):
+        return _build_gratitude_ack_reply(
             language=language,
             intent=classify_user_intent(message, mode=mode),
         )

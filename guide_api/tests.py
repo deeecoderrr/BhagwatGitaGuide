@@ -34,10 +34,13 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from guide_api.services import (
+    _build_fallback_guidance,
     _build_query_embedding,
     _is_grounded_response,
     _is_professional_ethics_query,
+    _is_short_gratitude_like,
     _serialize_conversation_context,
+    build_guidance,
     classify_user_intent,
     infer_themes_from_text,
     interpret_query,
@@ -3397,6 +3400,45 @@ class GuidanceGroundingTests(TestCase):
                 "I am fighting for someone whose case feels wrong to me. What should I do?",
             ),
         )
+
+    def test_professional_ethics_not_triggered_by_counselling_word(self):
+        self.assertFalse(
+            _is_professional_ethics_query(
+                "I am seeking counselling for anxiety and need guidance.",
+            ),
+        )
+
+    def test_professional_ethics_not_triggered_by_in_my_case_idiom(self):
+        self.assertFalse(
+            _is_professional_ethics_query(
+                "In my case I prefer to study at night; what does the Gita say about discipline?",
+            ),
+        )
+
+    def test_professional_ethics_not_triggered_by_freelance_clients(self):
+        self.assertFalse(
+            _is_professional_ethics_query(
+                "My clients keep changing requirements at work and I feel drained.",
+            ),
+        )
+
+    def test_short_gratitude_like_phrase(self):
+        self.assertTrue(_is_short_gratitude_like("well thank you everyone"))
+
+    @override_settings(OPENAI_API_KEY="")
+    def test_thank_you_message_gets_welcome_not_ethics_fallback(self):
+        result = build_guidance("well thank you everyone", verses=[], language="en")
+        self.assertIn("welcome", result.guidance.lower())
+        self.assertNotIn("legal advice", result.guidance.lower())
+
+    def test_empty_verse_fallback_without_ethics_is_not_principle_only_stub(self):
+        result = _build_fallback_guidance(
+            "I feel anxious about my exams next week",
+            [],
+            language="en",
+            honor_empty_verse_context=True,
+        )
+        self.assertNotIn("legal advice", result.guidance.lower())
 
     def test_integrity_theme_for_professional_ethics_language(self):
         themes = infer_themes_from_text(
