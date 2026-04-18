@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}टिप्पणियाँ व उत्तर{% else %}Comments & replies{% endif %} · Ask Bhagavad Gita</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700&family=Sora:wght@600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070b14;
+      --surface: rgba(12, 21, 35, 0.92);
+      --gold: #e8c872;
+      --muted: rgba(218, 226, 242, 0.78);
+      --border: rgba(245, 199, 107, 0.14);
+      --accent: rgba(121, 217, 239, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Manrope, system-ui, sans-serif;
+      background: radial-gradient(circle at 18% 12%, rgba(232, 200, 114, 0.09), transparent 42%),
+        radial-gradient(circle at 82% 88%, rgba(96, 132, 220, 0.1), transparent 48%),
+        var(--bg);
+      color: #eaf0ff;
+      padding: clamp(14px, 4vw, 36px);
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    .nav-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .nav-row a {
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .nav-row a:hover { text-decoration: underline; }
+    .pill {
+      font-size: 12px;
+      color: var(--muted);
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    h1 {
+      font-family: Sora, Manrope, sans-serif;
+      font-size: clamp(24px, 4vw, 30px);
+      letter-spacing: -0.02em;
+      margin: 0 0 10px;
+      color: #fff8e8;
+    }
+    .lead {
+      margin: 0 0 22px;
+      line-height: 1.65;
+      color: var(--muted);
+      font-size: 15px;
+      max-width: 62ch;
+    }
+    .composer {
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      background: var(--surface);
+      margin-bottom: 22px;
+    }
+    .composer textarea {
+      width: 100%;
+      min-height: 96px;
+      resize: vertical;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(4, 10, 19, 0.82);
+      color: #eaf0ff;
+      padding: 12px 14px;
+      font-family: inherit;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+    .composer-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button.primary {
+      border: none;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 11px 20px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 13px;
+      background: linear-gradient(130deg, rgba(232, 200, 114, 0.92), rgba(178, 140, 72, 0.85));
+      color: #161008;
+    }
+    button.secondary {
+      border: 1px solid rgba(232, 200, 114, 0.45);
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 13px;
+      background: transparent;
+      color: var(--gold);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .thread {
+      border-radius: 18px;
+      border: 1px solid var(--border);
+      padding: 16px;
+      margin-bottom: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.025), transparent 55%), var(--surface);
+    }
+    .thread-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .thread-meta strong {
+      color: var(--gold);
+      font-weight: 600;
+    }
+    .thread-body {
+      white-space: pre-wrap;
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 0 0 12px;
+    }
+    .reply-block {
+      margin-left: clamp(8px, 3vw, 22px);
+      padding-left: 14px;
+      border-left: 2px solid rgba(232, 200, 114, 0.28);
+      margin-top: 12px;
+      display: grid;
+      gap: 12px;
+    }
+    .reply-actions, .post-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .msg { font-size: 13px; margin-top: 8px; color: #f7b0a8; }
+    .msg.ok { color: #9bd9c4; }
+    .compose-reply textarea {
+      min-height: 72px;
+      font-size: 13px;
+    }
+    .sr-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      line-height: 1.55;
+    }
+  </style>
+</head>
+<body>
+  {% csrf_token %}
+  <div class="wrap">
+    <div class="nav-row">
+      <a href="/api/chat-ui/?mode=simple&amp;language={{ language }}">
+        {% if language == "hi" %}← चैट पर लौटें{% else %}← Back to chat{% endif %}
+      </a>
+      {% if language == "hi" %}
+      <span class="pill"><a href="/community/?language=en" style="color:inherit;text-decoration:none;">English</a></span>
+      {% else %}
+      <span class="pill"><a href="/community/?language=hi" style="color:inherit;text-decoration:none;">हिंदी</a></span>
+      {% endif %}
+    </div>
+
+    {% if language == "hi" %}
+      <h1>टिप्पणियाँ व उत्तर</h1>
+      <p class="lead">
+        छोटा सार्वजनिक स्थान — भगवद्गीता की राह से जुड़े विचार साझा करें। एक स्तर तक उत्तर दिए जा सकते हैं।
+        कृपया सम्मानजनक रहें। चिकित्सा या कानूनी सलाह यहाँ नहीं दें।
+      </p>
+    {% else %}
+      <h1>Comments & replies</h1>
+      <p class="lead">
+        A small public board to share thoughts along the journey with the Gita. One level of replies.
+        Keep it respectful; this is not medical or legal advice.
+      </p>
+    {% endif %}
+
+    {% if community_logged_in %}
+    <section class="composer">
+      {% if language == "hi" %}
+      <label class="hint" for="root-body"><strong>{{ community_username }}</strong> — नया संदेश</label>
+      {% else %}
+      <label class="hint" for="root-body"><strong>{{ community_username }}</strong> — new post</label>
+      {% endif %}
+      <textarea id="root-body" maxlength="4000"></textarea>
+      <div class="composer-actions">
+        <button type="button" class="primary" id="submit-root">
+          {% if language == "hi" %}पोस्ट करें{% else %}Post{% endif %}
+        </button>
+      </div>
+      <div class="msg" id="composer-msg" aria-live="polite"></div>
+    </section>
+    {% else %}
+    <p class="hint">
+      {% if language == "hi" %}
+        पोस्ट करने के लिए चैट में <a href="/api/chat-ui/?language=hi" style="color:var(--gold);">रजिस्टर / लॉगिन</a> करें।
+      {% else %}
+        <a href="/api/chat-ui/?language=en" style="color:var(--gold);">Sign in</a> via chat (Register / Login) to post or reply.
+      {% endif %}
+    </p>
+    {% endif %}
+
+    <div id="threads"></div>
+    <div class="msg" id="list-msg" aria-live="polite"></div>
+
+    <p class="sr-note">
+      {% if language == "hi" %}
+        संपादन और हटाने का अधिकार लेखक और साइट प्रशासक को है। हटाई गई पोस्ट फ़ीड से गायब हो जाती है।
+      {% else %}
+        Authors and site staff may edit or remove posts. Removed posts disappear from this feed.
+      {% endif %}
+    </p>
+  </div>
+
+  <script>
+    window.__communityCtx = {
+      language: "{{ language|escapejs }}",
+      loggedIn: {{ community_logged_in|yesno:"true,false" }},
+      username: "{{ community_username|default:''|escapejs }}",
+      isStaff: {{ community_is_staff|yesno:"true,false" }},
+      apiList: "/api/community/posts/",
+    };
+
+    function getCsrfToken() {
+      const name = "csrftoken";
+      if (!document.cookie) return "";
+      const parts = document.cookie.split(";");
+      for (let i = 0; i < parts.length; i++) {
+        const c = parts[i].trim();
+        if (c.startsWith(name + "=")) {
+          return decodeURIComponent(c.substring(name.length + 1));
+        }
+      }
+      return "";
+    }
+
+    function canModify(post) {
+      const c = window.__communityCtx;
+      if (!c.loggedIn) return false;
+      if (c.isStaff) return true;
+      return post.author_username === c.username;
+    }
+
+    function esc(s) {
+      const d = document.createElement("div");
+      d.textContent = s == null ? "" : String(s);
+      return d.innerHTML;
+    }
+
+    function postHeadersJson() {
+      const h = { "Content-Type": "application/json" };
+      const csrf = getCsrfToken();
+      if (csrf) h["X-CSRFToken"] = csrf;
+      return h;
+    }
+
+    async function fetchThreads() {
+      const el = document.getElementById("threads");
+      const listMsg = document.getElementById("list-msg");
+      listMsg.textContent = "";
+      el.innerHTML = "";
+      try {
+        const res = await fetch(window.__communityCtx.apiList + "?limit=30&offset=0", {
+          credentials: "same-origin",
+        });
+        if (!res.ok) throw new Error("load_failed");
+        const data = await res.json();
+        const rows = data.results || [];
+        if (!rows.length) {
+          el.innerHTML = "<p class=hint>" +
+            (window.__communityCtx.language === "hi"
+              ? "अभी कोई पोस्ट नहीं — पहले आप लिख सकते हैं।"
+              : "No posts yet — you can be the first.") + "</p>";
+          return;
+        }
+        rows.forEach((root) => {
+          el.appendChild(renderThread(root));
+        });
+      } catch (e) {
+        listMsg.textContent = window.__communityCtx.language === "hi"
+          ? "लोड नहीं हो सका — पृष्ठ रिफ्रेश करें।"
+          : "Could not load threads. Refresh and try again.";
+      }
+    }
+
+    function renderThread(root) {
+      const thread = document.createElement("article");
+      thread.className = "thread";
+      thread.dataset.postId = root.id;
+
+      thread.appendChild(renderPostBlock(root, true));
+
+      const replyWrap = document.createElement("div");
+      replyWrap.className = "reply-block";
+      (root.replies || []).forEach((r) => {
+        replyWrap.appendChild(renderPostBlock(r, false));
+      });
+      thread.appendChild(replyWrap);
+
+      if (window.__communityCtx.loggedIn) {
+        thread.appendChild(renderReplyComposer(root.id));
+      }
+      return thread;
+    }
+
+    function renderPostBlock(post, isRoot) {
+      const block = document.createElement("div");
+      const meta = document.createElement("div");
+      meta.className = "thread-meta";
+      const edited = post.edited ? (" · " + (window.__communityCtx.language === "hi" ? "संपादित" : "edited")) : "";
+      meta.innerHTML = "<strong>" + esc(post.author_username) + "</strong><span>" + esc(post.created_at || "") + edited + "</span>";
+
+      const body = document.createElement("div");
+      body.className = "thread-body";
+      body.textContent = post.body || "";
+
+      const actions = document.createElement("div");
+      actions.className = isRoot ? "post-actions" : "post-actions";
+
+      if (canModify(post)) {
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "secondary";
+        delBtn.textContent = window.__communityCtx.language === "hi" ? "हटाएँ" : "Remove";
+        delBtn.addEventListener("click", () => removePost(post.id));
+        actions.appendChild(delBtn);
+
+        const editBtn = document.createElement("button");
+        editBtn.type = "button";
+        editBtn.className = "secondary";
+        editBtn.textContent = window.__communityCtx.language === "hi" ? "संपादित करें" : "Edit";
+        editBtn.addEventListener("click", () => {
+          const next = window.prompt(
+            window.__communityCtx.language === "hi" ? "नया पाठ:" : "New text:",
+            post.body,
+          );
+          if (next == null) return;
+          const t = next.trim();
+          if (!t) return;
+          patchPost(post.id, t);
+        });
+        actions.appendChild(editBtn);
+      }
+
+      block.appendChild(meta);
+      block.appendChild(body);
+      if (actions.childElementCount) block.appendChild(actions);
+      return block;
+    }
+
+    function renderReplyComposer(parentId) {
+      const wrap = document.createElement("div");
+      wrap.className = "composer compose-reply";
+      const ta = document.createElement("textarea");
+      ta.maxLength = 4000;
+      ta.dataset.parentId = String(parentId);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "primary";
+      btn.textContent = window.__communityCtx.language === "hi" ? "उत्तर दें" : "Reply";
+      btn.addEventListener("click", async () => {
+        const body = ta.value.trim();
+        if (!body) return;
+        await createPost(body, parentId);
+      });
+      wrap.appendChild(ta);
+      wrap.appendChild(btn);
+      return wrap;
+    }
+
+    async function createPost(body, parentId) {
+      const payload = { body };
+      if (parentId != null) payload.parent_id = parentId;
+      const res = await fetch(window.__communityCtx.apiList, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: postHeadersJson(),
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        alert(window.__communityCtx.language === "hi"
+          ? "पोस्ट नहीं हो सका — साइन इन जाँचें।"
+          : "Could not post. Check that you are signed in.");
+        return;
+      }
+      await fetchThreads();
+    }
+
+    async function patchPost(id, body) {
+      const res = await fetch("/api/community/posts/" + id + "/", {
+        method: "PATCH",
+        credentials: "same-origin",
+        headers: postHeadersJson(),
+        body: JSON.stringify({ body }),
+      });
+      if (!res.ok) {
+        alert(window.__communityCtx.language === "hi" ? "सहेज नहीं सका" : "Could not save");
+        return;
+      }
+      await fetchThreads();
+    }
+
+    async function removePost(id) {
+      if (!window.confirm(
+        window.__communityCtx.language === "hi"
+          ? "यह पोस्ट हटाएँ?"
+          : "Remove this post?",
+      )) return;
+      const res = await fetch("/api/community/posts/" + id + "/", {
+        method: "DELETE",
+        credentials: "same-origin",
+        headers: postHeadersJson(),
+      });
+      if (!res.ok) {
+        alert(window.__communityCtx.language === "hi" ? "नहीं हटा" : "Could not remove");
+        return;
+      }
+      await fetchThreads();
+    }
+
+    document.getElementById("submit-root")?.addEventListener("click", async () => {
+      const msg = document.getElementById("composer-msg");
+      msg.textContent = "";
+      const ta = document.getElementById("root-body");
+      const body = ta.value.trim();
+      if (!body) return;
+      await createPost(body, null);
+      ta.value = "";
+      msg.textContent = window.__communityCtx.language === "hi" ? "पोस्ट हो गया।" : "Posted.";
+      msg.classList.add("ok");
+    });
+
+    fetchThreads();
+  </script>
+</body>
+</html>

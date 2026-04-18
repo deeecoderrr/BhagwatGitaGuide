@@ -4,6 +4,11 @@ Last updated: 2026-04-18
 
 ## Completed
 
+- **Comments & replies** (`CommunityPost`): **`/community/`** full page + **`/api/community/posts/`**
+  API (**`/api/v1/`** mirrored). Chat UI **`/api/chat-ui/`**: redesigned header (home pill,
+  clustered language + CTAs), nav **Comments / टिप्पणियाँ** → anchor to embedded
+  **`#community-preview-discussion`** (recent threads via fetch, reply + **Load more**).
+
 - Chat UI **logout** now routes through `_render_chat_ui()` so **`google_oauth_client_id`**
   and related context are preserved; the Google button and GSI script render again
   after logout (`guide_api/views.py::_handle_logout`, regression test).

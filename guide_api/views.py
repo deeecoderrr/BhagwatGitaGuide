@@ -1,5 +1,6 @@
 """HTTP views for chat, retrieval evaluation, and feedback flows."""
 
+from collections import defaultdict
 from datetime import date, timedelta
 import json
 import logging
@@ -18,12 +19,16 @@ from django.contrib.auth import (
     logout as auth_logout,
 )
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import render
 from django.utils import timezone
+from django.utils.decorators import method_decorator
 from django.utils.timesince import timesince
 from django.views import View
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.generic import TemplateView
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -34,6 +39,7 @@ from rest_framework.views import APIView
 from guide_api.models import (
     AskEvent,
     BillingRecord,
+    CommunityPost,
     Conversation,
     DailyAskUsage,
     EngagementEvent,
@@ -58,6 +64,8 @@ from guide_api.serializers import (
     BillingRecordSerializer,
     ChapterDetailSerializer,
     ChapterListSerializer,
+    CommunityPostCreateSerializer,
+    CommunityPostPatchSerializer,
     CommentarySerializer,
     EngagementProfileUpdateSerializer,
     FollowUpRequestSerializer,
@@ -3669,6 +3677,192 @@ class FeedbackView(APIView):
         )
 
 
+def _community_post_public_dict(post: CommunityPost) -> dict:
+    """Shape one post for JSON APIs (non-deleted rows only)."""
+    return {
+        "id": post.id,
+        "author_username": post.author.get_username(),
+        "body": post.body,
+        "created_at": post.created_at.isoformat(),
+        "updated_at": post.updated_at.isoformat(),
+        "edited": bool(post.edited_at),
+        "parent_id": post.parent_id,
+    }
+
+
+def _can_moderate_community_post(request, post: CommunityPost) -> bool:
+    """Author or Django staff may edit or remove posts."""
+    user = request.user
+    if not user.is_authenticated:
+        return False
+    if getattr(user, "is_staff", False) or getattr(user, "is_superuser", False):
+        return True
+    return user.pk == post.author_id
+
+
+def _soft_delete_community_post(post: CommunityPost) -> None:
+    """Soft-delete one post; removing a thread root also hides its replies."""
+    now = timezone.now()
+    with transaction.atomic():
+        post.deleted_at = now
+        post.save(update_fields=["deleted_at", "updated_at"])
+        CommunityPost.objects.filter(parent_id=post.pk).update(
+            deleted_at=now,
+            updated_at=now,
+        )
+
+
+class CommunityPostListCreateView(APIView):
+    """List public thread roots with replies; create post or reply when signed in."""
+
+    def get_permissions(self):
+        if self.request.method == "POST":
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def get(self, request):
+        """Paginate top-level posts; nest direct replies under each root."""
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+        roots_qs = (
+            CommunityPost.objects.filter(
+                parent__isnull=True,
+                deleted_at__isnull=True,
+            )
+            .select_related("author")
+            .order_by("-created_at")
+        )
+        total = roots_qs.count()
+        roots = list(roots_qs[offset : offset + limit])
+        root_ids = [r.id for r in roots]
+        replies_by_parent: dict[int, list] = defaultdict(list)
+        if root_ids:
+            reply_rows = (
+                CommunityPost.objects.filter(
+                    parent_id__in=root_ids,
+                    deleted_at__isnull=True,
+                )
+                .select_related("author")
+                .order_by("created_at")
+            )
+            for rep in reply_rows:
+                replies_by_parent[rep.parent_id].append(
+                    _community_post_public_dict(rep),
+                )
+        results = []
+        for root in roots:
+            payload = _community_post_public_dict(root)
+            payload["replies"] = replies_by_parent.get(root.id, [])
+            results.append(payload)
+        next_offset = offset + limit if (offset + limit) < total else None
+        return Response(
+            {
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "results": results,
+            }
+        )
+
+    def post(self, request):
+        """Create a thread root or a single reply under a root."""
+        serializer = CommunityPostCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        body = str(serializer.validated_data["body"]).strip()
+        if not body:
+            return _error_response(
+                message="body cannot be empty.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="community_empty_body",
+            )
+        parent_id = serializer.validated_data.get("parent_id")
+        parent = None
+        if parent_id is not None:
+            parent = CommunityPost.objects.filter(pk=parent_id).first()
+            if parent is None or parent.deleted_at:
+                return _error_response(
+                    message="Parent post not found.",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    code="community_parent_not_found",
+                )
+            if parent.parent_id is not None:
+                return _error_response(
+                    message="Replies are only allowed one level deep.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    code="community_reply_depth",
+                )
+        post = CommunityPost.objects.create(
+            author=request.user,
+            parent=parent,
+            body=body,
+        )
+        out = _community_post_public_dict(post)
+        out["replies"] = []
+        return Response(out, status=status.HTTP_201_CREATED)
+
+
+class CommunityPostDetailView(APIView):
+    """Update or soft-delete one community post (author or staff)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, post_id):
+        """Edit body; sets edited_at."""
+        post = CommunityPost.objects.filter(pk=post_id).first()
+        if post is None or post.deleted_at:
+            return _error_response(
+                message="Post not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="community_post_not_found",
+            )
+        if not _can_moderate_community_post(request, post):
+            return _error_response(
+                message="You cannot edit this post.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="community_forbidden",
+            )
+        serializer = CommunityPostPatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        body = str(serializer.validated_data["body"]).strip()
+        if not body:
+            return _error_response(
+                message="body cannot be empty.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="community_empty_body",
+            )
+        post.body = body[: CommunityPost.MAX_BODY_CHARS]
+        post.edited_at = timezone.now()
+        post.save(update_fields=["body", "edited_at", "updated_at"])
+        out = _community_post_public_dict(post)
+        out["replies"] = []
+        return Response(out)
+
+    def delete(self, request, post_id):
+        """Soft-delete post; deleting a thread root removes replies from the feed."""
+        post = CommunityPost.objects.filter(pk=post_id).first()
+        if post is None or post.deleted_at:
+            return _error_response(
+                message="Post not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="community_post_not_found",
+            )
+        if not _can_moderate_community_post(request, post):
+            return _error_response(
+                message="You cannot remove this post.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="community_forbidden",
+            )
+        _soft_delete_community_post(post)
+        return Response({"status": "removed"})
+
+
 class SupportRequestView(APIView):
     """Capture user support requests for payment/account/product issues."""
 
@@ -3785,6 +3979,45 @@ class SavedReflectionDetailView(APIView):
             )
         entry.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@method_decorator(ensure_csrf_cookie, name="dispatch")
+class CommunityWallView(TemplateView):
+    """Browser page for the public Path thread (posts + replies)."""
+
+    template_name = "guide_api/community_wall.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lang = str(self.request.GET.get("language") or "en").strip().lower()
+        if lang not in {"en", "hi"}:
+            lang = "en"
+        session_user = str(
+            self.request.session.get("chat_ui_auth_username", ""),
+        ).strip()
+        auth_name = ""
+        if self.request.user.is_authenticated:
+            auth_name = self.request.user.get_username()
+        display_user = auth_name or session_user
+        context.update(
+            {
+                "language": lang,
+                "community_username": display_user,
+                "community_logged_in": bool(
+                    self.request.user.is_authenticated,
+                ),
+                "community_is_staff": bool(
+                    getattr(self.request.user, "is_staff", False),
+                ),
+                "google_oauth_client_id": getattr(
+                    settings,
+                    "GOOGLE_OAUTH_CLIENT_ID",
+                    "",
+                )
+                or "",
+            },
+        )
+        return context
 
 
 class ChatUIView(View):

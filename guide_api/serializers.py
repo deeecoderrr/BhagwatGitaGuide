@@ -2,7 +2,7 @@
 
 from rest_framework import serializers
 
-from guide_api.models import BillingRecord, Message, SavedReflection, Verse
+from guide_api.models import BillingRecord, CommunityPost, Message, SavedReflection, Verse
 
 
 class VerseSerializer(serializers.ModelSerializer):
@@ -414,3 +414,16 @@ class SharedAnswerCreateSerializer(serializers.Serializer):
         default=list,
     )
     language = serializers.ChoiceField(choices=["en", "hi"], default="en")
+
+
+class CommunityPostCreateSerializer(serializers.Serializer):
+    """Validate new community thread post or reply."""
+
+    body = serializers.CharField(max_length=CommunityPost.MAX_BODY_CHARS)
+    parent_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class CommunityPostPatchSerializer(serializers.Serializer):
+    """Validate community post body edit."""
+
+    body = serializers.CharField(max_length=CommunityPost.MAX_BODY_CHARS)

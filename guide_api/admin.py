@@ -10,6 +10,7 @@ from django.utils import timezone
 from guide_api.models import (
     AskEvent,
     BillingRecord,
+    CommunityPost,
     Conversation,
     DailyAskUsage,
     EngagementEvent,
@@ -42,6 +43,29 @@ class MessageInline(admin.TabularInline):
     model = Message
     extra = 0
     readonly_fields = ("role", "content", "created_at")
+
+
+@admin.register(CommunityPost)
+class CommunityPostAdmin(admin.ModelAdmin):
+    """Moderate public path threads."""
+
+    list_display = (
+        "id",
+        "author",
+        "parent",
+        "body_preview",
+        "created_at",
+        "deleted_at",
+    )
+    list_filter = ("deleted_at",)
+    search_fields = ("body", "author__username")
+    raw_id_fields = ("author", "parent")
+    readonly_fields = ("created_at", "updated_at", "edited_at")
+
+    def body_preview(self, obj: CommunityPost) -> str:
+        """Truncate body for compact admin rows."""
+        text = (obj.body or "").strip().replace("\n", " ")
+        return text[:80] + ("…" if len(text) > 80 else "")
 
 
 @admin.register(Conversation)

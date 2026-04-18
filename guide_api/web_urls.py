@@ -3,6 +3,7 @@
 from django.urls import path
 
 from guide_api.views import (
+    CommunityWallView,
     SEO_LANDING_PAGES,
     SharedAnswerPageView,
     SeoDailyVerseHubView,
@@ -15,6 +16,11 @@ from guide_api.views import (
 
 
 urlpatterns = [
+    path(
+        "community/",
+        CommunityWallView.as_view(),
+        name="community-wall",
+    ),
     path("robots.txt", robots_txt_view, name="robots-txt"),
     path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),
     path(

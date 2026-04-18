@@ -721,6 +721,41 @@ class QuoteArt(models.Model):
         return f"QuoteArt {self.verse_reference}"
 
 
+class CommunityPost(models.Model):
+    """Scoped public thread: top-level posts and a single reply level."""
+
+    MAX_BODY_CHARS = 4000
+
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="community_posts",
+    )
+    parent = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="replies",
+    )
+    body = models.TextField(max_length=MAX_BODY_CHARS)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    edited_at = models.DateTimeField(null=True, blank=True)
+    deleted_at = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["parent", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        """Short label for admin lists."""
+        kind = "reply" if self.parent_id else "post"
+        return f"{kind} #{self.pk}"
+
+
 class SharedAnswer(models.Model):
     """Persisted share card for a single guidance response."""
 

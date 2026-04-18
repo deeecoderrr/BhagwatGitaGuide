@@ -337,33 +337,95 @@
     .top-nav {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 10px;
+      align-items: flex-start;
+      gap: clamp(10px, 2vw, 18px);
       margin-bottom: 14px;
-      padding: 8px 10px;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      background: rgba(10, 18, 31, 0.7);
-      backdrop-filter: blur(14px);
-      box-shadow: var(--shadow-soft);
+      padding: 10px 12px 10px 14px;
+      border: 1px solid rgba(245, 199, 107, 0.14);
+      border-radius: 20px;
+      background:
+        linear-gradient(165deg, rgba(245, 199, 107, 0.06), transparent 42%),
+        rgba(8, 14, 24, 0.88);
+      backdrop-filter: blur(16px);
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.06) inset,
+        0 18px 44px rgba(2, 7, 18, 0.35);
       position: relative;
       z-index: 2;
     }
-    .top-nav a {
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      padding-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .nav-home {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff9ec !important;
+      text-decoration: none;
+      border: 1px solid rgba(245, 199, 107, 0.35);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      background: linear-gradient(
+        145deg,
+        rgba(245, 199, 107, 0.18),
+        rgba(255, 255, 255, 0.04)
+      );
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-home:hover {
+      border-color: rgba(245, 199, 107, 0.55);
+      background: linear-gradient(
+        145deg,
+        rgba(245, 199, 107, 0.26),
+        rgba(255, 255, 255, 0.06)
+      );
+    }
+
+    .nav-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .nav-cluster {
+      display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(4, 10, 20, 0.45);
+    }
+
+    .nav-cluster--cta {
+      border-color: rgba(245, 199, 107, 0.12);
+      background: rgba(6, 12, 22, 0.5);
+    }
+
+    .top-nav a:not(.nav-home) {
       color: var(--text);
       text-decoration: none;
       border: 1px solid rgba(255, 255, 255, 0.12);
       padding: 9px 13px;
       border-radius: 999px;
-      font-size: 13px;
+      font-size: 12px;
       background: rgba(255, 255, 255, 0.04);
     }
-    .top-nav .nav-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+
     .nav-inline-form {
       margin: 0;
       display: inline-flex;
@@ -3444,11 +3506,6 @@
       position: relative;
       top: 0;
       z-index: 2;
-      padding: 10px 12px;
-      border-radius: 22px;
-      border-color: rgba(245, 199, 107, 0.16);
-      background: rgba(8, 15, 26, 0.86);
-      box-shadow: 0 18px 30px rgba(2, 7, 18, 0.2);
     }
 
     .top-nav a,
@@ -3837,6 +3894,17 @@
 
       .top-nav {
         top: 8px;
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .nav-toolbar {
+        justify-content: flex-start;
+      }
+
+      .nav-session-pill {
+        max-width: none;
+        white-space: normal;
       }
 
       .hero,
@@ -4394,6 +4462,370 @@
       }
     }
 
+    a.nav-comments {
+      border-color: rgba(121, 217, 239, 0.3) !important;
+      background: linear-gradient(
+        145deg,
+        rgba(121, 217, 239, 0.14),
+        rgba(255, 255, 255, 0.03)
+      ) !important;
+    }
+
+    a.nav-comments:hover {
+      border-color: rgba(121, 217, 239, 0.48) !important;
+    }
+
+    .nav-session-pill {
+      max-width: min(220px, 42vw);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .community-preview {
+      margin: 22px clamp(14px, 4vw, 42px) 18px;
+      scroll-margin-top: 96px;
+    }
+
+    .community-preview-teaser {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      padding: 16px 18px;
+      border: none;
+      border-radius: 18px;
+      cursor: pointer;
+      font-family: inherit;
+      color: #fff9ec;
+      background: linear-gradient(
+        118deg,
+        rgba(121, 217, 239, 0.14) 0%,
+        rgba(68, 92, 210, 0.14) 48%,
+        rgba(255, 206, 120, 0.12) 100%
+      );
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 12px 34px rgba(12, 14, 36, 0.42);
+      transition:
+        transform 0.38s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.38s ease,
+        filter 0.38s ease;
+      text-align: left;
+    }
+
+    .community-preview-teaser:focus-visible {
+      outline: 2px solid rgba(255, 224, 160, 0.95);
+      outline-offset: 3px;
+    }
+
+    .community-preview-teaser:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.14),
+        0 18px 42px rgba(14, 18, 52, 0.48);
+    }
+
+    .community-preview-teaser:active {
+      transform: translateY(0);
+    }
+
+    .community-preview-teaser-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      flex-shrink: 0;
+      color: rgba(10, 24, 44, 0.92);
+      background: radial-gradient(circle at 35% 30%, rgba(255, 248, 220, 0.92), rgba(121, 217, 239, 0.35));
+      box-shadow:
+        0 0 0 1px rgba(255, 228, 180, 0.45),
+        0 10px 24px rgba(80, 120, 200, 0.22);
+    }
+
+    .community-preview-teaser-icon svg {
+      display: block;
+    }
+
+    .community-preview-teaser-copy {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    .community-preview-teaser-kicker {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(160, 210, 240, 0.88);
+    }
+
+    .community-preview-teaser-title {
+      display: block;
+      font-size: clamp(17px, 2.4vw, 21px);
+      font-weight: 650;
+      letter-spacing: 0.02em;
+      color: #fffdf4;
+    }
+
+    .community-preview-teaser-hint {
+      display: block;
+      margin-top: 6px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: rgba(231, 236, 255, 0.78);
+    }
+
+    .community-preview-chevron {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 245, 230, 0.92);
+      transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .community-preview.is-open .community-preview-chevron {
+      transform: rotate(180deg);
+    }
+
+    .community-preview-panel {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition:
+        max-height 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.45s ease;
+      pointer-events: none;
+    }
+
+    .community-preview.is-open .community-preview-panel {
+      max-height: min(3200px, 92vh);
+      opacity: 1;
+      pointer-events: auto;
+      margin-top: 14px;
+    }
+
+    .community-preview-lead--panel {
+      max-width: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .community-preview-teaser:hover {
+        transform: none;
+      }
+
+      .community-preview-panel {
+        transition: opacity 0.2s ease;
+      }
+
+      .community-preview.is-open .community-preview-panel {
+        max-height: none;
+      }
+    }
+
+    .community-preview-inner {
+      border-radius: 22px;
+      padding: clamp(14px, 3vw, 22px);
+      border: 1px solid rgba(121, 217, 239, 0.16);
+      background:
+        radial-gradient(circle at 92% 8%, rgba(121, 217, 239, 0.09), transparent 42%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 40%),
+        rgba(7, 13, 24, 0.82);
+      box-shadow: 0 20px 48px rgba(2, 7, 18, 0.38);
+    }
+
+    .community-preview-head {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+
+    .community-preview-kicker {
+      margin-bottom: 6px;
+      color: rgba(160, 210, 240, 0.85);
+    }
+
+    .community-preview-title {
+      margin: 0 0 8px;
+      font-size: clamp(18px, 2.4vw, 22px);
+      font-family: var(--font-display);
+      color: #fff8ec;
+      letter-spacing: -0.02em;
+    }
+
+    .community-preview-lead {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--muted);
+      max-width: 52ch;
+    }
+
+    .community-preview-full {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 199, 107, 0.35);
+      color: var(--divine-gold);
+      text-decoration: none;
+      background: rgba(245, 199, 107, 0.08);
+    }
+
+    .community-preview-full:hover {
+      border-color: rgba(245, 199, 107, 0.55);
+      background: rgba(245, 199, 107, 0.12);
+    }
+
+    .community-preview-compose {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .community-preview-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .community-preview-compose textarea {
+      width: 100%;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(4, 10, 19, 0.88);
+      color: #eaf0ff;
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 13px;
+      line-height: 1.5;
+      resize: vertical;
+      min-height: 52px;
+    }
+
+    .community-preview-post-btn {
+      justify-self: start;
+      border: none;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 9px 18px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+      background: linear-gradient(130deg, rgba(232, 200, 114, 0.88), rgba(178, 140, 72, 0.82));
+      color: #161008;
+    }
+
+    .community-preview-signin-hint {
+      margin: 0 0 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .community-preview-thread {
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(4, 10, 20, 0.45);
+    }
+
+    .community-preview-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .community-preview-meta strong {
+      color: rgba(232, 210, 160, 0.95);
+      font-weight: 600;
+    }
+
+    .community-preview-body {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      color: rgba(232, 236, 255, 0.92);
+    }
+
+    .community-preview-replies {
+      margin-top: 10px;
+      padding-left: 12px;
+      border-left: 2px solid rgba(232, 200, 114, 0.22);
+      display: grid;
+      gap: 8px;
+    }
+
+    .community-preview-reply-form {
+      margin-top: 10px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .community-preview-reply-form textarea {
+      min-height: 48px;
+      font-size: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(4, 10, 19, 0.75);
+      color: #eaf0ff;
+      padding: 8px 10px;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .community-preview-reply-btn {
+      justify-self: start;
+      border: 1px solid rgba(121, 217, 239, 0.4);
+      background: rgba(121, 217, 239, 0.1);
+      color: #d4eefc;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .community-preview-load-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .community-preview-more {
+      font-size: 12px;
+      padding: 8px 14px;
+    }
+
+    .community-preview-status {
+      margin: 8px 0 0;
+      font-size: 12px;
+      min-height: 1.2em;
+      color: rgba(230, 180, 170, 0.85);
+    }
+
+    .community-preview-status.is-ok {
+      color: rgba(155, 217, 196, 0.9);
+    }
+
     .hero-signal-card .today-kicker {
       margin: 0;
       color: #f1d48e;
@@ -4490,65 +4922,79 @@
   <div class="bg-orb orb-3"></div>
 
   <main class="app">
-    <nav class="top-nav">
-      <div>
-        <a href="/api/chat-ui/?mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}">
+    <nav class="top-nav" aria-label="{% if language == 'hi' %}मुख्य नेविगेशन{% else %}Primary{% endif %}">
+      <div class="nav-brand">
+        <a
+          class="nav-home"
+          href="/api/chat-ui/?mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}"
+        >
           {% if language == "hi" %}होम{% else %}Home{% endif %}
         </a>
       </div>
-      <div class="nav-actions">
-        <form method="get" class="nav-language-form">
-          <label class="nav-language-label" for="nav_language">
-            {% if language == "hi" %}भाषा{% else %}Language{% endif %}
-          </label>
-          <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-          {% if active_conversation_id %}
-            <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
-          {% endif %}
-          <select
-            id="nav_language"
-            name="language"
-            class="nav-language-select"
-            onchange="this.form.submit()"
-          >
-            <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
-            <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
-          </select>
-        </form>
-        <button
-          type="button"
-          class="nav-btn nav-btn-secondary"
-          data-open-gita-reader
-          data-language="{{ language|default:'en' }}"
-        >
-          <span class="asset-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 7v14" />
-              <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-            </svg>
-          </span>
-          {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
-        </button>
-        {% if request.session.chat_ui_auth_username %}
-          <form method="post" class="nav-inline-form">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="logout">
-            <input type="hidden" name="language" value="{{ language|default:'en' }}">
-            <button type="submit" class="nav-btn">
-              {% if language == "hi" %}लॉगआउट{% else %}Logout{% endif %}
-            </button>
+      <div class="nav-toolbar">
+        <div class="nav-cluster" role="group" aria-label="{% if language == 'hi' %}भाषा{% else %}Language{% endif %}">
+          <form method="get" class="nav-language-form">
+            <label class="nav-language-label" for="nav_language">
+              {% if language == "hi" %}भाषा{% else %}Language{% endif %}
+            </label>
+            <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+            {% if active_conversation_id %}
+              <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
+            {% endif %}
+            <select
+              id="nav_language"
+              name="language"
+              class="nav-language-select"
+              onchange="this.form.submit()"
+            >
+              <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
+              <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
+            </select>
           </form>
-        {% endif %}
-        {% if not request.session.chat_ui_auth_username %}
-          <a href="#guest-auth-target" class="nav-btn" data-nav-auth-target="register">
-            {% if language == "hi" %}रजिस्टर{% else %}Register{% endif %}
+        </div>
+        <div class="nav-cluster nav-cluster--cta" role="group" aria-label="{% if language == 'hi' %}पढ़ें और चर्चा{% else %}Read and discuss{% endif %}">
+          <button
+            type="button"
+            class="nav-btn nav-btn-secondary"
+            data-open-gita-reader
+            data-language="{{ language|default:'en' }}"
+          >
+            <span class="asset-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 7v14" />
+                <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+              </svg>
+            </span>
+            {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
+          </button>
+          <a
+            href="#community-preview-discussion"
+            class="nav-btn nav-btn-secondary nav-comments"
+            title="{% if language == 'hi' %}टिप्पणियाँ और उत्तर — समुदाय की चर्चा{% else %}Comments and replies — community discussion{% endif %}"
+          >
+            {% if language == "hi" %}टिप्पणियाँ{% else %}Comments{% endif %}
           </a>
-          <a href="#guest-auth-target" class="nav-btn nav-btn-secondary" data-nav-auth-target="login">
-            {% if language == "hi" %}लॉगिन{% else %}Login{% endif %}
-          </a>
-        {% endif %}
+          {% if request.session.chat_ui_auth_username %}
+            <form method="post" class="nav-inline-form">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="logout">
+              <input type="hidden" name="language" value="{{ language|default:'en' }}">
+              <button type="submit" class="nav-btn">
+                {% if language == "hi" %}लॉगआउट{% else %}Logout{% endif %}
+              </button>
+            </form>
+          {% endif %}
+          {% if not request.session.chat_ui_auth_username %}
+            <a href="#guest-auth-target" class="nav-btn" data-nav-auth-target="register">
+              {% if language == "hi" %}रजिस्टर{% else %}Register{% endif %}
+            </a>
+            <a href="#guest-auth-target" class="nav-btn nav-btn-secondary" data-nav-auth-target="login">
+              {% if language == "hi" %}लॉगिन{% else %}Login{% endif %}
+            </a>
+          {% endif %}
+        </div>
         {% if request.session.chat_ui_auth_username %}
-          <div class="auth-pill">
+          <div class="auth-pill nav-session-pill">
             {% if language == "hi" %}
               लॉगिन: {{ request.session.chat_ui_auth_username }}
             {% else %}
@@ -4556,7 +5002,7 @@
             {% endif %}
           </div>
         {% else %}
-          <div class="auth-pill">
+          <div class="auth-pill nav-session-pill">
             {% if language == "hi" %}लॉगिन नहीं है{% else %}Not signed in{% endif %}
           </div>
         {% endif %}
@@ -6378,6 +6824,111 @@
             </div>
           </div>
         {% endif %}
+
+        <section
+          id="community-preview-discussion"
+          class="community-preview"
+          data-community-preview
+          data-preview-limit="4"
+          data-community-logged-in="{% if request.session.chat_ui_auth_username %}1{% else %}0{% endif %}"
+          data-api-base="/api/community/posts/"
+          data-lang="{{ language|default:'en' }}"
+        >
+          <button
+            type="button"
+            class="community-preview-teaser"
+            data-community-toggle
+            aria-expanded="false"
+            aria-controls="community-preview-panel"
+            id="community-preview-teaser-btn"
+          >
+            <span class="community-preview-teaser-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </span>
+            <span class="community-preview-teaser-copy">
+              <span class="community-preview-teaser-kicker">
+                {% if language == "hi" %}समुदाय{% else %}Community{% endif %}
+              </span>
+              <span class="community-preview-teaser-title">
+                {% if language == "hi" %}टिप्पणियाँ व उत्तर{% else %}Comments &amp; replies{% endif %}
+              </span>
+              <span class="community-preview-teaser-hint">
+                {% if language == "hi" %}
+                  खोलने के लिए क्लिक करें · मार्गदर्शन के बाद
+                {% else %}
+                  Click to expand · after your guidance
+                {% endif %}
+              </span>
+            </span>
+            <span class="community-preview-chevron" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </span>
+          </button>
+          <div
+            class="community-preview-panel"
+            id="community-preview-panel"
+            role="region"
+            aria-labelledby="community-preview-teaser-btn"
+            data-community-panel
+            aria-hidden="true"
+          >
+            <div class="community-preview-inner">
+              <header class="community-preview-head">
+                <p class="community-preview-lead community-preview-lead--panel">
+                  {% if language == "hi" %}
+                    संक्षिप्त थ्रेड यहीं; सम्पादन के लिए पूरा पेज खोलें।
+                  {% else %}
+                    Short preview here — open the full page to edit or remove posts.
+                  {% endif %}
+                </p>
+                <a
+                  class="community-preview-full"
+                  href="/community/?language={{ language|default:'en' }}"
+                >
+                  {% if language == "hi" %}पूरा पेज खोलें{% else %}Open full page{% endif %}
+                </a>
+              </header>
+
+              {% if request.session.chat_ui_auth_username %}
+                <div class="community-preview-compose">
+                  <label class="community-preview-label" for="community-root-input">
+                    {% if language == "hi" %}नई टिप्पणी{% else %}New comment{% endif %}
+                  </label>
+                  <textarea
+                    id="community-root-input"
+                    data-community-root-input
+                    maxlength="4000"
+                    rows="2"
+                    placeholder="{% if language == 'hi' %}संक्षेप में अपना विचार…{% else %}Share a brief reflection…{% endif %}"
+                  ></textarea>
+                  <button type="button" class="community-preview-post-btn" data-community-root-submit>
+                    {% if language == "hi" %}पोस्ट करें{% else %}Post{% endif %}
+                  </button>
+                </div>
+              {% else %}
+                <p class="community-preview-signin-hint">
+                  {% if language == "hi" %}
+                    टिप्पणी या उत्तर के लिए ऊपर <strong>रजिस्टर</strong> या <strong>लॉगिन</strong> करें।
+                  {% else %}
+                    <strong>Register</strong> or <strong>Login</strong> above to comment or reply.
+                  {% endif %}
+                </p>
+              {% endif %}
+
+              <div class="community-preview-list" data-community-preview-list aria-live="polite"></div>
+              <div class="community-preview-load-wrap" data-community-load-wrap hidden>
+                <button type="button" class="btn-ghost community-preview-more" data-community-load-more>
+                  {% if language == "hi" %}और लोड करें{% else %}Load more{% endif %}
+                </button>
+              </div>
+              <p class="community-preview-status" data-community-preview-status aria-live="polite"></p>
+            </div>
+          </div>
+        </section>
       </section>
     </section>
   </main>
@@ -8502,6 +9053,294 @@
         }
       }
 
+      function initCommunityPreview() {
+        const root = document.querySelector("[data-community-preview]");
+        if (!root) {
+          return;
+        }
+
+        const listEl = root.querySelector("[data-community-preview-list]");
+        const statusEl = root.querySelector("[data-community-preview-status]");
+        const loadWrap = root.querySelector("[data-community-load-wrap]");
+        const loadBtn = root.querySelector("[data-community-load-more]");
+        const apiBase = (root.dataset.apiBase || "/api/community/posts/").trim();
+        const pageLimit = Math.min(
+          Math.max(parseInt(root.dataset.previewLimit || "4", 10) || 4, 1),
+          20,
+        );
+        const lang = (root.dataset.lang || "en").trim();
+        const loggedIn = root.dataset.communityLoggedIn === "1";
+
+        let requestOffset = 0;
+        let totalCount = 0;
+        let loading = false;
+
+        function getCsrfToken() {
+          const name = "csrftoken";
+          if (!document.cookie) {
+            return "";
+          }
+          const parts = document.cookie.split(";");
+          for (let i = 0; i < parts.length; i++) {
+            const c = parts[i].trim();
+            if (c.substring(0, name.length + 1) === name + "=") {
+              return decodeURIComponent(c.substring(name.length + 1));
+            }
+          }
+          return "";
+        }
+
+        function truncateText(str, maxLen) {
+          const t = (str || "").trim();
+          if (t.length <= maxLen) {
+            return t;
+          }
+          return `${t.slice(0, maxLen).trim()}…`;
+        }
+
+        function escHtml(s) {
+          const d = document.createElement("div");
+          d.textContent = s == null ? "" : String(s);
+          return d.innerHTML;
+        }
+
+        function setStatus(message, isOk) {
+          if (!statusEl) {
+            return;
+          }
+          statusEl.textContent = message || "";
+          statusEl.classList.toggle("is-ok", Boolean(message && isOk));
+        }
+
+        async function postJson(payload) {
+          const csrf = getCsrfToken();
+          const res = await fetch(apiBase, {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              ...(csrf ? { "X-CSRFToken": csrf } : {}),
+            },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            setStatus(
+              lang === "hi"
+                ? "पोस्ट नहीं हो सका — साइन इन जाँचें।"
+                : "Could not post — sign in may be required.",
+              false,
+            );
+            return false;
+          }
+          setStatus(
+            lang === "hi" ? "सहेजा गया।" : "Saved.",
+            true,
+          );
+          return true;
+        }
+
+        function renderReply(reply) {
+          const wrap = document.createElement("div");
+          const meta = document.createElement("div");
+          meta.className = "community-preview-meta";
+          meta.innerHTML =
+            "<strong>" +
+            escHtml(reply.author_username) +
+            "</strong> · <span>" +
+            escHtml(reply.created_at || "") +
+            "</span>";
+          const body = document.createElement("p");
+          body.className = "community-preview-body";
+          body.style.fontSize = "12px";
+          body.textContent = truncateText(reply.body, 220);
+          wrap.appendChild(meta);
+          wrap.appendChild(body);
+          return wrap;
+        }
+
+        function renderThread(row) {
+          const thread = document.createElement("article");
+          thread.className = "community-preview-thread";
+
+          const meta = document.createElement("div");
+          meta.className = "community-preview-meta";
+          meta.innerHTML =
+            "<strong>" +
+            escHtml(row.author_username) +
+            "</strong> · <span>" +
+            escHtml(row.created_at || "") +
+            "</span>";
+
+          const body = document.createElement("p");
+          body.className = "community-preview-body";
+          body.textContent = truncateText(row.body, 320);
+
+          thread.appendChild(meta);
+          thread.appendChild(body);
+
+          const replies = row.replies || [];
+          if (replies.length) {
+            const rw = document.createElement("div");
+            rw.className = "community-preview-replies";
+            replies.forEach((r) => {
+              rw.appendChild(renderReply(r));
+            });
+            thread.appendChild(rw);
+          }
+
+          if (loggedIn) {
+            const form = document.createElement("div");
+            form.className = "community-preview-reply-form";
+            const ta = document.createElement("textarea");
+            ta.rows = 2;
+            ta.maxLength = 4000;
+            ta.placeholder =
+              lang === "hi" ? "उत्तर लिखें…" : "Write a reply…";
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "community-preview-reply-btn";
+            btn.textContent = lang === "hi" ? "उत्तर दें" : "Reply";
+            btn.addEventListener("click", async () => {
+              const text = ta.value.trim();
+              if (!text) {
+                return;
+              }
+              const ok = await postJson({ body: text, parent_id: row.id });
+              if (ok) {
+                ta.value = "";
+                requestOffset = 0;
+                await loadThreads(true);
+              }
+            });
+            form.appendChild(ta);
+            form.appendChild(btn);
+            thread.appendChild(form);
+          }
+
+          return thread;
+        }
+
+        async function loadThreads(replace) {
+          if (loading || !listEl) {
+            return;
+          }
+          loading = true;
+          if (replace) {
+            requestOffset = 0;
+            listEl.innerHTML = "";
+          }
+          setStatus("", true);
+          try {
+            const url = `${apiBase}?limit=${pageLimit}&offset=${requestOffset}`;
+            const res = await fetch(url, { credentials: "same-origin" });
+            if (!res.ok) {
+              throw new Error("community_load_failed");
+            }
+            const data = await res.json();
+            totalCount = typeof data.count === "number" ? data.count : 0;
+            const rows = data.results || [];
+            rows.forEach((row) => {
+              listEl.appendChild(renderThread(row));
+            });
+            requestOffset += rows.length;
+            const hasMore = requestOffset < totalCount;
+            if (loadWrap) {
+              loadWrap.hidden = !hasMore;
+            }
+            if (loadBtn) {
+              loadBtn.hidden = !hasMore;
+            }
+            if (replace && !rows.length) {
+              listEl.innerHTML =
+                "<p class=\"community-preview-lead\" style=\"margin:0\">" +
+                (lang === "hi"
+                  ? "अभी कोई टिप्पणी नहीं — आप पहले लिख सकते हैं।"
+                  : "No comments yet — you can start the thread.") +
+                "</p>";
+            }
+          } catch (err) {
+            setStatus(
+              lang === "hi"
+                ? "लोड नहीं हो सका — रिफ्रेश करें।"
+                : "Could not load — refresh the page.",
+              false,
+            );
+          }
+          loading = false;
+        }
+
+        loadBtn?.addEventListener("click", () => loadThreads(false));
+
+        const rootSubmit = root.querySelector("[data-community-root-submit]");
+        const rootInput = root.querySelector("[data-community-root-input]");
+        rootSubmit?.addEventListener("click", async () => {
+          const text = rootInput?.value?.trim() || "";
+          if (!text) {
+            return;
+          }
+          const ok = await postJson({ body: text });
+          if (ok && rootInput) {
+            rootInput.value = "";
+            requestOffset = 0;
+            await loadThreads(true);
+          }
+        });
+
+        const toggle = root.querySelector("[data-community-toggle]");
+        const panel = root.querySelector("[data-community-panel]");
+        let bootstrapped = false;
+
+        function setPanelOpen(open) {
+          root.classList.toggle("is-open", open);
+          if (toggle) {
+            toggle.setAttribute("aria-expanded", open ? "true" : "false");
+          }
+          if (panel) {
+            panel.setAttribute("aria-hidden", open ? "false" : "true");
+          }
+        }
+
+        function openPanel() {
+          setPanelOpen(true);
+          if (!bootstrapped) {
+            bootstrapped = true;
+            void loadThreads(true);
+          }
+        }
+
+        function closePanel() {
+          setPanelOpen(false);
+        }
+
+        toggle?.addEventListener("click", () => {
+          if (root.classList.contains("is-open")) {
+            closePanel();
+          } else {
+            openPanel();
+          }
+        });
+
+        setPanelOpen(false);
+
+        function openFromHash() {
+          if (window.location.hash !== "#community-preview-discussion") {
+            return;
+          }
+          requestAnimationFrame(() => {
+            root.scrollIntoView({ behavior: "smooth", block: "start" });
+            openPanel();
+          });
+        }
+
+        openFromHash();
+        window.addEventListener("hashchange", () => {
+          if (window.location.hash === "#community-preview-discussion") {
+            openPanel();
+            root.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      }
+
       function initTodaySignal() {
         const card = document.querySelector("[data-daily-signal-card]");
         if (!card) {
@@ -8550,6 +9389,7 @@
       initGoogleSignIn();
       initGuestNavAuth();
       initNaamJapa();
+      initCommunityPreview();
       initTodaySignal();
       scrollTranscriptToLatestReplyStart();
     };

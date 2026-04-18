@@ -14,6 +14,7 @@ import guide_api.views as guide_views
 from guide_api.models import (
     AskEvent,
     BillingRecord,
+    CommunityPost,
     Conversation,
     EngagementEvent,
     FollowUpEvent,
@@ -3575,3 +3576,100 @@ class GuidanceGroundingTests(TestCase):
             out = _serialize_conversation_context(msgs)
             self.assertLessEqual(len(out), 120)
             self.assertIn("keep this tail", out)
+
+
+class CommunityApiTests(APITestCase):
+    """Public Path thread posts and replies."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user_a = user_model.objects.create_user(
+            "comm_a",
+            "comm_a_pass_12",
+        )
+        self.user_b = user_model.objects.create_user(
+            "comm_b",
+            "comm_b_pass_12",
+        )
+        self.staff = user_model.objects.create_user(
+            "comm_staff",
+            "comm_st_pass_12",
+            is_staff=True,
+        )
+
+    def test_community_wall_page_renders(self):
+        response = self.client.get("/community/?language=en")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Comments & replies")
+
+    def test_community_list_get_anonymous_empty(self):
+        response = self.client.get("/api/community/posts/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
+    def test_community_post_requires_auth(self):
+        response = self.client.post(
+            "/api/community/posts/",
+            {"body": "Hello path"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_community_create_reply_edit_delete_flow(self):
+        self.client.force_authenticate(self.user_a)
+        root = self.client.post(
+            "/api/community/posts/",
+            {"body": "Root message"},
+            format="json",
+        )
+        self.assertEqual(root.status_code, status.HTTP_201_CREATED)
+        root_id = root.data["id"]
+
+        self.client.force_authenticate(self.user_b)
+        reply = self.client.post(
+            "/api/community/posts/",
+            {"body": "Reply text", "parent_id": root_id},
+            format="json",
+        )
+        self.assertEqual(reply.status_code, status.HTTP_201_CREATED)
+
+        deep = self.client.post(
+            "/api/community/posts/",
+            {"body": "Too deep", "parent_id": reply.data["id"]},
+            format="json",
+        )
+        self.assertEqual(deep.status_code, status.HTTP_400_BAD_REQUEST)
+
+        listing = self.client.get("/api/community/posts/")
+        self.assertEqual(listing.data["count"], 1)
+        self.assertEqual(len(listing.data["results"][0]["replies"]), 1)
+
+        self.client.force_authenticate(self.user_a)
+        forbidden = self.client.patch(
+            f"/api/community/posts/{reply.data['id']}/",
+            {"body": "hijack"},
+            format="json",
+        )
+        self.assertEqual(forbidden.status_code, status.HTTP_403_FORBIDDEN)
+
+        self.client.force_authenticate(self.staff)
+        ok_edit = self.client.patch(
+            f"/api/community/posts/{reply.data['id']}/",
+            {"body": "Staff edit"},
+            format="json",
+        )
+        self.assertEqual(ok_edit.status_code, status.HTTP_200_OK)
+        self.assertEqual(ok_edit.data["body"], "Staff edit")
+
+        self.client.force_authenticate(self.user_a)
+        deleted = self.client.delete(f"/api/community/posts/{root_id}/")
+        self.assertEqual(deleted.status_code, status.HTTP_200_OK)
+
+        empty = self.client.get("/api/community/posts/")
+        self.assertEqual(empty.data["count"], 0)
+        self.assertFalse(
+            CommunityPost.objects.filter(
+                pk=reply.data["id"],
+                deleted_at__isnull=True,
+            ).exists(),
+        )
