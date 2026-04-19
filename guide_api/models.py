@@ -4,6 +4,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 
 
 class Verse(models.Model):
@@ -780,3 +781,185 @@ class SharedAnswer(models.Model):
 
     def __str__(self) -> str:
         return f"SharedAnswer {self.share_id}"
+
+
+class SadhanaProgram(models.Model):
+    """A guided multi-day sadhana track (mantra, prānāyāma, yoga, etc.)."""
+
+    slug = models.SlugField(max_length=96, unique=True)
+    title = models.CharField(max_length=160)
+    subtitle = models.CharField(max_length=220, blank=True)
+    description = models.TextField(blank=True)
+    philosophy_blurb = models.TextField(
+        blank=True,
+        help_text="Optional wellness / non-medical disclaimer shown with the program.",
+    )
+    duration_days = models.PositiveSmallIntegerField(default=30)
+    estimated_minutes_per_day = models.PositiveSmallIntegerField(default=15)
+    is_published = models.BooleanField(default=False, db_index=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    free_sample_day_number = models.PositiveSmallIntegerField(
+        default=1,
+        help_text="Day index (1-based) available without purchase for preview.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class SadhanaDay(models.Model):
+    """Single day inside a sadhana program."""
+
+    program = models.ForeignKey(
+        SadhanaProgram,
+        on_delete=models.CASCADE,
+        related_name="days",
+    )
+    day_number = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=160)
+    summary = models.TextField(blank=True)
+    intention = models.TextField(
+        blank=True,
+        help_text="Closing intention / living-the-mantra cue for the day.",
+    )
+
+    class Meta:
+        ordering = ["day_number"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["program", "day_number"],
+                name="unique_sadhana_program_day_number",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.program.slug} day {self.day_number}"
+
+
+class SadhanaStep(models.Model):
+    """Ordered step within a day (warm-up, breath, bhakti, mantra, integration)."""
+
+    STEP_WARMUP_YOGA = "warmup_yoga"
+    STEP_PRANAYAMA = "pranayama"
+    STEP_BHAKTI = "bhakti"
+    STEP_MANTRA = "mantra"
+    STEP_INTEGRATION = "integration"
+    STEP_CHOICES = (
+        (STEP_WARMUP_YOGA, "Warm-up yoga"),
+        (STEP_PRANAYAMA, "Prānāyāma"),
+        (STEP_BHAKTI, "Bhakti / remembrance"),
+        (STEP_MANTRA, "Mantra chanting"),
+        (STEP_INTEGRATION, "Living the mantra"),
+    )
+
+    day = models.ForeignKey(
+        SadhanaDay,
+        on_delete=models.CASCADE,
+        related_name="steps",
+    )
+    sequence = models.PositiveSmallIntegerField()
+    step_type = models.CharField(max_length=24, choices=STEP_CHOICES)
+    title = models.CharField(max_length=160)
+    instructions = models.TextField(blank=True)
+    audio_url = models.URLField(blank=True)
+    video_url = models.URLField(blank=True)
+    duration_minutes = models.PositiveSmallIntegerField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["sequence"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["day", "sequence"],
+                name="unique_sadhana_day_sequence",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.day_id}: {self.title}"
+
+
+class SadhanaEnrollment(models.Model):
+    """Paid or ongoing access window for one user per program."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sadhana_enrollments",
+    )
+    program = models.ForeignKey(
+        SadhanaProgram,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    access_starts_at = models.DateTimeField()
+    access_ends_at = models.DateTimeField()
+    billing_record = models.ForeignKey(
+        "BillingRecord",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="sadhana_enrollments",
+    )
+    renewal_count = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "program"],
+                name="unique_sadhana_user_program",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.program.slug}"
+
+
+class SadhanaDayCompletion(models.Model):
+    """Marks a user's finished day (paid enrollment or free-sample day)."""
+
+    enrollment = models.ForeignKey(
+        SadhanaEnrollment,
+        on_delete=models.CASCADE,
+        related_name="completed_days",
+        blank=True,
+        null=True,
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="sadhana_day_completions",
+        blank=True,
+        null=True,
+        help_text="Used when marking free-sample days without paid enrollment.",
+    )
+    day = models.ForeignKey(
+        SadhanaDay,
+        on_delete=models.CASCADE,
+        related_name="completions",
+    )
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["enrollment", "day"],
+                condition=Q(enrollment__isnull=False),
+                name="unique_sadhana_enrollment_day_completion",
+            ),
+            models.UniqueConstraint(
+                fields=["user", "day"],
+                condition=Q(enrollment__isnull=True, user__isnull=False),
+                name="unique_sadhana_user_day_sample_completion",
+            ),
+            models.CheckConstraint(
+                condition=Q(enrollment__isnull=False) | Q(user__isnull=False),
+                name="sadhana_completion_has_actor",
+            ),
+        ]

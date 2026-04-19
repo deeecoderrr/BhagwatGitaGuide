@@ -983,7 +983,7 @@ def _refine_intent_via_llm(
     asks_for_simple_explanation: bool,
 ) -> IntentAnalysis | None:
     """Use a small LLM call to separate life guidance from study chat from pure casual."""
-    if not getattr(settings, "OPENAI_API_KEY", ""):
+    if not _llm_generation_enabled():
         return None
     if getattr(settings, "DISABLE_INTENT_LLM_REFINEMENT", False):
         return None
@@ -1010,15 +1010,14 @@ def _refine_intent_via_llm(
     )
     intent_model = getattr(settings, "OPENAI_INTENT_MODEL", "") or settings.OPENAI_MODEL
     try:
-        client = _openai_client()
-        response = client.responses.create(
+        out_text = _responses_output_text(
             model=intent_model,
+            input_messages=[{"role": "user", "content": prompt}],
             max_output_tokens=int(
                 getattr(settings, "INTENT_REFINEMENT_MAX_TOKENS", 120),
             ),
-            input=[{"role": "user", "content": prompt}],
         )
-        payload = _parse_json_payload(response.output_text)
+        payload = _parse_json_payload(out_text)
         it = str(payload.get("intent_type", "")).strip()
     except Exception as exc:
         logger.warning("Intent LLM refinement failed: %s", exc)
@@ -1960,6 +1959,78 @@ def _openai_client() -> OpenAI:
     except TypeError:
         # Older client versions may not accept timeout/max_retries.
         return OpenAI(api_key=settings.OPENAI_API_KEY)
+
+
+def _use_local_llm() -> bool:
+    """When True, JSON/text guidance uses Ollama instead of OpenAI."""
+    return bool(getattr(settings, "USE_LOCAL_LLM", False))
+
+
+def _llm_generation_enabled() -> bool:
+    """Enough config to run guidance-style LLM calls (cloud OpenAI or local Ollama)."""
+    return _use_local_llm() or bool(getattr(settings, "OPENAI_API_KEY", ""))
+
+
+def _ollama_client() -> OpenAI:
+    """OpenAI-compatible client pointing at Ollama (typically :11434/v1)."""
+    timeout_seconds = float(getattr(settings, "OPENAI_REQUEST_TIMEOUT_SECONDS", 120))
+    base = (getattr(settings, "OLLAMA_BASE_URL", "") or "http://127.0.0.1:11434/v1").rstrip(
+        "/",
+    )
+    if not base.endswith("/v1"):
+        base = f"{base}/v1"
+    api_key = getattr(settings, "OLLAMA_API_KEY", None) or "ollama"
+    try:
+        return OpenAI(
+            base_url=base,
+            api_key=api_key,
+            timeout=timeout_seconds,
+            max_retries=1,
+        )
+    except TypeError:
+        return OpenAI(base_url=base, api_key=api_key)
+
+
+def _effective_llm_model(requested_model: str | None) -> str:
+    """Cloud uses ``requested_model`` (or OPENAI_MODEL); local uses ``OLLAMA_MODEL``."""
+    if _use_local_llm():
+        local = getattr(settings, "OLLAMA_MODEL", "").strip()
+        return local or "gemma4:latest"
+    chosen = (requested_model or "").strip()
+    return chosen or settings.OPENAI_MODEL
+
+
+def _responses_output_text(
+    *,
+    model: str,
+    input_messages: list[dict[str, str]],
+    max_output_tokens: int | None = None,
+) -> str:
+    """Responses API on OpenAI cloud, or chat.completions on local Ollama."""
+    effective_model = _effective_llm_model(model)
+    if _use_local_llm():
+        client = _ollama_client()
+        kwargs: dict[str, object] = {
+            "model": effective_model,
+            "messages": list(input_messages),
+        }
+        if max_output_tokens is not None:
+            kwargs["max_tokens"] = max_output_tokens
+        # Ollama: nudge toward valid JSON (fences are still stripped in _parse_json_payload).
+        kwargs["extra_body"] = {"format": "json"}
+        response = client.chat.completions.create(**kwargs)
+        message = response.choices[0].message
+        return (message.content or "").strip()
+
+    client = _openai_client()
+    kwargs = {
+        "model": effective_model,
+        "input": input_messages,
+    }
+    if max_output_tokens is not None:
+        kwargs["max_output_tokens"] = max_output_tokens
+    response = client.responses.create(**kwargs)
+    return response.output_text
 
 
 def verse_embedding_document(verse: Verse) -> str:
@@ -3548,17 +3619,51 @@ def _extract_references(text: str) -> set[str]:
     return set(re.findall(r"\b\d{1,2}\.\d{1,3}\b", text))
 
 
-def _parse_json_payload(output_text: str) -> dict:
-    """Parse model output to JSON, tolerating wrapped prose/markdown."""
-    try:
-        return json.loads(output_text)
-    except json.JSONDecodeError:
-        pass
+def _strip_markdown_json_fence(text: str) -> str:
+    """Remove ``` or ```json fences that local models often wrap JSON in."""
+    t = text.strip()
+    if not t.startswith("```"):
+        return t
+    lines = t.splitlines()
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    while lines and lines[-1].strip() == "":
+        lines.pop()
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
 
-    match = re.search(r"\{.*\}", output_text, flags=re.DOTALL)
-    if not match:
-        raise ValueError("No JSON object found in model output.")
-    return json.loads(match.group(0))
+
+def _parse_json_payload(output_text: str) -> dict:
+    """Parse model output to JSON, tolerating prose/markdown fences and nesting."""
+    raw = (output_text or "").strip().replace("\ufeff", "")
+    layered = [_strip_markdown_json_fence(raw), raw]
+
+    decoder = json.JSONDecoder()
+    for blob in layered:
+        if not blob:
+            continue
+        try:
+            parsed = json.loads(blob)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+
+        start = 0
+        while True:
+            idx = blob.find("{", start)
+            if idx == -1:
+                break
+            try:
+                parsed, _end = decoder.raw_decode(blob, idx)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            start = idx + 1
+
+    raise ValueError("No JSON object found in model output.")
 
 
 def _is_grounded_response(
@@ -3764,7 +3869,7 @@ def _validate_and_correct_verses(
     - A replaced list when ``better_refs`` load from DB.
     - An empty list when the model sets ``no_appropriate_verse`` (do not cite ślokas).
     """
-    if not settings.OPENAI_API_KEY or not verses:
+    if not _llm_generation_enabled() or not verses:
         return verses
 
     blocks = []
@@ -3820,12 +3925,11 @@ def _validate_and_correct_verses(
     )
 
     try:
-        client = _openai_client()
-        response = client.responses.create(
+        out_text = _responses_output_text(
             model=_openai_verse_relevance_model(),
-            input=[{"role": "user", "content": prompt}],
+            input_messages=[{"role": "user", "content": prompt}],
         )
-        payload = _parse_json_payload(response.output_text)
+        payload = _parse_json_payload(out_text)
 
         if payload.get("relevant", True):
             return verses
@@ -3873,7 +3977,7 @@ def _validate_and_correct_verses(
 
 def _suggest_verse_refs_llm(message: str) -> list[Verse]:
     """Second-pass: propose a few refs when retrieval/relevance left none."""
-    if not settings.OPENAI_API_KEY:
+    if not _llm_generation_enabled():
         return []
 
     legal_extra = ""
@@ -3896,12 +4000,11 @@ def _suggest_verse_refs_llm(message: str) -> list[Verse]:
         "Only chapters 1-18."
     )
     try:
-        client = _openai_client()
-        response = client.responses.create(
+        out_text = _responses_output_text(
             model=_openai_verse_suggest_model(),
-            input=[{"role": "user", "content": prompt}],
+            input_messages=[{"role": "user", "content": prompt}],
         )
-        payload = _parse_json_payload(response.output_text)
+        payload = _parse_json_payload(out_text)
         raw = payload.get("refs", [])
         if not isinstance(raw, list):
             return []
@@ -3935,7 +4038,7 @@ def refine_verses_for_guidance(message: str, verses: list[Verse]) -> list[Verse]
     out: list[Verse] = list(verses)
     out = _strip_inappropriate_verses_for_legal_ethics(message, out)
 
-    if not settings.OPENAI_API_KEY:
+    if not _llm_generation_enabled():
         return out
 
     refined: list[Verse] = list(out)
@@ -4290,7 +4393,7 @@ def build_verse_explanation(
     support_text = _serialize_verses_for_prompt(support_verses, message=message)
     conversation_context = _serialize_conversation_context(conversation_messages)
     ref = _verse_reference(verse)
-    if not settings.OPENAI_API_KEY:
+    if not _llm_generation_enabled():
         return _build_fallback_verse_explanation(
             message=message,
             verse=verse,
@@ -4304,6 +4407,11 @@ def build_verse_explanation(
         "parent or creator with a beloved child. Return valid JSON only with keys: "
         "guidance, meaning, actions, reflection, verse_references. "
         "Answer exactly what was asked; no filler, no unrelated domains. "
+        "AUDIENCE: Write so teenagers, elders, and non-specialists all understand—"
+        "soft, patient, emotionally intelligent; plain words before Sanskrit; define "
+        "any technical term in one short phrase. Length is flexible: use as many "
+        "sentences as needed for clarity, but never confuse complexity with depth—"
+        "simple language can go deep. "
         "When you unpack the śloka: (1) what Arjuna was facing in that beat of the "
         "dialogue, (2) why Krishna chose this reply, (3) weave classical voices "
         "(Advaita emphasis, Viśiṣṭādvaita devotion, Dvaita distinction) only as "
@@ -4313,6 +4421,21 @@ def build_verse_explanation(
         "hinglish = casual Roman Hinglish (Roman Hindi + everyday English), not "
         "formal Devanagari."
     )
+    deep_verse_stories = ""
+    if mode == "deep":
+        deep_verse_stories = (
+            "\nDEEP MODE: In guidance and/or meaning, weave 1–2 brief, relevant "
+            "illustrations from the wider Hindu tradition (Itihāsa—Rāmāyaṇa, "
+            "Mahābhārata; Purāṇas; Veda/Upaniṣad narratives where apt) or a clearly "
+            "factual, widely known real-life parallel. Name the figure (e.g. Rāma, "
+            "Sītā, Hanumān, Yudhiṣṭhira, Vidura, Dhruva, Prahlāda, Mirā, Rāmānuja—"
+            "only when standard lore fits the user's question and this verse). Show "
+            "the human challenge and how clarity, surrender, courage, or discernment "
+            "opened a path—never as gossip; always as a lamp for the seeker's own "
+            "situation. Do NOT invent obscure tales or fake citations; if unsure, "
+            "stay thematic without forcing names.\n"
+        )
+
     user_prompt = (
         f"language_code: {language}\n"
         f"user_question: {message}\n"
@@ -4344,24 +4467,30 @@ def build_verse_explanation(
         "- Do not lead with a different verse; keep this verse central.\n"
         "- verse_references: requested verse first; add only support verses that "
         "directly illuminate this line.\n"
-        "- guidance: 3-6 sentences (main teaching).\n"
-        "- meaning: 1-3 sentences (deeper layer or crisp summary).\n"
+        "- guidance: main teaching in warm, simple language—use enough sentences that "
+        "the reader feels held and clear (often several short paragraphs worth if "
+        "needed); never sacrifice empathy for jargon.\n"
+        "- meaning: a deeper or summarizing layer—still plain words; can run longer "
+        "when it helps.\n"
+        f"{deep_verse_stories}"
     )
     try:
-        client = _openai_client()
-        response = client.responses.create(
+        out_text = _responses_output_text(
             model=settings.OPENAI_MODEL,
             max_output_tokens=max_output_tokens,
-            input=[
+            input_messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
         )
-        payload = _parse_json_payload(response.output_text)
+        payload = _parse_json_payload(out_text)
         guidance = str(payload.get("guidance", "")).strip()
         meaning = str(payload.get("meaning", "")).strip()
         reflection = str(payload.get("reflection", "")).strip()
-        actions = _trim_actions(payload.get("actions"), limit=3)
+        actions = _trim_actions(
+            payload.get("actions"),
+            limit=5 if mode == "deep" else 3,
+        )
         refs = payload.get("verse_references", [])
         if not isinstance(refs, list):
             refs = []
@@ -4535,7 +4664,7 @@ def build_guidance(
             language=language,
             intent=classify_user_intent(message, mode=mode),
         )
-    if not settings.OPENAI_API_KEY:
+    if not _llm_generation_enabled():
         return _build_fallback_guidance(
             message,
             verses,
@@ -4665,22 +4794,29 @@ def build_guidance(
     elif mode != "deep":
         tone_directive = (
             "TONE: A deeply loving parent or creator speaking to a beloved child—"
-            "clear, warm, steady. No 'Dear seeker', no cold sermonizing. "
-            "Simple modern language; short sentences. Invite change without shame; "
+            "clear, warm, steady, emotionally soft. No 'Dear seeker', no cold sermonizing. "
+            "Prefer simple everyday words and short sentences; explain ideas so any "
+            "education level can follow—do not shorten arbitrarily if more sentences "
+            "would genuinely help understanding. Invite change without shame; "
             "acknowledge the good in the person even when correcting course. "
         )
         if is_stressed:
             tone_directive += (
-                "The user sounds strained—go slower, one main idea, extra reassurance. "
+                "The user sounds strained—go slower, one main idea at a time, "
+                "extra reassurance. "
             )
     else:
         tone_directive = (
             "TONE: Compassionate, luminous, serene—Krishna's voice as mentor, not "
-            "performative deity. Never claim literal divine identity. "
+            "performative deity. Never claim literal divine identity. Depth does not "
+            "mean difficulty: keep language accessible unless the user asks for "
+            "technical śāstra detail; then unpack gently. "
         )
 
     system_prompt = (
         "You are a Bhagavad Gita guidance assistant. Return valid JSON only.\n"
+        "AUDIENCE: Seekers of every age and background—plain language first, empathy "
+        "alongside doctrine; clarity beats cleverness.\n"
         "Required keys: guidance, meaning, actions, reflection, verse_references.\n"
         "Optional key: related_verse_references — array of chapter.verse strings "
         "(max 4, no duplicates of verse_references). Use it ONLY for extra verses "
@@ -4758,20 +4894,38 @@ def build_guidance(
     deep_append = ""
     if mode == "deep" and intent_type == "knowledge_question":
         deep_append = (
-            "\nDEEP MODE (knowledge): Add richer scriptural texture—why this teaching "
-            "landed on the Kurukshetra moment, and how classical commentators "
-            "differ—still without unsolicited life coaching unless the user asked.\n"
+            "\nDEEP MODE (knowledge): Richer scriptural texture—why this teaching landed "
+            "on the Kurukshetra moment; how classical commentators differ (still plain "
+            "English or natural Hindi/Hinglish). Add 1–2 ILLUSTRATIONS when they clarify: "
+            "named episodes from Rāmāyaṇa, Mahābhārata, Purāṇas, or major Upaniṣad/Vedic "
+            "dialogue stories where widely received tradition matches the doctrine—"
+            "character, dilemma, turning point—not trivia. Optionally a sober, factual "
+            "modern parallel ONLY if widely attested and relevant; never invent lore. "
+            "Without unsolicited life coaching unless the user asked.\n"
         )
     elif mode == "deep":
         deep_append = (
-            "\nDEEP MODE ACTIVE — paid deep-reflection request. Expand beyond baseline:\n"
-            "- guidance: 4-6 sentences, emotionally and spiritually layered\n"
-            "- meaning: 2-4 sentences including why Krishna said this to Arjuna then "
-            "and there (Mahabharata beat), without losing relevance to the user\n"
-            "- actions: 3-5 sequenced, each with brief 'why'\n"
-            "- reflection: 2-3 probing questions tied to their words\n"
-            "- name likely inner states and validate before redirecting\n"
-            "- optional: one breath or ethical practice aligned to the teaching\n"
+            "\nDEEP MODE ACTIVE — deeper reflection. Use ample space while keeping "
+            "language gentle and understandable.\n"
+            "- guidance: emotionally and spiritually layered; speak to the user's "
+            "situation with warmth; long-form welcome when it serves clarity.\n"
+            "- meaning: why Krishna said this to Arjuna at that Mahābhārata moment, "
+            "woven with the user's thread—avoid academic dense blocks; split into plain "
+            "readable chunks.\n"
+            "- Include 1–3 ILLUSTRATIVE PATHWAYS that mirror their challenge: prefer "
+            "named stories from sampradāya lore—Rāmāyaṇa (Rāma, Sītā, Lakṣmaṇa, Bharata, "
+            "Hanumat…), Mahābhārata (Vidura, Yudhiṣṭhira, Karṇa, Bhīṣma…), Purāṇas "
+            "(Dhruva, Prahlāda…), Bhāgavata līlā, Mahādeva–Pārvatī dialogue, ṛṣis in "
+            "Upaniṣads—ONLY when the moral parallel truly fits their question and the "
+            "verses cited. Include how the figure faced a similar knot (duty, grief, "
+            "fear, rivalry, exile, humility, surrender) and what steadied them. "
+            "Optional: one restrained, fact-based modern/public example if genuinely "
+            "parallel—no gossip, no unsourced claims.\n"
+            "- actions: 3–5 sequenced steps, each with a brief 'why' in simple words.\n"
+            "- reflection: 2–4 probing questions tied to their actual words.\n"
+            "- name inner states (fear, shame, fatigue) and validate before redirecting.\n"
+            "- optional: one breath or ethical micro-practice aligned to the teaching.\n"
+            "- Never fabricate scripture; skip names rather than invent episodes.\n"
         )
 
     if intent_type == "knowledge_question":
@@ -4782,9 +4936,11 @@ def build_guidance(
             "Requirements:\n"
             "- Answer the user's question first; stay in Bhagavad Gita context.\n"
             "- Do not redirect into unrelated life domains.\n"
-            "- guidance: concise, directly responsive (2-5 sentences unless deep mode).\n"
-            "- meaning: clarify the idea or verse logic; avoid repeating guidance "
-            "unless helpful.\n"
+            "- guidance: directly responsive in simple, soft language—use as many "
+            "clear sentences as needed; in deep mode, add scriptural illustrations "
+            "as specified in the DEEP MODE block below when applicable.\n"
+            "- meaning: clarify the idea or verse logic in readable terms; avoid "
+            "repeating guidance unless helpful.\n"
             f"- actions: {actions_instruction}\n"
             f"- reflection: {reflection_instruction}\n"
             "- verse_references: only verses that truly help; [] if none needed.\n"
@@ -4832,8 +4988,11 @@ def build_guidance(
             "the part of them that already wants peace.\n"
             + verse_use_line
             + "- Bridge to today only where it clarifies—no forced allegory.\n"
-            "- guidance: 2-4 sentences unless deep mode.\n"
-            "- meaning: 1-3 sentences deepening the verse or principle.\n"
+            "- guidance: mirror their situation first; then unfold Krishna's reply in "
+            "warm, plain language—long enough that diverse readers feel understood "
+            "(often several sentences or short paragraphs); never vague virtue-signaling.\n"
+            "- meaning: deepen the verse or principle in still-simple words—length "
+            "flexible when it helps.\n"
             f"- actions: {actions_instruction}\n"
             f"- reflection: {reflection_instruction}\n"
             "- verse_references: best-fit chapter.verse list (may extend beyond "
@@ -4844,16 +5003,15 @@ def build_guidance(
         )
 
     try:
-        client = _openai_client()
-        response = client.responses.create(
+        out_text = _responses_output_text(
             model=settings.OPENAI_MODEL,
             max_output_tokens=max_output_tokens,
-            input=[
+            input_messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
         )
-        payload = _parse_json_payload(response.output_text)
+        payload = _parse_json_payload(out_text)
 
         guidance = str(payload.get("guidance", "")).strip()
         meaning = str(payload.get("meaning", "")).strip()
@@ -4861,7 +5019,7 @@ def build_guidance(
         actions = payload.get("actions", [])
         references = payload.get("verse_references", [])
 
-        actions = _trim_actions(actions, limit=3)
+        actions = _trim_actions(actions, limit=5 if mode == "deep" else 3)
 
         if not isinstance(references, list):
             references = []
@@ -4941,7 +5099,7 @@ def build_guidance(
             related_verses_refs=related_verses_refs,
         )
     except Exception as exc:
-        logger.warning("OpenAI guidance generation failed: %s", exc)
+        logger.warning("Guidance generation failed: %s", exc)
         return _build_fallback_guidance(
             message,
             verses,
@@ -5300,7 +5458,7 @@ def get_or_create_verse_synthesis(verse: Verse) -> dict[str, object]:
 
     payload = _build_fallback_verse_synthesis_payload(verse)
     generation_source = VerseSynthesis.SOURCE_FALLBACK
-    if settings.OPENAI_API_KEY:
+    if _llm_generation_enabled():
         system_prompt = (
             "You are a Bhagavad Gita verse synthesis assistant. "
             "Return valid JSON only with keys: "
@@ -5324,16 +5482,15 @@ def get_or_create_verse_synthesis(verse: Verse) -> dict[str, object]:
             f"Verse source material:\n{_verse_synthesis_source_text(verse)}"
         )
         try:
-            client = _openai_client()
-            response = client.responses.create(
+            out_text = _responses_output_text(
                 model=settings.OPENAI_MODEL,
-                input=[
+                input_messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
             )
             payload = _validate_verse_synthesis_payload(
-                _parse_json_payload(response.output_text),
+                _parse_json_payload(out_text),
                 verse=verse,
             )
             generation_source = VerseSynthesis.SOURCE_LLM

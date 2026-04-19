@@ -4968,6 +4968,13 @@
             {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
           </button>
           <a
+            href="/practice/?language={{ language|default:'en' }}"
+            class="nav-btn nav-btn-secondary"
+            title="{% if language == 'hi' %}मार्गदर्शित साधना — योग, प्राण, मंत्र{% else %}Guided sadhana — yoga, breath, mantra{% endif %}"
+          >
+            {% if language == "hi" %}साधना{% else %}Practice{% endif %}
+          </a>
+          <a
             href="#community-preview-discussion"
             class="nav-btn nav-btn-secondary nav-comments"
             title="{% if language == 'hi' %}टिप्पणियाँ और उत्तर — समुदाय की चर्चा{% else %}Comments and replies — community discussion{% endif %}"

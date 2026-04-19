@@ -246,6 +246,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+# When true, guidance JSON uses Ollama (OpenAI-compatible chat at OLLAMA_BASE_URL).
+USE_LOCAL_LLM = os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
+OLLAMA_BASE_URL = os.getenv(
+    "OLLAMA_BASE_URL",
+    "http://127.0.0.1:11434/v1",
+).strip()
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:latest").strip()
 # Commentary-aware verse relevance pass after retrieval (extra LLM call).
 DISABLE_VERSE_RELEVANCE_LLM = os.getenv(
     "DISABLE_VERSE_RELEVANCE_LLM",
@@ -374,6 +381,16 @@ SUBSCRIPTION_PRICE_PRO_USD = int(
 # Backward-compatible aliases used by older tests/clients.
 SUBSCRIPTION_PRICE_INR = SUBSCRIPTION_PRICE_PRO_INR
 SUBSCRIPTION_PRICE_USD = SUBSCRIPTION_PRICE_PRO_USD
+
+# Guided sadhana cycle (one billing period; paise / cents).
+SADHANA_CYCLE_DURATION_DAYS = int(os.getenv("SADHANA_CYCLE_DURATION_DAYS", "30"))
+SADHANA_CYCLE_PRICE_INR = int(
+    os.getenv("SADHANA_CYCLE_PRICE_INR", "29900"),
+)  # ₹299 default
+SADHANA_CYCLE_PRICE_USD = int(
+    os.getenv("SADHANA_CYCLE_PRICE_USD", "499"),
+)  # $4.99 default
+
 SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@askbhagavadgita.com")
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")

@@ -23,6 +23,9 @@ from guide_api.models import (
     Message,
     RequestQuotaSettings,
     ResponseFeedback,
+    SadhanaDay,
+    SadhanaProgram,
+    SadhanaStep,
     SavedReflection,
     SharedAnswer,
     SupportTicket,
@@ -31,7 +34,7 @@ from guide_api.models import (
     Verse,
     WebAudienceProfile,
 )
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
@@ -39,6 +42,7 @@ from guide_api.services import (
     _build_fallback_guidance,
     _build_query_embedding,
     _is_grounded_response,
+    _parse_json_payload,
     _is_professional_ethics_query,
     _is_short_gratitude_like,
     _serialize_conversation_context,
@@ -3584,6 +3588,30 @@ class GuidanceGroundingTests(TestCase):
             self.assertIn("keep this tail", out)
 
 
+class ParseJsonPayloadTests(TestCase):
+    """Local LLMs often wrap JSON in markdown; parsing must stay tolerant."""
+
+    def test_plain_object(self):
+        self.assertEqual(_parse_json_payload('{"a": 1}'), {"a": 1})
+
+    def test_markdown_fence_json(self):
+        text = '```json\n{"guidance": "hello", "meaning": "there"}\n```'
+        out = _parse_json_payload(text)
+        self.assertEqual(out["guidance"], "hello")
+
+    def test_prose_intro_then_fence(self):
+        text = 'Sure!\n```json\n{"x": 1, "y": 2}\n```\n'
+        self.assertEqual(_parse_json_payload(text)["y"], 2)
+
+    def test_nested_braces_inside_string_value(self):
+        text = '{"k": "brace { inside }", "n": 3}'
+        self.assertEqual(_parse_json_payload(text)["n"], 3)
+
+    def test_raises_when_no_object(self):
+        with self.assertRaises(ValueError):
+            _parse_json_payload("no json here")
+
+
 class CommunityApiTests(APITestCase):
     """Public Path thread posts and replies."""
 
@@ -3679,3 +3707,91 @@ class CommunityApiTests(APITestCase):
                 deleted_at__isnull=True,
             ).exists(),
         )
+
+
+class SadhanaApiTests(APITestCase):
+    """Guided sadhana REST surface (shared with native clients)."""
+
+    def setUp(self):
+        self.program = SadhanaProgram.objects.create(
+            slug="elevate-daily",
+            title="Elevate Daily",
+            description="Warm-up → breath → mantra.",
+            duration_days=3,
+            is_published=True,
+            free_sample_day_number=1,
+        )
+        day1 = SadhanaDay.objects.create(
+            program=self.program,
+            day_number=1,
+            title="Day 1 — Orientation",
+        )
+        SadhanaStep.objects.create(
+            day=day1,
+            sequence=1,
+            step_type=SadhanaStep.STEP_MANTRA,
+            title="Listen",
+            instructions="Sit comfortably.",
+        )
+
+    def test_programs_list_public(self):
+        response = self.client.get("/api/sadhana/programs/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["count"], 1)
+
+    def test_free_day_detail_includes_steps(self):
+        response = self.client.get(
+            "/api/sadhana/programs/elevate-daily/days/1/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertEqual(len(payload["steps"]), 1)
+
+    def test_complete_requires_sign_in(self):
+        response = self.client.post(
+            "/api/sadhana/programs/elevate-daily/days/1/complete/",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_practice_hub_page_renders(self):
+        response = self.client.get("/practice/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Daily Sadhana")
+
+
+class CourseStudioWebTests(TestCase):
+    """Staff-only course preparation UI."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.staff_user = user_model.objects.create_user(
+            "course-studio-staff",
+            "staff-course@test.example",
+            "test-pass-xyz",
+            is_staff=True,
+        )
+        self.normal_user = user_model.objects.create_user(
+            "course-studio-user",
+            "user-course@test.example",
+            "test-pass-xyz",
+            is_staff=False,
+        )
+
+    def test_anonymous_redirects_to_login(self):
+        client = Client()
+        response = client.get("/staff/course-studio/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response.url)
+
+    def test_staff_gets_course_studio(self):
+        client = Client()
+        client.force_login(self.staff_user)
+        response = client.get("/staff/course-studio/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Course studio")
+
+    def test_non_staff_forbidden(self):
+        client = Client()
+        client.force_login(self.normal_user)
+        response = client.get("/staff/course-studio/")
+        self.assertEqual(response.status_code, 403)

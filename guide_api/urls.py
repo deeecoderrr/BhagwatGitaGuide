@@ -2,6 +2,13 @@
 
 from django.urls import path
 
+from guide_api.sadhana_views import (
+    SadhanaDayCompleteView,
+    SadhanaDayDetailView,
+    SadhanaMeView,
+    SadhanaProgramDetailView,
+    SadhanaProgramListView,
+)
 from guide_api.views import (
     AnalyticsEventIngestView,
     AnalyticsSummaryView,
@@ -129,4 +136,21 @@ urlpatterns = [
     path("payments/verify/", VerifyPaymentView.as_view(), name="verify-payment"),
     path("payments/webhook/", RazorpayWebhookView.as_view(), name="razorpay-webhook"),
     path("subscription/status/", SubscriptionStatusView.as_view(), name="subscription-status"),
+    path("sadhana/programs/", SadhanaProgramListView.as_view(), name="sadhana-programs"),
+    path(
+        "sadhana/programs/<slug:slug>/",
+        SadhanaProgramDetailView.as_view(),
+        name="sadhana-program-detail",
+    ),
+    path(
+        "sadhana/programs/<slug:slug>/days/<int:day_number>/",
+        SadhanaDayDetailView.as_view(),
+        name="sadhana-day-detail",
+    ),
+    path(
+        "sadhana/programs/<slug:slug>/days/<int:day_number>/complete/",
+        SadhanaDayCompleteView.as_view(),
+        name="sadhana-day-complete",
+    ),
+    path("sadhana/me/", SadhanaMeView.as_view(), name="sadhana-me"),
 ]

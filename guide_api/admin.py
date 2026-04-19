@@ -19,6 +19,11 @@ from guide_api.models import (
     Message,
     RequestQuotaSettings,
     ResponseFeedback,
+    SadhanaDay,
+    SadhanaDayCompletion,
+    SadhanaEnrollment,
+    SadhanaProgram,
+    SadhanaStep,
     SavedReflection,
     SharedAnswer,
     SupportTicket,
@@ -531,3 +536,46 @@ class SupportTicketAdmin(admin.ModelAdmin):
     )
     list_filter = ("issue_type", "status", "created_at")
     search_fields = ("name", "email", "requester_id", "message")
+
+
+class SadhanaStepInline(admin.TabularInline):
+    model = SadhanaStep
+    extra = 0
+
+
+class SadhanaDayInline(admin.TabularInline):
+    model = SadhanaDay
+    extra = 0
+    show_change_link = True
+
+
+@admin.register(SadhanaProgram)
+class SadhanaProgramAdmin(admin.ModelAdmin):
+    list_display = ("title", "slug", "duration_days", "is_published", "sort_order")
+    list_filter = ("is_published",)
+    search_fields = ("title", "slug", "description")
+    prepopulated_fields = {"slug": ("title",)}
+    inlines = [SadhanaDayInline]
+
+
+@admin.register(SadhanaDay)
+class SadhanaDayAdmin(admin.ModelAdmin):
+    list_display = ("program", "day_number", "title")
+    list_filter = ("program",)
+    search_fields = ("title", "summary")
+    ordering = ("program", "day_number")
+    inlines = [SadhanaStepInline]
+
+
+@admin.register(SadhanaEnrollment)
+class SadhanaEnrollmentAdmin(admin.ModelAdmin):
+    list_display = ("user", "program", "access_starts_at", "access_ends_at", "renewal_count")
+    list_filter = ("program",)
+    search_fields = ("user__username", "program__slug")
+    raw_id_fields = ("user", "billing_record")
+
+
+@admin.register(SadhanaDayCompletion)
+class SadhanaDayCompletionAdmin(admin.ModelAdmin):
+    list_display = ("day", "enrollment", "user", "completed_at")
+    raw_id_fields = ("enrollment", "user", "day")

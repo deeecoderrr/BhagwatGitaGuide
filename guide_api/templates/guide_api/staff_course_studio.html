@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Course studio · Staff</title>
+  <style>
+    :root {
+      --void: #050a12;
+      --panel: rgba(10, 16, 32, 0.96);
+      --line: rgba(121, 217, 239, 0.16);
+      --gold: #e8c872;
+      --ice: #c5e8f3;
+      --muted: rgba(220, 230, 255, 0.7);
+      --text: #f6f2e8;
+      --ok: #7ddea0;
+      --err: #e8a8a0;
+      --radius: 16px;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(60, 100, 180, 0.12), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 100% 20%, rgba(200, 150, 80, 0.08), transparent 45%),
+        var(--void);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    a { color: var(--ice); }
+    a:hover { color: #fff; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px clamp(12px, 3vw, 28px) 56px; }
+    .masthead {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+    }
+    .masthead h1 {
+      margin: 0 0 8px;
+      font-size: clamp(22px, 3vw, 28px);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+    }
+    .masthead p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 68ch;
+    }
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(240px, 280px) 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+    @media (max-width: 920px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px;
+      margin-bottom: 16px;
+      box-shadow: 0 24px 56px rgba(0, 4, 16, 0.45);
+    }
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(180, 215, 245, 0.88);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      border: 1px solid rgba(232, 200, 114, 0.28);
+      color: rgba(245, 224, 190, 0.95);
+    }
+    .pill.dot::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ok);
+      opacity: 0.85;
+    }
+    .pill.draft::before { background: rgba(230, 180, 120, 0.85); }
+
+    ul.course-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    ul.course-list li {
+      margin-bottom: 8px;
+    }
+    ul.course-list a {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 12px;
+      text-decoration: none;
+      border: 1px solid transparent;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    ul.course-list a:hover {
+      border-color: rgba(121, 217, 239, 0.28);
+      background: rgba(121, 217, 239, 0.06);
+    }
+    ul.course-list li.active a {
+      border-color: rgba(232, 200, 114, 0.38);
+      background: rgba(232, 200, 114, 0.06);
+    }
+    ul.course-list .mini {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .workflow {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+    .wf-step {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(6, 14, 28, 0.42);
+    }
+    .wf-num {
+      width: 36px;
+      height: 36px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #0a1020;
+      background: linear-gradient(145deg, rgba(232, 200, 114, 0.92), rgba(160, 130, 72, 0.85));
+    }
+    .wf-step strong { display: block; margin-bottom: 4px; font-size: 14px; }
+    .wf-step span { font-size: 12px; color: var(--muted); }
+
+    label.field {
+      display: block;
+      margin: 12px 0 6px;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(160, 200, 230, 0.85);
+    }
+    .studio-input, .studio-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(4, 10, 22, 0.75);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13px;
+    }
+    .studio-input:focus, .studio-textarea:focus {
+      outline: 2px solid rgba(232, 200, 114, 0.35);
+      outline-offset: 2px;
+    }
+    .studio-input--narrow { max-width: 120px; }
+    .studio-checkbox { width: 18px; height: 18px; accent-color: var(--gold); }
+
+    .row-check {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      cursor: pointer;
+      border: none;
+      border-radius: 999px;
+      padding: 11px 20px;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 12px;
+      background: linear-gradient(130deg, rgba(232, 200, 114, 0.92), rgba(178, 140, 72, 0.82));
+      color: #140c04;
+      margin-top: 14px;
+      margin-right: 10px;
+    }
+    .btn.secondary {
+      background: transparent;
+      border: 1px solid rgba(121, 217, 239, 0.45);
+      color: var(--ice);
+      font-weight: 600;
+    }
+    .btn.small { padding: 8px 14px; font-size: 11px; margin-top: 0; }
+
+    .messages { margin-bottom: 14px; }
+    .messages li {
+      padding: 10px 14px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      list-style: none;
+    }
+    .messages .success { background: rgba(125, 222, 160, 0.12); border: 1px solid rgba(125, 222, 160, 0.28); color: #c8f0d8; }
+    .messages .error { background: rgba(232, 168, 160, 0.1); border: 1px solid rgba(232, 168, 160, 0.28); color: #ffd8d4; }
+
+    table.days {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    table.days th, table.days td {
+      text-align: left;
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    table.days th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .legend span {
+      font-size: 11px;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    .errorlist { color: var(--err); font-size: 12px; margin: 4px 0 0; padding-left: 18px; }
+
+    .top-links { font-size: 12px; margin-bottom: 12px; }
+    .top-links a { margin-right: 14px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="masthead">
+      <div class="top-links">
+        <a href="/admin/">Django admin</a>
+        <a href="/practice/">Practice page (preview)</a>
+        <a href="/api/chat-ui/">Chat UI</a>
+      </div>
+      <h1>Course studio</h1>
+      <p>
+        Prepare a guided path the same way you would design a retreat block: name the journey, map each day,
+        then attach audio, video, and precise instructions per step. Publishing makes it visible on
+        <strong>/practice/</strong> and in the sadhana APIs for mobile.
+      </p>
+    </header>
+
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+          <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="layout">
+      <aside>
+        <div class="card">
+          <h2>Your courses</h2>
+          <ul class="course-list">
+            <li class="{% if not selected_program %}active{% endif %}">
+              <a href="{% url 'staff-course-studio' %}">
+                + New course
+                <div class="mini">Start from a blank shell</div>
+              </a>
+            </li>
+            {% for p in programs %}
+              <li class="{% if selected_program and selected_program.pk == p.pk %}active{% endif %}">
+                <a href="{% url 'staff-course-studio' %}?pk={{ p.pk }}">
+                  {{ p.title }}
+                  <div class="mini">
+                    {% if p.is_published %}
+                      <span class="pill dot">Live</span>
+                    {% else %}
+                      <span class="pill draft">Draft</span>
+                    {% endif %}
+                    {{ p.slug }}
+                  </div>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="workflow">
+          <div class="wf-step">
+            <div class="wf-num">1</div>
+            <div>
+              <strong>Identity & promise</strong>
+              <span>Title, slug, duration, sample day, and the seeker-facing description. Keep language warm and clear.</span>
+            </div>
+          </div>
+          <div class="wf-step">
+            <div class="wf-num">2</div>
+            <div>
+              <strong>Day arc</strong>
+              <span>Add each day’s theme and summary. One day = one sitting users complete in order.</span>
+            </div>
+          </div>
+          <div class="wf-step">
+            <div class="wf-num">3</div>
+            <div>
+              <strong>Steps & media</strong>
+              <span>Open each day in admin: five canonical slots (warm-up → … → integration) or customize. Paste CDN URLs for audio/video.</span>
+            </div>
+          </div>
+          <div class="wf-step">
+            <div class="wf-num">4</div>
+            <div>
+              <strong>Publish</strong>
+              <span>Preview on Practice; when ready, tick <em>Published</em> so paid enrollments unlock the full track.</span>
+            </div>
+          </div>
+        </div>
+
+        {% if selected_program %}
+          <div class="card">
+            <h2>Edit course · {{ selected_program.title }}</h2>
+            <p style="margin:0 0 12px; font-size:12px; color: var(--muted);">
+              Full record in admin:
+              <a href="{{ program_admin_url }}" target="_blank" rel="noopener">open SadhanaProgram →</a>
+            </p>
+            <form method="post" action="">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="save_program">
+              <input type="hidden" name="program_pk" value="{{ selected_program.pk }}">
+
+              {% for field in edit_program_form %}
+                <label class="field" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+              {% endfor %}
+
+              <div class="row-check">
+                {{ edit_program_form.is_published }}
+                <label for="{{ edit_program_form.is_published.id_for_label }}" style="margin:0; text-transform:none; letter-spacing:0;">
+                  Published (visible on /practice/ and in APIs)
+                </label>
+              </div>
+              <button type="submit" class="btn">Save course</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <h2>Curriculum · days</h2>
+            <p style="margin:0 0 12px; font-size:13px; color: var(--muted);">
+              Add a row per calendar day in your syllabus. Step-level editing opens in Django admin for each day.
+            </p>
+
+            {% if days_data %}
+              <table class="days">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Title</th>
+                    <th>Steps</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in days_data %}
+                    <tr>
+                      <td>{{ row.day.day_number }}</td>
+                      <td>{{ row.day.title }}</td>
+                      <td>{{ row.step_count }}</td>
+                      <td style="white-space:nowrap;">
+                        <a href="{{ row.admin_url }}" target="_blank" rel="noopener">Edit day</a>
+                        <form method="post" action="" style="display:inline; margin-left:8px;">
+                          {% csrf_token %}
+                          <input type="hidden" name="action" value="seed_day_steps">
+                          <input type="hidden" name="program_pk" value="{{ selected_program.pk }}">
+                          <input type="hidden" name="day_pk" value="{{ row.day.pk }}">
+                          <button type="submit" class="btn small secondary" title="Create 5 placeholder steps if missing">
+                            Seed steps
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            {% else %}
+              <p style="color: var(--muted); font-size: 13px;">No days yet — use the form below.</p>
+            {% endif %}
+
+            <h2 style="margin-top:22px;">Add / update day</h2>
+            <form method="post" action="">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="add_day">
+              <input type="hidden" name="program_pk" value="{{ selected_program.pk }}">
+
+              {% for field in day_quick_form %}
+                <label class="field" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+              {% endfor %}
+              <button type="submit" class="btn">Save day</button>
+            </form>
+
+            <div class="legend" style="margin-top:18px;">
+              {% for value, label in step_types %}
+                <span><strong>{{ value }}</strong> — {{ label }}</span>
+              {% endfor %}
+            </div>
+          </div>
+
+        {% else %}
+          <div class="card">
+            <h2>Create new course</h2>
+            <p style="margin:0 0 14px; font-size:13px; color: var(--muted);">
+              Pick a URL slug (lowercase, hyphens). You can keep it unpublished until content is ready.
+            </p>
+            <form method="post" action="">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="create_program">
+
+              {% for field in new_program_form %}
+                {% if field.name != 'is_published' %}
+                  <label class="field" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.errors %}<ul class="errorlist">{% for e in field.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+                {% endif %}
+              {% endfor %}
+
+              <div class="row-check">
+                {{ new_program_form.is_published }}
+                <label for="{{ new_program_form.is_published.id_for_label }}" style="margin:0; text-transform:none; letter-spacing:0;">
+                  Publish immediately (optional)
+                </label>
+              </div>
+
+              <button type="submit" class="btn">Create course</button>
+            </form>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

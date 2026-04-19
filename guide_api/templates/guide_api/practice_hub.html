@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}दैनिक साधना{% else %}Daily Sadhana Practice{% endif %} · Bhagavad Gita Guide</title>
+  <style>
+    :root {
+      --bg: #070d18;
+      --panel: rgba(12, 18, 34, 0.92);
+      --gold: #f5c76b;
+      --cyan: #79d9ef;
+      --muted: rgba(228, 236, 255, 0.72);
+      --text: #fff8ec;
+      --radius: 18px;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(121, 217, 239, 0.09), transparent 42%),
+        radial-gradient(circle at 92% 18%, rgba(245, 199, 107, 0.08), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 22px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(121, 217, 239, 0.15);
+    }
+    header h1 {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 26px);
+      letter-spacing: -0.02em;
+    }
+    header p {
+      margin: 4px 0 0;
+      font-size: 13px;
+      color: var(--muted);
+      max-width: 52ch;
+    }
+    .nav-chat {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 199, 107, 0.35);
+      color: var(--gold);
+      text-decoration: none;
+      background: rgba(245, 199, 107, 0.06);
+    }
+    .nav-chat:hover {
+      border-color: rgba(245, 199, 107, 0.55);
+      background: rgba(245, 199, 107, 0.1);
+    }
+    main {
+      padding: 22px clamp(16px, 4vw, 40px) 48px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(121, 217, 239, 0.14);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 18px;
+      box-shadow: 0 22px 48px rgba(2, 8, 22, 0.42);
+    }
+    .muted { color: var(--muted); font-size: 13px; }
+    .programs { display: grid; gap: 14px; }
+    article.program-card {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px;
+      background: rgba(6, 12, 22, 0.55);
+    }
+    article.program-card h3 { margin: 0 0 8px; font-size: 18px; }
+    article.program-card p { margin: 0 0 12px; font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .pill {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 1px solid rgba(245, 199, 107, 0.25);
+      color: rgba(245, 217, 160, 0.92);
+      margin-right: 8px;
+    }
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-weight: 700;
+      font-size: 12px;
+      font-family: inherit;
+      background: linear-gradient(130deg, rgba(232, 200, 114, 0.9), rgba(178, 140, 72, 0.82));
+      color: #161008;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid rgba(121, 217, 239, 0.45);
+      color: #d4eefc;
+      font-weight: 600;
+    }
+    button.subscribe-cycle {
+      background: linear-gradient(130deg, rgba(232, 200, 114, 0.9), rgba(178, 140, 72, 0.82));
+      color: #161008;
+    }
+    button.subscribe-cycle:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+    #status { font-size: 13px; color: rgba(230, 180, 170, 0.9); min-height: 1.4em; }
+    #status.ok { color: rgba(155, 217, 196, 0.95); }
+    .hidden { display: none !important; }
+    small.hint { display: block; margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.55; }
+    .lead { margin: 0 0 14px; font-size: 14px; line-height: 1.55; color: rgba(240, 244, 255, 0.88); }
+    details.dev-hint {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    details.dev-hint summary {
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 10px;
+      color: rgba(160, 210, 240, 0.75);
+    }
+    details.dev-hint code { font-size: 10px; color: rgba(200, 220, 245, 0.85); }
+  </style>
+</head>
+<body data-lang="{{ language|default:'en' }}" data-currency="{{ billing_currency|default:'INR' }}">
+  {% csrf_token %}
+  <header>
+    <div>
+      <h1>{% if language == "hi" %}दैनिक साधना{% else %}Daily Sadhana{% endif %}</h1>
+      <p>
+        {% if language == "hi" %}
+          शरीर को गर्म करना, प्राण को स्थिर करना, भक्ति से मन को मँगाना, फिर मंत्र और दिनभर उस मंत्र को जीना — एक ही शांत क्रम में। पूरा मार्ग चुनने पर नियमित रूप से ऑडियो–वीडियो निर्देश मिलते हैं।
+        {% else %}
+          Gentle movement, steady breath, remembrance, mantra, then carrying that resonance through the day — one calm sequence. When you choose the full guided cycle, you receive the complete daily instructions (audio or video). The same path will be available in our mobile app when it ships.
+        {% endif %}
+      </p>
+    </div>
+    <a class="nav-chat" href="/api/chat-ui/?language={{ language|default:'en' }}">
+      {% if language == "hi" %}मार्गदर्शन पर लौटें{% else %}Back to guidance{% endif %}
+    </a>
+  </header>
+  <main>
+    <div class="panel">
+      <p class="lead">
+        {% if language == "hi" %}
+          नीचे वे साधना मार्ग दिखाई देंगे जो प्रकाशित किए गए हैं। एक दिन का नमूना बिना शुल्क देख सकते हैं; पूरे चक्र के लिए खाता बनाकर सुरक्षित चेकआउट से जुड़ें।
+        {% else %}
+          Below you will see sadhana paths as they are published. One sample day is offered to try without charge; for the full guided cycle, sign in on the main site and complete checkout when enrollment opens for that path.
+        {% endif %}
+      </p>
+      <div id="status"></div>
+      <div id="programs" class="programs" aria-live="polite"></div>
+      <small class="hint">
+        {% if language == "hi" %}
+          पहले होम पर जाकर रजिस्टर या लॉगिन करें। भुगतान वही Razorpay प्रवाह उपयोग करता है जो सदस्यता के लिए है। पूरा चक्र शुरू होने पर आपको यहीं और भविष्य के ऐप में समान अनुभव मिलेगा।
+        {% else %}
+          Start by signing in from the home page (Register or Login). Payment uses the same secure Razorpay flow as membership. When your teacher publishes a program here, unlocking the full cycle will work on the web today and match the native app later.
+        {% endif %}
+      </small>
+      <details class="dev-hint">
+        <summary>{% if language == "hi" %}डेवलपर्स{% else %}For developers{% endif %}</summary>
+        <p style="margin:10px 0 0;">
+          {% if language == "hi" %}
+            सूची: <code>GET /api/sadhana/programs/</code> · चेकआउट: <code>POST /api/payments/create-order/</code> में <code>product: &quot;sadhana_cycle&quot;</code>, <code>program_slug</code> · वेब व मोबाइल एक ही अनुबंध।
+          {% else %}
+            List: <code>GET /api/sadhana/programs/</code>. Create order: <code>POST /api/payments/create-order/</code> with <code>product: &quot;sadhana_cycle&quot;</code> and <code>program_slug</code>. Web and native clients share the same API contract.
+          {% endif %}
+        </p>
+      </details>
+    </div>
+  </main>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+    (function () {
+      const programsEl = document.getElementById("programs");
+      const statusEl = document.getElementById("status");
+      const billingCurrency = (
+        document.body.getAttribute("data-currency") || "INR"
+      ).toUpperCase();
+      const langIsHi = document.body.getAttribute("data-lang") === "hi";
+
+      function showStatus(msg, ok) {
+        statusEl.textContent = msg || "";
+        statusEl.classList.toggle("ok", Boolean(ok));
+      }
+
+      function readCsrfToken() {
+        const tokenInput = document.querySelector("[name=csrfmiddlewaretoken]");
+        if (tokenInput && tokenInput.value) {
+          return tokenInput.value;
+        }
+        const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+
+      function formatMinor(minor, currency) {
+        var m = Number(minor);
+        if (!isFinite(m)) {
+          return "";
+        }
+        var major = m / 100;
+        if (currency === "USD") {
+          return "$" + major.toFixed(2);
+        }
+        return "₹" + Math.round(major);
+      }
+
+      function escapeHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      window.initiateSadhanaCheckout = async function (programSlug, triggerBtn) {
+        var slug = String(programSlug || "").trim();
+        if (!slug) {
+          return;
+        }
+        var csrfToken = readCsrfToken();
+        if (!csrfToken) {
+          alert(
+            langIsHi
+              ? "सत्र समाप्त। पेज रिफ्रेश करें।"
+              : "Session expired. Please refresh the page.",
+          );
+          return;
+        }
+        if (typeof Razorpay === "undefined") {
+          alert(
+            langIsHi
+              ? "भुगतान लाइब्रेरी लोड नहीं हुई। बाद में प्रयास करें।"
+              : "Payment library did not load. Try again shortly.",
+          );
+          return;
+        }
+        var btn = triggerBtn || null;
+        if (btn) {
+          btn.disabled = true;
+        }
+        try {
+          var orderResponse = await fetch("/api/payments/create-order/", {
+            method: "POST",
+            credentials: "same-origin",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": csrfToken,
+            },
+            body: JSON.stringify({
+              product: "sadhana_cycle",
+              program_slug: slug,
+              currency: billingCurrency,
+            }),
+          });
+          if (orderResponse.status === 401) {
+            alert(
+              langIsHi
+                ? "पहले होम पर जाकर रजिस्टर या लॉगिन करें।"
+                : "Please sign in first from the home page (Register or Login).",
+            );
+            return;
+          }
+          if (!orderResponse.ok) {
+            var errBody = await orderResponse.json().catch(function () {
+              return {};
+            });
+            alert(
+              errBody.error ||
+                (langIsHi ? "ऑर्डर नहीं बन सका।" : "Could not start checkout."),
+            );
+            return;
+          }
+          var orderData = await orderResponse.json();
+          var options = {
+            key: orderData.key_id,
+            amount: orderData.amount,
+            currency: orderData.currency,
+            name: "Bhagavad Gita Guide",
+            description: langIsHi
+              ? "दैनिक साधना — पूरा चक्र"
+              : "Daily sadhana — full guided cycle",
+            order_id: orderData.order_id,
+            handler: async function (response) {
+              var verifyResponse = await fetch("/api/payments/verify/", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                  "Content-Type": "application/json",
+                  "X-CSRFToken": csrfToken,
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                }),
+              });
+              if (!verifyResponse.ok) {
+                var ve = await verifyResponse.json().catch(function () {
+                  return {};
+                });
+                alert(
+                  ve.error ||
+                    (langIsHi
+                      ? "भुगतान सत्यापन विफल।"
+                      : "Payment verification failed."),
+                );
+                return;
+              }
+              var verifyData = await verifyResponse.json();
+              if (verifyData.product === "sadhana_cycle") {
+                var until = verifyData.access_ends_at || "";
+                alert(
+                  langIsHi
+                    ? "साधना चक्र सक्रिय। पहुँच समाप्ति: " + until
+                    : "Your sadhana cycle is active. Access until: " + until,
+                );
+              } else {
+                alert(
+                  langIsHi ? "भुगतान सफल।" : "Payment successful.",
+                );
+              }
+              window.location.reload();
+            },
+            prefill: {
+              email: orderData.user_email || "",
+              name: orderData.user_name || "",
+            },
+            theme: { color: "#2c5282" },
+            modal: {
+              ondismiss: function () {},
+            },
+          };
+          var rp = new Razorpay(options);
+          rp.on("payment.failed", function (res) {
+            alert(
+              (langIsHi ? "भुगतान विफल: " : "Payment failed: ") +
+                (res.error && res.error.description ? res.error.description : ""),
+            );
+          });
+          rp.open();
+        } catch (e) {
+          console.error(e);
+          alert(
+            langIsHi
+              ? "कुछ गलत हो गया। पुनः प्रयास करें।"
+              : "Something went wrong. Please try again.",
+          );
+        } finally {
+          if (btn) {
+            btn.disabled = false;
+          }
+        }
+      };
+
+      fetch("/api/sadhana/programs/", { credentials: "same-origin" })
+        .then(function (r) {
+          if (!r.ok) throw new Error("load_failed");
+          return r.json();
+        })
+        .then(function (data) {
+          var rows = data.results || [];
+          if (!rows.length) {
+            programsEl.innerHTML =
+              '<p class="muted">{% filter escapejs %}{% if language == "hi" %}अभी कोई मार्ग यहाँ प्रकाशित नहीं है। जल्द ही यह स्थान भर जाएगा — थोड़ी प्रतीक्षा करें या मार्गदर्शन चैट पर लौटें।{% else %}No guided paths are listed yet. New sadhana cycles will appear here once they are published — you can return to guidance chat in the meantime.{% endif %}{% endfilter %}</p>';
+            return;
+          }
+          programsEl.innerHTML = "";
+          rows.forEach(function (p) {
+            var card = document.createElement("article");
+            card.className = "program-card";
+            var access = p.has_active_enrollment
+              ? '<span class="pill">{% filter escapejs %}{% if language == "hi" %}सक्रिय{% else %}Active{% endif %}{% endfilter %}</span>'
+              : "";
+            var minor =
+              billingCurrency === "INR"
+                ? (p.pricing && p.pricing.amount_minor_inr) || 0
+                : (p.pricing && p.pricing.amount_minor_usd) || 0;
+            var priceStr = formatMinor(minor, billingCurrency);
+            var subscribeBtn = "";
+            if (!p.has_active_enrollment && priceStr) {
+              subscribeBtn =
+                '<button type="button" class="subscribe-cycle" data-slug="' +
+                escapeHtml(p.slug) +
+                '">' +
+                (langIsHi ? "पूरा चक्र — " : "Full cycle — ") +
+                priceStr +
+                "</button>";
+            }
+            card.innerHTML =
+              "<h3>" +
+              escapeHtml(p.title) +
+              "</h3>" +
+              "<p>" +
+              escapeHtml(p.description || p.subtitle || "") +
+              "</p>" +
+              '<div class="muted">' +
+              access +
+              (p.duration_days
+                ? " · " +
+                  p.duration_days +
+                  " {% filter escapejs %}{% if language == 'hi' %}दिन{% else %}days{% endif %}{% endfilter %}"
+                : "") +
+              (p.estimated_minutes_per_day
+                ? " · ~" +
+                  p.estimated_minutes_per_day +
+                  " {% filter escapejs %}{% if language == 'hi' %}मिनट/दिन{% else %}min/day{% endif %}{% endfilter %}"
+                : "") +
+              "</div>" +
+              '<div class="cta-row" style="margin-top:12px">' +
+              subscribeBtn +
+              '<button type="button" class="secondary open-detail" data-slug="' +
+              escapeHtml(p.slug) +
+              '">{% filter escapejs %}{% if language == "hi" %}दिनों की सूची{% else %}View days{% endif %}{% endfilter %}</button>' +
+              "</div>" +
+              '<div class="day-shell hidden" data-days-for="' +
+              escapeHtml(p.slug) +
+              '"></div>';
+            programsEl.appendChild(card);
+          });
+
+          programsEl.addEventListener("click", function (ev) {
+            var sub = ev.target.closest(".subscribe-cycle");
+            if (sub) {
+              ev.preventDefault();
+              window.initiateSadhanaCheckout(
+                sub.getAttribute("data-slug"),
+                sub,
+              );
+              return;
+            }
+          });
+
+          programsEl.querySelectorAll(".open-detail").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+              var slug = btn.getAttribute("data-slug");
+              var shell = programsEl.querySelector(
+                '[data-days-for="' + slug + '"]',
+              );
+              if (!shell || shell.dataset.loaded === "1") {
+                if (shell) shell.classList.toggle("hidden");
+                return;
+              }
+              shell.dataset.loaded = "1";
+              fetch(
+                "/api/sadhana/programs/" + encodeURIComponent(slug) + "/",
+                {
+                  credentials: "same-origin",
+                },
+              )
+                .then(function (r) {
+                  return r.json();
+                })
+                .then(function (detail) {
+                  var days = detail.days || [];
+                  shell.innerHTML =
+                    '<p class="muted" style="margin:8px 0">' +
+                    days
+                      .map(function (d) {
+                        return (
+                          "<strong>Day " +
+                          d.day_number +
+                          "</strong> — " +
+                          escapeHtml(d.title) +
+                          (d.unlocked
+                            ? ""
+                            : " ({% filter escapejs %}{% if language == 'hi' %}बंद{% else %}locked{% endif %}{% endfilter %})") +
+                          (d.completed ? " ✓" : "")
+                        );
+                      })
+                      .join("<br>") +
+                    "</p>";
+                  shell.classList.remove("hidden");
+                })
+                .catch(function () {
+                  shell.innerHTML =
+                    '<p class="muted">{% filter escapejs %}{% if language == "hi" %}विवरण लोड नहीं हो सका।{% else %}Could not load detail.{% endif %}{% endfilter %}</p>';
+                  shell.classList.remove("hidden");
+                });
+            });
+          });
+          showStatus("", true);
+        })
+        .catch(function () {
+          showStatus(
+            "{% filter escapejs %}{% if language == 'hi' %}प्रोग्राम लोड नहीं हो सके।{% else %}Could not load programs.{% endif %}{% endfilter %}",
+            false,
+          );
+        });
+    })();
+  </script>
+</body>
+</html>

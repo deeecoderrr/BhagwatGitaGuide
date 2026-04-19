@@ -2,6 +2,8 @@
 
 from django.urls import path
 
+from guide_api.sadhana_views import PracticeHubView
+from guide_api.staff_views import CourseStudioView
 from guide_api.views import (
     CommunityWallView,
     SEO_LANDING_PAGES,
@@ -16,6 +18,16 @@ from guide_api.views import (
 
 
 urlpatterns = [
+    path(
+        "staff/course-studio/",
+        CourseStudioView.as_view(),
+        name="staff-course-studio",
+    ),
+    path(
+        "practice/",
+        PracticeHubView.as_view(),
+        name="practice-hub",
+    ),
     path(
         "community/",
         CommunityWallView.as_view(),

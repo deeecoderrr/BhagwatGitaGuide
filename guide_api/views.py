@@ -49,6 +49,7 @@ from guide_api.models import (
     Message,
     RequestQuotaSettings,
     ResponseFeedback,
+    SadhanaProgram,
     SavedReflection,
     SharedAnswer,
     SupportTicket,
@@ -56,6 +57,11 @@ from guide_api.models import (
     UserSubscription,
     Verse,
     WebAudienceProfile,
+)
+from guide_api.sadhana_views import (
+    _is_sadhana_cycle_amount,
+    _payment_amount_for_sadhana_cycle,
+    activate_sadhana_enrollment,
 )
 from guide_api.serializers import (
     AnalyticsEventIngestSerializer,
@@ -385,8 +391,18 @@ def _upsert_billing_record(
     payment_method: str = "",
     verified_at=None,
     paid_at=None,
+    extra_metadata: dict | None = None,
 ):
     """Maintain one export-friendly billing row per Razorpay order."""
+    existing = BillingRecord.objects.filter(razorpay_order_id=order_id).first()
+    merged_meta = {
+        "invoice_basis": "billing_record",
+        "source": "razorpay_checkout",
+    }
+    if existing and existing.metadata:
+        merged_meta.update(existing.metadata)
+    if extra_metadata:
+        merged_meta.update(extra_metadata)
     defaults = {
         "user": user,
         "subscription": subscription,
@@ -401,10 +417,7 @@ def _upsert_billing_record(
         "paid_at": paid_at,
         "raw_order_payload": raw_order_payload or {},
         "raw_payment_payload": raw_payment_payload or {},
-        "metadata": {
-            "invoice_basis": "billing_record",
-            "source": "razorpay_checkout",
-        },
+        "metadata": merged_meta,
         **(billing_profile or {}),
     }
     record, created = BillingRecord.objects.update_or_create(
@@ -412,9 +425,11 @@ def _upsert_billing_record(
         defaults=defaults,
     )
     if not created:
-        metadata = record.metadata or {}
+        metadata = dict(record.metadata or {})
         metadata.setdefault("invoice_basis", "billing_record")
         metadata.setdefault("source", "razorpay_checkout")
+        if extra_metadata:
+            metadata.update(extra_metadata)
         if payment_status == BillingRecord.STATUS_CAPTURED:
             metadata["last_capture_sync"] = timezone.now().isoformat()
         record.metadata = metadata
@@ -6227,25 +6242,101 @@ class CreateOrderView(APIView):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        selected_plan = _normalize_paid_plan(request.data.get("plan"))
-        if selected_plan is None:
-            selected_plan = UserSubscription.PLAN_PRO
-
-        # Enforce currency by country: INR (India), USD (outside India).
         currency = _billing_currency_for_request(
             request,
             requested_currency=request.data.get("currency"),
         )
 
-        amount = _payment_amount_for_plan(
-            plan=selected_plan,
-            currency=currency,
-        )
+        product = str(request.data.get("product") or "subscription").strip().lower()
 
         client = razorpay.Client(auth=(key_id, key_secret))
 
         try:
             billing_profile = _collect_billing_profile(request, user=user)
+            subscription, _ = UserSubscription.objects.get_or_create(
+                user=user,
+                defaults={"plan": UserSubscription.PLAN_FREE},
+            )
+
+            if product == "sadhana_cycle":
+                program_slug = str(request.data.get("program_slug") or "").strip()
+                program = SadhanaProgram.objects.filter(
+                    slug=program_slug,
+                    is_published=True,
+                ).first()
+                if not program:
+                    return Response(
+                        {"error": "Unknown or unpublished sadhana program."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                amount = _payment_amount_for_sadhana_cycle(currency=currency)
+                order_data = {
+                    "amount": amount,
+                    "currency": currency,
+                    "receipt": (
+                        f"sadhana_{user.id}_{timezone.now().timestamp()}"
+                    ),
+                    "notes": {
+                        "user_id": str(user.id),
+                        "product": "sadhana_cycle",
+                        "program_slug": program_slug[:96],
+                        "billing_email": billing_profile["billing_email"][:64],
+                        "billing_country": billing_profile[
+                            "billing_country_code"
+                        ][:2],
+                    },
+                }
+                order = client.order.create(data=order_data)
+                subscription.razorpay_order_id = order["id"]
+                subscription.payment_currency = currency
+                subscription.save()
+
+                _upsert_billing_record(
+                    user=user,
+                    subscription=subscription,
+                    order_id=order["id"],
+                    plan=UserSubscription.PLAN_FREE,
+                    currency=currency,
+                    amount_minor=amount,
+                    billing_profile=billing_profile,
+                    payment_status=BillingRecord.STATUS_CREATED,
+                    raw_order_payload=order,
+                    extra_metadata={
+                        "purchase_kind": "sadhana_cycle",
+                        "program_slug": program_slug,
+                    },
+                )
+
+                pending_sadhana = request.session.get("pending_sadhana_orders", {})
+                if not isinstance(pending_sadhana, dict):
+                    pending_sadhana = {}
+                pending_sadhana[order["id"]] = program_slug
+                request.session["pending_sadhana_orders"] = pending_sadhana
+
+                return Response({
+                    "product": "sadhana_cycle",
+                    "program_slug": program_slug,
+                    "order_id": order["id"],
+                    "amount": amount,
+                    "currency": currency,
+                    "key_id": key_id,
+                    "user_email": user.email,
+                    "user_name": user.get_full_name() or user.username,
+                    "billing_country_code": billing_profile["billing_country_code"],
+                    "billing_country_name": billing_profile[
+                        "billing_country_name"
+                    ],
+                })
+
+            selected_plan = _normalize_paid_plan(request.data.get("plan"))
+            if selected_plan is None:
+                selected_plan = UserSubscription.PLAN_PRO
+
+            amount = _payment_amount_for_plan(
+                plan=selected_plan,
+                currency=currency,
+            )
+
             order_data = {
                 "amount": amount,
                 "currency": currency,
@@ -6261,11 +6352,6 @@ class CreateOrderView(APIView):
             }
             order = client.order.create(data=order_data)
 
-            # Store order_id in subscription record
-            subscription, _ = UserSubscription.objects.get_or_create(
-                user=user,
-                defaults={"plan": UserSubscription.PLAN_FREE},
-            )
             subscription.razorpay_order_id = order["id"]
             subscription.payment_currency = currency
             subscription.save()
@@ -6357,7 +6443,7 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Activate subscription
+        # Activate subscription or sadhana cycle
         try:
             subscription = UserSubscription.objects.get(user=user)
             if subscription.razorpay_order_id != razorpay_order_id:
@@ -6365,6 +6451,89 @@ class VerifyPaymentView(APIView):
                     {"error": "Order ID mismatch"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
+
+            billing_record = BillingRecord.objects.filter(
+                razorpay_order_id=razorpay_order_id,
+            ).first()
+            meta = (billing_record.metadata if billing_record else {}) or {}
+            pending_sadhana = request.session.get("pending_sadhana_orders", {})
+            sadhana_via_meta = meta.get("purchase_kind") == "sadhana_cycle"
+            sadhana_via_session = (
+                isinstance(pending_sadhana, dict)
+                and razorpay_order_id in pending_sadhana
+            )
+            program_slug = str(meta.get("program_slug") or "").strip()
+            if isinstance(pending_sadhana, dict):
+                program_slug = program_slug or str(
+                    pending_sadhana.get(razorpay_order_id) or "",
+                ).strip()
+            if (
+                program_slug
+                and (sadhana_via_meta or sadhana_via_session)
+            ):
+                program = SadhanaProgram.objects.filter(
+                    slug=program_slug,
+                    is_published=True,
+                ).first()
+                if not program:
+                    return Response(
+                        {"error": "Sadhana program unavailable"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                cur = subscription.payment_currency or UserSubscription.CURRENCY_INR
+                amount_sad = _payment_amount_for_sadhana_cycle(currency=cur)
+                enrollment = activate_sadhana_enrollment(
+                    user=user,
+                    program=program,
+                    billing_record=billing_record,
+                )
+                billing_profile = (
+                    {
+                        "billing_name": billing_record.billing_name,
+                        "billing_email": billing_record.billing_email,
+                        "business_name": billing_record.business_name,
+                        "gstin": billing_record.gstin,
+                        "billing_country_code": billing_record.billing_country_code,
+                        "billing_country_name": billing_record.billing_country_name,
+                        "billing_state": billing_record.billing_state,
+                        "billing_city": billing_record.billing_city,
+                        "billing_postal_code": billing_record.billing_postal_code,
+                        "billing_address": billing_record.billing_address,
+                        "tax_treatment": billing_record.tax_treatment,
+                        "is_international": billing_record.is_international,
+                    }
+                    if billing_record
+                    else _collect_billing_profile(request, user=user)
+                )
+                _upsert_billing_record(
+                    user=user,
+                    subscription=subscription,
+                    order_id=razorpay_order_id,
+                    plan=UserSubscription.PLAN_FREE,
+                    currency=cur,
+                    amount_minor=amount_sad,
+                    billing_profile=billing_profile,
+                    payment_status=BillingRecord.STATUS_VERIFIED,
+                    raw_payment_payload={"razorpay_payment_id": razorpay_payment_id},
+                    payment_id=razorpay_payment_id,
+                    verified_at=timezone.now(),
+                    extra_metadata={
+                        "purchase_kind": "sadhana_cycle",
+                        "program_slug": program_slug,
+                    },
+                )
+                if isinstance(pending_sadhana, dict):
+                    pending_sadhana.pop(razorpay_order_id, None)
+                    request.session["pending_sadhana_orders"] = pending_sadhana
+
+                return Response({
+                    "success": True,
+                    "product": "sadhana_cycle",
+                    "program_slug": program_slug,
+                    "access_starts_at": enrollment.access_starts_at.isoformat(),
+                    "access_ends_at": enrollment.access_ends_at.isoformat(),
+                    "renewal_count": enrollment.renewal_count,
+                })
 
             pending_plans = request.session.get("pending_subscription_plans", {})
             pending_plan = None
@@ -6381,9 +6550,6 @@ class VerifyPaymentView(APIView):
             subscription.subscription_end_date = timezone.now() + timedelta(days=30)
             subscription.save()
 
-            billing_record = BillingRecord.objects.filter(
-                razorpay_order_id=razorpay_order_id,
-            ).first()
             billing_profile = (
                 {
                     "billing_name": billing_record.billing_name,
@@ -6485,19 +6651,28 @@ class RazorpayWebhookView(APIView):
                 currency = str(payment_entity.get("currency") or "INR")
 
                 if order_id:
-                    try:
-                        subscription = UserSubscription.objects.get(razorpay_order_id=order_id)
-                        resolved_plan = _infer_plan_from_amount(
-                            amount=amount,
-                            currency=currency,
-                        )
-                        subscription.plan = resolved_plan
-                        subscription.is_active = True
-                        subscription.subscription_end_date = timezone.now() + timedelta(days=30)
-                        subscription.save()
-                        billing_record = BillingRecord.objects.filter(
-                            razorpay_order_id=order_id,
+                    billing_record = BillingRecord.objects.filter(
+                        razorpay_order_id=order_id,
+                    ).first()
+                    meta = (billing_record.metadata if billing_record else {}) or {}
+                    if meta.get("purchase_kind") == "sadhana_cycle":
+                        slug = str(meta.get("program_slug") or "").strip()
+                        program = SadhanaProgram.objects.filter(
+                            slug=slug,
+                            is_published=True,
                         ).first()
+                        if (
+                            billing_record
+                            and billing_record.user
+                            and program
+                        ):
+                            activate_sadhana_enrollment(
+                                user=billing_record.user,
+                                program=program,
+                                billing_record=billing_record,
+                            )
+                        cur = str(currency or "INR").upper()
+                        amount_sad = _payment_amount_for_sadhana_cycle(currency=cur)
                         billing_profile = (
                             {
                                 "billing_name": billing_record.billing_name,
@@ -6529,22 +6704,101 @@ class RazorpayWebhookView(APIView):
                                 "is_international": False,
                             }
                         )
-                        _upsert_billing_record(
-                            user=subscription.user,
-                            subscription=subscription,
-                            order_id=order_id,
-                            plan=resolved_plan,
-                            currency=currency,
-                            amount_minor=amount,
-                            billing_profile=billing_profile,
-                            payment_status=BillingRecord.STATUS_CAPTURED,
-                            raw_payment_payload=payment_entity,
-                            payment_id=payment_entity.get("id", ""),
-                            payment_method=payment_entity.get("method", ""),
-                            paid_at=timezone.now(),
+                        sub = (
+                            billing_record.subscription
+                            if billing_record and billing_record.subscription_id
+                            else None
                         )
-                    except UserSubscription.DoesNotExist:
-                        pass  # Order not found, ignore
+                        if billing_record and billing_record.user and sub:
+                            _upsert_billing_record(
+                                user=billing_record.user,
+                                subscription=sub,
+                                order_id=order_id,
+                                plan=UserSubscription.PLAN_FREE,
+                                currency=cur,
+                                amount_minor=amount_sad,
+                                billing_profile=billing_profile,
+                                payment_status=BillingRecord.STATUS_CAPTURED,
+                                raw_payment_payload=payment_entity,
+                                payment_id=payment_entity.get("id", ""),
+                                payment_method=payment_entity.get("method", ""),
+                                paid_at=timezone.now(),
+                                extra_metadata={
+                                    "purchase_kind": "sadhana_cycle",
+                                    "program_slug": slug,
+                                },
+                            )
+                    else:
+                        try:
+                            subscription = UserSubscription.objects.get(
+                                razorpay_order_id=order_id,
+                            )
+                            if _is_sadhana_cycle_amount(
+                                amount=amount,
+                                currency=currency,
+                            ):
+                                pass  # Matches sadhana pricing; wait for tagged order metadata.
+                            else:
+                                resolved_plan = _infer_plan_from_amount(
+                                    amount=amount,
+                                    currency=currency,
+                                )
+                                subscription.plan = resolved_plan
+                                subscription.is_active = True
+                                subscription.subscription_end_date = (
+                                    timezone.now() + timedelta(days=30)
+                                )
+                                subscription.save()
+                                billing_record = BillingRecord.objects.filter(
+                                    razorpay_order_id=order_id,
+                                ).first()
+                                billing_profile = (
+                                    {
+                                        "billing_name": billing_record.billing_name,
+                                        "billing_email": billing_record.billing_email,
+                                        "business_name": billing_record.business_name,
+                                        "gstin": billing_record.gstin,
+                                        "billing_country_code": billing_record.billing_country_code,
+                                        "billing_country_name": billing_record.billing_country_name,
+                                        "billing_state": billing_record.billing_state,
+                                        "billing_city": billing_record.billing_city,
+                                        "billing_postal_code": billing_record.billing_postal_code,
+                                        "billing_address": billing_record.billing_address,
+                                        "tax_treatment": billing_record.tax_treatment,
+                                        "is_international": billing_record.is_international,
+                                    }
+                                    if billing_record
+                                    else {
+                                        "billing_name": "",
+                                        "billing_email": "",
+                                        "business_name": "",
+                                        "gstin": "",
+                                        "billing_country_code": "",
+                                        "billing_country_name": "",
+                                        "billing_state": "",
+                                        "billing_city": "",
+                                        "billing_postal_code": "",
+                                        "billing_address": "",
+                                        "tax_treatment": BillingRecord.TAX_UNKNOWN,
+                                        "is_international": False,
+                                    }
+                                )
+                                _upsert_billing_record(
+                                    user=subscription.user,
+                                    subscription=subscription,
+                                    order_id=order_id,
+                                    plan=resolved_plan,
+                                    currency=currency,
+                                    amount_minor=amount,
+                                    billing_profile=billing_profile,
+                                    payment_status=BillingRecord.STATUS_CAPTURED,
+                                    raw_payment_payload=payment_entity,
+                                    payment_id=payment_entity.get("id", ""),
+                                    payment_method=payment_entity.get("method", ""),
+                                    paid_at=timezone.now(),
+                                )
+                        except UserSubscription.DoesNotExist:
+                            pass  # Order not found, ignore
 
             elif event == "payment.failed":
                 payment_entity = payload.get("payload", {}).get("payment", {}).get(
