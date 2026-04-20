@@ -74,6 +74,9 @@ Safe release checklist
 ITR Summary Generator (if enabled in production)
 - Set `ITR_ENABLED=true` and `ITR_URL_PREFIX` (e.g. `/itr-computation`) if the ITR
   app is shipped. Gita-only: `ITR_ENABLED=false`.
+- **Public beta try (anonymous upload + review on marketing home):** set
+  `ITR_BETA_RELEASE=true` (or `false` to hide the strip in production). Example:
+  `flyctl secrets set ITR_BETA_RELEASE=true -a askbhagavadgita`
 - Retention: set `ITR_OUTPUT_RETENTION_HOURS` (default 24) and optional
   `ITR_DELETE_INPUT_AFTER_EXPORT`. Schedule periodic storage cleanup, e.g. hourly:
   `python manage.py purge_itr_retention`

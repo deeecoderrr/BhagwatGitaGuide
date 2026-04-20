@@ -1090,3 +1090,167 @@ body.pdf-modal-open {
     text-align: left;
   }
 }
+
+/* --- Export PDF confirmation (CA WeasyPrint) --- */
+.page-export-pdf .main-content {
+  padding-top: 0;
+}
+
+.export-confirm-shell {
+  min-height: min(70vh, 640px);
+}
+
+.export-confirm-hero {
+  background: linear-gradient(165deg, #e0f2fe 0%, #f0fdfa 48%, var(--bg) 100%);
+  padding: clamp(1.75rem, 4.5vw, 2.75rem) 0 clamp(2.5rem, 5vw, 3.5rem);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.export-confirm-inner {
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.export-confirm-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #0d9488;
+  margin: 0 0 0.4rem;
+}
+
+.export-confirm-hero h1 {
+  font-size: clamp(1.5rem, 3.8vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0 0 0.9rem;
+  color: var(--text);
+}
+
+.export-doc-pill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.export-doc-name {
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 10px;
+  padding: 0.35rem 0.65rem;
+  word-break: break-all;
+}
+
+.export-doc-id {
+  font-size: 0.82rem;
+}
+
+.export-retention-card {
+  margin-top: 1.35rem;
+  padding: 1.15rem 1.25rem;
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.06),
+    0 0 0 1px rgba(13, 148, 136, 0.06);
+}
+
+.export-retention-lead {
+  margin: 0;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  color: #334155;
+}
+
+.export-retention-sub {
+  margin: 0.85rem 0 0;
+  padding-top: 0.85rem;
+  border-top: 1px dashed rgba(148, 163, 184, 0.45);
+}
+
+.export-status-block {
+  margin-top: 1.35rem;
+  padding: 1.15rem 1.25rem;
+  border-radius: 14px;
+}
+
+.export-status-title {
+  margin: 0 0 0.65rem;
+}
+
+.export-issue-list {
+  margin: 0 0 0.85rem;
+  padding-left: 1.2rem;
+  line-height: 1.5;
+  font-size: 0.92rem;
+}
+
+.export-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.export-warnings-only {
+  border: 1px solid rgba(234, 179, 8, 0.45);
+}
+
+.export-form-card {
+  margin-top: 1.5rem;
+  padding: 1.35rem 1.35rem 1.45rem;
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow:
+    0 12px 36px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(13, 148, 136, 0.07);
+}
+
+.export-form-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.export-form-desc {
+  margin: 0 0 1rem;
+  line-height: 1.55;
+}
+
+.export-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.btn-export-primary {
+  padding: 0.72rem 1.45rem;
+  font-size: 1.02rem;
+  border-radius: 12px;
+  box-shadow:
+    0 10px 28px rgba(13, 148, 136, 0.28),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+.btn-export-primary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 12px 32px rgba(13, 148, 136, 0.38),
+    0 1px 0 rgba(255, 255, 255, 0.2) inset;
+}
+
+@media (max-width: 480px) {
+  .export-doc-pill {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
