@@ -1402,11 +1402,15 @@ def _itr_prefix_segment():
     return raw.strip().strip("/")
 
 
-def _itr_public_sitemap_paths():
+def _itr_public_sitemap_entries():
+    """ITR marketing URLs with crawl priority (landing > pricing)."""
     if not _itr_site_enabled():
         return []
     seg = _itr_prefix_segment()
-    return [f"/{seg}/", f"/{seg}/pricing/"]
+    return [
+        (f"/{seg}/", "0.92", "weekly"),
+        (f"/{seg}/pricing/", "0.84", "weekly"),
+    ]
 
 
 def robots_txt_view(request):
@@ -1452,8 +1456,8 @@ def sitemap_xml_view(request):
         pri = "1.0" if path == "/" else "0.85"
         chg = "daily" if path == "/" else "weekly"
         entries.append((path, pri, chg, lastmod))
-    for path in _itr_public_sitemap_paths():
-        entries.append((path, "0.82", "weekly", lastmod))
+    for path, pri, chg in _itr_public_sitemap_entries():
+        entries.append((path, pri, chg, lastmod))
 
     rows = [
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",

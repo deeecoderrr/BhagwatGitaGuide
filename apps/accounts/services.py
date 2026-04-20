@@ -1,8 +1,6 @@
 """Usage limits for PDF export (free tier vs Pro)."""
 from __future__ import annotations
 
-from datetime import date
-
 from django.conf import settings
 from django.utils import timezone
 
@@ -54,7 +52,8 @@ def can_export_pdf(profile: UserProfile) -> tuple[bool, str]:
     if profile.exports_this_month >= limit:
         return (
             False,
-            f"Free plan allows {limit} computation PDF exports per month. Upgrade to Pro for unlimited exports.",
+            f"Free plan allows {limit} computation PDF exports per month. "
+            "Upgrade to Pro for unlimited exports.",
         )
     return True, ""
 
@@ -65,3 +64,44 @@ def record_export(profile: UserProfile) -> None:
         return
     profile.exports_this_month += 1
     profile.save(update_fields=["exports_this_month"])
+
+
+# Anonymous session: monthly free export counter (mirrors UserProfile).
+SESSION_ANON_EXPORT_Y = "itr_anon_ex_y"
+SESSION_ANON_EXPORT_M = "itr_anon_ex_m"
+SESSION_ANON_EXPORT_N = "itr_anon_ex_n"
+
+
+def ensure_anonymous_export_cycle(request) -> None:
+    """Reset monthly anonymous export counter when calendar month changes."""
+    today = timezone.now().date()
+    y = request.session.get(SESSION_ANON_EXPORT_Y)
+    m = request.session.get(SESSION_ANON_EXPORT_M)
+    if y != today.year or m != today.month:
+        request.session[SESSION_ANON_EXPORT_Y] = today.year
+        request.session[SESSION_ANON_EXPORT_M] = today.month
+        request.session[SESSION_ANON_EXPORT_N] = 0
+        request.session.modified = True
+
+
+def can_export_pdf_anonymous(request) -> tuple[bool, str]:
+    """Free-tier limit for anonymous exports (session-scoped)."""
+    ensure_anonymous_export_cycle(request)
+    n = int(request.session.get(SESSION_ANON_EXPORT_N, 0))
+    limit = _monthly_free_export_limit()
+    if n >= limit:
+        return (
+            False,
+            f"This browser’s free trial allows {limit} PDF exports per month. "
+            "Create a free account for a workspace, or see Pro for unlimited "
+            "exports.",
+        )
+    return True, ""
+
+
+def record_export_anonymous(request) -> None:
+    ensure_anonymous_export_cycle(request)
+    request.session[SESSION_ANON_EXPORT_N] = (
+        int(request.session.get(SESSION_ANON_EXPORT_N, 0)) + 1
+    )
+    request.session.modified = True

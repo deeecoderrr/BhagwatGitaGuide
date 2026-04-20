@@ -6,6 +6,7 @@ from datetime import timedelta
 
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.template import Context, Template
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
@@ -98,3 +99,15 @@ class ExportRetentionTests(TestCase):
         delete_document_upload_after_export(doc)
         doc.refresh_from_db()
         self.assertFalse(doc.uploaded_file)
+
+
+class ItrExportTemplateTagsTests(TestCase):
+    def test_itr_delete_input_after_export_matches_setting(self) -> None:
+        tmpl = Template(
+            "{% load itr_export %}"
+            "{% itr_delete_input_after_export as x %}{% if x %}on{% else %}off{% endif %}"
+        )
+        with override_settings(ITR_DELETE_INPUT_AFTER_EXPORT=True):
+            self.assertEqual(tmpl.render(Context({})), "on")
+        with override_settings(ITR_DELETE_INPUT_AFTER_EXPORT=False):
+            self.assertEqual(tmpl.render(Context({})), "off")

@@ -3,8 +3,16 @@
 {% block title %}Upload{% endblock %}
 {% block content %}
 <h1>Upload filed ITR JSON</h1>
-<p>Upload the <strong>ITR JSON</strong> from the income-tax portal (e.g. acknowledgment or utility export). Supported import: <strong>ITR-3</strong> JSON. Review and computation PDF export use the same flow as before.</p>
-<p class="muted small">When you generate a summary PDF, that file stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong>; after that it is removed from our servers. Upload again if you need to re-import later.</p>
+<p>Upload <strong>filed ITR JSON</strong> from the income-tax portal (acknowledgment or utility export). Supported: <strong>ITR-1</strong> (Sahaj), <strong>ITR-3</strong> (business/profession), <strong>ITR-4</strong> (Sugam). Review and computation PDF export use the same flow.</p>
+<p class="muted small" style="max-width:42rem;">
+  <strong>Summary PDF:</strong> each export stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong>, then we remove the file from our servers (save a local copy if you need it longer).<br>
+  {% itr_delete_input_after_export as itr_del_upload %}
+  {% if itr_del_upload %}
+  <strong>Original JSON upload:</strong> by default we may delete your uploaded file from our servers <em>right after</em> a successful export—that is separate from the PDF timer above. Upload again if you need to re-import.
+  {% else %}
+  <strong>Original JSON upload:</strong> your file is kept on our servers after export unless you delete the document.
+  {% endif %}
+</p>
 <form method="post" enctype="multipart/form-data" class="stack">
   {% csrf_token %}
   {{ form.non_field_errors }}

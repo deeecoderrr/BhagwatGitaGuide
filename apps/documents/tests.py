@@ -1,4 +1,4 @@
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 
@@ -32,3 +32,22 @@ class WorkspaceAuthTests(TestCase):
         self.assertEqual(r.status_code, 302)
         c.login(username="t", password="pwd12345")
         self.assertEqual(c.get(list_url).status_code, 200)
+
+
+class BetaTryTests(TestCase):
+    """Homepage ephemeral JSON→PDF when ``ITR_BETA_RELEASE`` is enabled."""
+
+    @override_settings(ITR_BETA_RELEASE=False)
+    def test_beta_try_post_disabled_returns_404(self) -> None:
+        c = Client(enforce_csrf_checks=False)
+        url = reverse("documents:beta_try")
+        r = c.post(url, {})
+        self.assertEqual(r.status_code, 404)
+
+    @override_settings(ITR_BETA_RELEASE=True)
+    def test_beta_try_get_redirects_to_home(self) -> None:
+        c = Client()
+        url = reverse("documents:beta_try")
+        r = c.get(url, follow=False)
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(reverse("marketing:home"), r["Location"])

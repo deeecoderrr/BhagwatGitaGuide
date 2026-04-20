@@ -44,9 +44,15 @@
   {% endif %}
   <p class="muted">Free tier includes monthly computation PDF exports. Pro removes the limit for heavy users.</p>
   <p class="muted small" style="max-width:42rem;">
-    <strong>Storage:</strong> each generated summary PDF can be downloaded for
-    <strong>{% itr_output_retention_hours %} hours</strong> after creation, then it is removed from our servers
-    (you’ll still see past exports marked “expired” in your workspace). Uploaded JSON may be deleted after a successful export to reduce sensitive data retention—upload again if you need to re-run import.
+    <strong>Summary PDF:</strong> each generated file can be downloaded for
+    <strong>{% itr_output_retention_hours %} hours</strong> after creation; then we remove that PDF from our servers
+    (you may still see past exports marked “expired” in your workspace).<br>
+    {% itr_delete_input_after_export as itr_del_upload %}
+    {% if itr_del_upload %}
+    <strong>Uploaded JSON:</strong> by default we may delete the original upload <em>immediately after</em> a successful export—this is not the same as the {% itr_output_retention_hours %}‑hour PDF rule. Upload again if you need to re-run import.
+    {% else %}
+    <strong>Uploaded JSON:</strong> this deployment keeps your uploaded file after export unless you delete the document.
+    {% endif %}
   </p>
 
   <div class="pricing-grid">
@@ -54,7 +60,7 @@
       <h2>Free</h2>
       <p class="price-tag">₹0</p>
       <ul class="muted small">
-        <li>ITR-3 JSON import &amp; review</li>
+        <li>Filed ITR JSON import (<strong>ITR-1</strong>, <strong>ITR-3</strong>, <strong>ITR-4</strong>) &amp; review</li>
         <li>Limited computation PDF exports per month</li>
         <li>PDF download window: {% itr_output_retention_hours %} hours per export</li>
         <li>WeasyPrint computation PDF export (requires server libraries)</li>

@@ -1,0 +1,73 @@
+{% load socialaccount %}
+<section id="beta-try" class="beta-spotlight" aria-labelledby="beta-spotlight-heading">
+  <div class="beta-spotlight__mesh" aria-hidden="true"></div>
+  <div class="beta-spotlight__glow" aria-hidden="true"></div>
+  <div class="beta-spotlight__inner">
+    <p class="beta-spotlight__eyebrow">
+      <span class="beta-spotlight__eyebrow-dot" aria-hidden="true"></span>
+      Beta · Try instantly · No account
+    </p>
+    <h1 id="beta-spotlight-heading">Filed ITR JSON → computation PDF</h1>
+    <p class="beta-spotlight__lead">
+      Upload your portal JSON, <strong>review imported fields</strong>, approve when ready, then generate your CA-style PDF—the same human review gate as a full account.
+    </p>
+
+    <div class="beta-spotlight__card">
+      <div class="beta-spotlight__card-head">
+        <div class="beta-spotlight__icon" aria-hidden="true">
+          <svg class="beta-spotlight__icon-svg" width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" focusable="false">
+            <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,255,255,0.15)"/>
+            <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 13h8M8 17h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+          </svg>
+        </div>
+        <div class="beta-spotlight__card-intro">
+          <h2 class="beta-spotlight__card-title">Start with your JSON</h2>
+          <p class="muted small beta-spotlight__card-desc">
+            <strong>ITR-1</strong>, <strong>ITR-3</strong>, or <strong>ITR-4</strong> acknowledgment or utility export (.json).
+            After import you’ll edit and <strong>approve</strong> in review, then export.
+            Want a saved workspace? <a href="{% url 'account_signup' %}">Create a free account</a>.
+          </p>
+        </div>
+      </div>
+      <form method="post" action="{% url 'documents:beta_try' %}" enctype="multipart/form-data" class="beta-spotlight__form">
+        {% csrf_token %}
+        <div class="beta-upload-field">
+          {{ beta_try_form.file.label_tag }}
+          {{ beta_try_form.file }}
+          {% if beta_try_form.file.errors %}
+            <p class="error">{{ beta_try_form.file.errors }}</p>
+          {% endif %}
+        </div>
+        <button type="submit" class="btn btn-primary beta-spotlight__submit">Upload &amp; go to review</button>
+      </form>
+      <ul class="beta-spotlight__trust" aria-label="Privacy notes">
+        <li><span aria-hidden="true">✓</span> Same review + validation as account users</li>
+        <li><span aria-hidden="true">✓</span> Tied to this browser session until you export</li>
+      </ul>
+    </div>
+
+    <div class="beta-spotlight__secondary">
+      <a href="{% url 'account_signup' %}">Create free account</a>
+      <span class="beta-spotlight__sep" aria-hidden="true">·</span>
+      <a href="{% url 'account_login' %}">Log in</a>
+      <span class="beta-spotlight__sep" aria-hidden="true">·</span>
+      <a href="{% url 'marketing:pricing' %}">Pricing</a>
+    </div>
+    {% if google_oauth_configured %}
+      {% url 'documents:list' as itr_workspace_next %}
+      <p class="beta-spotlight__oauth muted small">
+        <a class="btn btn-sm" href="{% provider_login_url 'google' %}?next={{ itr_workspace_next|urlencode }}">Continue with Google</a>
+        <span class="beta-spotlight__sep" aria-hidden="true">·</span>
+        <a href="{% url 'account_login' %}?next={{ itr_workspace_next|urlencode }}">Email log in</a>
+      </p>
+    {% endif %}
+  </div>
+</section>
+
+<section class="home-features-strip" aria-labelledby="home-features-heading">
+  <div class="wrap">
+    <h2 id="home-features-heading" class="home-features-strip__title">What this tool does</h2>
+    {% include "marketing/_feature_grid.html" %}
+  </div>
+</section>

@@ -320,8 +320,9 @@ to seek professional or emergency support.
 
 If your deployment includes the **ITR Summary Generator** feature (same login as the
 Gita app), it usually lives under **`/itr-computation/`** (or the operator-configured
-prefix). There you can upload filed **ITR-3 JSON**, review extracted fields, and
-generate a **computation summary PDF**.
+prefix). There you can upload filed **ITR JSON** (supported: **ITR-1**, **ITR-3**,
+**ITR-4** from the portal utility/acknowledgment export), review extracted fields, and
+generate a **computation summary PDF**. **ITR-2** is not supported in this import path yet.
 
 When the operator has configured **Google OAuth**, you may see **Continue with Google**
 on ITR login, sign-up, or marketing pages—same account family as email registration.

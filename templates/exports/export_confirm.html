@@ -5,8 +5,14 @@
 <h1>Generate computation summary PDF</h1>
 <p>Document #{{ document.pk }} — {{ document.original_filename }}</p>
 <p class="muted small" style="border-left:3px solid var(--line-strong, #ccc); padding-left:1rem; max-width:40rem;">
-  <strong>Retention:</strong> after this PDF is generated, you can download it for
-  <strong>{% itr_output_retention_hours %} hours</strong>. Then we delete the file from our servers (past exports appear as “expired” in your workspace). Save a copy locally if you need it longer.
+  <strong>Summary PDF:</strong> after this file is generated, you can download it for
+  <strong>{% itr_output_retention_hours %} hours</strong>. Then we delete the PDF from our servers (past exports may show as “expired” in your workspace). Save a copy locally if you need it longer.<br>
+  {% itr_delete_input_after_export as itr_del_upload %}
+  {% if itr_del_upload %}
+  <strong>Original upload:</strong> your JSON may be removed from our servers as soon as export succeeds—that policy is independent of the {% itr_output_retention_hours %}‑hour PDF window. Re-upload to re-import from raw JSON later.
+  {% else %}
+  <strong>Original upload:</strong> your JSON file remains on the server after export on this deployment (unless you remove the document).
+  {% endif %}
 </p>
 
 {% if blocking %}
@@ -22,7 +28,14 @@
 {% elif export_blocked %}
   <div class="warn-block">
     <p><strong>Export limit reached.</strong> {{ export_block_reason }}</p>
-    <p><a class="btn btn-primary" href="{% url 'marketing:pricing' %}">View pricing / Pro</a></p>
+    <p>
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'marketing:pricing' %}">View pricing / Pro</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'account_signup' %}">Create free account</a>
+        <a class="btn" href="{% url 'marketing:pricing' %}">View pricing</a>
+      {% endif %}
+    </p>
   </div>
 {% else %}
   {% if warnings %}

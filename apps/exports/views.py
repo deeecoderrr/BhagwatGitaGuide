@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.core.files.base import ContentFile
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -12,8 +11,13 @@ from django.db.models import Avg
 from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import UserProfile
-from apps.accounts.services import can_export_pdf, record_export
-from apps.documents.access import document_for_user
+from apps.accounts.services import (
+    can_export_pdf,
+    can_export_pdf_anonymous,
+    record_export,
+    record_export_anonymous,
+)
+from apps.documents.access import document_for_request
 from apps.documents.models import Document
 from apps.exports.models import ExportedSummary
 from apps.exports.retention import (
@@ -76,18 +80,21 @@ def _build_export_context(document: Document, fm: dict[str, str] | None = None) 
     }
 
 
-@login_required
 @require_http_methods(["GET", "POST"])
 def export_pdf(request, pk: int):
     purge_expired_exports()
-    document = document_for_user(request.user, pk)
-    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+    document = document_for_request(request, pk)
     fm = coerce_refund_demand_field_map(_field_map(document))
     issues = validate_document_for_export(
         document, fm, document.detected_type or Document.TYPE_UNKNOWN
     )
     blocks = blocking_issues(issues)
-    allowed_export, export_reason = can_export_pdf(profile)
+    profile = None
+    if request.user.is_authenticated:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        allowed_export, export_reason = can_export_pdf(profile)
+    else:
+        allowed_export, export_reason = can_export_pdf_anonymous(request)
 
     if request.method == "POST":
         if blocks:
@@ -96,7 +103,9 @@ def export_pdf(request, pk: int):
             return redirect("documents:detail", pk=pk)
         if not allowed_export:
             messages.error(request, export_reason)
-            return redirect("marketing:pricing")
+            if request.user.is_authenticated:
+                return redirect("marketing:pricing")
+            return redirect("documents:detail", pk=pk)
         try:
             ctx = _build_export_context(document, fm)
             try:
@@ -122,7 +131,10 @@ def export_pdf(request, pk: int):
         exp.pdf_file.save(name, ContentFile(pdf_bytes), save=True)
         document.status = Document.STATUS_EXPORTED
         document.save(update_fields=["status", "updated_at"])
-        record_export(profile)
+        if profile is not None:
+            record_export(profile)
+        else:
+            record_export_anonymous(request)
         delete_document_upload_after_export(document)
         messages.success(request, "Summary PDF generated (WeasyPrint layout).")
         return redirect("exports:download", pk=document.pk, export_id=exp.pk)
@@ -140,11 +152,10 @@ def export_pdf(request, pk: int):
     )
 
 
-@login_required
 @require_http_methods(["GET"])
 def download_export(request, pk: int, export_id: int):
     purge_expired_exports()
-    document = document_for_user(request.user, pk)
+    document = document_for_request(request, pk)
     exp = get_object_or_404(ExportedSummary, pk=export_id, document=document)
     if not exp.can_download():
         messages.error(

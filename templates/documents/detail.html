@@ -1,9 +1,16 @@
 {% extends "base.html" %}
+{% load itr_export %}
 {% block title %}Document {{ document.pk }}{% endblock %}
 {% block content %}
 <div class="wrap">
 <h1>{{ document.original_filename }}</h1>
-<p class="muted">Source: {{ document.get_upload_source_display }}{% if document.upload_source == "json" %} (ITR-3 JSON){% endif %}</p>
+<p class="muted">Source: {{ document.get_upload_source_display }}{% if document.upload_source == "json" %} (filed ITR JSON){% endif %}</p>
+{% if not document.user %}
+<p class="muted small" style="border-left:3px solid var(--accent, #0d9488); padding-left:0.85rem; max-width:44rem;">
+  <strong>Anonymous trial:</strong> review and approve figures on the next screens—same validation as signed-in users.
+  Keep this browser tab; your session ties this document to your browser until export.
+</p>
+{% endif %}
 
 {% include "documents/_doc_status.html" %}
 
@@ -25,7 +32,10 @@
   <button type="submit" class="btn btn-ghost" {% if poll_status or not document.uploaded_file %}disabled{% endif %}>Re-run import</button>
 </form>
 {% if not document.uploaded_file %}
-  <p class="muted small">Original upload was removed after export (storage policy). Upload the JSON again to re-import.</p>
+  {% itr_delete_input_after_export as itr_del_upload %}
+  <p class="muted small">
+    The original uploaded file is no longer on our servers{% if itr_del_upload %} (uploads may be deleted right after a successful export—separate from the {% itr_output_retention_hours %}‑hour PDF download window){% endif %}. Upload the JSON again to re-import.
+  </p>
 {% endif %}
 
 <h2>Exports</h2>

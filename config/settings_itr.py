@@ -132,6 +132,22 @@ def register_itr_settings(g: dict[str, Any]) -> None:
         "true",
     ).lower() in ("1", "true", "yes")
 
+    # Homepage anonymous “try PDF” strip (marketing home): JSON → PDF in one request,
+    # then delete all rows + files.
+    # Unset env: ON when DEBUG (local dev), OFF when not DEBUG (typical production).
+    # Set ITR_BETA_RELEASE=true|false to override explicitly.
+    _beta_env = os.getenv("ITR_BETA_RELEASE", "").strip().lower()
+    if _beta_env in ("1", "true", "yes"):
+        g["ITR_BETA_RELEASE"] = True
+    elif _beta_env in ("0", "false", "no"):
+        g["ITR_BETA_RELEASE"] = False
+    else:
+        g["ITR_BETA_RELEASE"] = bool(g.get("DEBUG", False))
+
+    g["ITR_ANONYMOUS_MAX_DOCS_PER_SESSION"] = int(
+        os.getenv("ITR_ANONYMOUS_MAX_DOCS_PER_SESSION", "8"),
+    )
+
     g["RQ_QUEUES"] = {
         "default": {
             "URL": os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0"),

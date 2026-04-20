@@ -898,6 +898,17 @@
       {% endif %}
     </div>
 
+    {% if itr_computation_path %}
+    <p class="footer-note" style="margin-bottom:14px;">
+      {% if language == "hi" %}
+        <a href="{{ itr_computation_path }}" style="color:var(--gold); text-decoration:underline;">आयकर गणना सारांश PDF (ITR computation)</a>
+        — दाखिल किए गए ITR JSON से संक्षिप्त विवरण
+      {% else %}
+        <a href="{{ itr_computation_path }}" style="color:var(--gold); text-decoration:underline;">Income tax &amp; ITR computation summary PDF</a>
+        — filed ITR-1 / ITR-3 / ITR-4 JSON to CA-style summary
+      {% endif %}
+    </p>
+    {% endif %}
     <p class="footer-note">
       {% if language == "hi" %}
         Bhagavad Gita Guide · पहले समझें, फिर पूछें, फिर अपने जीवन में लागू करें

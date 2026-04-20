@@ -20,7 +20,8 @@ def home(request):
     site_url = request.build_absolute_uri("/").rstrip("/")
     canonical = request.build_absolute_uri(request.path)
     page_title = (
-        "ITR Computation & Income Tax Computation Summary PDF | ITR-3 JSON (India)"
+        "ITR Computation & Income Tax Computation Summary PDF | Free ITR Summary "
+        "(ITR-1, ITR-3, ITR-4 JSON — India)"
     )
     comments_qs = (
         Comment.objects.filter(page_slug=Comment.PAGE_HOME, parent__isnull=True)
@@ -36,9 +37,11 @@ def home(request):
         .order_by("-created_at")[:100]
     )
     meta_desc = (
-        "Free account: import filed ITR-3 JSON, review income-tax computation figures, "
-        "export a CA-style computation summary PDF for assessment year workflows (India)."
+        "ITR computation & income tax computation summary: import filed ITR-1, ITR-3, or "
+        "ITR-4 JSON, review figures, export a CA-style ITR summary PDF for assessment-year "
+        "workflows in India. Human review before export."
     )
+    itr_beta = getattr(settings, "ITR_BETA_RELEASE", False)
     ctx = {
         "page_title": page_title,
         "meta_description": meta_desc[:320],
@@ -52,7 +55,13 @@ def home(request):
         "comments": comments_qs,
         "comment_form": CommentForm(),
         "comments_page_slug": Comment.PAGE_HOME,
+        "itr_beta_release": itr_beta,
+        "beta_try_form": None,
     }
+    if itr_beta:
+        from apps.documents.forms import ItrUploadForm
+
+        ctx["beta_try_form"] = ItrUploadForm()
     return render(request, "marketing/home.html", ctx)
 
 
@@ -68,7 +77,8 @@ def pricing(request):
             "ITR Computation PDF Pricing — Income Tax Summary Exports | India"
         ),
         "meta_description": (
-            "Compare Free vs Pro for ITR computation PDF exports from filed ITR-3 JSON. "
+            "Compare Free vs Pro for ITR computation PDF exports from filed ITR JSON "
+            "(ITR-1, ITR-3, ITR-4). "
             "Income tax computation summary downloads for assessment-year workflows — Razorpay checkout."
         ),
         "meta_keywords": SEO_META_KEYWORDS,

@@ -28,3 +28,9 @@ def itr_output_retention_hours():
         return int(float(raw))
     except (TypeError, ValueError):
         return 24
+
+
+@register.simple_tag
+def itr_delete_input_after_export():
+    """Upload removed after export (``ITR_DELETE_INPUT_AFTER_EXPORT``)."""
+    return bool(getattr(settings, "ITR_DELETE_INPUT_AFTER_EXPORT", True))

@@ -5,8 +5,10 @@ SEO_META_KEYWORDS = (
     "ITR computation, income tax computation, computation summary, income computation "
     "summary, tax computation summary, computation of income, total income computation, "
     "ITR computation pdf, itr computation excel, itr computation ay, itr computation india, "
-    "ITR summary, income computation sheet, CA computation sheet, computation sheet pdf, "
-    "ITR-3 computation, ITR 3 computation, itr3 computation, filed ITR JSON, "
+    "ITR summary, itr income computation, income tax computation summary, "
+    "income computation sheet, CA computation sheet, computation sheet pdf, "
+    "ITR-1 JSON, ITR1 Sahaj, ITR-3 computation, ITR 3 computation, itr3 computation, "
+    "ITR-4 JSON, ITR4 Sugam, itr4 computation, filed ITR JSON, "
     "ITR acknowledgment JSON, income tax portal JSON, e filing json download, "
     "tax computation PDF India, ay computation, assessment year computation, "
     "Chapter VI-A, Chapter VIA deductions, Gross Total Income, taxable income computation, "
@@ -16,7 +18,7 @@ SEO_META_KEYWORDS = (
 )
 
 SITE_TAGLINE = (
-    "Turn filed ITR-3 JSON into a reviewed CA-style computation PDF — "
+    "Turn filed ITR-1, ITR-3, or ITR-4 JSON into a reviewed CA-style computation PDF — "
     "income tax computation summary built for assessment-year reporting."
 )
 
@@ -32,7 +34,10 @@ def structured_data_json_ld(
 
     wp_name = (
         page_heading
-        or "ITR computation summary — income tax computation PDF from ITR-3 JSON"
+        or (
+            "ITR computation summary — income tax computation PDF from filed "
+            "ITR-1 / ITR-3 / ITR-4 JSON"
+        )
     )
 
     data = {
@@ -66,7 +71,7 @@ def structured_data_json_ld(
                     "@type": "Thing",
                     "name": (
                         "Income tax computation, ITR computation summary, "
-                        "ITR-3 acknowledgment JSON"
+                        "filed ITR-1 / ITR-3 / ITR-4 JSON"
                     ),
                 },
             },
@@ -76,13 +81,17 @@ def structured_data_json_ld(
                 "applicationCategory": "FinanceApplication",
                 "operatingSystem": "Web",
                 "description": SITE_TAGLINE,
-                "url": site_url,
+                "url": page_url,
                 "keywords": (
-                    "ITR computation, income tax computation summary, computation of income, "
-                    "ITR-3 JSON import, CA computation PDF, assessment year India"
+                    "ITR computation, ITR summary, income tax computation, itr income computation, "
+                    "computation of income, filed ITR JSON ITR-1 ITR-3 ITR-4, CA computation PDF, "
+                    "assessment year India"
                 ),
                 "featureList": [
-                    "Import filed ITR-3 JSON from the income-tax portal",
+                    (
+                        "Import filed ITR-1, ITR-3, or ITR-4 JSON from the income-tax portal "
+                        "(utility / acknowledgment export)"
+                    ),
                     "Computation of income and tax liability summary sections",
                     "Chapter VI-A and head-wise income layout for CA review",
                     "Human review gate before exporting computation PDF",
@@ -115,7 +124,8 @@ def structured_data_json_ld(
                         "acceptedAnswer": {
                             "@type": "Answer",
                             "text": (
-                                "No. This tool imports your filed ITR-3 JSON and helps you generate "
+                                "No. This tool imports your filed ITR JSON (supported forms: "
+                                "ITR-1, ITR-3, ITR-4) and helps you generate "
                                 "a human-reviewed summary PDF. Professional advice and official filing "
                                 "remain your responsibility."
                             ),
@@ -127,8 +137,9 @@ def structured_data_json_ld(
                         "acceptedAnswer": {
                             "@type": "Answer",
                             "text": (
-                                "Filed ITR-3 JSON from the income-tax portal (acknowledgment / utility export). "
-                                "PDF uploads are not used."
+                                "Filed JSON for ITR-1 (Sahaj), ITR-3 (business/profession), "
+                                "or ITR-4 (Sugam) from the income-tax portal "
+                                "(acknowledgment / utility export). PDF uploads are not used."
                             ),
                         },
                     },
@@ -191,7 +202,7 @@ def structured_data_json_ld(
                         "acceptedAnswer": {
                             "@type": "Answer",
                             "text": (
-                                "Computation summaries here reflect figures parsed from filed ITR-3 JSON "
+                                "Computation summaries reflect figures parsed from filed ITR JSON "
                                 "(including liability, TDS, relief, refund, demand). Separate advance-tax "
                                 "calculators focus on installments before filing; compare against your audit "
                                 "trail for any payment schedule."
@@ -240,7 +251,7 @@ def structured_data_pricing_json_ld(
                 "name": "Pricing — ITR Computation PDF Exports | India",
                 "description": (
                     "Plans for unlimited or limited monthly income tax computation "
-                    "summary PDF exports from filed ITR-3 JSON — Free vs Pro (India)."
+                    "summary PDF exports from filed ITR JSON — Free vs Pro (India)."
                 ),
                 "inLanguage": "en-IN",
                 "isPartOf": {"@id": f"{site_url}/#website"},
@@ -303,7 +314,8 @@ def structured_data_pricing_json_ld(
                         "acceptedAnswer": {
                             "@type": "Answer",
                             "text": (
-                                "Free includes ITR-3 JSON import and review with a limited number of "
+                                "Free includes filed ITR JSON import (ITR-1, ITR-3, ITR-4) "
+                                "and review with a limited number of "
                                 "computation PDF exports per month. Pro removes that export cap for "
                                 "heavy assessment-year workflows while your subscription is active."
                             ),

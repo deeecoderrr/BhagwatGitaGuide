@@ -5,7 +5,7 @@
     <dt>Detected type</dt><dd>{{ document.get_detected_type_display }}</dd>
     <dt>Pages</dt><dd>{{ document.page_count|default:"—" }}</dd>
     <dt>Source length (chars)</dt><dd>{{ document.native_text_char_count|default:"—" }}</dd>
-    <dt>Import</dt><dd>{% if document.upload_source == "json" %}ITR-3 JSON{% elif document.used_ocr_fallback %}OCR (legacy){% else %}Legacy PDF text{% endif %}</dd>
+    <dt>Import</dt><dd>{% if document.upload_source == "json" %}Filed ITR JSON{% elif document.used_ocr_fallback %}OCR (legacy){% else %}Legacy PDF text{% endif %}</dd>
     <dt>Hash</dt><dd class="mono">{{ document.file_hash|truncatechars:24 }}</dd>
   </dl>
   {% if poll_status %}

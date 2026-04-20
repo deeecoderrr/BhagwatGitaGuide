@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import redirect, render
 from django.views.decorators.http import require_http_methods
 
-from apps.documents.access import document_for_user
+from apps.documents.access import document_for_request
 from apps.documents.models import Document, ExtractedField
 from apps.extractors import canonical as C
 from apps.reviews.field_labels import label_for
@@ -38,10 +37,9 @@ def _grouped_fields(document: Document) -> list[tuple[str, list[ExtractedField]]
     return groups
 
 
-@login_required
 @require_http_methods(["GET", "POST"])
 def review_document(request, pk: int):
-    document = document_for_user(request.user, pk)
+    document = document_for_request(request, pk)
     if document.status == Document.STATUS_FAILED:
         messages.warning(request, "Document processing failed; re-upload or reprocess.")
     if request.method == "POST":

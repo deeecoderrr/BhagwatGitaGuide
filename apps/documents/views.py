@@ -5,14 +5,19 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
 from django.http import Http404, HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
+from django.shortcuts import redirect, render
+from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
-from apps.documents.access import document_for_user
+from apps.documents.access import document_for_request, document_for_user
 from apps.documents.forms import DocumentReprocessForm, ItrUploadForm
 from apps.documents.models import Document
 from apps.exports.models import ExportedSummary
 from apps.exports.retention import purge_expired_exports
+from apps.documents.session_docs import (
+    anonymous_document_count,
+    register_anonymous_document,
+)
 from apps.extractors.queue import schedule_document_processing
 
 
@@ -78,10 +83,9 @@ def document_upload(request):
     return render(request, "documents/upload.html", {"form": form})
 
 
-@login_required
 @require_http_methods(["GET"])
 def document_detail(request, pk: int):
-    doc = document_for_user(request.user, pk)
+    doc = document_for_request(request, pk)
     reprocess = DocumentReprocessForm()
     return render(
         request,
@@ -94,11 +98,10 @@ def document_detail(request, pk: int):
     )
 
 
-@login_required
 @require_http_methods(["GET"])
 def document_status(request: HttpRequest, pk: int) -> HttpResponse:
     """HTMX fragment: refreshed status while import runs."""
-    doc = document_for_user(request.user, pk)
+    doc = document_for_request(request, pk)
     if request.headers.get("HX-Request") != "true":
         raise Http404()
     return render(
@@ -111,10 +114,9 @@ def document_status(request: HttpRequest, pk: int) -> HttpResponse:
     )
 
 
-@login_required
 @require_http_methods(["POST"])
 def document_reprocess(request, pk: int):
-    doc = document_for_user(request.user, pk)
+    doc = document_for_request(request, pk)
     if not doc.uploaded_file:
         messages.error(
             request,
@@ -131,3 +133,66 @@ def document_reprocess(request, pk: int):
         else:
             messages.success(request, "Re-import finished.")
     return redirect("documents:detail", pk=pk)
+
+
+@require_http_methods(["GET", "POST"])
+def beta_try_upload(request: HttpRequest) -> HttpResponse:
+    """
+    Beta-only: anonymous upload from marketing home → import → review → export.
+
+    Binds the new document to this browser session (no account).
+    """
+    if not getattr(settings, "ITR_BETA_RELEASE", False):
+        raise Http404()
+    beta_home = reverse("marketing:home") + "#beta-try"
+
+    if request.method == "GET":
+        return redirect(beta_home)
+
+    form = ItrUploadForm(request.POST, request.FILES)
+    max_bytes = getattr(settings, "DATA_UPLOAD_MAX_MEMORY_SIZE", 25 * 1024 * 1024)
+    max_anon = getattr(settings, "ITR_ANONYMOUS_MAX_DOCS_PER_SESSION", 8)
+
+    if not form.is_valid():
+        for _field, errs in form.errors.items():
+            for err in errs:
+                messages.error(request, str(err))
+        return redirect(beta_home)
+
+    upload = form.cleaned_data["file"]
+    if hasattr(upload, "size") and upload.size and upload.size > max_bytes:
+        messages.error(request, "File too large.")
+        return redirect(beta_home)
+
+    if anonymous_document_count(request.session) >= max_anon:
+        messages.error(
+            request,
+            f"Too many open tries in this browser (limit {max_anon}). "
+            "Create a free account for a workspace, or clear old sessions.",
+        )
+        return redirect(beta_home)
+
+    doc = Document(
+        user=None,
+        uploaded_file=upload,
+        original_filename=getattr(upload, "name", "upload.json"),
+        file_hash="pending",
+        status=Document.STATUS_UPLOADED,
+        upload_source=Document.UPLOAD_JSON,
+    )
+    doc.save()
+    register_anonymous_document(request.session, doc.pk)
+
+    queued = schedule_document_processing(doc)
+    if queued:
+        messages.info(
+            request,
+            "JSON received. Import is running in the background—this page updates when ready. "
+            "Then review fields and approve before generating the PDF.",
+        )
+    else:
+        messages.info(
+            request,
+            "JSON imported. Review the extracted fields and approve before generating the PDF.",
+        )
+    return redirect("documents:detail", pk=doc.pk)

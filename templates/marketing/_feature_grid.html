@@ -1,0 +1,27 @@
+{% load itr_export %}
+<div class="feature-grid">
+  <article class="feature-card">
+    <h3>ITR computation &amp; tax summary</h3>
+    <p class="muted small">Head-wise income, deductions, tax, refund — formatted like a computation sheet for quick CA review.</p>
+  </article>
+  <article class="feature-card">
+    <h3>JSON import (ITR-1 / ITR-3 / ITR-4)</h3>
+    <p class="muted small">Portal acknowledgment or utility JSON — deterministic mapping into editable fields.</p>
+  </article>
+  <article class="feature-card">
+    <h3>Human review gate</h3>
+    <p class="muted small">Validation blocks inconsistent exports; you approve before generating the PDF.</p>
+  </article>
+  <article class="feature-card">
+    <h3>Privacy-first storage</h3>
+    <p class="muted small">
+      <strong>Summary PDF:</strong> stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong>, then we remove the file. Download while the link is active.
+      {% itr_delete_input_after_export as itr_del_upload %}
+      {% if itr_del_upload %}
+      <strong>Uploaded JSON</strong> may be removed <em>immediately</em> after a successful export—separate from the PDF window.
+      {% else %}
+      <strong>Uploaded JSON</strong> is kept after export on this deployment.
+      {% endif %}
+    </p>
+  </article>
+</div>
