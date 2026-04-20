@@ -1,0 +1,87 @@
+{
+  "ITR": {
+    "ITR3": {
+      "Form_ITR3": {"AssessmentYear": "2025", "FormName": "ITR-3"},
+      "PartA_GEN1": {
+        "FilingStatus": {"ResidentialStatus": "RES", "ReturnFileSec": 11},
+        "PersonalInfo": {
+          "PAN": "ABCDE1234F",
+          "DOB": "1990-01-15",
+          "Status": "I",
+          "AadhaarCardNo": "123456789012",
+          "AssesseeName": {"FirstName": "Test", "SurNameOrOrgName": "User"},
+          "Address": {
+            "EmailAddress": "t@example.com",
+            "MobileNo": 9999999999,
+            "ResidenceNo": "1",
+            "ResidenceName": "Lane",
+            "LocalityOrArea": "Area",
+            "CityOrTownOrDistrict": "City",
+            "PinCode": 560001,
+            "StateCode": "31"
+          }
+        }
+      },
+      "Verification": {
+        "Declaration": {"FatherName": "F User", "AssesseeVerName": "TEST USER"},
+        "Date": "2025-10-24",
+        "Place": "City"
+      },
+      "PartB-TI": {
+        "ProfBusGain": {"TotProfBusGain": 500000},
+        "IncFromOS": {"TotIncFromOS": 100000},
+        "TotalTI": 600000,
+        "CurrentYearLoss": 0,
+        "BalanceAfterSetoffLosses": 600000,
+        "BroughtFwdLossesSetoff": 0,
+        "GrossTotalIncome": 600000,
+        "DeductionsUndSchVIADtl": {"TotDeductUndSchVIA": 0},
+        "TotalIncome": 600000,
+        "AggregateIncome": 600000
+      },
+      "ScheduleOS": {
+        "IncOthThanOwnRaceHorse": {
+          "IntrstFrmSavingBank": 1000,
+          "IntrstFrmTermDeposit": 99000,
+          "IntrstFrmIncmTaxRefund": 0
+        }
+      },
+      "ITR3ScheduleBP": {
+        "BusinessIncOthThanSpec": {
+          "DepreciationDebPLCosAct": 100,
+          "DepreciationAllowITAct32": {"TotDeprAllowITAct": 100}
+        }
+      },
+      "PartB_TTI": {
+        "Refund": {
+          "BankAccountDtls": {
+            "AddtnlBankDetails": [
+              {
+                "IFSCCode": "SBIN0001234",
+                "BankName": "TEST BANK",
+                "BankAccountNo": "123456",
+                "UseForRefund": "true",
+                "AccountType": "SB"
+              }
+            ]
+          },
+          "RefundDue": 0
+        },
+        "TaxPaid": {
+          "TaxesPaid": {"AdvanceTax": 0, "SelfAssessmentTax": 0, "TCS": 0, "TDS": 10000, "TotalTaxesPaid": 10000}
+        },
+        "ComputationOfTaxLiability": {
+          "TaxPayableOnTI": {
+            "TaxAtNormalRatesOnAggrInc": 15000,
+            "Rebate87A": 0,
+            "TaxPayableOnTotInc": 15000,
+            "EducationCess": 600,
+            "GrossTaxLiability": 15600
+          },
+          "NetTaxLiability": 15600
+        }
+      },
+      "ScheduleTDS2": {"TDSOthThanSalaryDtls": [], "TotalTDSonOthThanSals": 0}
+    }
+  }
+}

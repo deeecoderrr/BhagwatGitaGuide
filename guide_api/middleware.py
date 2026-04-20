@@ -29,8 +29,12 @@ class CanonicalHostRedirectMiddleware:
         if request.method not in {"GET", "HEAD"}:
             return self.get_response(request)
 
-        # Redirect www + fly.dev to canonical.
-        if request_host == f"www.{canonical_host}" or request_host.endswith(".fly.dev"):
+        # Redirect www + platform default hostnames (Fly/Render) to canonical.
+        if (
+            request_host == f"www.{canonical_host}"
+            or request_host.endswith(".fly.dev")
+            or request_host.endswith(".onrender.com")
+        ):
             scheme = "https"
             path = request.get_full_path()
             # get_full_path already includes query, but we avoid any surprises with

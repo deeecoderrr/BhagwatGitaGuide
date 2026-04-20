@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Document {{ document.pk }}{% endblock %}
+{% block content %}
+<div class="wrap">
+<h1>{{ document.original_filename }}</h1>
+<p class="muted">Source: {{ document.get_upload_source_display }}{% if document.upload_source == "json" %} (ITR-3 JSON){% endif %}</p>
+
+{% include "documents/_doc_status.html" %}
+
+{% if document.error_message %}
+  <p class="error">{{ document.error_message }}</p>
+{% endif %}
+
+{% if poll_status %}
+  <p class="muted">Review and export are available after import completes.</p>
+{% else %}
+  <div class="actions">
+    <a class="btn" href="{% url 'reviews:review' document.pk %}">Review &amp; edit fields</a>
+    <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}">Generate summary PDF</a>
+  </div>
+{% endif %}
+
+<form method="post" action="{% url 'documents:reprocess' document.pk %}" class="inline">
+  {% csrf_token %}
+  <button type="submit" class="btn btn-ghost" {% if poll_status or not document.uploaded_file %}disabled{% endif %}>Re-run import</button>
+</form>
+{% if not document.uploaded_file %}
+  <p class="muted small">Original upload was removed after export (storage policy). Upload the JSON again to re-import.</p>
+{% endif %}
+
+<h2>Exports</h2>
+<ul>
+  {% for e in document.exports.all %}
+    <li>
+      {% if e.can_download %}
+        <a href="{% url 'exports:download' document.pk e.pk %}">Download export #{{ e.pk }}</a>
+      {% else %}
+        <span>Export #{{ e.pk }}</span>
+        <span class="muted">(expired)</span>
+      {% endif %}
+      <span class="muted">({{ e.created_at }})</span>
+    </li>
+  {% empty %}
+    <li class="muted">No exports yet.</li>
+  {% endfor %}
+</ul>
+</div>
+{% endblock %}

@@ -1,0 +1,535 @@
+{% load itr_export %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>{{ title|default:"Income & Tax Computation" }}</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 10mm 12mm 16mm 12mm;
+      @bottom-left {
+        font-size: 7.5pt;
+        color: #64748b;
+        vertical-align: top;
+        content: "{{ footer_report_date }}";
+      }
+      @bottom-right {
+        font-size: 7.5pt;
+        color: #64748b;
+        content: "Page " counter(page) " of " counter(pages);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Helvetica, Arial, sans-serif;
+      font-size: 9.5pt;
+      color: #0f172a;
+      line-height: 1.35;
+    }
+    .topbar {
+      display: table;
+      width: 100%;
+      font-size: 8.5pt;
+      margin-bottom: 6mm;
+      border-bottom: 1px solid #cbd5e1;
+      padding-bottom: 4px;
+    }
+    .topbar > div { display: table-cell; vertical-align: middle; }
+    .firm { width: 28%; font-weight: bold; }
+    .doctitle {
+      width: 44%;
+      text-align: center;
+      color: #1d4ed8;
+      font-weight: bold;
+      font-size: 9.5pt;
+    }
+    .assessee { width: 28%; text-align: right; font-size: 8.5pt; }
+    h1.comp {
+      text-align: center;
+      font-size: 14pt;
+      margin: 4mm 0 6mm;
+      font-weight: bold;
+    }
+    .sec {
+      background: #f3e8dc;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 8.5pt;
+      padding: 4px 8px;
+      margin-top: 5mm;
+      border: 1px solid #e7d5c4;
+    }
+    .sec .amt { float: right; font-weight: bold; }
+    .kv-grid {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2mm;
+    }
+    .kv-grid td {
+      vertical-align: top;
+      padding: 2px 6px;
+      font-size: 9pt;
+    }
+    .kv-grid .k { color: #475569; width: 22%; }
+    .kv-grid .v { font-weight: 600; width: 28%; }
+    .subhead {
+      background: #f1f5f9;
+      font-weight: bold;
+      font-size: 8.5pt;
+      padding: 3px 6px;
+      margin-top: 3mm;
+      border: 1px solid #cbd5e1;
+    }
+    .line-row {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1mm;
+      table-layout: fixed;
+    }
+    .line-row td { padding: 2px 6px; font-size: 9pt; vertical-align: top; }
+    /* Label | inner component amounts | outer section / headline amounts */
+    .line-row .lbl { width: 52%; text-align: left; }
+    .line-row .mid {
+      width: 22%;
+      text-align: right;
+      font-weight: normal;
+      color: #334155;
+    }
+    .line-row .end {
+      width: 26%;
+      text-align: right;
+      font-weight: 600;
+    }
+    .line-row .mid.muted-amt { color: #475569; }
+    .highlight { background: #dcfce7; }
+    .summary.line-row .lbl { width: 52%; }
+    .summary.line-row .mid { width: 22%; }
+    .summary.line-row .end { width: 26%; }
+    .summary td { padding: 3px 6px; font-size: 9.5pt; }
+    table.data {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2mm;
+      font-size: 8.5pt;
+    }
+    table.data th, table.data td {
+      border: 1px solid #cbd5e1;
+      padding: 4px 5px;
+    }
+    table.data th { background: #e2e8f0; text-align: left; }
+    table.data td.num { text-align: right; }
+    .page-break { page-break-before: always; }
+    .foot {
+      margin-top: 6mm;
+      font-size: 7.5pt;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 3mm;
+    }
+    .muted { color: #64748b; font-size: 8pt; }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="firm">{{ computation_firm_name }}</div>
+    <div class="doctitle">Income &amp; Tax Computation A.Y. {{ fields.assessment_year|default:"" }}{% if fields.regime %} ({{ fields.regime }}){% endif %}</div>
+    <div class="assessee">{{ fields.assessee_name|default:"" }} ({{ fields.pan|default:"" }})</div>
+  </div>
+
+  <h1 class="comp">Computation of Income</h1>
+
+  <div class="sec">Personal Information</div>
+  <table class="kv-grid">
+    <tr>
+      <td class="k">Name of Assessee</td><td class="v">{{ fields.assessee_name|default:"—" }}</td>
+      <td class="k">Father's Name</td><td class="v">{{ fields.father_name|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">PAN</td><td class="v">{{ fields.pan|default:"—" }}</td>
+      <td class="k">Date of Birth</td><td class="v">{{ fields.date_of_birth|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">Assessment Year</td><td class="v">{{ fields.assessment_year|default:"—" }}</td>
+      <td class="k">Gender</td><td class="v">{{ fields.gender|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">Status</td><td class="v">{{ fields.status|default:"—" }}</td>
+      <td class="k">E-mail</td><td class="v">{{ fields.email|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">Filing Status</td><td class="v">{{ fields.filing_status|default:"—" }}</td>
+      <td class="k">Residential Status</td><td class="v">{{ fields.residential_status|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">Return filed under</td><td class="v" colspan="3">{{ fields.filing_section|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">Aadhaar</td><td class="v">{{ fields.aadhaar|default:"—" }}</td>
+      <td class="k">Primary Mobile No</td><td class="v">{{ fields.mobile|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k" colspan="1">Address</td>
+      <td class="v" colspan="3">{{ fields.address|default:"—" }}</td>
+    </tr>
+    {% if fields.employer_category %}
+    <tr>
+      <td class="k">Employer category</td><td class="v">{{ fields.employer_category }}</td>
+      <td class="k">Verification place</td><td class="v">{{ fields.verification_place|default:"—" }}</td>
+    </tr>
+    {% endif %}
+    {% if fields.filing_due_date %}
+    <tr>
+      <td class="k">Due date for filing</td><td class="v">{{ fields.filing_due_date }}</td>
+      <td class="k">Section 139(9) — Seventh proviso</td><td class="v">{{ fields.seventh_proviso_139|default:"—" }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  {% if primary_bank %}
+  <div class="subhead">Bank Details (primary)</div>
+  <table class="kv-grid">
+    <tr>
+      <td class="k">Account Number</td><td class="v">{{ primary_bank.account_number|default:"—" }}</td>
+      <td class="k">Bank Name</td><td class="v">{{ primary_bank.bank_name|default:"—" }}</td>
+    </tr>
+    <tr>
+      <td class="k">IFSC Code</td><td class="v">{{ primary_bank.ifsc|default:"—" }}</td>
+      <td class="k">Account Type</td><td class="v">{{ primary_bank.account_type|default:"—" }}</td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if fields.income_salary|nz or fields.salary_gross|nz or fields.salary_as_per_section_17|nz or fields.net_salary_utility|nz %}
+  <div class="sec">
+    Income from Salary
+    <span class="amt">{{ fields.income_salary|inr }}</span>
+  </div>
+  <table class="line-row">
+    {% if fields.salary_gross|nz %}<tr><td class="lbl">Gross salary</td><td class="mid muted-amt">{{ fields.salary_gross|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.salary_as_per_section_17|nz %}<tr><td class="lbl">Salary as per section 17</td><td class="mid muted-amt">{{ fields.salary_as_per_section_17|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.allowances_exempt_us10_total|nz %}<tr><td class="lbl">Allowances exempt u/s 10</td><td class="mid muted-amt">{{ fields.allowances_exempt_us10_total|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.net_salary_utility|nz %}<tr><td class="lbl">Net salary (utility)</td><td class="mid muted-amt">{{ fields.net_salary_utility|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.standard_deduction_us16ia|nz %}<tr><td class="lbl">Standard deduction u/s 16(ia)</td><td class="mid muted-amt">{{ fields.standard_deduction_us16ia|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.deduction_us16_total|nz %}<tr><td class="lbl">Deduction u/s 16</td><td class="mid muted-amt">{{ fields.deduction_us16_total|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.entertainment_allowance_us16ii|nz %}<tr><td class="lbl">Entertainment allowance u/s 16(ii)</td><td class="mid muted-amt">{{ fields.entertainment_allowance_us16ii|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.professional_tax_us16iii|nz %}<tr><td class="lbl">Professional tax u/s 16(iii)</td><td class="mid muted-amt">{{ fields.professional_tax_us16iii|inr }}</td><td class="end"></td></tr>{% endif %}
+    <tr class="highlight">
+      <td class="lbl"><strong>Income chargeable under the head Salaries</strong></td>
+      <td class="mid"></td>
+      <td class="end"><strong>{{ fields.income_salary|inr }}</strong></td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if fields.income_house_property|nz %}
+  <div class="sec">
+    Income from House Property
+    <span class="amt">{{ fields.income_house_property|inr }}</span>
+  </div>
+  <table class="line-row">
+    <tr>
+      <td class="lbl">Income / (loss) from house property</td>
+      <td class="mid"></td>
+      <td class="end">{{ fields.income_house_property|inr }}</td>
+    </tr>
+  </table>
+  {% endif %}
+
+  {% if fields.income_business_profession|nz or fields.bp_turnover_44ad|nz or fields.bp_presumptive_44ad|nz or fields.bp_receipts_other_mode_44ad|nz or fields.business_name or fields.business_depreciation_books|nz or fields.business_depreciation_it|nz %}
+  <div class="sec">
+    Income from Business &amp; Profession
+    <span class="amt">{{ fields.income_business_profession|inr }}</span>
+  </div>
+  <table class="line-row">
+    <tr>
+      <td class="lbl">Business Profit/Loss (excl. presumptive / specified / speculation)</td>
+      <td class="mid"></td>
+      <td class="end">{{ fields.income_business_profession|inr }}</td>
+    </tr>
+    {% if fields.bp_presumptive_44ad|nz or fields.business_name or fields.bp_turnover_44ad|nz or fields.bp_receipts_other_mode_44ad|nz %}
+    <tr>
+      <td class="lbl">Trade / business (presumptive u/s 44AD)</td>
+      <td class="mid muted-amt">{{ fields.business_name|default:"—" }}{% if fields.business_code %} ({{ fields.business_code }}){% endif %}</td>
+      <td class="end"></td>
+    </tr>
+    {% if fields.bp_turnover_44ad|nz %}<tr>
+      <td class="lbl">Gross turnover / receipts (Schedule BP)</td>
+      <td class="mid muted-amt">{{ fields.bp_turnover_44ad|inr }}</td>
+      <td class="end"></td>
+    </tr>{% endif %}
+    {% if fields.bp_receipts_other_mode_44ad|nz %}<tr>
+      <td class="lbl">Receipts via other modes (utility)</td>
+      <td class="mid muted-amt">{{ fields.bp_receipts_other_mode_44ad|inr }}</td>
+      <td class="end"></td>
+    </tr>{% endif %}
+    {% if fields.bp_presumptive_44ad|nz %}<tr>
+      <td class="lbl">Presumptive income u/s 44AD (utility)</td>
+      <td class="mid muted-amt">{{ fields.bp_presumptive_44ad|inr }}</td>
+      <td class="end"></td>
+    </tr>{% endif %}
+    {% endif %}
+    {% if fields.business_depreciation_books|nz %}<tr>
+      <td class="lbl">Add: Depreciation as per Books</td>
+      <td class="mid">{{ fields.business_depreciation_books|inr }}</td>
+      <td class="end"></td>
+    </tr>{% endif %}
+    {% if fields.business_depreciation_it|nz %}<tr>
+      <td class="lbl">Less: Depreciation as per Income Tax</td>
+      <td class="mid">{{ fields.business_depreciation_it|inr }}</td>
+      <td class="end"></td>
+    </tr>{% endif %}
+  </table>
+  {% endif %}
+
+  {% if fields.income_other_sources|nz or fields.os_interest_savings|nz or fields.os_interest_term_deposit|nz or fields.os_interest_refund|nz or fields.other_source_nature %}
+  <div class="sec">
+    Other Sources Income
+    <span class="amt">{{ fields.income_other_sources|inr }}</span>
+  </div>
+  <p class="muted" style="margin:2mm 0 0 6px;"><em>Incomes from Other Sources</em></p>
+  <table class="line-row">
+    {% if fields.os_interest_savings|nz %}<tr><td class="lbl">Saving Bank Interest</td><td class="mid muted-amt">{{ fields.os_interest_savings|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.os_interest_term_deposit|nz %}<tr><td class="lbl">FDR Interest</td><td class="mid muted-amt">{{ fields.os_interest_term_deposit|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.os_interest_refund|nz %}<tr><td class="lbl">Interest on Income Tax Refund</td><td class="mid muted-amt">{{ fields.os_interest_refund|inr }}</td><td class="end"></td></tr>{% endif %}
+    <tr class="highlight">
+      <td class="lbl"><strong>Total Other Source Income (Normal Rate)</strong></td>
+      <td class="mid"></td>
+      <td class="end"><strong>{{ fields.income_other_sources|inr }}</strong></td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <table class="line-row summary" style="margin-top:4mm;">
+    <tr><td class="lbl">Total of Head-wise Incomes</td><td class="mid"></td><td class="end">{{ fields.total_head_wise_income|inr }}</td></tr>
+    {% if fields.current_year_losses_adjustment|nz %}<tr><td class="lbl">Current Year Losses Adjustment</td><td class="mid"></td><td class="end">{{ fields.current_year_losses_adjustment|inr }}</td></tr>{% endif %}
+    {% if fields.balance_after_cyla|nz %}<tr><td class="lbl">Balance After CYLA</td><td class="mid"></td><td class="end">{{ fields.balance_after_cyla|inr }}</td></tr>{% endif %}
+    {% if fields.brought_forward_loss_setoff|nz %}<tr><td class="lbl">Brought Forward Loss Set-off</td><td class="mid"></td><td class="end">{{ fields.brought_forward_loss_setoff|inr }}</td></tr>{% endif %}
+    <tr><td class="lbl"><strong>Gross Total Income</strong></td><td class="mid"></td><td class="end"><strong>{{ fields.gross_total_income|inr }}</strong></td></tr>
+  </table>
+
+  {% if fields.total_deductions|nz or fields.deduction_80c|nz or fields.deduction_80d|nz or fields.deduction_80g|nz or fields.deduction_80tta|nz %}
+  <div class="sec">
+    Deductions under Chapter VI-A
+    <span class="amt">{{ fields.total_deductions|inr }}</span>
+  </div>
+  <p class="muted" style="margin:2mm 0 0 6px;">Eligible deductions as per filed return</p>
+  <table class="line-row">
+    {% if fields.deduction_80c|nz %}<tr><td class="lbl">Deduction u/s 80C</td><td class="mid muted-amt">{{ fields.deduction_80c|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.deduction_80d|nz %}<tr><td class="lbl">Deduction u/s 80D</td><td class="mid muted-amt">{{ fields.deduction_80d|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.deduction_80g|nz %}<tr><td class="lbl">Deduction u/s 80G</td><td class="mid muted-amt">{{ fields.deduction_80g|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.deduction_80tta|nz %}<tr><td class="lbl">Deduction u/s 80TTA (claimed)</td><td class="mid muted-amt">{{ fields.deduction_80tta|inr }}</td><td class="end"></td></tr>{% endif %}
+    {% if fields.deduction_80tta|nz or fields.os_interest_savings|nz %}<tr><td class="lbl">Saving bank interest (context for 80TTA ceiling)</td><td class="mid muted-amt">{{ fields.os_interest_savings|inr }}</td><td class="end"></td></tr>{% endif %}
+    <tr class="highlight">
+      <td class="lbl"><strong>Total deductions under Chapter VI-A</strong></td>
+      <td class="mid"></td>
+      <td class="end"><strong>{{ fields.total_deductions|inr }}</strong></td>
+    </tr>
+  </table>
+  {% endif %}
+
+  <table class="line-row summary" style="margin-top:3mm;">
+    <tr><td class="lbl"><strong>Total Income</strong></td><td class="mid"></td><td class="end"><strong>{{ fields.total_income|inr }}</strong></td></tr>
+    <tr><td class="lbl">Total Income Rounded u/s 288A</td><td class="mid"></td><td class="end">{{ fields.rounded_total_income|inr }}</td></tr>
+  </table>
+
+  <div class="sec">Tax Calculation</div>
+  <table class="line-row">
+    <tr>
+      <td class="lbl">Tax at Normal Rates (subtotal)</td>
+      <td class="mid"></td>
+      <td class="end">{{ fields.tax_normal_rates|inr }}</td>
+    </tr>
+    {% if fields.rebate_87a|nz %}
+    <tr>
+      <td class="lbl">Less: Rebate u/s 87A</td>
+      <td class="mid muted-amt">{{ fields.rebate_87a|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% for row in slab_rows %}
+    {% if row.tax_disp != "Nil" %}
+    <tr>
+      <td class="lbl">Tax @ {{ row.rate_pct }}% on Income ₹{{ row.slab_income_inr }}</td>
+      <td class="mid muted-amt">{{ row.tax_disp }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    <tr>
+      <td class="lbl">Tax Payable on Total Income</td>
+      <td class="mid"></td>
+      <td class="end">{{ fields.tax_payable_on_total_income|inr }}</td>
+    </tr>
+    {% if fields.cess|nz %}
+    <tr>
+      <td class="lbl">Add: Health &amp; Education Cess (HEC) @ 4.00%</td>
+      <td class="mid muted-amt">{{ fields.cess|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="lbl"><strong>Gross Tax Liability</strong></td>
+      <td class="mid"></td>
+      <td class="end"><strong>{{ fields.gross_tax_liability|inr }}</strong></td>
+    </tr>
+    <tr>
+      <td class="lbl"><strong>Net Tax Liability</strong></td>
+      <td class="mid"></td>
+      <td class="end"><strong>{{ fields.net_tax_liability|inr }}</strong></td>
+    </tr>
+    {% if fields.tax_relief|nz %}
+    <tr>
+      <td class="lbl">Relief u/s 89</td>
+      <td class="mid muted-amt">{{ fields.tax_relief|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% if fields.interest_234a|nz or fields.interest_234b|nz or fields.interest_234c|nz %}
+    <tr>
+      <td class="lbl">Interest u/s 234A / 234B / 234C</td>
+      <td class="mid muted-amt">{{ fields.interest_234a|inr }} / {{ fields.interest_234b|inr }} / {{ fields.interest_234c|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% if fields.fee_234f|nz %}
+    <tr>
+      <td class="lbl">Late filing fee u/s 234F</td>
+      <td class="mid muted-amt">{{ fields.fee_234f|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% if fields.total_tax_plus_interest|nz %}
+    <tr>
+      <td class="lbl">Total tax + interest (utility)</td>
+      <td class="mid"></td>
+      <td class="end">{{ fields.total_tax_plus_interest|inr }}</td>
+    </tr>
+    {% endif %}
+    {% if fields.advance_tax|nz %}
+    <tr>
+      <td class="lbl">Advance tax</td>
+      <td class="mid muted-amt">{{ fields.advance_tax|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% if fields.self_assessment_tax|nz %}
+    <tr>
+      <td class="lbl">Self assessment tax</td>
+      <td class="mid muted-amt">{{ fields.self_assessment_tax|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="lbl">TDS on income</td>
+      <td class="mid muted-amt">{{ fields.tds_total|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% if fields.tds_from_salary|nz %}
+    <tr>
+      <td class="lbl" style="padding-left:3mm;">of which — TDS on salary (Sch. TDS1)</td>
+      <td class="mid muted-amt">{{ fields.tds_from_salary|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% if fields.tds_other_than_salary|nz %}
+    <tr>
+      <td class="lbl" style="padding-left:3mm;">of which — TDS other than salary (Sch. TDS2)</td>
+      <td class="mid muted-amt">{{ fields.tds_other_than_salary|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    {% if fields.tcs_total|nz %}
+    <tr>
+      <td class="lbl">TCS</td>
+      <td class="mid muted-amt">{{ fields.tcs_total|inr }}</td>
+      <td class="end"></td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td class="lbl">Taxes Paid (Total TDS on Income)</td>
+      <td class="mid"></td>
+      <td class="end">{{ fields.taxes_paid_total|inr }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Amount Refundable</td>
+      <td class="mid"></td>
+      <td class="end">{{ refund_display_pre }}</td>
+    </tr>
+    <tr>
+      <td class="lbl">Amount Refundable Rounded off u/s 288B</td>
+      <td class="mid"></td>
+      <td class="end">{{ refund_display_rounded }}</td>
+    </tr>
+  </table>
+
+  {% if weasy_show_validation and validation_findings %}
+  <p class="muted" style="margin-top:4mm;">Validation: {{ validation_findings|length }} finding(s) — see review screen for severity.</p>
+  {% endif %}
+
+  {% if generated_at_short or computation_footer_brand %}
+  <p class="muted" style="margin-top:3mm;font-size:7.5pt;">{% if generated_at_short %}Generated {{ generated_at_short }}{% endif %}{% if computation_footer_brand %}{% if generated_at_short %} · {% endif %}{{ computation_footer_brand }}{% endif %}</p>
+  {% endif %}
+
+  <div class="page-break"></div>
+
+  <div class="topbar">
+    <div class="firm">{{ computation_firm_name }}</div>
+    <div class="doctitle">Income &amp; Tax Computation A.Y. {{ fields.assessment_year|default:"" }}</div>
+    <div class="assessee">{{ fields.assessee_name|default:"" }} ({{ fields.pan|default:"" }})</div>
+  </div>
+
+  <div class="sec">Annexures</div>
+
+  <p style="font-weight:bold; margin: 3mm 0 1mm;">Bank Details</p>
+  <table class="data">
+    <tr>
+      <th>Bank Name</th>
+      <th>IFSC / Swift</th>
+      <th>Account No.</th>
+      <th>Account Type</th>
+      <th>Nominate for Refund</th>
+    </tr>
+    {% for b in bank_rows %}
+    <tr>
+      <td>{{ b.bank_name|default:"—" }}</td>
+      <td>{{ b.ifsc|default:"—" }}</td>
+      <td>{{ b.account_number|default:"—" }}</td>
+      <td>{{ b.account_type|default:"—" }}</td>
+      <td>{{ b.nominate_for_refund|default:"—" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">—</td></tr>
+    {% endfor %}
+  </table>
+
+  <p style="font-weight:bold; margin: 4mm 0 1mm;">Details of Tax Deducted at Source (TDS)</p>
+  <table class="data">
+    <tr>
+      <th>Deductor / TAN</th>
+      <th>TAN / PAN</th>
+      <th>Section</th>
+      <th class="num">Amount Paid</th>
+      <th class="num">Tax Deducted</th>
+      <th class="num">Claimed this year</th>
+      <th class="num">Carry Forward</th>
+    </tr>
+    {% for t in tds_rows %}
+    <tr>
+      <td>{{ t.deductor_name|default:"—" }}</td>
+      <td>{{ t.tan_pan|default:"—" }}</td>
+      <td>{{ t.section|default:"—" }}</td>
+      <td class="num">{{ t.amount_paid|inr }}</td>
+      <td class="num">{{ t.total_tax_deducted|inr }}</td>
+      <td class="num">{{ t.amount_claimed_this_year|inr }}</td>
+      <td class="num">{{ t.carry_forward|inr }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7">—</td></tr>
+    {% endfor %}
+  </table>
+
+
+</body>
+</html>

@@ -102,8 +102,19 @@ class GuideApiTests(APITestCase):
     def test_robots_txt_exposes_sitemap(self):
         response = self.client.get("/robots.txt")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("User-agent: *", response.content.decode())
-        self.assertIn("Sitemap:", response.content.decode())
+        body = response.content.decode()
+        self.assertIn("User-agent: *", body)
+        self.assertIn("Sitemap:", body)
+        self.assertIn("Disallow: /admin/", body)
+
+    def test_robots_txt_disallows_itr_private_paths_when_itr_enabled(self):
+        from django.conf import settings
+
+        if not getattr(settings, "ITR_ENABLED", False):
+            self.skipTest("ITR routes not enabled")
+        response = self.client.get("/robots.txt")
+        body = response.content.decode()
+        self.assertIn("Disallow: /itr-computation/documents/", body)
 
     def test_sitemap_xml_lists_public_routes(self):
         response = self.client.get("/sitemap.xml")
@@ -115,6 +126,17 @@ class GuideApiTests(APITestCase):
         self.assertIn("/frequently-asked-bhagavad-gita-questions/", body)
         self.assertIn("/daily-bhagavad-gita-verse/", body)
         self.assertIn("/api/chat-ui/", body)
+        self.assertIn("<lastmod>", body)
+
+    def test_sitemap_xml_includes_itr_marketing_when_enabled(self):
+        from django.conf import settings
+
+        if not getattr(settings, "ITR_ENABLED", False):
+            self.skipTest("ITR routes not enabled")
+        response = self.client.get("/sitemap.xml")
+        body = response.content.decode()
+        self.assertIn("/itr-computation/", body)
+        self.assertIn("/itr-computation/pricing/", body)
 
     def test_public_seo_topic_page_loads(self):
         response = self.client.get("/bhagavad-gita-for-anxiety/")
@@ -945,6 +967,7 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Guest mode is temporary")
         self.assertContains(response, "Register")
         self.assertContains(response, "Login")
+        self.assertContains(response, "Forgot password?")
 
     def test_chat_ui_register_and_logout_flow(self):
         register_response = self.client.post(

@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://itrsummarygenerator.local/schemas/normalized_itr.json",
+  "title": "Normalized filed ITR (extraction target)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["metadata", "income", "tax"],
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "pan", "ay", "itr_type"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "pan": {
+          "type": "string",
+          "pattern": "^[A-Z]{5}[0-9]{4}[A-Z]$"
+        },
+        "ay": { "type": "string", "description": "Assessment year e.g. 2022-23" },
+        "itr_type": { "type": "string" },
+        "filing_date": { "type": "string" },
+        "tax_regime": { "type": "string", "enum": ["old", "new"] },
+        "financial_year": { "type": "string" },
+        "residential_status": { "type": "string" },
+        "filing_section": { "type": "string" },
+        "original_or_revised": { "type": "string" }
+      }
+    },
+    "income": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "salary",
+        "house_property",
+        "business",
+        "other_sources",
+        "gross_total_income",
+        "deductions_total",
+        "total_income"
+      ],
+      "properties": {
+        "salary": { "type": "number" },
+        "house_property": { "type": "number" },
+        "business": { "type": "number" },
+        "other_sources": { "type": "number" },
+        "gross_total_income": { "type": "number" },
+        "deductions_total": { "type": "number" },
+        "total_income": { "type": "number" },
+        "rounded_total_income": { "type": "number" }
+      }
+    },
+    "business_44ad": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "business_name": { "type": "string" },
+        "business_code": { "type": "string" },
+        "business_code_description": { "type": "string" },
+        "digital_turnover": { "type": "number" },
+        "other_turnover": { "type": "number" },
+        "presumptive_income": { "type": "number" },
+        "minimum_presumptive_income": { "type": "number" }
+      }
+    },
+    "tax": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tax": { "type": "number" },
+        "rebate_87a": { "type": "number" },
+        "tax_after_rebate": { "type": "number" },
+        "cess": { "type": "number" },
+        "gross_tax_liability": { "type": "number" },
+        "relief": { "type": "number" },
+        "interest_234a": { "type": "number" },
+        "interest_234b": { "type": "number" },
+        "interest_234c": { "type": "number" },
+        "fee_234f": { "type": "number" },
+        "net_tax_payable": { "type": "number" },
+        "tax_paid_total": { "type": "number" },
+        "refund": { "type": "number" },
+        "demand": { "type": "number" },
+        "refund_rounded": { "type": "number" }
+      }
+    },
+    "tds_other": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "tan": { "type": "string" },
+          "tds_deducted": { "type": "number" },
+          "tds_claimed": { "type": "number" },
+          "gross_amount": { "type": "number" },
+          "head_of_income": { "type": "string" },
+          "carry_forward": { "type": "number" }
+        }
+      }
+    },
+    "banks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "bank_name": { "type": "string" },
+          "ifsc": { "type": "string" },
+          "account": { "type": "string" },
+          "refund_selected": { "type": "boolean" }
+        }
+      }
+    },
+    "other_sources_lines": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "nature": { "type": "string" },
+          "amount": { "type": "number" },
+          "tds_linked": { "type": "number" },
+          "offered_current_year": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

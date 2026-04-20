@@ -71,6 +71,26 @@ Safe release checklist
 5. Verify admin login
 6. Verify support form submission appears in admin
 
+ITR Summary Generator (if enabled in production)
+- Set `ITR_ENABLED=true` and `ITR_URL_PREFIX` (e.g. `/itr-computation`) if the ITR
+  app is shipped. Gita-only: `ITR_ENABLED=false`.
+- Retention: set `ITR_OUTPUT_RETENTION_HOURS` (default 24) and optional
+  `ITR_DELETE_INPUT_AFTER_EXPORT`. Schedule periodic storage cleanup, e.g. hourly:
+  `python manage.py purge_itr_retention`
+- Configure a **separate** Razorpay webhook URL for ITR billing if used, or set
+  `ITR_RAZORPAY_WEBHOOK_SECRET` as needed. Gita subscription webhooks stay on
+  `/api/payments/webhook/`.
+- After deploy, apply ITR migrations: `showmigrations documents exports` and
+  `migrate` as usual.
+- **WeasyPrint (CA-layout PDF):** the Fly image must install Pango, cairo, and
+  GLib/GObject packages; these are listed in the repo `Dockerfile`. If production
+  shows `libgobject-2.0-0` / shared library errors, redeploy after pulling the
+  latest Dockerfile (do not rely on `pip install weasyprint` alone).
+- **ITR “Continue with Google”:** requires **both** an OAuth client id and **client
+  secret** (django-allauth). `GOOGLE_OAUTH_CLIENT_ID` alone (chat-ui GIS) is not
+  enough. Set `GOOGLE_CLIENT_SECRET` or `GOOGLE_OAUTH_CLIENT_SECRET` on Fly, and add
+  authorized redirect URI `https://<your-domain>/accounts/google/login/callback/`.
+
 Notes
 - Do not commit secrets to git.
 - After changing any Fly secret, Fly performs rolling updates automatically.

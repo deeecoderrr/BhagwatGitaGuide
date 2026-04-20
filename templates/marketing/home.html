@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% load itr_export %}
+{% load socialaccount %}
+{% load static %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block meta %}
+  <meta name="description" content="{{ meta_description }}">
+  <meta name="keywords" content="{{ meta_keywords }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <link rel="alternate" hreflang="en-IN" href="{{ canonical_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ meta_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:site_name" content="ITR Summary Generator">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ meta_description }}">
+  {% if structured_data %}
+  <script type="application/ld+json">{{ structured_data|safe }}</script>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-inner">
+    <h1 id="hero-heading">ITR computation summary — income tax computation to CA-style PDF</h1>
+    <p class="hero-lead">
+      Import <strong>filed ITR-3 JSON</strong> from the income-tax portal, review figures, and export a
+      <strong>computation of income</strong> summary trusted for assessment-year workflows.
+    </p>
+    <div class="hero-cta">
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary" href="{% url 'documents:upload' %}">Upload JSON</a>
+        <a class="btn" href="{% url 'documents:list' %}">Open workspace</a>
+      {% else %}
+        <a class="btn btn-primary" href="{% url 'account_signup' %}">Create free account</a>
+        <a class="btn" href="{% url 'account_login' %}">Log in</a>
+      {% endif %}
+      <a class="btn btn-ghost" href="{% url 'marketing:pricing' %}">View pricing</a>
+    </div>
+    {% if not user.is_authenticated and google_oauth_configured %}
+      {% url 'documents:list' as itr_workspace_next %}
+      <p class="hero-oauth muted small" style="margin-top:14px;">
+        <a class="btn btn-primary" href="{% provider_login_url 'google' %}?next={{ itr_workspace_next|urlencode }}">Continue with Google</a>
+        <span aria-hidden="true"> · </span>
+        <a href="{% url 'account_login' %}?next={{ itr_workspace_next|urlencode }}">Email log in</a>
+        <span aria-hidden="true"> · </span>
+        <a href="{% url 'account_signup' %}?next={{ itr_workspace_next|urlencode }}">Email sign up</a>
+      </p>
+    {% endif %}
+    <div class="feature-grid">
+      <article class="feature-card">
+        <h3>ITR computation &amp; tax summary</h3>
+        <p class="muted small">Head-wise income, deductions, tax, refund — formatted like a computation sheet for quick CA review.</p>
+      </article>
+      <article class="feature-card">
+        <h3>JSON import (ITR-3)</h3>
+        <p class="muted small">Use acknowledgment or utility JSON — deterministic mapping into editable fields.</p>
+      </article>
+      <article class="feature-card">
+        <h3>Human review gate</h3>
+        <p class="muted small">Validation blocks inconsistent exports; you approve before generating the PDF.</p>
+      </article>
+      <article class="feature-card">
+        <h3>Privacy-first storage</h3>
+        <p class="muted small">Summary PDFs stay downloadable for <strong>{% itr_output_retention_hours %} hours</strong>, then we remove the file from our servers. Download while the link is active.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="sample-output-section wrap" aria-labelledby="sample-heading">
+  <div class="sample-output card">
+    <div class="sample-output-grid">
+      <div class="sample-output-copy">
+        <h2 id="sample-heading">Preview a sample computation summary PDF</h2>
+        <p class="muted">
+          Before you upload your JSON, see the <strong>layout and typography</strong> your export uses:
+          assessment-year framing, head-wise totals, slabs, refund or demand—not legal advice,
+          only how the printable summary is structured for CA-style review.
+        </p>
+        <p class="muted small">
+          This sample PDF is anonymised and illustrative; your own file reflects the figures from your imported ITR-3 JSON after you approve.
+        </p>
+        <div class="sample-output-actions">
+          <button type="button" class="btn btn-primary" id="sample-pdf-open">
+            Preview sample PDF
+          </button>
+          <a
+            class="btn"
+            href="{% static 'samples/itr-computation-summary-sample.pdf' %}"
+            download="itr-computation-summary-sample.pdf"
+          >
+            Download sample
+          </a>
+        </div>
+      </div>
+      <div class="sample-output-hint muted small">
+        <p><strong>Tip:</strong> Use <kbd>Esc</kbd> or the ✕ button to close the preview. Download keeps a copy on your device.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div id="sample-pdf-modal" class="pdf-modal" hidden aria-hidden="true">
+  <button type="button" class="pdf-modal-backdrop" tabindex="-1" aria-label="Close preview" data-close-sample-modal></button>
+  <div
+    class="pdf-modal-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="sample-pdf-dialog-title"
+  >
+    <header class="pdf-modal-toolbar">
+      <h2 id="sample-pdf-dialog-title" class="pdf-modal-toolbar-title">Sample computation summary</h2>
+      <button type="button" class="pdf-modal-close" id="sample-pdf-close" aria-label="Close preview">&times;</button>
+    </header>
+    <div class="pdf-modal-frame-wrap">
+      <iframe
+        class="pdf-modal-frame"
+        title="Sample ITR computation summary PDF preview"
+        src=""
+        data-pdf-src="{% static 'samples/itr-computation-summary-sample.pdf' %}"
+      ></iframe>
+      <p class="pdf-modal-fallback muted small">
+        If the preview does not appear, use <strong>Download sample</strong> above and open the PDF on your device.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <article class="seo-section">
+    <h2>What people search: ITR computation, income tax computation, tax summary PDF</h2>
+    <p>
+      Whether you call it <strong>ITR computation</strong>, <strong>income tax computation</strong>,
+      <strong>tax computation summary</strong>, or a <strong>CA computation sheet</strong>, the goal is the same:
+      a clear statement of income under each head, Chapter VI-A, tax liability, TDS, and refund or demand for the
+      <strong>assessment year</strong>. This tool focuses on <strong>ITR-3</strong> filed returns imported as JSON.
+    </p>
+    <h2>Computation of income &amp; assessment-year reporting</h2>
+    <p>
+      A standard <strong>computation of income</strong> walks from gross income through deductions to total income and tax.
+      Export uses a WeasyPrint HTML/CSS layout suited to printed CA packs.
+    </p>
+    <h2>Related search terms (India)</h2>
+    <p class="keyword-cloud">
+      {{ meta_keywords }}
+    </p>
+  </article>
+
+  <section class="faq-section card" aria-labelledby="faq-summary" style="margin-bottom:2rem;">
+    <h2 id="faq-summary">FAQ — ITR computation &amp; income tax computation summary</h2>
+    <dl class="faq-dl muted small">
+      <dt><strong>What is ITR computation?</strong></dt>
+      <dd>The calculation of income under each head, deductions, taxes, refund or demand for an assessment year—often summarized as a computation sheet for filing or CA review.</dd>
+      <dt><strong>What is an income tax computation summary?</strong></dt>
+      <dd>A structured walkthrough of gross income, deductions, tax liability, TDS, and refund or demand—useful for CA review and assessment-year records.</dd>
+      <dt><strong>Does this replace a CA or the income-tax portal?</strong></dt>
+      <dd>No. We import filed ITR-3 JSON and help you generate a reviewed summary PDF—professional advice and official filing remain your responsibility.</dd>
+      <dt><strong>Which file format is supported?</strong></dt>
+      <dd>Filed ITR-3 JSON from the income-tax portal (acknowledgment / utility export).</dd>
+      <dt><strong>How long can I download each summary PDF?</strong></dt>
+      <dd>For the retention window shown on the site (default {% itr_output_retention_hours %} hours). Save a copy locally before expiry.</dd>
+      <dt><strong>Who uses an ITR computation PDF?</strong></dt>
+      <dd>Professionals and filers preparing assessment-year paperwork, refunds, demands, or internal folders alongside notices or bank documentation.</dd>
+      <dt><strong>What is the difference between a computation summary and filed ITR JSON?</strong></dt>
+      <dd>Your filed return JSON is structured data exported from the income-tax portal. This app reads that JSON and renders a readable computation-summary PDF layout for review—not a substitute for filing or statutory forms.</dd>
+      <dt><strong>Is this the same as advance tax computation or self-assessment tax?</strong></dt>
+      <dd>Computation summaries here reflect figures parsed from filed ITR-3 JSON (including liability, TDS, relief, refund, demand). Separate advance-tax calculators focus on installments before filing.</dd>
+    </dl>
+  </section>
+
+  <section class="guidance-section card" aria-labelledby="guidance-heading">
+    <h2 id="guidance-heading">Guidance</h2>
+    <ul class="muted small guidance-list">
+      <li>This tool builds a <strong>computation-style summary PDF</strong> from filed <strong>ITR-3 JSON</strong> — not legal or tax advice.</li>
+      <li>Always <strong>review</strong> imported figures and validation messages before exporting or filing.</li>
+      <li>Generated PDFs are kept for download for <strong>{% itr_output_retention_hours %} hours</strong> only; save a copy to your device before then.</li>
+      <li>Community comments below are informal; rely on your CA or adviser for assessment decisions.</li>
+    </ul>
+  </section>
+
+  {% include "comments/home_section.html" %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  var el = document.getElementById("comments-home");
+  if (el && location.hash === "#comments-home") el.open = true;
+})();
+(function () {
+  var modal = document.getElementById("sample-pdf-modal");
+  var openBtn = document.getElementById("sample-pdf-open");
+  var closeBtn = document.getElementById("sample-pdf-close");
+  var backdrop = modal && modal.querySelector("[data-close-sample-modal]");
+  var iframe = modal && modal.querySelector(".pdf-modal-frame");
+  if (!modal || !iframe) return;
+
+  function pdfSrc() {
+    return iframe.getAttribute("data-pdf-src") || "";
+  }
+
+  function openModal() {
+    var src = pdfSrc();
+    if (src && iframe.getAttribute("src") !== src) {
+      iframe.setAttribute("src", src);
+    }
+    modal.hidden = false;
+    modal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("pdf-modal-open");
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    modal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("pdf-modal-open");
+    iframe.removeAttribute("src");
+    if (openBtn) openBtn.focus();
+  }
+
+  if (openBtn) openBtn.addEventListener("click", openModal);
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (backdrop) backdrop.addEventListener("click", closeModal);
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && modal && !modal.hidden) {
+      closeModal();
+    }
+  });
+})();
+</script>
+{% endblock %}

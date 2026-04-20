@@ -6,6 +6,19 @@
 
 **Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).
 
+**Optional:** **ITR Summary Generator** — income-tax computation PDF workflow mounted at
+`ITR_URL_PREFIX` (default `/itr-computation/`). Toggle with **`ITR_ENABLED`**. Settings
+patch in **`config/settings_itr.py`** (includes **`apps.accounts`** context processors
+for **`google_oauth_configured`** / **`GOOGLE_OAUTH_CONFIGURED`**); routes
+**`config/urls_itr.py`**; apps under **`apps.*`** (`documents`, `exports`, `billing`,
+`marketing`, …). Same **`User`** as Gita; separate ITR billing/subscription models.
+**Google web login:** set **`GOOGLE_CLIENT_ID`** + **`GOOGLE_CLIENT_SECRET`** for
+django-allauth (redirect **`/accounts/google/login/callback/`**). PDF retention:
+**`ITR_OUTPUT_RETENTION_HOURS`**, **`purge_itr_retention`** command,
+**`apps/exports/retention.py`**. **WeasyPrint** CA-layout exports require OS libraries
+(**Pango/cairo/GObject**) in the container—the repo **`Dockerfile`** installs them;
+missing **`libgobject`** at runtime means the image was built without those packages.
+
 ---
 
 ## Stack
@@ -63,6 +76,7 @@ Useful `Makefile` targets: `make run`, `make test`, `make setup`,
 | Verse data / eval | `data/gita_700.json`, `data/Bhagwad_Gita.csv`, `data/gita_additional_angles.json`, `data/retrieval_eval_cases.json` |
 | Management commands | `guide_api/management/commands/` (`ingest_gita_multiscript`, `import_gita`, `tag_gita_themes`, `embed_gita_verses`, `setup_pgvector_index`, `sync_pgvector_embeddings`, `eval_retrieval`, `growth_report`) |
 | Tests | `guide_api/tests.py` |
+| ITR (optional) | `apps/` (`documents`, `exports`, `billing`, …), `config/settings_itr.py`, `config/urls_itr.py`, `templates/` (ITR HTML), `static_itr/` |
 
 Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavior in `docs/USER_GUIDE.md`. Build status and roadmap: `PROGRESS.md`, `README.md`.
 Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
@@ -156,6 +170,8 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 Deployment/ops snapshot:
 - live deployment on Fly is active
+- Fly **`Dockerfile`** must include WeasyPrint OS dependencies if operators use the
+  WeasyPrint PDF button on ITR (`libcairo`, `libpango`, `libglib2.0-0`, etc.)
 - Neon-backed Postgres connectivity verified; migrations applied as released
 - run `make test` locally for current count (`guide_api` suite is the main gate)
 - if app appears slow after idle, this is expected in free mode due to cold starts

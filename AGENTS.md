@@ -20,6 +20,8 @@ Any AI assistant working in this repository should treat the following as **mand
 - **Production:** Fly.io app (`askbhagavadgita`) + Neon PostgreSQL via `DATABASE_URL`.
 - **Support:** chat-ui support panel + `POST /api/support/` persist `SupportTicket` records for follow-up.
 - **Main code:** `guide_api/views.py`, `guide_api/services.py`, `guide_api/models.py`, `guide_api/permissions.py`, `guide_api/tests.py`.
+- **Optional ITR app:** Same process; **`ITR_ENABLED`**, **`config/settings_itr.py`**, **`config/urls_itr.py`**, **`apps/`** — see `README.md` and `docs/AI_AGENT_HANDOFF.md`.
+- **ITR OAuth + PDF:** django-allauth Google login needs **`GOOGLE_CLIENT_ID`** / **`GOOGLE_CLIENT_SECRET`** (see **`.env.example`**); authorize redirect **`/accounts/google/login/callback/`**. **WeasyPrint** CA-layout PDFs need OS libraries in the **Fly/Docker image** (**`Dockerfile`**)—not Python wheels alone.
 
 ## Frontend Redesign Protocol
 

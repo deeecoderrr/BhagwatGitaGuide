@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load itr_export %}
+{% block title %}Export PDF{% endblock %}
+{% block content %}
+<h1>Generate computation summary PDF</h1>
+<p>Document #{{ document.pk }} — {{ document.original_filename }}</p>
+<p class="muted small" style="border-left:3px solid var(--line-strong, #ccc); padding-left:1rem; max-width:40rem;">
+  <strong>Retention:</strong> after this PDF is generated, you can download it for
+  <strong>{% itr_output_retention_hours %} hours</strong>. Then we delete the file from our servers (past exports appear as “expired” in your workspace). Save a copy locally if you need it longer.
+</p>
+
+{% if blocking %}
+  <div class="error-block">
+    <p><strong>Cannot export yet:</strong></p>
+    <ul>
+      {% for b in blocking %}
+        <li>{{ b.message }}</li>
+      {% endfor %}
+    </ul>
+    <p><a href="{% url 'reviews:review' document.pk %}">Go to review</a></p>
+  </div>
+{% elif export_blocked %}
+  <div class="warn-block">
+    <p><strong>Export limit reached.</strong> {{ export_block_reason }}</p>
+    <p><a class="btn btn-primary" href="{% url 'marketing:pricing' %}">View pricing / Pro</a></p>
+  </div>
+{% else %}
+  {% if warnings %}
+    <div class="warn-block">
+      <p>Warnings (export allowed):</p>
+      <ul>
+        {% for w in warnings %}
+          <li>{{ w.message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <p class="muted">Exports use an HTML/CSS layout (WeasyPrint) aligned with typical CA computation sheets (section headers, slab table). Requires WeasyPrint OS libraries on the server.</p>
+    <button type="submit" class="btn btn-primary">Generate PDF</button>
+    <a class="btn" href="{% url 'documents:detail' document.pk %}">Cancel</a>
+  </form>
+{% endif %}
+{% endblock %}

@@ -11,6 +11,38 @@ Run `make test` for the current test count (see `guide_api/tests.py`).
 - Developer documentation: `docs/DEVELOPER_GUIDE.md`
 - Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`
 - AI / coding-agent handoff: `AGENTS.md` (start here) and `docs/AI_AGENT_HANDOFF.md`
+- ITR merge / revert audit list: `docs/ITR_CHANGE_LOG.md`
+
+## ITR Summary Generator (optional bundled app)
+
+When **`ITR_ENABLED`** is true (default), this repo also serves the **ITR computation
+summary** workflow under a URL prefix (**`/itr-computation/`** by default).
+It uses the same Django users as Bhagavad Gita (`django.contrib.auth.User`);
+billing and subscription for ITR are separate from Gita (`apps.billing`,
+`apps.accounts.UserProfile`, etc.). Settings live mainly in `config/settings_itr.py`.
+
+- **Mount URL:** set `ITR_URL_PREFIX` (e.g. `/itr-computation`). Open
+  `http://127.0.0.1:8000/itr-computation/` (trailing slash).
+- **Disable ITR only:** `ITR_ENABLED=false` — Gita-only deploy without allauth/ITR apps.
+- **PDF retention:** generated summary PDFs are downloadable until
+  `ITR_OUTPUT_RETENTION_HOURS` (default **24**), then removed from storage; rows stay
+  for “expired” in the workspace. Optional **cron:**
+  `python manage.py purge_itr_retention`.
+- **Upload removal:** after a successful PDF export, the uploaded JSON file can be
+  deleted when **`ITR_DELETE_INPUT_AFTER_EXPORT`** is true (default).
+
+**OAuth (Google):** optional **Continue with Google** on ITR login/sign-up and
+marketing pages when **`GOOGLE_CLIENT_ID`** + **`GOOGLE_CLIENT_SECRET`** are set
+(allauth); **`GOOGLE_OAUTH_CLIENT_ID`** can satisfy the client id if you already
+use it for chat-ui. In Google Cloud Console, add authorized redirect URI
+**`https://<your-host>/accounts/google/login/callback/`** (plus localhost for dev).
+
+**PDF export:** summaries use **WeasyPrint** (HTML/CSS “CA” layout). **WeasyPrint**
+requires native **Pango/cairo/GLib** libraries in the runtime image—the repo
+**`Dockerfile`** installs them for Fly builds; local macOS often already has these
+via Homebrew. The ReportLab-based path remains in code but is not exposed in the UI.
+
+See `.env.example` for ITR-related variables.
 
 ## Stack
 
@@ -110,7 +142,7 @@ Quota variables:
 - `ASK_LIMIT_FREE_DAILY` default `5`
 - `ASK_LIMIT_PRO_DAILY` default `10000`
 - `SUPPORT_EMAIL` support contact shown in chat UI (default:
-  `support@askbhagavadgita.com`)
+  `askbhagwatgitasupport@gmail.com`)
 
 pgvector phase-1 variables (optional):
 - `ENABLE_PGVECTOR_RETRIEVAL` default `false`

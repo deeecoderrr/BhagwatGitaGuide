@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% load itr_export %}
+{% load socialaccount %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block meta %}
+  <meta name="description" content="{{ meta_description }}">
+  <meta name="keywords" content="{{ meta_keywords }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <link rel="alternate" hreflang="en-IN" href="{{ canonical_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ meta_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:site_name" content="ITR Summary Generator">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ meta_description }}">
+  {% if structured_data %}
+  <script type="application/ld+json">{{ structured_data|safe }}</script>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="wrap" style="padding-top:2rem;">
+  <nav class="muted small" aria-label="Breadcrumb" style="margin-bottom:1rem;">
+    <a href="{% url 'marketing:home' %}">Home</a>
+    <span aria-hidden="true"> · </span>
+    <span>Pricing</span>
+  </nav>
+  <h1>Pricing — ITR computation PDF plans (India)</h1>
+  {% if not user.is_authenticated and google_oauth_configured %}
+    {% url 'documents:list' as itr_workspace_next %}
+    {% url 'billing:checkout' as itr_checkout %}
+    <p class="muted small" style="margin-bottom:1rem;">
+      <a class="btn btn-primary" href="{% provider_login_url 'google' %}?next={{ itr_workspace_next|urlencode }}">Continue with Google</a>
+      <span aria-hidden="true"> · </span>
+      <a href="{% url 'account_login' %}?next={{ itr_checkout|urlencode }}">Log in</a>
+      <span aria-hidden="true"> · </span>
+      <a href="{% url 'account_signup' %}?next={{ itr_checkout|urlencode }}">Sign up</a>
+    </p>
+  {% endif %}
+  <p class="muted">Free tier includes monthly computation PDF exports. Pro removes the limit for heavy users.</p>
+  <p class="muted small" style="max-width:42rem;">
+    <strong>Storage:</strong> each generated summary PDF can be downloaded for
+    <strong>{% itr_output_retention_hours %} hours</strong> after creation, then it is removed from our servers
+    (you’ll still see past exports marked “expired” in your workspace). Uploaded JSON may be deleted after a successful export to reduce sensitive data retention—upload again if you need to re-run import.
+  </p>
+
+  <div class="pricing-grid">
+    <div class="price-card">
+      <h2>Free</h2>
+      <p class="price-tag">₹0</p>
+      <ul class="muted small">
+        <li>ITR-3 JSON import &amp; review</li>
+        <li>Limited computation PDF exports per month</li>
+        <li>PDF download window: {% itr_output_retention_hours %} hours per export</li>
+        <li>WeasyPrint computation PDF export (requires server libraries)</li>
+      </ul>
+      {% if not user.is_authenticated %}
+        <p style="margin-top:1rem;"><a class="btn btn-primary" href="{% url 'account_signup' %}">Sign up</a></p>
+      {% else %}
+        <p style="margin-top:1rem;"><a class="btn" href="{% url 'documents:list' %}">Workspace</a></p>
+      {% endif %}
+    </div>
+    <div class="price-card featured">
+      <h2>Pro</h2>
+      <p class="price-tag">₹{{ pro_inr|default:"499" }}</p>
+      <p class="muted small">per subscription period — unlimited exports while active</p>
+      <ul class="muted small">
+        <li>Unlimited computation PDF exports</li>
+        <li>Same {% itr_output_retention_hours %}‑hour downloadable window per PDF</li>
+        <li>Same validation &amp; review workflow</li>
+      </ul>
+      {% if user.is_authenticated %}
+        <p style="margin-top:1rem;"><a class="btn btn-primary" href="{% url 'billing:checkout' %}">Upgrade with Razorpay</a></p>
+      {% else %}
+        <p style="muted small">Log in to upgrade.</p>
+        <p><a class="btn btn-primary" href="{% url 'account_login' %}?next={% url 'billing:checkout' %}">Log in</a></p>
+      {% endif %}
+    </div>
+  </div>
+
+  <p class="muted small">Payments use Razorpay when configured (<code>RAZORPAY_KEY_ID</code> / <code>RAZORPAY_KEY_SECRET</code>).</p>
+</div>
+{% endblock %}

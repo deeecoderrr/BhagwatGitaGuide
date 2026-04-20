@@ -30,6 +30,43 @@ Flow for `POST /api/ask/`:
 7. Increment daily usage counter and return quota fields
    (+ debug trace fields when `DEBUG=true`).
 
+## ITR Summary Generator (optional)
+
+Bundled **ITR** apps live under **`apps/`** and are activated when **`ITR_ENABLED`**
+is true (see **`config/settings_itr.py`** → **`register_itr_settings(globals())`** from
+**`config/settings.py`**).
+
+- **URLs:** **`config/urls.py`** mounts **`accounts/`** (django-allauth) and
+  **`{ITR_URL_PREFIX}/`** → **`config/urls_itr.py`** when ITR is enabled.
+- **Auth:** Same **`AUTH_USER_MODEL`** as Gita; chat-ui uses **`_session_auth_login()`**
+  when **`AUTHENTICATION_BACKENDS`** includes allauth + ModelBackend.
+  **`ACCOUNT_EMAIL_VERIFICATION`** defaults to **`none`** in **`settings_itr`** so
+  signup does not send mail (avoids **500** when SMTP is unset); set **`optional`**
+  or **`mandatory`** when outbound email works. **`ItrAccountAdapter`** implements
+  **`get_signup_redirect_url`** so ITR referrers land in the document workspace like
+  login.
+- **Exports:** **`apps.exports.models.ExportedSummary`** stores **`expires_at`** and
+  **`pdf_purged_at`**; **`apps.exports.retention.purge_expired_exports`** removes stale
+  PDF blobs; **`python manage.py purge_itr_retention`** for cron.
+- **Documents:** **`Document.uploaded_file`** may be cleared after export per
+  **`ITR_DELETE_INPUT_AFTER_EXPORT`**.
+- **Templates:** Project **`templates/`**, static **`static_itr/`**; retention label
+  **`{% itr_output_retention_hours %}`** in **`apps/exports/templatetags/itr_export.py`**.
+- **OAuth context:** **`register_itr_settings()`** appends
+  **`apps.accounts.context_processors.google_oauth`** and
+  **`account_profile`** to **`TEMPLATES[0]['OPTIONS']['context_processors']`**
+  and sets **`GOOGLE_OAUTH_CONFIGURED`** from env (client id + secret). Without
+  this block, **`google_oauth_configured`** stays false on ITR templates even when
+  secrets exist.
+- **PDF export:** **`apps.exports.views.export_pdf`** generates PDFs only via
+  **`apps.exports.weasy_render`** (WeasyPrint). **`apps.exports.pdf_render`**
+  (ReportLab) remains for tests/tooling but is not wired from the export view.
+  WeasyPrint imports fail with **`OSError`** when **Pango/cairo/GLib** shared
+  libraries are absent—install OS packages (see repo **`Dockerfile`** and WeasyPrint
+  docs). Fly deploys must rebuild the image after **`Dockerfile`** dependency changes.
+
+Disable ITR entirely with **`ITR_ENABLED=false`** for a Gita-only process.
+
 ## Production Deployment Notes (Fly + Neon)
 
 Current production posture:

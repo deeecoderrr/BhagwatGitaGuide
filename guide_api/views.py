@@ -147,6 +147,19 @@ COUNTRY_CODE_TO_NAME = {
 }
 
 
+def _session_auth_login(request, user):
+    """Call django.contrib.auth.login with an explicit backend when multiple backends exist."""
+    backends = getattr(settings, "AUTHENTICATION_BACKENDS", ())
+    if len(backends) > 1:
+        auth_login(
+            request,
+            user,
+            backend="django.contrib.auth.backends.ModelBackend",
+        )
+    else:
+        auth_login(request, user)
+
+
 def _related_verses_payload_for_response(
     *,
     guidance,
@@ -1380,23 +1393,53 @@ QUESTION_ARCHIVE_GROUPS_HI = [
 ]
 
 
+def _itr_site_enabled():
+    return bool(getattr(settings, "ITR_ENABLED", False))
+
+
+def _itr_prefix_segment():
+    raw = getattr(settings, "ITR_URL_PREFIX", "/itr-computation") or "/itr-computation"
+    return raw.strip().strip("/")
+
+
+def _itr_public_sitemap_paths():
+    if not _itr_site_enabled():
+        return []
+    seg = _itr_prefix_segment()
+    return [f"/{seg}/", f"/{seg}/pricing/"]
+
+
 def robots_txt_view(request):
     """Serve robots policy with sitemap hint for search engines."""
     base_url = request.build_absolute_uri("/").rstrip("/")
-    content = "\n".join(
-        [
-            "User-agent: *",
-            "Allow: /",
-            f"Sitemap: {base_url}/sitemap.xml",
-        ]
-    )
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /accounts/",
+    ]
+    if _itr_site_enabled():
+        p = _itr_prefix_segment()
+        lines.extend(
+            [
+                f"Disallow: /{p}/documents/",
+                f"Disallow: /{p}/exports/",
+                f"Disallow: /{p}/reviews/",
+                f"Disallow: /{p}/comments/",
+                f"Disallow: /{p}/billing/",
+            ]
+        )
+    lines.append(f"Sitemap: {base_url}/sitemap.xml")
+    content = "\n".join(lines)
     return HttpResponse(content, content_type="text/plain; charset=utf-8")
 
 
 def sitemap_xml_view(request):
-    """Serve a minimal sitemap.xml for homepage and SEO topic routes."""
+    """Serve sitemap.xml for Gita SEO routes and optional ITR marketing pages."""
     base_url = request.build_absolute_uri("/").rstrip("/")
-    urls = ["/"] + [
+    lastmod = timezone.now().date().isoformat()
+
+    paths_gita = ["/"] + [
         f"/{page['slug']}/"
         for page in SEO_LANDING_PAGES.values()
     ] + [
@@ -1404,15 +1447,26 @@ def sitemap_xml_view(request):
         "/daily-bhagavad-gita-verse/",
         "/api/chat-ui/",
     ]
+    entries = []
+    for path in paths_gita:
+        pri = "1.0" if path == "/" else "0.85"
+        chg = "daily" if path == "/" else "weekly"
+        entries.append((path, pri, chg, lastmod))
+    for path in _itr_public_sitemap_paths():
+        entries.append((path, "0.82", "weekly", lastmod))
+
     rows = [
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
-        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">",
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ]
-    for path in urls:
+    for path, priority, changefreq, lm in entries:
         rows.extend(
             [
                 "  <url>",
                 f"    <loc>{base_url}{path}</loc>",
+                f"    <lastmod>{lm}</lastmod>",
+                f"    <changefreq>{changefreq}</changefreq>",
+                f"    <priority>{priority}</priority>",
                 "  </url>",
             ]
         )
@@ -2692,11 +2746,7 @@ class GoogleAuthView(APIView):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 code="google_user_error",
             )
-        auth_login(
-            request,
-            user,
-            backend="django.contrib.auth.backends.ModelBackend",
-        )
+        _session_auth_login(request, user)
         token, _ = Token.objects.get_or_create(user=user)
         ChatUIView._clear_guest_conversation(request)
         request.session["chat_ui_auth_username"] = user.username
@@ -5805,7 +5855,7 @@ class ChatUIView(View):
             username=username,
             password=password,
         )
-        auth_login(request, user)
+        _session_auth_login(request, user)
         token, _ = Token.objects.get_or_create(user=user)
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
@@ -5873,7 +5923,7 @@ class ChatUIView(View):
                     "follow_up_prompts": [],
                 },
             )
-        auth_login(request, user)
+        _session_auth_login(request, user)
         token, _ = Token.objects.get_or_create(user=user)
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% load review_extras %}
+{% block title %}Review — {{ document.pk }}{% endblock %}
+{% block content %}
+<h1>Review extracted fields</h1>
+<p class="muted">Document #{{ document.pk }} — {{ document.get_detected_type_display }}. Correct values before approval.</p>
+
+<form method="post" class="review-form">
+  {% csrf_token %}
+  {% for section_title, field_list in grouped_fields %}
+    <h2>{{ section_title }}</h2>
+    <table class="data-table review-table">
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Value</th>
+          <th>Confidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in field_list %}
+          <tr>
+            <td>{{ labels|get_item:f.field_name }}</td>
+            <td>
+              <input type="text" name="field_{{ f.field_name }}" value="{{ f.normalized_value|default:'' }}" class="wide">
+            </td>
+            <td>{{ f.confidence_score|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endfor %}
+
+  <div class="actions">
+    <button type="submit" name="action" value="save" class="btn">Save</button>
+    <button type="submit" name="action" value="approve" class="btn btn-primary">Approve review</button>
+  </div>
+</form>
+{% endblock %}

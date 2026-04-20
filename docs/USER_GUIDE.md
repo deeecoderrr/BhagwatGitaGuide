@@ -316,6 +316,30 @@ to seek professional or emergency support.
 - `register` returns `{"detail":"Username is already taken."}`:
   - expected for existing users; login still works
 
+## ITR computation summary (when enabled on the server)
+
+If your deployment includes the **ITR Summary Generator** feature (same login as the
+Gita app), it usually lives under **`/itr-computation/`** (or the operator-configured
+prefix). There you can upload filed **ITR-3 JSON**, review extracted fields, and
+generate a **computation summary PDF**.
+
+When the operator has configured **Google OAuth**, you may see **Continue with Google**
+on ITR login, sign-up, or marketing pages—same account family as email registration.
+If Google sign-in is not offered, use email/password or ask the operator to enable
+OAuth.
+
+Exports use **WeasyPrint** (HTML/CSS CA-style layout). If WeasyPrint is unavailable
+on the server (missing OS libraries), PDF generation fails until the operator fixes
+the deployment (see **`Dockerfile`** / WeasyPrint docs).
+
+**Important**
+
+- Download each generated PDF within the **retention window** shown on the site
+  (default **24 hours**). After that the file is removed from the server; older
+  exports may still appear in your workspace as **expired**.
+- After a successful export, your **uploaded JSON may be deleted** from the server to
+  reduce sensitive data kept online—upload again if you need to re-run import.
+
 ## Live App URL
 
 - current production URL: `https://askbhagavadgita.fly.dev/`

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load itr_export %}
+{% block title %}Upload{% endblock %}
+{% block content %}
+<h1>Upload filed ITR JSON</h1>
+<p>Upload the <strong>ITR JSON</strong> from the income-tax portal (e.g. acknowledgment or utility export). Supported import: <strong>ITR-3</strong> JSON. Review and computation PDF export use the same flow as before.</p>
+<p class="muted small">When you generate a summary PDF, that file stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong>; after that it is removed from our servers. Upload again if you need to re-import later.</p>
+<form method="post" enctype="multipart/form-data" class="stack">
+  {% csrf_token %}
+  {{ form.non_field_errors }}
+  <div>
+    {{ form.file.label_tag }}
+    {{ form.file }}
+    {{ form.file.errors }}
+  </div>
+  <button type="submit" class="btn btn-primary">Upload JSON &amp; import</button>
+</form>
+{% endblock %}

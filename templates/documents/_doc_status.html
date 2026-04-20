@@ -1,0 +1,14 @@
+<div id="doc-status"
+     {% if poll_status %}hx-get="{% url 'documents:status' document.pk %}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
+  <dl class="meta-grid">
+    <dt>Status</dt><dd>{{ document.get_status_display }}</dd>
+    <dt>Detected type</dt><dd>{{ document.get_detected_type_display }}</dd>
+    <dt>Pages</dt><dd>{{ document.page_count|default:"—" }}</dd>
+    <dt>Source length (chars)</dt><dd>{{ document.native_text_char_count|default:"—" }}</dd>
+    <dt>Import</dt><dd>{% if document.upload_source == "json" %}ITR-3 JSON{% elif document.used_ocr_fallback %}OCR (legacy){% else %}Legacy PDF text{% endif %}</dd>
+    <dt>Hash</dt><dd class="mono">{{ document.file_hash|truncatechars:24 }}</dd>
+  </dl>
+  {% if poll_status %}
+    <p class="muted">Processing… updates every 2s.</p>
+  {% endif %}
+</div>

@@ -148,6 +148,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# Django 6 default LOGIN_REDIRECT_URL is /accounts/profile/ (usually no matching route).
+# Overridden when ITR is enabled — see config/settings_itr.py.
+LOGIN_REDIRECT_URL = os.getenv("LOGIN_REDIRECT_URL", "/api/chat-ui/")
+
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
@@ -391,7 +395,30 @@ SADHANA_CYCLE_PRICE_USD = int(
     os.getenv("SADHANA_CYCLE_PRICE_USD", "499"),
 )  # $4.99 default
 
-SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "support@askbhagavadgita.com")
+SUPPORT_EMAIL = os.getenv("SUPPORT_EMAIL", "askbhagwatgitasupport@gmail.com")
+# Transactional mail (signup verification, password reset): same sender by default.
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", SUPPORT_EMAIL)
+SERVER_EMAIL = os.getenv("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
+
+# Outbound email: set EMAIL_HOST (+ user/password) for SMTP, e.g. Gmail app password.
+# See .env.example. Without EMAIL_HOST, mail goes to the console (good for local dev).
+_email_host = os.getenv("EMAIL_HOST", "").strip()
+_email_backend_override = os.getenv("EMAIL_BACKEND", "").strip()
+if _email_host:
+    EMAIL_BACKEND = _email_backend_override or (
+        "django.core.mail.backends.smtp.EmailBackend"
+    )
+    EMAIL_HOST = _email_host
+    EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
+    EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+    EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", "false").lower() == "true"
+    EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "").strip()
+    EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+elif _email_backend_override:
+    EMAIL_BACKEND = _email_backend_override
+else:
+    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
@@ -402,3 +429,12 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.BasicAuthentication",
     ],
 }
+
+# ITR Summary Generator (optional): see config/settings_itr.py
+def _configure_optional_itr():
+    from config.settings_itr import register_itr_settings
+
+    register_itr_settings(globals())
+
+
+_configure_optional_itr()

@@ -2961,6 +2961,23 @@
       display: block;
     }
 
+    .chat-auth-forgot {
+      margin: -2px 0 10px;
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .chat-auth-forgot a {
+      color: rgba(243, 209, 143, 0.88);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      font-weight: 600;
+    }
+
+    .chat-auth-forgot a:hover {
+      color: #fff2c7;
+    }
+
     .auth-google-section {
       margin: 4px 0 14px;
     }
@@ -6020,6 +6037,11 @@
                     <input id="login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
                     <label for="login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
                     <input id="login_password" name="login_password" type="password" placeholder="{% if language == 'hi' %}पासवर्ड{% else %}password{% endif %}" />
+                    <p class="chat-auth-forgot">
+                      <a href="{% url 'account_reset_password' %}" target="_blank" rel="noopener noreferrer">
+                        {% if language == "hi" %}पासवर्ड भूल गए?{% else %}Forgot password?{% endif %}
+                      </a>
+                    </p>
                     <button type="submit" class="btn-secondary">{% if language == "hi" %}लॉगिन{% else %}Login{% endif %}</button>
                   </form>
                 </div>
@@ -6704,6 +6726,11 @@
                   <input id="guest_login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
                   <label for="guest_login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
                   <input id="guest_login_password" name="login_password" type="password" placeholder="{% if language == 'hi' %}पासवर्ड{% else %}password{% endif %}" />
+                  <p class="chat-auth-forgot">
+                    <a href="{% url 'account_reset_password' %}" target="_blank" rel="noopener noreferrer">
+                      {% if language == "hi" %}पासवर्ड भूल गए?{% else %}Forgot password?{% endif %}
+                    </a>
+                  </p>
                   <button type="submit" class="btn-secondary">{% if language == "hi" %}लॉगिन{% else %}Login{% endif %}</button>
                 </form>
               </div>
@@ -7031,6 +7058,11 @@
               <input id="auth_modal_login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
               <label for="auth_modal_login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
               <input id="auth_modal_login_password" name="login_password" type="password" placeholder="{% if language == 'hi' %}पासवर्ड{% else %}password{% endif %}" />
+              <p class="chat-auth-forgot">
+                <a href="{% url 'account_reset_password' %}" target="_blank" rel="noopener noreferrer">
+                  {% if language == "hi" %}पासवर्ड भूल गए?{% else %}Forgot password?{% endif %}
+                </a>
+              </p>
               <button type="submit" class="btn-secondary">{% if language == "hi" %}लॉगिन{% else %}Login{% endif %}</button>
             </form>
           </div>

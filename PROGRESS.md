@@ -1,8 +1,50 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-18
+Last updated: 2026-04-15
 
 ## Completed
+
+- **ITR Summary Generator merge (same repo / `manage.py`):**
+  - Optional ITR stack controlled by **`ITR_ENABLED`** (default on); isolation in
+    **`config/settings_itr.py`** (`register_itr_settings`), URLs in **`config/urls.py`**
+    + **`config/urls_itr.py`** under **`ITR_URL_PREFIX`** (default **`/itr-computation/`**).
+    Shared **`User`** with Gita; separate ITR models (`apps.documents`, `apps.exports`,
+    `apps.billing`, …).
+  - **`guide_api` compatibility:** **`_session_auth_login()`** for chat-ui when
+    multiple auth backends (allauth); **`CanonicalHostRedirectMiddleware`** also treats
+    **`*.onrender.com`** like **`*.fly.dev`** for canonical redirects.
+  - **Retention:** **`ExportedSummary.expires_at`** / **`pdf_purged_at`**;
+    **`purge_expired_exports()`** + **`purge_itr_retention`** management command;
+    **`ITR_OUTPUT_RETENTION_HOURS`**, **`ITR_DELETE_INPUT_AFTER_EXPORT`**;
+    **`Document.uploaded_file`** nullable after input purge; workspace/detail/list UX
+    for expired PDFs; marketing/upload/export copy via **`{% itr_output_retention_hours %}`**.
+  - **Deps:** `django-allauth`, `django-rq`, redis, reportlab, weasyprint, PyJWT in
+    **`requirements.txt`** when ITR is used.
+  - **ITR OAuth (django-allauth):** **`config/settings_itr.py`** adds
+    **`apps.accounts.context_processors.google_oauth`** and
+    **`account_profile`** to **`TEMPLATES`** so **`google_oauth_configured`** works
+    on ITR pages; **`GOOGLE_OAUTH_CONFIGURED`** derives from **`GOOGLE_CLIENT_ID`**
+    or **`GOOGLE_OAUTH_CLIENT_ID`** plus **`GOOGLE_CLIENT_SECRET`**. Account and
+    marketing templates (**`login`**, **`signup`**, **`home`**, **`pricing`**) expose
+    **Continue with Google** with a safe **`next`** back to the ITR workspace or
+    checkout when OAuth is configured.
+  - **WeasyPrint on Fly/Docker:** the production **`Dockerfile`** installs OS
+    packages for **Pango, cairo, GLib/GObject, GDK-Pixbuf, shared-mime-info**,
+    and baseline fonts—**`pip install weasyprint` is not sufficient** in slim
+    images. Redeploy after Dockerfile changes; see **`docs/PRODUCTION_RUNBOOK.md`**
+    if production shows **`libgobject`** / missing shared library errors.
+  - **PDF export UI:** **`apps.exports.views.export_pdf`** only generates via
+    **WeasyPrint**; the ReportLab button/path was removed from
+    **`templates/exports/export_confirm.html`**. **`apps.exports.pdf_render`** remains
+    for **`apps/exports/tests/test_pdf_export.py`** and reuse.
+  - **Filed JSON importer:** `apps/extractors/json_pipeline.py` supports filed
+    **ITR-1**, **ITR-3**, and **ITR-4** JSON: tax/refund, banks, TDS; ITR-1 maps
+    salary / u/s 16 / OS splits / filing meta / CYLA defaults; **ITR-4** maps
+    `IncomeDeductions`, **Schedule BP** (44AD turnover + presumptive + trade
+    name), IFD/SAV OS buckets, salary stubs (incl. `EntertainmntalwncUs16ii`
+    typo), and root-level `TaxComputation` / `TDSonSalaries`; **Weasy**
+    computation PDF adds salary/House property/Chap VI-A/tax detail and **44AD**
+    lines when Schedule BP data exists.
 
 - **Comments & replies** (`CommunityPost`): **`/community/`** full page + **`/api/community/posts/`**
   API (**`/api/v1/`** mirrored). Chat UI **`/api/chat-ui/`**: redesigned header (home pill,
@@ -441,6 +483,12 @@ Last updated: 2026-04-18
   - added chat-ui support panel with direct email and structured support form
   - exposed support queue in Django admin with issue/status filters
   - added tests for API and chat-ui support submission flows
+- **Support address for account email:** `DEFAULT_FROM_EMAIL` and `SERVER_EMAIL` default
+  to `SUPPORT_EMAIL` (e.g. `askbhagwatgitasupport@gmail.com`); ITR templates get
+  `support_email` via `apps.accounts.context_processors.support_contact`; allauth
+  **forgot password** flow has matching templates and a **Forgot password?** link on
+  login; `.env.example` documents `DEFAULT_FROM_EMAIL` and optional Gmail SMTP vars
+  for production.
 
 - Cached multilingual verse synthesis added:
   - new `VerseSynthesis` model stores per-verse integrated overview, commentary bridge,
@@ -1068,6 +1116,14 @@ At the end of each coding session:
 - Move completed items from "Remaining" to "Completed".
 - Add any new scope under "Remaining".
 - Update "Next 3 Tasks" so the next session can start immediately.
+
+## 2026-04-15
+
+- Synced documentation for ITR OAuth and WeasyPrint: **`AGENTS.md`**, **`README.md`**,
+  **`docs/AI_AGENT_HANDOFF.md`**, **`docs/DEVELOPER_GUIDE.md`**, **`docs/USER_GUIDE.md`**,
+  **`docs/ITR_CHANGE_LOG.md`**; sanitized **`.env.example`** Google OAuth client ID
+  placeholder.
+- **`make test`:** 242 tests OK after doc updates.
 
 ## 2026-04-14
 

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Checkout — Pro{% endblock %}
+{% block content %}
+<div class="wrap card" style="max-width:520px;margin:2rem auto;">
+  {% if order_id and key_id %}
+    <h1>Pay with Razorpay</h1>
+    <p class="muted">Amount: <strong>₹{{ amount_inr }}</strong></p>
+    <button type="button" id="rzp-btn" class="btn btn-primary">Pay securely</button>
+    <form id="pay-form" method="post" action="{% url 'billing:payment_success' %}">
+      {% csrf_token %}
+      <input type="hidden" name="razorpay_order_id" id="rzp_oid">
+      <input type="hidden" name="razorpay_payment_id" id="rzp_pid">
+      <input type="hidden" name="razorpay_signature" id="rzp_sig">
+    </form>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+      (function () {
+        var btn = document.getElementById('rzp-btn');
+        btn.addEventListener('click', function () {
+          var options = {
+            key: "{{ key_id|escapejs }}",
+            amount: "{{ amount_paise }}",
+            currency: "INR",
+            name: "ITR Summary Generator",
+            description: "Pro subscription",
+            order_id: "{{ order_id|escapejs }}",
+            handler: function (response) {
+              document.getElementById('rzp_oid').value = response.razorpay_order_id;
+              document.getElementById('rzp_pid').value = response.razorpay_payment_id;
+              document.getElementById('rzp_sig').value = response.razorpay_signature;
+              document.getElementById('pay-form').submit();
+            },
+          };
+          var rzp = new Razorpay(options);
+          rzp.open();
+        });
+      })();
+    </script>
+  {% else %}
+    <h1>Upgrade to Pro</h1>
+    <p class="muted">Unlimited computation PDF exports for your subscription period.</p>
+    <p><strong>₹{{ amount_inr }}</strong></p>
+    {% if not client_available %}
+      <p class="error">Configure Razorpay: set <code>RAZORPAY_KEY_ID</code> and <code>RAZORPAY_KEY_SECRET</code> in the environment.</p>
+      <p><a class="btn" href="{% url 'marketing:pricing' %}">Back to pricing</a></p>
+    {% else %}
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-primary">Proceed to payment</button>
+      </form>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

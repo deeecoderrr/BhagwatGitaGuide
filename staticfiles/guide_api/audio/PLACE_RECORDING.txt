@@ -1,0 +1,6 @@
+The naam-japa player loads:
+
+  hari-saranam-chant.mp3
+
+This file is present in the repo (converted from the contributor’s WhatsApp voice note).
+Replace it by overwriting that filename if you ship a new recording.

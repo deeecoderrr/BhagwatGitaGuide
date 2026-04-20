@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% load socialaccount %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="wrap form-card card">
+  <h1>Log in</h1>
+  {% url 'documents:list' as itr_workspace_next %}
+  {% if google_oauth_configured %}
+  <p>
+    <a class="btn btn-primary oauth-google" href="{% provider_login_url 'google' %}?{% if redirect_field_value %}{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% else %}next={{ itr_workspace_next|urlencode }}{% endif %}">Continue with Google</a>
+  </p>
+  <p class="muted small oauth-or">or sign in with email</p>
+  {% endif %}
+  <form method="post" action="{% url 'account_login' %}">
+    {% csrf_token %}
+    {% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+    {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <div class="form-field">
+        {{ field.label_tag }}
+        {{ field }}
+        {% if field.errors %}<div class="form-errors">{{ field.errors }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <button type="submit" class="btn btn-primary" style="width:100%;">Log in</button>
+    <p class="muted small" style="margin-top:0.75rem;text-align:right;">
+      <a href="{% url 'account_reset_password' %}">Forgot password?</a>
+    </p>
+  </form>
+  {% if support_email %}
+  <p class="muted small">Account help: <a href="mailto:{{ support_email }}">{{ support_email }}</a></p>
+  {% endif %}
+  <p class="muted small" style="margin-top:1rem;">New here? <a href="{% url 'account_signup' %}{% if redirect_field_value %}?{{ redirect_field_name }}={{ redirect_field_value|urlencode }}{% endif %}">Create an account</a></p>
+</div>
+{% endblock %}

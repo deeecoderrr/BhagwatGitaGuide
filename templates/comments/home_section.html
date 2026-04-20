@@ -1,0 +1,71 @@
+{# Collapsible comments block for the marketing home page. Closed by default; ?comments=open expands. #}
+<details
+  id="comments-home"
+  class="comments-panel"
+  {% if request.GET.comments == 'open' %}open{% endif %}
+>
+  <summary class="comments-panel__summary">
+    <span class="comments-panel__badge">Community</span>
+    <span class="comments-panel__summary-text">
+      <span class="comments-panel__title">Comments &amp; replies</span>
+      <span class="comments-panel__sub muted small">Recent notes from users. Post or reply when signed in. Expand to read the thread.</span>
+    </span>
+    <a class="btn btn-ghost btn-sm comments-panel__open" href="?comments=open#comments-home">Open thread</a>
+  </summary>
+
+  <div class="comments-panel__body card">
+    {% if user.is_authenticated %}
+      <form method="post" action="{% url 'comments:post' %}" class="comments-form">
+        {% csrf_token %}
+        <input type="hidden" name="page_slug" value="{{ comments_page_slug }}">
+        <label class="comments-label" for="{{ comment_form.body.id_for_label }}">New comment</label>
+        {{ comment_form.body.errors }}
+        {{ comment_form.body }}
+        <button type="submit" class="btn btn-primary comments-post-btn">Post</button>
+      </form>
+    {% else %}
+      <p class="muted small comments-signin-hint">
+        <a href="{% url 'account_login' %}?next={{ request.path|urlencode }}">Sign in</a>
+        or
+        <a href="{% url 'account_signup' %}?next={{ request.path|urlencode }}">create an account</a>
+        to post a comment.
+      </p>
+    {% endif %}
+
+    <div class="comments-thread">
+      {% for comment in comments %}
+        <article class="comment">
+          <header class="comment__meta muted small">
+            <strong>{{ comment.user.username }}</strong>
+            · {{ comment.created_at|date:"Y-m-d H:i e" }}
+          </header>
+          <p class="comment__body">{{ comment.body|linebreaksbr }}</p>
+
+          {% for reply in comment.replies.all %}
+            <article class="comment comment--nested">
+              <header class="comment__meta muted small">
+                <strong>{{ reply.user.username }}</strong>
+                · {{ reply.created_at|date:"Y-m-d H:i e" }}
+              </header>
+              <p class="comment__body">{{ reply.body|linebreaksbr }}</p>
+            </article>
+          {% endfor %}
+
+          {% if user.is_authenticated %}
+            <form method="post" action="{% url 'comments:post' %}" class="comments-form comments-form--reply">
+              {% csrf_token %}
+              <input type="hidden" name="page_slug" value="{{ comments_page_slug }}">
+              <input type="hidden" name="parent_id" value="{{ comment.id }}">
+              <textarea name="body" rows="2" class="form-input comments-textarea" placeholder="Write a reply…" required></textarea>
+              <button type="submit" class="btn btn-ghost btn-sm">Reply</button>
+            </form>
+          {% endif %}
+        </article>
+      {% empty %}
+        <p class="muted small comments-empty">No comments yet.</p>
+      {% endfor %}
+    </div>
+
+    <p class="muted small comments-jump"><a href="#comments-home">Back to section</a></p>
+  </div>
+</details>

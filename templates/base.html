@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}ITR Summary Generator{% endblock %}</title>
+  {% block meta %}
+  <meta name="description" content="{% block meta_description %}Income tax computation summary and ITR-3 JSON to CA-style computation PDF.{% endblock %}">
+  {% endblock %}
+  {% block extra_head %}{% endblock %}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="{% if user.is_authenticated %}{% url 'documents:list' %}{% else %}{% url 'marketing:home' %}{% endif %}">
+        <span class="brand-mark">ITR</span>
+        <span class="brand-text">Summary</span>
+      </a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
+      <label class="nav-burger" for="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></label>
+      <nav class="site-nav" aria-label="Main">
+        {% if user.is_authenticated %}
+          <a href="{% url 'documents:list' %}">Workspace</a>
+          <a href="{% url 'documents:upload' %}">Upload JSON</a>
+          <a href="{% url 'marketing:pricing' %}">Pricing</a>
+          <span class="nav-user"><strong>{{ user.username }}</strong>{% if account_profile and account_profile.plan == 'pro' %} <span class="badge-pro">Pro</span>{% endif %}</span>
+          <form class="nav-logout" method="post" action="{% url 'account_logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-ghost btn-sm">Log out</button>
+          </form>
+        {% else %}
+          <a href="{% url 'marketing:home' %}">Home</a>
+          <a href="{% url 'marketing:pricing' %}">Pricing</a>
+          <a href="{% url 'account_login' %}?next={% url 'documents:list' %}">Log in</a>
+          <a href="{% url 'account_signup' %}?next={% url 'documents:list' %}" class="btn btn-primary btn-sm">Sign up</a>
+        {% endif %}
+      </nav>
+    </div>
+  </header>
+
+  <main class="main-content">
+    {% if messages %}
+      <div class="wrap messages-wrap">
+        <ul class="messages">
+          {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap footer-grid">
+      <div>
+        <strong>ITR Summary Generator</strong>
+        <p class="muted small">Computation summaries for review — not legal or tax advice.</p>
+      </div>
+      <div class="footer-links">
+        <a href="{% url 'marketing:home' %}">Home</a>
+        <a href="{% url 'marketing:pricing' %}">Pricing</a>
+        {% if not user.is_authenticated %}
+          <a href="{% url 'account_signup' %}">Sign up</a>
+        {% endif %}
+      </div>
+    </div>
+  </footer>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

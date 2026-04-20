@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Workspace{% endblock %}
+{% block content %}
+<div class="wrap">
+<h1>Documents</h1>
+<p><a class="btn btn-primary" href="{% url 'documents:upload' %}">Upload ITR JSON</a></p>
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>File</th>
+      <th>Type</th>
+      <th>Status</th>
+      <th>Latest PDF</th>
+      <th>Created</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for d in documents %}
+      <tr>
+        <td>{{ d.pk }}</td>
+        <td>{{ d.original_filename }}</td>
+        <td>{{ d.get_detected_type_display }}</td>
+        <td>{{ d.get_status_display }}</td>
+        <td>
+          {% with e=d.exports.first %}
+            {% if e %}
+              {% if e.can_download %}
+                <a href="{% url 'exports:download' d.pk e.pk %}">Download</a>
+              {% else %}
+                <span class="muted" title="Retention window ended">Expired</span>
+              {% endif %}
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          {% endwith %}
+        </td>
+        <td>{{ d.created_at }}</td>
+        <td><a href="{% url 'documents:detail' d.pk %}">View</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7">No documents yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}
