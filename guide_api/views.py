@@ -7192,6 +7192,138 @@ class CreateOrderView(APIView):
             )
 
 
+class PaymentCheckoutBridgeView(APIView):
+    """Render a minimal Razorpay checkout bridge for native app flows."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request) -> HttpResponse:
+        key_id = str(request.GET.get("key_id") or "").strip()
+        order_id = str(request.GET.get("order_id") or "").strip()
+        amount = str(request.GET.get("amount") or "").strip()
+        currency = str(request.GET.get("currency") or "").strip().upper()
+        redirect_uri = str(request.GET.get("redirect_uri") or "").strip()
+        plan_name = str(request.GET.get("plan_name") or "Plan").strip()
+        user_name = str(request.GET.get("user_name") or "").strip()
+        user_email = str(request.GET.get("user_email") or "").strip()
+
+        if not all([key_id, order_id, amount, currency, redirect_uri]):
+            return HttpResponse(
+                "Missing checkout parameters.",
+                status=status.HTTP_400_BAD_REQUEST,
+                content_type="text/plain; charset=utf-8",
+            )
+        allowed_redirect_prefixes = (
+            "rork-app://",
+            "exp://",
+            "http://localhost",
+            "http://127.0.0.1",
+            "https://localhost",
+            "https://127.0.0.1",
+        )
+        if not redirect_uri.startswith(allowed_redirect_prefixes):
+            return HttpResponse(
+                "Unsupported redirect URI.",
+                status=status.HTTP_400_BAD_REQUEST,
+                content_type="text/plain; charset=utf-8",
+            )
+
+        html = f"""<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Checkout</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <style>
+    body {{
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #070c24;
+      color: #f8ecd1;
+      font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      text-align: center;
+      padding: 20px;
+    }}
+    .card {{
+      max-width: 360px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(232,184,109,0.35);
+      border-radius: 16px;
+      padding: 18px;
+    }}
+    button {{
+      margin-top: 12px;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-weight: 600;
+      background: #e8b86d;
+      color: #1a1042;
+      cursor: pointer;
+    }}
+    p {{ opacity: 0.85; line-height: 1.45; }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h3>Secure checkout</h3>
+    <p>Opening Razorpay for {plan_name}...</p>
+    <button id="pay-btn" type="button">Pay now</button>
+  </div>
+  <script>
+    const redirectUri = {json.dumps(redirect_uri)};
+    function backWith(params) {{
+      const url = new URL(redirectUri);
+      Object.entries(params).forEach(([k, v]) => {{
+        if (v !== undefined && v !== null && String(v).length > 0) {{
+          url.searchParams.set(k, String(v));
+        }}
+      }});
+      window.location.href = url.toString();
+    }}
+
+    function startCheckout() {{
+      const options = {{
+        key: {json.dumps(key_id)},
+        order_id: {json.dumps(order_id)},
+        amount: Number({json.dumps(amount)}),
+        currency: {json.dumps(currency)},
+        name: "Bhagavad Gita Guide",
+        description: {json.dumps(plan_name)},
+        prefill: {{
+          name: {json.dumps(user_name)},
+          email: {json.dumps(user_email)},
+        }},
+        theme: {{ color: "#E8B86D" }},
+        handler: function (response) {{
+          backWith({{
+            status: "success",
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature
+          }});
+        }},
+        modal: {{
+          ondismiss: function () {{
+            backWith({{ status: "cancelled" }});
+          }}
+        }}
+      }};
+      const rz = new Razorpay(options);
+      rz.open();
+    }}
+
+    document.getElementById("pay-btn").addEventListener("click", startCheckout);
+    setTimeout(startCheckout, 120);
+  </script>
+</body>
+</html>"""
+        return HttpResponse(html, content_type="text/html; charset=utf-8")
+
+
 class VerifyPaymentView(APIView):
     """Verify Razorpay payment signature and activate subscription."""
 

@@ -47,6 +47,7 @@ from guide_api.views import (
     PlanCatalogView,
     PlanUpdateView,
     PaymentHistoryView,
+    PaymentCheckoutBridgeView,
     ProfileUpdateView,
     QuoteArtStylesView,
     QuoteArtView,
@@ -218,6 +219,11 @@ urlpatterns = [
     ),
     # Payment / Subscription endpoints
     path("payments/create-order/", CreateOrderView.as_view(), name="create-order"),
+    path(
+        "payments/checkout/bridge/",
+        PaymentCheckoutBridgeView.as_view(),
+        name="payment-checkout-bridge",
+    ),
     path("payments/history/", PaymentHistoryView.as_view(), name="payment-history"),
     path("payments/verify/", VerifyPaymentView.as_view(), name="verify-payment"),
     path("payments/webhook/", RazorpayWebhookView.as_view(), name="razorpay-webhook"),
