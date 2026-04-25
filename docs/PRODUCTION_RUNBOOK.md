@@ -85,6 +85,24 @@ ITR Summary Generator (if enabled in production)
   `/api/payments/webhook/`.
 - After deploy, apply ITR migrations: `showmigrations documents exports` and
   `migrate` as usual.
+- **Lifetime ITR funnel stats** (exports anonymous vs logged-in, documents,
+  marketing `GrowthEvent` counts — see command help for caveats). From your laptop
+  (requires `flyctl auth login`). One-shot:
+
+  ```
+  flyctl ssh console -a askbhagavadgita -C "python manage.py itr_computation_stats"
+  ```
+
+  If the SSH session starts outside the app directory, run:
+
+  ```
+  flyctl ssh console -a askbhagavadgita \
+    -C "cd /code && python manage.py itr_computation_stats"
+  ```
+
+  Interactive shell: `flyctl ssh console -a askbhagavadgita`, then
+  `cd /code` if needed, then `python manage.py itr_computation_stats`.
+  Deploy code that contains the command before relying on this in production.
 - **WeasyPrint (CA-layout PDF):** the Fly image must install Pango, cairo, and
   GLib/GObject packages; these are listed in the repo `Dockerfile`. If production
   shows `libgobject-2.0-0` / shared library errors, redeploy after pulling the

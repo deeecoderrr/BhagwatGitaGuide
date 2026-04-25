@@ -680,6 +680,42 @@ class SupportTicket(models.Model):
         return f"Support {self.issue_type} ({self.email})"
 
 
+class NotificationDevice(models.Model):
+    """Push device token registered by users for reminder delivery."""
+
+    PLATFORM_ANDROID = "android"
+    PLATFORM_IOS = "ios"
+    PLATFORM_WEB = "web"
+    PLATFORM_CHOICES = (
+        (PLATFORM_ANDROID, "Android"),
+        (PLATFORM_IOS, "iOS"),
+        (PLATFORM_WEB, "Web"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notification_devices",
+    )
+    token = models.CharField(max_length=512, unique=True, db_index=True)
+    platform = models.CharField(
+        max_length=16,
+        choices=PLATFORM_CHOICES,
+        default=PLATFORM_ANDROID,
+    )
+    active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self) -> str:
+        """Readable device label for admin lists."""
+        return f"{self.user_id}:{self.platform}:{self.id}"
+
+
 class QuoteArt(models.Model):
     """User-generated shareable quote art from Gita verses."""
 

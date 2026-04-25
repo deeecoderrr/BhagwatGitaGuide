@@ -88,7 +88,8 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - **Prefixes:** `/api/...` and **`/api/v1/...`** are equivalent (mobile versioning alias).
 - **Errors:** Standardized envelope with `error.code`, `error.message`, and `detail` where applicable.
 - **List endpoints:** Support `?limit=&offset=` where documented (e.g. feedback, saved-reflections).
-- **Quota:** `POST /api/ask/` enforces daily limits (`ASK_LIMIT_FREE_DAILY`, `ASK_LIMIT_PRO_DAILY`); may return `429`. Plan mock: `POST /api/auth/plan/`.
+- **Quota:** `POST /api/ask/` enforces plan limits (`free|plus|pro`) and may
+  return `429`. Plan mock: `POST /api/auth/plan/`.
 - **Language:** `POST /api/ask/` and `POST /api/follow-ups/` accept
   `language=en|hi` (defaults to `en`).
 
@@ -96,14 +97,20 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 - `GET health/`
 - `POST auth/register/`, `auth/login/`, `auth/logout/`, `GET auth/me/`, `POST auth/plan/`
+- `PATCH auth/profile/`, `POST auth/change-password/`,
+  `POST auth/forgot-password/`, `POST auth/reset-password/confirm/`
 - `GET|PATCH engagement/me/` — streak, reminder prefs (delivery not implemented yet)
+- `GET starter-prompts/`, `GET plans/catalog/` — mobile onboarding/paywall metadata
 - `POST ask/` — main Q&A (structured JSON: guidance, meaning, actions, reflection, verse_references, follow_ups, engagement snapshot, quota fields)
+- `POST guest/ask/`, `GET guest/history/`, `POST guest/history/reset/`,
+  `GET guest/recent-questions/` — guest/mobile parity session APIs
 - `POST follow-ups/` — contextual follow-up prompts
 - `POST mantra/` — verse as mantra for mood (calm/focus/courage/peace/strength/clarity); **auth required**
 - `GET|POST quote-art/...` — styles, generate, featured; same **browser vs token** rule as chapter browse
 - `GET chapters/` — list all 18 chapters with metadata for browsing
 - `GET chapters/<chapter_number>/` — chapter detail with verse list
 - `GET verses/<chapter>.<verse>/` — full verse detail with multi-author commentary
+- `GET verses/search/?q=&limit=` — reader search helper
   - **Browse policy:** same-origin / browser-style `GET` (no `Authorization`
     header) is allowed so the chat UI reader works for guests and all plans.
     Requests authenticated with `Authorization: Token …` require **Plus or
@@ -111,9 +118,16 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
     `guide_api/permissions.py`).
 - `GET|POST feedback/`
 - `POST support/` — guest/auth support ticket intake
+- `GET support/tickets/` — signed-in user ticket history
 - `GET|POST saved-reflections/`, `DELETE saved-reflections/<id>/`
-- `GET daily-verse/`, history under `history/me/`, `history/<user_id>/` (owner)
+- `GET daily-verse/`, `GET daily-verse/history/`
+- history under `history/me/`, `history/<user_id>/` (owner)
+- `GET|POST|DELETE conversations/...` — mobile-native thread management
 - `POST eval/retrieval/` — retrieval trace / benchmark (no generation); **auth required**
+- payment/subscription: `payments/create-order`, `payments/verify`,
+  `payments/history`, `subscription/status`
+- device/reminder: `GET|PATCH notifications/preferences`,
+  `POST devices/register`, `DELETE devices/<id>`
 - `GET|POST chat-ui/` — browser test UI (forms, CSRF, session-backed UX,
   separate threads, and sidebar conversation selection)
 
@@ -166,7 +180,7 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI).
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, dedicated mobile thread APIs (`/api/conversations/...`), guest session APIs (`/api/guest/*`), account profile/password APIs, payment/subscription APIs, device registration APIs, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI).
 
 Deployment/ops snapshot:
 - live deployment on Fly is active

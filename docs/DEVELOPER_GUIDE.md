@@ -11,7 +11,8 @@ API compatibility strategy:
 
 - `guide_api/models.py`: data models (`Verse`, `Conversation`,
   `Message`, `ResponseFeedback`, `UserSubscription`, `DailyAskUsage`,
-  `AskEvent`, `SavedReflection`, `WebAudienceProfile`, `GrowthEvent`)
+  `AskEvent`, `SavedReflection`, `WebAudienceProfile`, `GrowthEvent`,
+  `NotificationDevice`)
 - `guide_api/services.py`: retrieval, safety checks, and guidance build
 - `guide_api/views.py`: API/UI endpoints and orchestration
 - `guide_api/permissions.py`: DRF permission classes (e.g.
@@ -96,6 +97,7 @@ flyctl status -a askbhagavadgita
 flyctl secrets list -a askbhagavadgita
 flyctl deploy -a askbhagavadgita
 flyctl ssh console -a askbhagavadgita -C "python manage.py migrate --noinput"
+flyctl ssh console -a askbhagavadgita -C "python manage.py itr_computation_stats"
 flyctl ssh console -a askbhagavadgita -C "python manage.py growth_report"
 flyctl ssh console -a askbhagavadgita -C "python manage.py shell -c \"from guide_api.models import Verse; print(Verse.objects.count())\""
 ```
@@ -133,9 +135,43 @@ Use this map to understand the exact call chain for each endpoint.
 ### `POST /api/auth/plan/`
 
 1. Requires authenticated user
-2. Validates `{ "plan": "free|pro" }`
+2. Validates `{ "plan": "free|plus|pro" }`
 3. Updates `UserSubscription.plan`
 4. Returns refreshed quota snapshot.
+
+### Mobile-parity account/session endpoints
+
+- `PATCH /api/auth/profile/` updates username/name/email for current user.
+- `POST /api/auth/change-password/` validates current password and updates hash.
+- `POST /api/auth/forgot-password/` emits reset email (generic response).
+- `POST /api/auth/reset-password/confirm/` verifies uid/token and sets password.
+- `GET /api/plans/catalog/` exposes paywall-friendly plan matrix + pricing.
+- `GET /api/starter-prompts/` exposes onboarding starter/follow-up prompts.
+
+### Mobile-parity guest endpoints
+
+- `POST /api/guest/ask/`
+  - mirrors guest ask path from chat-ui, including:
+    - safety block
+    - guest daily quota enforcement
+    - session transcript append (`chat_ui_guest_messages`)
+    - recent question store (`chat_ui_recent_questions`)
+- `GET /api/guest/history/` returns guest transcript + quota snapshot.
+- `POST /api/guest/history/reset/` clears guest transcript + recent questions.
+- `GET /api/guest/recent-questions/` returns the recent guest prompt list.
+
+### Mobile-parity conversation/thread endpoints
+
+- `GET /api/conversations/?limit=&offset=` list user-owned threads.
+- `POST /api/conversations/` create a new thread (optional `initial_message`).
+- `GET /api/conversations/<id>/messages/?limit=&offset=` fetch message timeline.
+- `DELETE /api/conversations/<id>/` remove one thread.
+
+### Mobile-parity notification endpoints
+
+- `GET|PATCH /api/notifications/preferences/` alias for reminder profile controls.
+- `POST /api/devices/register/` upsert token/platform for push delivery.
+- `DELETE /api/devices/<device_id>/` unregister device token.
 
 ### `POST /api/ask/`
 
@@ -195,6 +231,10 @@ Use this map to understand the exact call chain for each endpoint.
 3. Reads first verse from DB, or seeds/fetches via `retrieve_verses()`
 4. Returns one verse + short reflection.
 
+Related:
+- `GET /api/daily-verse/history/?days=&language=` returns a rolling,
+  deterministic daily verse list for recap/archive screens.
+
 ### `GET /api/chapters/`, `GET /api/chapters/<n>/`, `GET /api/verses/<ch>.<v>/`
 
 1. `guide_api/urls.py` -> `ChapterListView`, `ChapterDetailView`, `VerseDetailView`
@@ -206,6 +246,10 @@ Use this map to understand the exact call chain for each endpoint.
      and same-origin `fetch` without `Authorization`
    - if `request.auth` is set (**Token** authentication), require
      `UserSubscription.plan` in `{plus, pro}`; **free** returns `403`
+
+Related:
+- `GET /api/verses/search/?q=&limit=` performs lightweight DB search on verse
+  translation/commentary/themes for mobile reader search UX.
 
 ### `GET /api/history/<user_id>/`
 

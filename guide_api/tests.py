@@ -6,9 +6,12 @@ from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
+from django.contrib.auth.tokens import default_token_generator
 from django.core.cache import cache
 from django.core.management import call_command
 from django.core.management.base import CommandError
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from django.utils import timezone
 import guide_api.views as guide_views
 from guide_api.models import (
@@ -21,6 +24,7 @@ from guide_api.models import (
     GrowthEvent,
     GuestChatIdentity,
     Message,
+    NotificationDevice,
     RequestQuotaSettings,
     ResponseFeedback,
     SadhanaDay,
@@ -91,6 +95,118 @@ class GuideApiTests(APITestCase):
         response = self.client.get("/api/health/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["status"], "ok")
+
+    def test_starter_prompts_endpoint_returns_prompt_sets(self):
+        response = self.client.get("/api/starter-prompts/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("starter_prompts", response.data)
+        self.assertIn("follow_up_prompts", response.data)
+        self.assertGreaterEqual(len(response.data["starter_prompts"]), 1)
+
+    def test_plan_catalog_endpoint_returns_plan_matrix(self):
+        response = self.client.get("/api/plans/catalog/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("recommended_currency", response.data)
+        self.assertIn("plans", response.data)
+        self.assertIn("plus", response.data["plans"])
+        self.assertIn("pro", response.data["plans"])
+
+    def test_guest_ask_endpoint_returns_guidance_without_auth(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/guest/ask/",
+            {
+                "message": "I feel anxious about my career growth.",
+                "mode": "simple",
+                "language": "en",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("guidance", response.data)
+        self.assertIn("guest_id", response.data)
+        self.assertIn("guest_quota_snapshot", response.data)
+
+    @override_settings(DISABLE_ALL_QUOTAS=False)
+    def test_guest_ask_endpoint_enforces_guest_daily_cap(self):
+        self.client.force_authenticate(user=None)
+        RequestQuotaSettings.objects.create(
+            guest_limit_enabled=True,
+            guest_ask_limit=1,
+            free_limit_enabled=True,
+            free_daily_ask_limit=3,
+            free_monthly_ask_limit=100,
+            free_deep_mode_enabled=False,
+            plus_limit_enabled=False,
+            plus_daily_ask_limit=0,
+            plus_monthly_ask_limit=200,
+            plus_deep_monthly_limit=40,
+            pro_limit_enabled=True,
+            pro_daily_ask_limit=100,
+            pro_monthly_ask_limit=500,
+            pro_deep_monthly_limit=180,
+        )
+        first = self.client.post(
+            "/api/guest/ask/",
+            {"message": "Need calm", "mode": "simple", "language": "en"},
+            format="json",
+        )
+        second = self.client.post(
+            "/api/guest/ask/",
+            {"message": "Need calm again", "mode": "simple", "language": "en"},
+            format="json",
+        )
+        self.assertEqual(first.status_code, status.HTTP_200_OK)
+        self.assertEqual(second.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+
+    def test_guest_history_endpoint_returns_session_transcript(self):
+        self.client.force_authenticate(user=None)
+        self.client.post(
+            "/api/guest/ask/",
+            {
+                "message": "I feel anxious about my career growth.",
+                "mode": "simple",
+                "language": "en",
+            },
+            format="json",
+        )
+        response = self.client.get("/api/guest/history/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["messages"]), 2)
+        self.assertGreaterEqual(len(response.data["recent_questions"]), 1)
+
+    def test_guest_history_reset_clears_messages_and_recent_questions(self):
+        self.client.force_authenticate(user=None)
+        self.client.post(
+            "/api/guest/ask/",
+            {"message": "First question", "mode": "simple", "language": "en"},
+            format="json",
+        )
+        reset = self.client.post("/api/guest/history/reset/", {}, format="json")
+        self.assertEqual(reset.status_code, status.HTTP_200_OK)
+        self.assertEqual(reset.data["messages"], [])
+        self.assertEqual(reset.data["recent_questions"], [])
+        after = self.client.get("/api/guest/history/")
+        self.assertEqual(after.status_code, status.HTTP_200_OK)
+        self.assertEqual(after.data["messages"], [])
+        self.assertEqual(after.data["recent_questions"], [])
+
+    def test_guest_recent_questions_endpoint_returns_latest_guest_questions(self):
+        self.client.force_authenticate(user=None)
+        self.client.post(
+            "/api/guest/ask/",
+            {"message": "Question one", "mode": "simple", "language": "en"},
+            format="json",
+        )
+        self.client.post(
+            "/api/guest/ask/",
+            {"message": "Question two", "mode": "simple", "language": "en"},
+            format="json",
+        )
+        response = self.client.get("/api/guest/recent-questions/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data["recent_questions"]), 2)
+        self.assertEqual(response.data["recent_questions"][0], "Question two")
 
     def test_public_seo_index_page_loads(self):
         response = self.client.get("/")
@@ -403,6 +519,145 @@ class GuideApiTests(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["plan"], "plus")
+
+    def test_auth_profile_patch_updates_user_fields(self):
+        response = self.client.patch(
+            "/api/auth/profile/",
+            {
+                "first_name": "Dee",
+                "last_name": "Coder",
+                "email": "dee@example.com",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Dee")
+        self.assertEqual(self.user.last_name, "Coder")
+        self.assertEqual(self.user.email, "dee@example.com")
+
+    def test_auth_change_password_updates_credentials(self):
+        response = self.client.post(
+            "/api/auth/change-password/",
+            {
+                "current_password": "demo-pass-123",
+                "new_password": "fresh-pass-456",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("fresh-pass-456"))
+
+    def test_auth_forgot_password_returns_generic_ok(self):
+        self.user.email = "demo@example.com"
+        self.user.save(update_fields=["email"])
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/auth/forgot-password/",
+            {"email": "demo@example.com"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["status"], "ok")
+
+    def test_auth_reset_password_confirm_accepts_valid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/auth/reset-password/confirm/",
+            {
+                "uid": uid,
+                "token": token,
+                "new_password": "newest-pass-789",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newest-pass-789"))
+
+    def test_notifications_preferences_endpoint_get_and_patch(self):
+        get_response = self.client.get("/api/notifications/preferences/")
+        self.assertEqual(get_response.status_code, status.HTTP_200_OK)
+        patch_response = self.client.patch(
+            "/api/notifications/preferences/",
+            {
+                "reminder_enabled": True,
+                "preferred_channel": "push",
+            },
+            format="json",
+        )
+        self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(patch_response.data["reminder_enabled"])
+
+    def test_devices_register_and_delete(self):
+        create_response = self.client.post(
+            "/api/devices/register/",
+            {"token": "fcm-token-123", "platform": "android"},
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        device_id = create_response.data["id"]
+        self.assertTrue(
+            NotificationDevice.objects.filter(id=device_id, user=self.user).exists(),
+        )
+        delete_response = self.client.delete(f"/api/devices/{device_id}/")
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_conversations_list_create_messages_and_delete(self):
+        create_response = self.client.post(
+            "/api/conversations/",
+            {"initial_message": "How can I stay calm?"},
+            format="json",
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        conversation_id = create_response.data["id"]
+
+        list_response = self.client.get("/api/conversations/")
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["count"], 1)
+
+        messages_response = self.client.get(
+            f"/api/conversations/{conversation_id}/messages/",
+        )
+        self.assertEqual(messages_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(messages_response.data["count"], 1)
+
+        delete_response = self.client.delete(f"/api/conversations/{conversation_id}/")
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_support_ticket_list_returns_user_tickets(self):
+        SupportTicket.objects.create(
+            user=self.user,
+            requester_id=self.user.username,
+            name="Demo User",
+            email="demo@example.com",
+            issue_type=SupportTicket.ISSUE_ACCOUNT,
+            message="Need login help.",
+        )
+        response = self.client.get("/api/support/tickets/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+
+    def test_daily_verse_history_endpoint_returns_rows(self):
+        response = self.client.get("/api/daily-verse/history/?days=3&language=en")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["days"], 3)
+        self.assertEqual(len(response.data["results"]), 3)
+
+    def test_verse_search_endpoint_returns_matches(self):
+        Verse.objects.create(
+            chapter=99,
+            verse=1,
+            translation="Calm mind and self discipline lead to peace.",
+            commentary="Focused effort and detachment.",
+            themes=["discipline", "calm"],
+        )
+        response = self.client.get("/api/verses/search/?q=discipline&limit=5")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(response.data["count"], 1)
 
     def test_ask_endpoint_requires_authentication(self):
         self.client.force_authenticate(user=None)

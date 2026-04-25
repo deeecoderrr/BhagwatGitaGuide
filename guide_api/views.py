@@ -18,11 +18,17 @@ from django.contrib.auth import (
     login as auth_login,
     logout as auth_logout,
 )
+from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
+from django.core.mail import send_mail
+from django.db.models import Q
 from django.db import transaction
 from django.db.models import Sum
 from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import render
+from django.utils.encoding import force_str
+from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.timesince import timesince
@@ -47,6 +53,7 @@ from guide_api.models import (
     GrowthEvent,
     GuestChatIdentity,
     Message,
+    NotificationDevice,
     RequestQuotaSettings,
     ResponseFeedback,
     SadhanaProgram,
@@ -72,22 +79,32 @@ from guide_api.serializers import (
     ChapterListSerializer,
     CommunityPostCreateSerializer,
     CommunityPostPatchSerializer,
+    ConversationCreateSerializer,
+    ChangePasswordSerializer,
     CommentarySerializer,
     EngagementProfileUpdateSerializer,
     FollowUpRequestSerializer,
+    GuestAskRequestSerializer,
+    ForgotPasswordSerializer,
     GoogleAuthRequestSerializer,
     LoginRequestSerializer,
     MantraRequestSerializer,
     MessageSerializer,
+    NotificationDeviceRegisterSerializer,
+    NotificationDeviceSerializer,
+    NotificationPreferenceSerializer,
     PlanUpdateRequestSerializer,
+    ProfileUpdateSerializer,
     QuoteArtRequestSerializer,
     QuoteArtResponseSerializer,
     RegisterRequestSerializer,
+    ResetPasswordConfirmSerializer,
     RetrievalEvalRequestSerializer,
     SavedReflectionCreateSerializer,
     SavedReflectionSerializer,
     SharedAnswerCreateSerializer,
     SupportRequestSerializer,
+    SupportTicketSerializer,
     VerseDetailSerializer,
     VerseSerializer,
 )
@@ -2651,6 +2668,73 @@ class HealthView(APIView):
         return Response({"status": "ok", "service": "gita-guide-api"})
 
 
+class StarterPromptsView(APIView):
+    """Expose curated starter and follow-up prompts for mobile onboarding."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response(
+            {
+                "starter_prompts": ChatUIView._starter_prompts(),
+                "follow_up_prompts": ChatUIView._follow_up_prompts(),
+            }
+        )
+
+
+class PlanCatalogView(APIView):
+    """Public plan/pricing snapshot for mobile paywall rendering."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        billing_currency = _billing_currency_for_request(request)
+        plus_price = {
+            "INR": settings.SUBSCRIPTION_PRICE_PLUS_INR,
+            "USD": settings.SUBSCRIPTION_PRICE_PLUS_USD,
+        }
+        pro_price = {
+            "INR": settings.SUBSCRIPTION_PRICE_PRO_INR,
+            "USD": settings.SUBSCRIPTION_PRICE_PRO_USD,
+        }
+        return Response(
+            {
+                "recommended_currency": billing_currency,
+                "plans": {
+                    "free": {
+                        "daily_limit": _plan_daily_limit(UserSubscription.PLAN_FREE),
+                        "monthly_limit": _plan_monthly_limit(
+                            UserSubscription.PLAN_FREE,
+                        ),
+                        "deep_mode_allowed": _plan_deep_mode_allowed(
+                            UserSubscription.PLAN_FREE,
+                        ),
+                    },
+                    "plus": {
+                        "prices_minor": plus_price,
+                        "daily_limit": _plan_daily_limit(UserSubscription.PLAN_PLUS),
+                        "monthly_limit": _plan_monthly_limit(
+                            UserSubscription.PLAN_PLUS,
+                        ),
+                        "deep_monthly_limit": _plan_deep_monthly_limit(
+                            UserSubscription.PLAN_PLUS,
+                        ),
+                    },
+                    "pro": {
+                        "prices_minor": pro_price,
+                        "daily_limit": _plan_daily_limit(UserSubscription.PLAN_PRO),
+                        "monthly_limit": _plan_monthly_limit(
+                            UserSubscription.PLAN_PRO,
+                        ),
+                        "deep_monthly_limit": _plan_deep_monthly_limit(
+                            UserSubscription.PLAN_PRO,
+                        ),
+                    },
+                },
+            }
+        )
+
+
 class RegisterView(APIView):
     """Create user account and return API token."""
 
@@ -2792,6 +2876,149 @@ class MeView(APIView):
         )
 
 
+class ProfileUpdateView(APIView):
+    """Update basic user profile fields for mobile settings screens."""
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        serializer = ProfileUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = request.user
+        changed_fields = []
+
+        new_username = serializer.validated_data.get("username")
+        if new_username:
+            new_username = new_username.strip()
+            if not new_username:
+                return _error_response(
+                    message="username cannot be blank.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    code="invalid_username",
+                )
+            exists = get_user_model().objects.filter(
+                username=new_username,
+            ).exclude(id=user.id).exists()
+            if exists:
+                return _error_response(
+                    message="Username is already taken.",
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    code="username_taken",
+                )
+            if user.username != new_username:
+                user.username = new_username
+                changed_fields.append("username")
+
+        for field in ("first_name", "last_name", "email"):
+            if field in serializer.validated_data:
+                value = serializer.validated_data[field]
+                if getattr(user, field) != value:
+                    setattr(user, field, value)
+                    changed_fields.append(field)
+
+        if changed_fields:
+            user.save(update_fields=changed_fields)
+
+        return Response(
+            {
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+            },
+        )
+
+
+class ChangePasswordView(APIView):
+    """Allow signed-in users to rotate account password."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        current_password = serializer.validated_data["current_password"]
+        new_password = serializer.validated_data["new_password"]
+        if not request.user.check_password(current_password):
+            return _error_response(
+                message="Current password is incorrect.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_current_password",
+            )
+        request.user.set_password(new_password)
+        request.user.save(update_fields=["password"])
+        return Response({"status": "password_updated"})
+
+
+class ForgotPasswordView(APIView):
+    """Send a reset link/token to the account email."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"].strip().lower()
+        user = get_user_model().objects.filter(email__iexact=email).first()
+
+        # Return generic success so clients cannot enumerate users.
+        if user:
+            uid = urlsafe_base64_encode(force_bytes(user.pk))
+            token = default_token_generator.make_token(user)
+            reset_link = f"/reset-password/?uid={uid}&token={token}"
+            send_mail(
+                subject="Reset your Bhagavad Gita Guide password",
+                message=(
+                    "Use this link to reset your password:\n"
+                    f"{reset_link}\n\n"
+                    "If you did not request this, you can ignore this email."
+                ),
+                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", ""),
+                recipient_list=[user.email],
+                fail_silently=True,
+            )
+        return Response(
+            {
+                "status": "ok",
+                "message": (
+                    "If an account exists for this email, a password reset link has been sent."
+                ),
+            },
+        )
+
+
+class ResetPasswordConfirmView(APIView):
+    """Set a new password using uid + token sent in reset email."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        uid = serializer.validated_data["uid"]
+        token = serializer.validated_data["token"]
+        new_password = serializer.validated_data["new_password"]
+        user_model = get_user_model()
+        try:
+            user_id = force_str(urlsafe_base64_decode(uid))
+            user = user_model.objects.get(pk=user_id)
+        except (ValueError, TypeError, OverflowError, user_model.DoesNotExist):
+            return _error_response(
+                message="Invalid reset token.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_reset_token",
+            )
+        if not default_token_generator.check_token(user, token):
+            return _error_response(
+                message="Invalid or expired reset token.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_reset_token",
+            )
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+        return Response({"status": "password_reset"})
+
+
 class PlanUpdateView(APIView):
     """Mock plan switch endpoint for local quota and paywall testing."""
 
@@ -2840,6 +3067,36 @@ class EngagementProfileView(APIView):
                     changed[field] = value.isoformat()
                 else:
                     changed[field] = value
+        if changed:
+            profile.save(update_fields=[*changed.keys(), "updated_at"])
+            _log_engagement_event(
+                user=request.user,
+                event_type=EngagementEvent.EVENT_REMINDER_PREF_UPDATED,
+                metadata={"changed_fields": changed},
+            )
+        return Response(_serialize_engagement_profile(profile))
+
+
+class NotificationPreferencesView(APIView):
+    """Mobile-friendly alias for reminder/notification preferences."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        profile = _get_engagement_profile(request.user)
+        return Response(_serialize_engagement_profile(profile))
+
+    def patch(self, request):
+        serializer = NotificationPreferenceSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = _get_engagement_profile(request.user)
+        changed = {}
+        for field, value in serializer.validated_data.items():
+            if getattr(profile, field) != value:
+                setattr(profile, field, value)
+                changed[field] = (
+                    value.isoformat() if hasattr(value, "isoformat") else value
+                )
         if changed:
             profile.save(update_fields=[*changed.keys(), "updated_at"])
             _log_engagement_event(
@@ -2983,6 +3240,192 @@ class AskView(APIView):
             response_data["query_themes"] = retrieval.query_themes
             response_data["query_interpretation"] = retrieval.query_interpretation
         return Response(response_data)
+
+
+class GuestAskView(APIView):
+    """Guest/mobile ask endpoint with per-device daily cap and no account."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = GuestAskRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        message = data["message"].strip()
+        mode = data["mode"]
+        language = data["language"]
+        if not message:
+            return _error_response(
+                message="message cannot be empty.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="missing_message",
+            )
+        if is_risky_prompt(message):
+            return _error_response(
+                message=(
+                    "This app cannot provide crisis or self-harm guidance, "
+                    "or medical/legal decisions. Please contact local "
+                    "emergency or professional support immediately."
+                ),
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="safety_blocked",
+            )
+        ChatUIView._store_recent_question(request, message)
+
+        guest_id = str(data.get("guest_id", "")).strip()
+        if not guest_id:
+            guest_id = str(request.COOKIES.get(ChatUIView.guest_cookie_name, "")).strip()
+        if not guest_id:
+            guest_id = uuid4().hex
+        guest_id = guest_id[:64]
+        request.chat_ui_guest_id = guest_id
+
+        helper = ChatUIView()
+        guest_quota = helper._consume_guest_conversation_slot(request)
+        if not guest_quota["allowed"]:
+            return _error_response(
+                message=(
+                    "Guest quota reached for today. Sign in to continue with "
+                    "saved history and plan features."
+                ),
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                code="guest_quota_exceeded",
+                extra={"guest_quota_snapshot": guest_quota["snapshot"]},
+            )
+
+        response_language = resolve_guidance_language(language, message)
+        verses, guidance, retrieval = helper._run_guest_guidance_flow(
+            request,
+            message=message,
+            mode=mode,
+            language=language,
+        )
+        _log_ask_event(
+            user_id=f"guest:{guest_id}",
+            source=AskEvent.SOURCE_API,
+            mode=mode,
+            outcome=AskEvent.OUTCOME_SERVED,
+            response_mode=guidance.response_mode,
+            retrieval_mode=retrieval.retrieval_mode,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        follow_ups = []
+        if guidance.show_actions:
+            follow_ups = _build_contextual_follow_ups(
+                message=message,
+                mode=mode,
+                language=response_language,
+                query_themes=retrieval.query_themes,
+            )
+        response_data = {
+            "conversation_id": None,
+            "guest_id": guest_id,
+            "guidance": guidance.guidance,
+            "verses": VerseSerializer(verses, many=True).data,
+            "meaning": guidance.meaning,
+            "actions": guidance.actions,
+            "reflection": guidance.reflection,
+            "intent_type": guidance.intent_type,
+            "show_meaning": guidance.show_meaning and bool(guidance.meaning),
+            "show_actions": guidance.show_actions and bool(guidance.actions),
+            "show_reflection": guidance.show_reflection and bool(guidance.reflection),
+            "show_related_verses": guidance.show_related_verses,
+            "verse_references": [f"{verse.chapter}.{verse.verse}" for verse in verses],
+            "related_verses": _related_verses_payload_for_response(
+                guidance=guidance,
+                message=message,
+                verses=verses,
+            ),
+            "language": language,
+            "response_language": response_language,
+            "plan": UserSubscription.PLAN_FREE,
+            "follow_ups": follow_ups,
+            "guest_quota_snapshot": guest_quota["snapshot"],
+        }
+        if settings.DEBUG:
+            response_data["response_mode"] = guidance.response_mode
+            response_data["retrieval_mode"] = retrieval.retrieval_mode
+            response_data["retrieved_references"] = [
+                verse["reference"] for verse in response_data["verses"]
+            ]
+            response_data["retrieval_scores"] = retrieval.retrieval_scores
+            response_data["query_themes"] = retrieval.query_themes
+            response_data["query_interpretation"] = retrieval.query_interpretation
+        response = Response(response_data)
+        response.set_cookie(
+            ChatUIView.guest_cookie_name,
+            guest_id,
+            max_age=ChatUIView.guest_cookie_age,
+            httponly=True,
+            samesite="Lax",
+            secure=not settings.DEBUG,
+        )
+        return response
+
+
+class GuestHistoryView(APIView):
+    """Return guest transcript and helper state stored in session."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        guest_id = str(request.COOKIES.get(ChatUIView.guest_cookie_name, "")).strip()
+        if not guest_id:
+            guest_id = str(getattr(request, "chat_ui_guest_id", "")).strip()
+        helper = ChatUIView()
+        if guest_id:
+            request.chat_ui_guest_id = guest_id
+        return Response(
+            {
+                "guest_id": guest_id or None,
+                "messages": ChatUIView._guest_conversation_messages(request),
+                "recent_questions": ChatUIView._recent_questions(request),
+                "guest_quota_snapshot": helper._guest_quota_snapshot(request)
+                if guest_id
+                else None,
+            }
+        )
+
+
+class GuestHistoryResetView(APIView):
+    """Reset guest transcript/recent-question state without account login."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        ChatUIView._clear_guest_conversation(request)
+        request.session.pop("chat_ui_recent_questions", None)
+        request.session.modified = True
+        guest_id = str(request.COOKIES.get(ChatUIView.guest_cookie_name, "")).strip()
+        if guest_id:
+            request.chat_ui_guest_id = guest_id
+        helper = ChatUIView()
+        return Response(
+            {
+                "status": "reset",
+                "guest_id": guest_id or None,
+                "messages": [],
+                "recent_questions": [],
+                "guest_quota_snapshot": helper._guest_quota_snapshot(request)
+                if guest_id
+                else None,
+            }
+        )
+
+
+class GuestRecentQuestionsView(APIView):
+    """Return recent guest questions captured in session."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        guest_id = str(request.COOKIES.get(ChatUIView.guest_cookie_name, "")).strip()
+        return Response(
+            {
+                "guest_id": guest_id or None,
+                "recent_questions": ChatUIView._recent_questions(request),
+            }
+        )
 
 
 class FollowUpGenerateView(APIView):
@@ -3488,6 +3931,83 @@ class DailyVerseView(APIView):
         )
 
 
+class DailyVerseHistoryView(APIView):
+    """Return rolling daily-verse history for mobile recap screens."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        raw_days = str(request.query_params.get("days", "7")).strip()
+        try:
+            days = int(raw_days)
+        except ValueError:
+            return _error_response(
+                message="days must be an integer.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_days",
+            )
+        days = min(max(days, 1), 60)
+        language = str(request.query_params.get("language", "en")).strip()
+        if language not in {"en", "hi"}:
+            language = "en"
+        today = timezone.localdate()
+        rows = []
+        for offset in range(days):
+            day = today - timedelta(days=offset)
+            payload = DailyVerseView._build_daily_payload(day=day, language=language)
+            rows.append(
+                {
+                    "date": payload["date"],
+                    "reference": payload.get("reference", ""),
+                    "quote": payload["quote"],
+                    "meaning": payload["meaning"],
+                    "reflection": payload["reflection"],
+                    "verse": payload["verse"],
+                }
+            )
+        return Response({"days": days, "results": rows})
+
+
+class VerseSearchView(APIView):
+    """Search verses by reference, translation, commentary, or themes."""
+
+    permission_classes = [GitaBrowseAPIPermission]
+
+    def get(self, request):
+        query = str(request.query_params.get("q", "")).strip()
+        if not query:
+            return _error_response(
+                message="q is required.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="missing_query",
+            )
+        try:
+            limit = int(str(request.query_params.get("limit", "20")).strip())
+        except ValueError:
+            return _error_response(
+                message="limit must be an integer.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_limit",
+            )
+        limit = min(max(limit, 1), 50)
+        terms = [token for token in re.split(r"\s+", query) if token]
+        queryset = Verse.objects.all()
+        for token in terms[:6]:
+            queryset = queryset.filter(
+                Q(translation__icontains=token)
+                | Q(commentary__icontains=token)
+                | Q(themes__icontains=token)
+            )
+        rows = queryset.order_by("chapter", "verse")[:limit]
+        return Response(
+            {
+                "query": query,
+                "count": len(rows),
+                "results": VerseSerializer(rows, many=True).data,
+            }
+        )
+
+
 class ChapterListView(APIView):
     """List all 18 chapters with metadata for browsing screen."""
 
@@ -3615,6 +4135,141 @@ class FeaturedQuotesView(APIView):
 
         quotes = get_featured_quotes(language=language, limit=limit)
         return Response({"quotes": quotes})
+
+
+def _conversation_preview_title(conversation: Conversation) -> str:
+    """Generate short title from first user message in a conversation."""
+    first_user = conversation.messages.filter(role=Message.ROLE_USER).first()
+    if not first_user:
+        return f"Conversation {conversation.id}"
+    text = " ".join(first_user.content.strip().split())
+    if len(text) <= 70:
+        return text
+    return text[:67].rstrip() + "..."
+
+
+class ConversationListCreateView(APIView):
+    """List all user conversations or create a new thread."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+        base_qs = Conversation.objects.filter(
+            user_id=request.user.get_username(),
+        ).order_by("-updated_at")
+        total = base_qs.count()
+        rows = base_qs[offset : offset + limit]
+        results = []
+        for conv in rows:
+            results.append(
+                {
+                    "id": conv.id,
+                    "title": _conversation_preview_title(conv),
+                    "message_count": conv.messages.count(),
+                    "updated_at": conv.updated_at.isoformat(),
+                    "created_at": conv.created_at.isoformat(),
+                }
+            )
+        next_offset = offset + limit if (offset + limit) < total else None
+        return Response(
+            {
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "results": results,
+            }
+        )
+
+    def post(self, request):
+        serializer = ConversationCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        conversation = Conversation.objects.create(user_id=request.user.get_username())
+        initial_message = serializer.validated_data.get("initial_message", "").strip()
+        if initial_message:
+            Message.objects.create(
+                conversation=conversation,
+                role=Message.ROLE_USER,
+                content=initial_message,
+            )
+        return Response(
+            {
+                "id": conversation.id,
+                "title": _conversation_preview_title(conversation),
+                "message_count": conversation.messages.count(),
+                "created_at": conversation.created_at.isoformat(),
+                "updated_at": conversation.updated_at.isoformat(),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ConversationMessagesView(APIView):
+    """Paginated message timeline for a specific conversation."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, conversation_id: int):
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+        conversation = Conversation.objects.filter(
+            id=conversation_id,
+            user_id=request.user.get_username(),
+        ).first()
+        if conversation is None:
+            return _error_response(
+                message="Conversation not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="conversation_not_found",
+            )
+        base_qs = conversation.messages.all()
+        total = base_qs.count()
+        rows = base_qs[offset : offset + limit]
+        next_offset = offset + limit if (offset + limit) < total else None
+        return Response(
+            {
+                "conversation_id": conversation.id,
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "results": MessageSerializer(rows, many=True).data,
+            }
+        )
+
+
+class ConversationDetailView(APIView):
+    """Delete a conversation owned by the authenticated user."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, conversation_id: int):
+        conversation = Conversation.objects.filter(
+            id=conversation_id,
+            user_id=request.user.get_username(),
+        ).first()
+        if conversation is None:
+            return _error_response(
+                message="Conversation not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="conversation_not_found",
+            )
+        conversation.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class ConversationHistoryView(APIView):
@@ -3967,6 +4622,96 @@ class SupportRequestView(APIView):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class SupportTicketListView(APIView):
+    """List support tickets created by authenticated caller."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+        base_qs = SupportTicket.objects.filter(user=request.user)
+        rows = base_qs[offset : offset + limit]
+        total = base_qs.count()
+        next_offset = offset + limit if (offset + limit) < total else None
+        return Response(
+            {
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "results": SupportTicketSerializer(rows, many=True).data,
+            }
+        )
+
+
+class NotificationDeviceRegisterView(APIView):
+    """Register or refresh a user's push-notification device token."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = NotificationDeviceRegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        token = serializer.validated_data["token"].strip()
+        platform = serializer.validated_data["platform"]
+        if not token:
+            return _error_response(
+                message="token cannot be blank.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_device_token",
+            )
+        device, created = NotificationDevice.objects.get_or_create(
+            token=token,
+            defaults={
+                "user": request.user,
+                "platform": platform,
+                "active": True,
+            },
+        )
+        update_fields = []
+        if device.user_id != request.user.id:
+            device.user = request.user
+            update_fields.append("user")
+        if device.platform != platform:
+            device.platform = platform
+            update_fields.append("platform")
+        if not device.active:
+            device.active = True
+            update_fields.append("active")
+        if update_fields:
+            device.save(update_fields=update_fields + ["updated_at", "last_seen_at"])
+        payload = NotificationDeviceSerializer(device).data
+        payload["created"] = created
+        return Response(payload, status=status.HTTP_201_CREATED if created else 200)
+
+
+class NotificationDeviceDeleteView(APIView):
+    """Deactivate or remove a registered push-device token."""
+
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, device_id: int):
+        row = NotificationDevice.objects.filter(
+            id=device_id,
+            user=request.user,
+        ).first()
+        if row is None:
+            return _error_response(
+                message="Device not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="device_not_found",
+            )
+        row.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SavedReflectionListCreateView(APIView):

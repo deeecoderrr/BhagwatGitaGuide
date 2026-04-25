@@ -2,7 +2,15 @@
 
 from rest_framework import serializers
 
-from guide_api.models import BillingRecord, CommunityPost, Message, SavedReflection, Verse
+from guide_api.models import (
+    BillingRecord,
+    CommunityPost,
+    Message,
+    NotificationDevice,
+    SavedReflection,
+    SupportTicket,
+    Verse,
+)
 
 
 class VerseSerializer(serializers.ModelSerializer):
@@ -40,6 +48,15 @@ class AskRequestSerializer(serializers.Serializer):
         default="simple",
     )
     conversation_id = serializers.IntegerField(required=False)
+
+
+class GuestAskRequestSerializer(serializers.Serializer):
+    """Validate unauthenticated ask requests from mobile guest mode."""
+
+    guest_id = serializers.CharField(max_length=64, required=False, allow_blank=True)
+    message = serializers.CharField()
+    language = serializers.ChoiceField(choices=["en", "hi"], default="en")
+    mode = serializers.ChoiceField(choices=["simple", "deep"], default="simple")
 
 
 class RetrievalEvalRequestSerializer(serializers.Serializer):
@@ -380,7 +397,11 @@ class AnalyticsEventIngestSerializer(serializers.Serializer):
         choices=["chat_ui", "seo_index", "seo_topic"],
         default="chat_ui",
     )
-    path = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    path = serializers.CharField(
+        max_length=255,
+        required=False,
+        allow_blank=True,
+    )
     metadata = serializers.JSONField(required=False)
 
 
@@ -395,7 +416,11 @@ class SharedAnswerCreateSerializer(serializers.Serializer):
 
     question = serializers.CharField(max_length=1000, allow_blank=True)
     guidance = serializers.CharField(max_length=5000)
-    meaning = serializers.CharField(max_length=5000, required=False, default="")
+    meaning = serializers.CharField(
+        max_length=5000,
+        required=False,
+        default="",
+    )
     actions = serializers.ListField(
         child=serializers.CharField(max_length=500),
         max_length=20,
@@ -427,3 +452,96 @@ class CommunityPostPatchSerializer(serializers.Serializer):
     """Validate community post body edit."""
 
     body = serializers.CharField(max_length=CommunityPost.MAX_BODY_CHARS)
+
+
+class ConversationCreateSerializer(serializers.Serializer):
+    """Validate explicit conversation create payload."""
+
+    initial_message = serializers.CharField(required=False, allow_blank=True)
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    """Validate mutable profile fields for authenticated users."""
+
+    username = serializers.CharField(max_length=150, required=False)
+    first_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    last_name = serializers.CharField(
+        max_length=150,
+        required=False,
+        allow_blank=True,
+    )
+    email = serializers.EmailField(required=False, allow_blank=True)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Validate authenticated password-change request."""
+
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(min_length=8, write_only=True)
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    """Validate forgot-password request payload."""
+
+    email = serializers.EmailField()
+
+
+class ResetPasswordConfirmSerializer(serializers.Serializer):
+    """Validate token-based password reset confirmation payload."""
+
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    new_password = serializers.CharField(min_length=8, write_only=True)
+
+
+class NotificationDeviceRegisterSerializer(serializers.Serializer):
+    """Validate push notification device registration payload."""
+
+    token = serializers.CharField(max_length=512)
+    platform = serializers.ChoiceField(choices=["android", "ios", "web"])
+
+
+class NotificationDeviceSerializer(serializers.ModelSerializer):
+    """Serialize registered push devices."""
+
+    class Meta:
+        model = NotificationDevice
+        fields = [
+            "id",
+            "platform",
+            "active",
+            "created_at",
+            "updated_at",
+            "last_seen_at",
+        ]
+
+
+class NotificationPreferenceSerializer(serializers.Serializer):
+    """Expose reminder preference fields on notification endpoints."""
+
+    reminder_enabled = serializers.BooleanField(required=False)
+    reminder_time = serializers.TimeField(required=False, allow_null=True)
+    timezone = serializers.CharField(max_length=64, required=False)
+    preferred_channel = serializers.ChoiceField(
+        choices=["push", "email", "none"],
+        required=False,
+    )
+
+
+class SupportTicketSerializer(serializers.ModelSerializer):
+    """Serialize support-ticket rows for user self-service list."""
+
+    class Meta:
+        model = SupportTicket
+        fields = [
+            "id",
+            "issue_type",
+            "message",
+            "status",
+            "created_at",
+            "updated_at",
+        ]

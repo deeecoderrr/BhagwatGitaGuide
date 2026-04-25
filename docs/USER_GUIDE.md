@@ -64,9 +64,14 @@ You can call either:
 
 - `POST /api/auth/register/`
 - `POST /api/auth/login/`
+- `POST /api/auth/google/`
 - `POST /api/auth/logout/`
 - `GET /api/auth/me/`
-- `POST /api/auth/plan/` (switch between `free` and `pro` for local testing)
+- `PATCH /api/auth/profile/`
+- `POST /api/auth/change-password/`
+- `POST /api/auth/forgot-password/`
+- `POST /api/auth/reset-password/confirm/`
+- `POST /api/auth/plan/` (switch between `free|plus|pro` for local testing)
 
 Login response includes token:
 
@@ -100,7 +105,7 @@ Upgrade the subscription before relying on token-based access to chapter/verse
 or quote-art JSON.
 
 `GET /api/auth/me/` also returns plan usage info:
-- `plan` (`free` or `pro`)
+- `plan` (`free`, `plus`, or `pro`)
 - `daily_limit`
 - `used_today`
 - `remaining_today`
@@ -159,6 +164,16 @@ POST /api/auth/plan/
 }
 ```
 
+### Guest mode APIs (mobile-friendly)
+
+- `POST /api/guest/ask/`
+- `GET /api/guest/history/`
+- `POST /api/guest/history/reset/`
+- `GET /api/guest/recent-questions/`
+
+Use this when the user has not signed in but you still want backend-managed
+guest transcript, recent prompts, and quota snapshot.
+
 ### Chat UI account modes
 
 On `GET /api/chat-ui/`:
@@ -202,6 +217,10 @@ and top UTM acquisition sources. Operators can also run
 ### View latest history
 
 - `GET /api/history/me/`
+- `GET /api/conversations/?limit=&offset=`
+- `POST /api/conversations/`
+- `GET /api/conversations/<conversation_id>/messages/?limit=&offset=`
+- `DELETE /api/conversations/<conversation_id>/`
 
 ### Send feedback
 
@@ -228,6 +247,7 @@ If you need help with payments, account access, or app issues:
 You can also call API directly:
 
 - `POST /api/support/`
+- `GET /api/support/tickets/` (signed-in user ticket list)
 
 ```json
 {
@@ -241,6 +261,10 @@ You can also call API directly:
 ### Payment history
 
 - `GET /api/payments/history/`
+- `GET /api/subscription/status/`
+- `GET /api/plans/catalog/`
+- `POST /api/payments/create-order/`
+- `POST /api/payments/verify/`
 
 Use this when you want to list the signed-in user’s recent billing/payment rows.
 This is especially useful for account screens, invoice lookup, and support
@@ -268,6 +292,19 @@ the immediate `ask` call.
 `follow-ups` accepts the same language selector:
 - `language = en` (English)
 - `language = hi` (Hindi)
+
+### Reader + discovery helpers
+
+- `GET /api/daily-verse/history/?days=&language=`
+- `GET /api/verses/search/?q=&limit=`
+- `GET /api/starter-prompts/`
+
+### Reminder + device APIs
+
+- `GET /api/notifications/preferences/`
+- `PATCH /api/notifications/preferences/`
+- `POST /api/devices/register/`
+- `DELETE /api/devices/<device_id>/`
 
 ### Engagement profile (streak + reminders)
 

@@ -9,6 +9,7 @@ Run `make test` for the current test count (see `guide_api/tests.py`).
 
 - User documentation: `docs/USER_GUIDE.md`
 - Developer documentation: `docs/DEVELOPER_GUIDE.md`
+- Mobile build handoff: `docs/MOBILE_APP_PARITY_BLUEPRINT.md`
 - Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`
 - AI / coding-agent handoff: `AGENTS.md` (start here) and `docs/AI_AGENT_HANDOFF.md`
 - ITR merge / revert audit list: `docs/ITR_CHANGE_LOG.md`
@@ -172,32 +173,65 @@ Versioning:
 - alias for mobile versioning: `/api/v1/` (same routes for now)
 
 - `GET /api/health/`
+- `GET /api/starter-prompts/`
+- `GET /api/plans/catalog/`
 - `POST /api/auth/register/`
 - `POST /api/auth/login/`
+- `POST /api/auth/google/`
 - `POST /api/auth/logout/` (auth required)
 - `GET /api/auth/me/` (auth required)
+- `PATCH /api/auth/profile/` (auth required)
+- `POST /api/auth/change-password/` (auth required)
+- `POST /api/auth/forgot-password/`
+- `POST /api/auth/reset-password/confirm/`
 - `POST /api/auth/plan/` (auth required, local mock plan switch)
 - `GET /api/engagement/me/` (auth required)
 - `PATCH /api/engagement/me/` (auth required)
+- `GET /api/notifications/preferences/` (auth required)
+- `PATCH /api/notifications/preferences/` (auth required)
+- `POST /api/devices/register/` (auth required)
+- `DELETE /api/devices/<device_id>/` (auth required)
 - `POST /api/ask/` (auth required)
+- `POST /api/guest/ask/` (guest/mobile ask with per-device daily quota)
+- `GET /api/guest/history/` (guest session transcript)
+- `POST /api/guest/history/reset/` (clear guest transcript + recent prompts)
+- `GET /api/guest/recent-questions/` (guest recent asks)
 - `POST /api/follow-ups/` (auth required)
 - `POST /api/eval/retrieval/` (auth required; retrieval trace only, no generation)
 - `POST /api/mantra/` (auth required)
 - `GET /api/daily-verse/`
+- `GET /api/daily-verse/history/` (rolling history, `?days=&language=`)
 - `GET /api/chapters/` — list chapters (reader)
 - `GET /api/chapters/<chapter_number>/` — chapter detail + verse list
 - `GET /api/verses/<chapter>.<verse>/` — full verse + commentary
+- `GET /api/verses/search/` (`?q=&limit=`)
 - `GET /api/quote-art/styles/`, `POST /api/quote-art/generate/`,
   `GET /api/quote-art/featured/` — same token rule as chapter browse (browser
   without token OK; token auth requires Plus or Pro)
 - `GET /api/history/me/` (auth required)
 - `GET /api/history/<user_id>/` (auth required, owner-only)
+- `GET /api/conversations/` (auth required; paginated thread list)
+- `POST /api/conversations/` (auth required; create thread)
+- `GET /api/conversations/<conversation_id>/messages/` (auth required)
+- `DELETE /api/conversations/<conversation_id>/` (auth required)
 - `GET /api/feedback/` (auth required)
 - `POST /api/feedback/` (auth required)
 - `POST /api/support/` (guest/auth support request intake)
+- `GET /api/support/tickets/` (auth required)
 - `GET /api/saved-reflections/` (auth required)
 - `POST /api/saved-reflections/` (auth required)
 - `DELETE /api/saved-reflections/<reflection_id>/` (auth required)
+- `POST /api/answers/share/`
+- `GET /api/payments/history/`
+- `POST /api/payments/create-order/`
+- `POST /api/payments/verify/`
+- `POST /api/payments/webhook/` (gateway callback)
+- `GET /api/subscription/status/`
+- `GET /api/sadhana/programs/`
+- `GET /api/sadhana/programs/<slug>/`
+- `GET /api/sadhana/programs/<slug>/days/<day_number>/`
+- `POST /api/sadhana/programs/<slug>/days/<day_number>/complete/`
+- `GET /api/sadhana/me/`
 - `GET/POST /api/chat-ui/` (manual browser testing page)
   - includes starter prompts, structured response sections, follow-up chips,
     recent question shortcuts, separate conversation threads, and a sidebar
@@ -216,9 +250,12 @@ Authentication:
   that authenticate with a **token** require **Plus or Pro**; **Free** token
   clients receive `403`. See `guide_api/permissions.py` —
   `GitaBrowseAPIPermission`.
-- `ask`, `history`, and `feedback` endpoints are tied to authenticated user.
+- `ask`, `history`, `feedback`, `saved-reflections`, `conversations`, and
+  `support/tickets` endpoints are tied to authenticated users.
 - `ask` and `follow-ups` accept `language` (`en` or `hi`) and default to
   `en` when omitted.
+- `guest/ask` supports unauthenticated mobile/web ask with session-backed guest
+  state and daily browser/device cap.
 - `ask` applies plan quota checks and returns `429` when daily limit is reached.
 - `auth/plan` and chat-ui plan switch controls are for local/debug testing only.
   Production upgrades should flow through payment verification.

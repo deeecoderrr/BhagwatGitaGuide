@@ -1,8 +1,39 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-15
+Last updated: 2026-04-25
 
 ## Completed
+
+- Mobile API parity expansion completed (no need to replicate web-only logic in
+  Android/iOS clients):
+  - added account/profile endpoints:
+    - `PATCH /api/auth/profile/`
+    - `POST /api/auth/change-password/`
+    - `POST /api/auth/forgot-password/`
+    - `POST /api/auth/reset-password/confirm/`
+  - added conversation/thread APIs:
+    - `GET|POST /api/conversations/`
+    - `GET /api/conversations/<id>/messages/`
+    - `DELETE /api/conversations/<id>/`
+  - added guest-mode session APIs:
+    - `POST /api/guest/ask/`
+    - `GET /api/guest/history/`
+    - `POST /api/guest/history/reset/`
+    - `GET /api/guest/recent-questions/`
+  - added onboarding/paywall metadata APIs:
+    - `GET /api/starter-prompts/`
+    - `GET /api/plans/catalog/`
+  - added notification + device APIs:
+    - `GET|PATCH /api/notifications/preferences/`
+    - `POST /api/devices/register/`
+    - `DELETE /api/devices/<id>/`
+  - added reader/mobile helpers:
+    - `GET /api/daily-verse/history/`
+    - `GET /api/verses/search/`
+    - `GET /api/support/tickets/`
+  - added `NotificationDevice` model + migration:
+    `guide_api/migrations/0025_notificationdevice.py`
+  - tests expanded and passing after parity pass (`make test`: 271 tests)
 
 - **ITR Summary Generator merge (same repo / `manage.py`):**
   - Optional ITR stack controlled by **`ITR_ENABLED`** (default on); isolation in
