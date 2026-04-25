@@ -7541,6 +7541,79 @@ class VerifyPaymentView(APIView):
             )
 
 
+class PaymentStatusUpdateView(APIView):
+    """Allow client to mark an order failed/cancelled for ledger accuracy."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request) -> Response:
+        user = _get_user_from_session(request)
+        if not user:
+            return Response(
+                {"error": "Please log in to update payment status"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        order_id = str(request.data.get("order_id") or "").strip()
+        status_value = str(request.data.get("status") or "").strip().lower()
+        reason = str(request.data.get("reason") or "").strip()[:240]
+
+        if not order_id:
+            return Response(
+                {"error": "Missing order_id"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if status_value not in {"failed", "cancelled"}:
+            return Response(
+                {"error": "Unsupported status"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        row = BillingRecord.objects.filter(
+            user=user,
+            razorpay_order_id=order_id,
+        ).first()
+        if not row:
+            return Response(
+                {"error": "Billing row not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Never downgrade terminal success statuses.
+        if row.payment_status in {
+            BillingRecord.STATUS_VERIFIED,
+            BillingRecord.STATUS_CAPTURED,
+        }:
+            return Response(
+                {
+                    "success": True,
+                    "status": row.payment_status,
+                    "message": "Payment already completed; status unchanged.",
+                    "billing_record": BillingRecordSerializer(row).data,
+                },
+            )
+
+        metadata = dict(row.metadata or {})
+        metadata["client_status_value"] = status_value
+        metadata["client_status_reason"] = reason
+        metadata["client_status_updated_at"] = timezone.now().isoformat()
+        row.payment_status = (
+            BillingRecord.STATUS_CANCELLED
+            if status_value == "cancelled"
+            else BillingRecord.STATUS_FAILED
+        )
+        row.metadata = metadata
+        row.save(update_fields=["payment_status", "metadata", "updated_at"])
+
+        return Response(
+            {
+                "success": True,
+                "status": row.payment_status,
+                "billing_record": BillingRecordSerializer(row).data,
+            },
+        )
+
+
 class RazorpayWebhookView(APIView):
     """Handle Razorpay webhook callbacks for payment events."""
 

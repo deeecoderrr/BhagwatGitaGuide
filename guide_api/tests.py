@@ -3334,6 +3334,56 @@ class PaymentIntegrationTests(APITestCase):
             BillingRecord.STATUS_FAILED,
         )
 
+    def test_payment_status_endpoint_marks_cancelled_without_downgrading_success(self):
+        """Client cancellation should be cancelled; captured rows remain captured."""
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_PLUS,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Indian User",
+            billing_email="user@example.com",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=4900,
+            amount_major="49.00",
+            razorpay_order_id="order_cancel_123",
+        )
+
+        cancelled = self.client.post(
+            "/api/payments/status/",
+            {
+                "order_id": "order_cancel_123",
+                "status": "cancelled",
+                "reason": "checkout_cancelled",
+            },
+            format="json",
+        )
+        self.assertEqual(cancelled.status_code, status.HTTP_200_OK)
+        row = BillingRecord.objects.get(razorpay_order_id="order_cancel_123")
+        self.assertEqual(row.payment_status, BillingRecord.STATUS_CANCELLED)
+
+        row.payment_status = BillingRecord.STATUS_CAPTURED
+        row.save(update_fields=["payment_status"])
+        second = self.client.post(
+            "/api/payments/status/",
+            {
+                "order_id": "order_cancel_123",
+                "status": "cancelled",
+                "reason": "late_cancel",
+            },
+            format="json",
+        )
+        self.assertEqual(second.status_code, status.HTTP_200_OK)
+        row.refresh_from_db()
+        self.assertEqual(row.payment_status, BillingRecord.STATUS_CAPTURED)
+
     def test_razorpay_webhook_invalid_signature_rejected(self):
         """Test webhook request with invalid signature is rejected."""
         import json

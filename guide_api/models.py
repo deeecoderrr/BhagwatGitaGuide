@@ -234,11 +234,13 @@ class BillingRecord(models.Model):
     STATUS_VERIFIED = "verified"
     STATUS_CAPTURED = "captured"
     STATUS_FAILED = "failed"
+    STATUS_CANCELLED = "cancelled"
     STATUS_CHOICES = (
         (STATUS_CREATED, "Created"),
         (STATUS_VERIFIED, "Verified"),
         (STATUS_CAPTURED, "Captured"),
         (STATUS_FAILED, "Failed"),
+        (STATUS_CANCELLED, "Cancelled"),
     )
 
     user = models.ForeignKey(
