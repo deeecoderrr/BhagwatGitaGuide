@@ -7221,7 +7221,8 @@ class PaymentCheckoutBridgeView(APIView):
                 content_type="text/plain; charset=utf-8",
             )
         allowed_redirect_prefixes = (
-            "rork-app://",
+            "askbhagavadgita://",  # production / store builds (expo scheme)
+            "rork-app://",  # legacy dev with Rork toolkit
             "exp://",
             "http://localhost",
             "http://127.0.0.1",
