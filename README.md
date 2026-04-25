@@ -161,6 +161,8 @@ flyctl status -a askbhagavadgita
 flyctl secrets list -a askbhagavadgita
 flyctl deploy -a askbhagavadgita
 flyctl ssh console -a askbhagavadgita -C "python manage.py migrate --noinput"
+# ITR lifetime stats (prod DB): full notes in docs/PRODUCTION_RUNBOOK.md
+flyctl ssh console -a askbhagavadgita -C "python manage.py itr_computation_stats"
 ```
 
 ## API Endpoints
