@@ -3254,6 +3254,13 @@ class GuestAskView(APIView):
         message = data["message"].strip()
         mode = data["mode"]
         language = data["language"]
+        if mode == AskEvent.MODE_DEEP:
+            return _error_response(
+                message="Deep mode is not included in guest access. Sign in for Plus/Pro.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="deep_mode_not_included",
+                extra={"plan": UserSubscription.PLAN_FREE},
+            )
         if not message:
             return _error_response(
                 message="message cannot be empty.",

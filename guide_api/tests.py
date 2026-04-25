@@ -127,6 +127,21 @@ class GuideApiTests(APITestCase):
         self.assertIn("guest_id", response.data)
         self.assertIn("guest_quota_snapshot", response.data)
 
+    def test_guest_ask_endpoint_blocks_deep_mode_for_guest_plan(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(
+            "/api/guest/ask/",
+            {
+                "message": "Give me deep insights for this situation.",
+                "mode": "deep",
+                "language": "en",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["error"]["code"], "deep_mode_not_included")
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_FREE)
+
     @override_settings(DISABLE_ALL_QUOTAS=False)
     def test_guest_ask_endpoint_enforces_guest_daily_cap(self):
         self.client.force_authenticate(user=None)
