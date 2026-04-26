@@ -1,0 +1,27 @@
+# Run Django push reminder job on Fly every 15 minutes (UTC).
+# Requires the same GitHub secret as Fly deploy: FLY_API_TOKEN (with SSH/deploy scope).
+# See docs/DEVELOPER_GUIDE.md → "Fly: push reminder schedule (production)".
+
+name: Push reminders (Fly)
+
+on:
+  schedule:
+    # Every 15 minutes UTC (GitHub minimum practical granularity; may drift slightly under load)
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: push-reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Run send_push_reminders on Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          flyctl ssh console -a askbhagavadgita -C "cd /code && python manage.py send_push_reminders"
