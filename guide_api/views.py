@@ -4785,9 +4785,23 @@ class SavedReflectionListCreateView(APIView):
 
 
 class SavedReflectionDetailView(APIView):
-    """Delete one saved reflection owned by current user."""
+    """Read or delete one saved reflection owned by current user."""
 
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, reflection_id: int):
+        """Return one saved reflection for detail screens (mobile / API clients)."""
+        entry = SavedReflection.objects.filter(
+            id=reflection_id,
+            user=request.user,
+        ).first()
+        if entry is None:
+            return _error_response(
+                message="Saved reflection not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="saved_reflection_not_found",
+            )
+        return Response(SavedReflectionSerializer(entry).data)
 
     def delete(self, request, reflection_id: int):
         """Delete target saved reflection if it belongs to caller."""

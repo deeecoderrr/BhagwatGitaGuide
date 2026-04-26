@@ -2118,6 +2118,14 @@ class GuideApiTests(APITestCase):
         self.assertEqual(list_response.data["count"], 1)
         self.assertEqual(list_response.data["results"][0]["id"], saved_id)
 
+        detail_response = self.client.get(f"/api/saved-reflections/{saved_id}/")
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(detail_response.data["id"], saved_id)
+        self.assertEqual(
+            detail_response.data["message"],
+            "I am anxious about career growth.",
+        )
+
         delete_response = self.client.delete(
             f"/api/saved-reflections/{saved_id}/"
         )
