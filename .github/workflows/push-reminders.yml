@@ -28,4 +28,5 @@ jobs:
             echo "::error::FLY_API_TOKEN is not set in repository Actions secrets."
             exit 1
           fi
-          flyctl ssh console -a askbhagavadgita -C "cd /code && python manage.py send_push_reminders"
+          # -C is exec'd without a shell; use absolute path (no "cd && …").
+          flyctl ssh console -a askbhagavadgita -C "python /code/manage.py send_push_reminders"

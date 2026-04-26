@@ -136,7 +136,7 @@ Django reads **`EXPO_ACCESS_TOKEN`**, **`PUSH_REMINDER_WINDOW_MINUTES`**, **`PUS
 
 Scheduled delivery uses **GitHub Actions** (same pattern as **`.github/workflows/fly-deploy.yml`**):
 
-1. **Workflow:** **`.github/workflows/push-reminders.yml`** runs **`cd /code && python manage.py send_push_reminders`** on the **`askbhagavadgita`** app every **15 minutes** (UTC cron `*/15 * * * *`). **`workflow_dispatch`** is included so you can run it manually from the **Actions** tab.
+1. **Workflow:** **`.github/workflows/push-reminders.yml`** runs **`python /code/manage.py send_push_reminders`** on the **`askbhagavadgita`** app every **15 minutes** (UTC cron `*/15 * * * *`). **`workflow_dispatch`** is included so you can run it manually from the **Actions** tab. (`flyctl ssh console -C` does not invoke a shell, so the command must not use `cd … &&`.)
 2. **Secret:** set **`FLY_API_TOKEN`** in the GitHub repo’s **Settings → Secrets and variables → Actions** (same token you use for deploy). It must allow **`fly ssh`** to the app.
 3. **Merge to default branch:** scheduled workflows only run on the repository’s **default branch** (e.g. **`main`**). After merge, confirm **Actions → Push reminders (Fly)** appears and scheduled runs show up (may take up to one cycle).
 4. **Alignment:** keep **`PUSH_REMINDER_WINDOW_MINUTES=15`** in Fly **`[env]`** (see **`fly.toml`**) so the cron interval matches the reminder matching window in **`guide_api/push_reminders.py`**.
