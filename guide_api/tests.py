@@ -47,6 +47,7 @@ from guide_api.push_reminders import (
     is_expo_push_token,
     is_within_reminder_window,
     run_push_reminders,
+    zoneinfo_for_reminder_timezone,
 )
 from guide_api.services import (
     _build_fallback_guidance,
@@ -4166,6 +4167,10 @@ class CourseStudioWebTests(TestCase):
 
 
 class PushReminderHelpersTests(TestCase):
+    def test_zoneinfo_ist_maps_to_kolkata(self):
+        tz = zoneinfo_for_reminder_timezone("IST")
+        self.assertEqual(str(tz), "Asia/Kolkata")
+
     def test_is_expo_push_token(self):
         self.assertTrue(is_expo_push_token("ExponentPushToken[abc]"))
         self.assertFalse(is_expo_push_token("fcm-raw"))
@@ -4224,5 +4229,42 @@ class PushReminderRunTests(TestCase):
             platform=NotificationDevice.PLATFORM_ANDROID,
         )
         now_utc = datetime(2026, 4, 25, 8, 5, tzinfo=ZoneInfo("UTC"))
+        stats = run_push_reminders(dry_run=True, now_utc=now_utc, window_minutes=15)
+        self.assertEqual(stats["due_users"], 0)
+
+    def test_run_push_reminders_ist_one_minute_after_reminder_due(self):
+        """IST maps to Asia/Kolkata; window is [17:40, 17:55) local."""
+        user = User.objects.create_user("push-ist", password="x")
+        p, _ = UserEngagementProfile.objects.get_or_create(user=user)
+        p.reminder_enabled = True
+        p.preferred_channel = UserEngagementProfile.CHANNEL_PUSH
+        p.reminder_time = time(17, 40)
+        p.timezone = "IST"
+        p.save()
+        NotificationDevice.objects.create(
+            user=user,
+            token="ExponentPushToken[istdue]",
+            platform=NotificationDevice.PLATFORM_ANDROID,
+        )
+        # 17:41 IST = 12:11 UTC on 2026-04-25 (India has no DST)
+        now_utc = datetime(2026, 4, 25, 12, 11, tzinfo=ZoneInfo("UTC"))
+        stats = run_push_reminders(dry_run=True, now_utc=now_utc, window_minutes=15)
+        self.assertEqual(stats["due_users"], 1)
+
+    def test_run_push_reminders_not_due_one_minute_before_reminder(self):
+        """17:39 local for a 17:40 reminder is outside the delivery window."""
+        user = User.objects.create_user("push-early", password="x")
+        p, _ = UserEngagementProfile.objects.get_or_create(user=user)
+        p.reminder_enabled = True
+        p.preferred_channel = UserEngagementProfile.CHANNEL_PUSH
+        p.reminder_time = time(17, 40)
+        p.timezone = "IST"
+        p.save()
+        NotificationDevice.objects.create(
+            user=user,
+            token="ExponentPushToken[early]",
+            platform=NotificationDevice.PLATFORM_ANDROID,
+        )
+        now_utc = datetime(2026, 4, 25, 12, 9, tzinfo=ZoneInfo("UTC"))
         stats = run_push_reminders(dry_run=True, now_utc=now_utc, window_minutes=15)
         self.assertEqual(stats["due_users"], 0)

@@ -18,6 +18,40 @@ logger = logging.getLogger(__name__)
 
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
 
+# ``zoneinfo`` uses IANA names (e.g. ``Asia/Kolkata``). The app often stores
+# abbreviations like ``IST``, which are not valid IANA IDs and would silently
+# fall back to UTC and never match local wall-clock times.
+_TZ_ALIASES: dict[str, str] = {
+    "ist": "Asia/Kolkata",
+    "india standard time": "Asia/Kolkata",
+    "asia/calcutta": "Asia/Kolkata",
+    "calcutta": "Asia/Kolkata",
+    "kolkata": "Asia/Kolkata",
+}
+
+
+def zoneinfo_for_reminder_timezone(tz_name: str):
+    """Return ``ZoneInfo`` for a user-entered timezone string (IANA or common alias)."""
+    from zoneinfo import ZoneInfo
+
+    raw = (tz_name or "").strip()
+    if not raw:
+        return ZoneInfo("UTC")
+    lowered = raw.lower().replace(" ", "_")
+    candidate = _TZ_ALIASES.get(lowered, raw)
+    try:
+        return ZoneInfo(candidate)
+    except Exception:
+        pass
+    try:
+        return ZoneInfo(raw)
+    except Exception:
+        logger.warning(
+            "Unknown reminder timezone %r; using UTC (set IANA e.g. Asia/Kolkata).",
+            raw,
+        )
+        return ZoneInfo("UTC")
+
 POST_EXPO_BATCH: Callable[[list[dict[str, Any]]], list[dict[str, Any]]] | None = None
 
 
@@ -120,8 +154,6 @@ def run_push_reminders(
     Schedule this management command at least every ``window`` minutes
     (default from ``PUSH_REMINDER_WINDOW_MINUTES``).
     """
-    from zoneinfo import ZoneInfo
-
     window = (
         window_minutes
         if window_minutes is not None
@@ -129,6 +161,8 @@ def run_push_reminders(
     )
     if window <= 0:
         window = 15
+
+    from zoneinfo import ZoneInfo
 
     if now_utc is None:
         now_utc = datetime.now(tz=ZoneInfo("UTC"))
@@ -161,10 +195,7 @@ def run_push_reminders(
 
     for profile in profiles.iterator():
         tz_name = (profile.timezone or "UTC").strip() or "UTC"
-        try:
-            tz = ZoneInfo(tz_name)
-        except Exception:
-            tz = ZoneInfo("UTC")
+        tz = zoneinfo_for_reminder_timezone(tz_name)
         now_local = now_utc.astimezone(tz)
         rt = profile.reminder_time
         assert rt is not None
