@@ -3922,7 +3922,8 @@ class DailyVerseView(APIView):
 
     def get(self, request):
         """Serve one date-seeded verse with language-aware meaning."""
-        language = str(request.query_params.get("language", "en")).strip()
+        raw = request.query_params.get("language") or request.query_params.get("lang")
+        language = str(raw or "en").strip()
         if language not in {"en", "hi"}:
             language = "en"
         payload = self._build_daily_payload(
@@ -3955,7 +3956,8 @@ class DailyVerseHistoryView(APIView):
                 code="invalid_days",
             )
         days = min(max(days, 1), 60)
-        language = str(request.query_params.get("language", "en")).strip()
+        raw_lang = request.query_params.get("language") or request.query_params.get("lang")
+        language = str(raw_lang or "en").strip()
         if language not in {"en", "hi"}:
             language = "en"
         today = timezone.localdate()
