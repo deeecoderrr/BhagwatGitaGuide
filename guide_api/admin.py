@@ -508,6 +508,7 @@ class UserEngagementProfileAdmin(admin.ModelAdmin):
         "reminder_enabled",
         "preferred_channel",
         "timezone",
+        "last_reminder_push_date",
     )
     list_filter = ("reminder_enabled", "preferred_channel", "timezone")
     search_fields = ("user__username", "user__email")

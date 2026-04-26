@@ -25,8 +25,12 @@ Last updated: 2026-04-25
     - `GET /api/plans/catalog/`
   - added notification + device APIs:
     - `GET|PATCH /api/notifications/preferences/`
+    - `GET /api/devices/` (active devices)
     - `POST /api/devices/register/`
     - `DELETE /api/devices/<id>/`
+  - **Push delivery:** `guide_api/push_reminders.py` + `manage.py send_push_reminders`
+    (Expo Push API); `UserEngagementProfile.last_reminder_push_date` dedupes one send
+    per local calendar day; mobile registers Expo tokens via `expo-notifications`.
   - added reader/mobile helpers:
     - `GET /api/daily-verse/history/`
     - `GET /api/verses/search/`

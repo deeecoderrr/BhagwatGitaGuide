@@ -431,6 +431,18 @@ REST_FRAMEWORK = {
     ],
 }
 
+# Daily push reminders (``manage.py send_push_reminders``; schedule every N minutes).
+PUSH_REMINDER_WINDOW_MINUTES = int(os.getenv("PUSH_REMINDER_WINDOW_MINUTES", "15"))
+EXPO_ACCESS_TOKEN = os.getenv("EXPO_ACCESS_TOKEN", "").strip()
+PUSH_REMINDER_TITLE = os.getenv(
+    "PUSH_REMINDER_TITLE",
+    "Daily Gita reflection",
+).strip()
+PUSH_REMINDER_BODY = os.getenv(
+    "PUSH_REMINDER_BODY",
+    "Take a quiet moment with today's verse in Ask Bhagavad Gita.",
+).strip()
+
 # ITR Summary Generator (optional): see config/settings_itr.py
 def _configure_optional_itr():
     from config.settings_itr import register_itr_settings

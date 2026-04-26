@@ -599,6 +599,8 @@ class UserEngagementProfile(models.Model):
         choices=CHANNEL_CHOICES,
         default=CHANNEL_NONE,
     )
+    # User-local calendar date (in their reminder timezone) when we last sent a push reminder.
+    last_reminder_push_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

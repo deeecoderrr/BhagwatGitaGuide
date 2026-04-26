@@ -1,5 +1,6 @@
 import json
-from datetime import timedelta
+from datetime import date, datetime, time, timedelta
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 from tempfile import NamedTemporaryFile
 from unittest.mock import MagicMock, patch
@@ -42,6 +43,11 @@ from django.test import Client, TestCase, override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from guide_api.push_reminders import (
+    is_expo_push_token,
+    is_within_reminder_window,
+    run_push_reminders,
+)
 from guide_api.services import (
     _build_fallback_guidance,
     _build_query_embedding,
@@ -620,6 +626,17 @@ class GuideApiTests(APITestCase):
         )
         delete_response = self.client.delete(f"/api/devices/{device_id}/")
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_devices_list_returns_active_rows(self):
+        self.client.post(
+            "/api/devices/register/",
+            {"token": "ExponentPushToken[listtest]", "platform": "ios"},
+            format="json",
+        )
+        list_response = self.client.get("/api/devices/")
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(list_response.data), 1)
+        self.assertEqual(list_response.data[0]["platform"], "ios")
 
     def test_conversations_list_create_messages_and_delete(self):
         create_response = self.client.post(
@@ -4146,3 +4163,66 @@ class CourseStudioWebTests(TestCase):
         client.force_login(self.normal_user)
         response = client.get("/staff/course-studio/")
         self.assertEqual(response.status_code, 403)
+
+
+class PushReminderHelpersTests(TestCase):
+    def test_is_expo_push_token(self):
+        self.assertTrue(is_expo_push_token("ExponentPushToken[abc]"))
+        self.assertFalse(is_expo_push_token("fcm-raw"))
+
+    def test_is_within_reminder_window_same_calendar_day(self):
+        tz = ZoneInfo("UTC")
+        now = datetime(2026, 4, 25, 8, 5, tzinfo=tz)
+        self.assertTrue(is_within_reminder_window(now, time(8, 0), 15))
+        self.assertFalse(is_within_reminder_window(now, time(9, 0), 15))
+
+    def test_is_within_reminder_window_cross_midnight(self):
+        tz = ZoneInfo("UTC")
+        now = datetime(2026, 4, 25, 0, 2, tzinfo=tz)
+        self.assertTrue(is_within_reminder_window(now, time(23, 50), 15))
+
+
+class PushReminderRunTests(TestCase):
+    def test_send_push_reminders_command_dry_run(self):
+        from io import StringIO
+
+        buf = StringIO()
+        call_command("send_push_reminders", "--dry-run", stdout=buf)
+        out = buf.getvalue()
+        self.assertIn("due_users=", out)
+
+    def test_run_push_reminders_dry_run_counts(self):
+        user = User.objects.create_user("push-dry", password="x")
+        p, _ = UserEngagementProfile.objects.get_or_create(user=user)
+        p.reminder_enabled = True
+        p.preferred_channel = UserEngagementProfile.CHANNEL_PUSH
+        p.reminder_time = time(8, 0)
+        p.timezone = "UTC"
+        p.save()
+        NotificationDevice.objects.create(
+            user=user,
+            token="ExponentPushToken[dryrun]",
+            platform=NotificationDevice.PLATFORM_ANDROID,
+        )
+        now_utc = datetime(2026, 4, 25, 8, 5, tzinfo=ZoneInfo("UTC"))
+        stats = run_push_reminders(dry_run=True, now_utc=now_utc, window_minutes=15)
+        self.assertEqual(stats["due_users"], 1)
+        self.assertEqual(stats["due_messages"], 1)
+
+    def test_run_push_reminders_skips_already_sent_today(self):
+        user = User.objects.create_user("push-skip", password="x")
+        p, _ = UserEngagementProfile.objects.get_or_create(user=user)
+        p.reminder_enabled = True
+        p.preferred_channel = UserEngagementProfile.CHANNEL_PUSH
+        p.reminder_time = time(8, 0)
+        p.timezone = "UTC"
+        p.last_reminder_push_date = date(2026, 4, 25)
+        p.save()
+        NotificationDevice.objects.create(
+            user=user,
+            token="ExponentPushToken[skipme]",
+            platform=NotificationDevice.PLATFORM_ANDROID,
+        )
+        now_utc = datetime(2026, 4, 25, 8, 5, tzinfo=ZoneInfo("UTC"))
+        stats = run_push_reminders(dry_run=True, now_utc=now_utc, window_minutes=15)
+        self.assertEqual(stats["due_users"], 0)

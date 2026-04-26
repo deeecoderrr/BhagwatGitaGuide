@@ -127,7 +127,8 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - payment/subscription: `payments/create-order`, `payments/verify`,
   `payments/history`, `subscription/status`
 - device/reminder: `GET|PATCH notifications/preferences`,
-  `POST devices/register`, `DELETE devices/<id>`
+  `GET devices/`, `POST devices/register`, `DELETE devices/<id>`;
+  `manage.py send_push_reminders` sends Expo push for due profiles (cron).
 - `GET|POST chat-ui/` — browser test UI (forms, CSRF, session-backed UX,
   separate threads, and sidebar conversation selection)
 

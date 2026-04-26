@@ -4663,6 +4663,19 @@ class SupportTicketListView(APIView):
         )
 
 
+class NotificationDeviceListView(APIView):
+    """List active push-notification devices for the authenticated user."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        rows = NotificationDevice.objects.filter(
+            user=request.user,
+            active=True,
+        ).order_by("-updated_at")
+        return Response(NotificationDeviceSerializer(rows, many=True).data)
+
+
 class NotificationDeviceRegisterView(APIView):
     """Register or refresh a user's push-notification device token."""
 

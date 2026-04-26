@@ -170,8 +170,12 @@ Use this map to understand the exact call chain for each endpoint.
 ### Mobile-parity notification endpoints
 
 - `GET|PATCH /api/notifications/preferences/` alias for reminder profile controls.
+- `GET /api/devices/` list active `NotificationDevice` rows for the user.
 - `POST /api/devices/register/` upsert token/platform for push delivery.
 - `DELETE /api/devices/<device_id>/` unregister device token.
+- Scheduled **Expo** push: `python manage.py send_push_reminders` (see `guide_api/push_reminders.py`).
+  Run at least every `PUSH_REMINDER_WINDOW_MINUTES` (default 15). Optional `EXPO_ACCESS_TOKEN`
+  in settings for Expo’s authenticated push API.
 
 ### `POST /api/ask/`
 
