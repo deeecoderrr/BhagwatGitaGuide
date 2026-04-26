@@ -1,26 +1,24 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="{{ language|default:'en' }}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% if language == "hi" %}दैनिक साधना{% else %}Daily Sadhana Practice{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
   <style>
-    :root {
-      --bg: #070d18;
-      --panel: rgba(12, 18, 34, 0.92);
-      --gold: #f5c76b;
-      --cyan: #79d9ef;
-      --muted: rgba(228, 236, 255, 0.72);
-      --text: #fff8ec;
-      --radius: 18px;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
-    }
     body {
       margin: 0;
       min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
       background:
-        radial-gradient(circle at 18% 12%, rgba(121, 217, 239, 0.09), transparent 42%),
-        radial-gradient(circle at 92% 18%, rgba(245, 199, 107, 0.08), transparent 45%),
+        radial-gradient(circle at 18% 12%, rgba(91, 163, 196, 0.1), transparent 42%),
+        radial-gradient(circle at 92% 18%, rgba(232, 184, 109, 0.08), transparent 45%),
         var(--bg);
       color: var(--text);
     }
@@ -31,7 +29,10 @@
       gap: 14px;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 1px solid rgba(121, 217, 239, 0.15);
+      border-bottom: 1px solid rgba(232, 184, 109, 0.16);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.55), rgba(5, 8, 16, 0.25));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     header h1 {
       margin: 0;
@@ -49,14 +50,14 @@
       font-weight: 600;
       padding: 10px 16px;
       border-radius: 999px;
-      border: 1px solid rgba(245, 199, 107, 0.35);
+      border: 1px solid rgba(232, 184, 109, 0.35);
       color: var(--gold);
       text-decoration: none;
-      background: rgba(245, 199, 107, 0.06);
+      background: rgba(232, 184, 109, 0.06);
     }
     .nav-chat:hover {
-      border-color: rgba(245, 199, 107, 0.55);
-      background: rgba(245, 199, 107, 0.1);
+      border-color: rgba(232, 184, 109, 0.55);
+      background: rgba(232, 184, 109, 0.1);
     }
     main {
       padding: 22px clamp(16px, 4vw, 40px) 48px;
@@ -65,11 +66,11 @@
     }
     .panel {
       background: var(--panel);
-      border: 1px solid rgba(121, 217, 239, 0.14);
+      border: 1px solid rgba(232, 184, 109, 0.18);
       border-radius: var(--radius);
       padding: 20px;
       margin-bottom: 18px;
-      box-shadow: 0 22px 48px rgba(2, 8, 22, 0.42);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 24px 56px rgba(2, 6, 16, 0.5);
     }
     .muted { color: var(--muted); font-size: 13px; }
     .programs { display: grid; gap: 14px; }
@@ -88,7 +89,7 @@
       font-size: 11px;
       letter-spacing: 0.06em;
       text-transform: uppercase;
-      border: 1px solid rgba(245, 199, 107, 0.25);
+      border: 1px solid rgba(232, 184, 109, 0.25);
       color: rgba(245, 217, 160, 0.92);
       margin-right: 8px;
     }
@@ -145,7 +146,7 @@
     details.dev-hint code { font-size: 10px; color: rgba(200, 220, 245, 0.85); }
   </style>
 </head>
-<body data-lang="{{ language|default:'en' }}" data-currency="{{ billing_currency|default:'INR' }}">
+<body class="gita-ambient" data-lang="{{ language|default:'en' }}" data-currency="{{ billing_currency|default:'INR' }}">
   {% csrf_token %}
   <header>
     <div>

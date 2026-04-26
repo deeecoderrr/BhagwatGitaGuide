@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="{{ shared.language|default:'en' }}">
 <head>
@@ -23,25 +24,13 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
 
   <style>
-    :root {
-      --bg-1: #081321;
-      --bg-2: #12253c;
-      --bg-3: #27163d;
-      --surface: rgba(11, 20, 35, 0.8);
-      --surface-strong: rgba(12, 19, 32, 0.92);
-      --line: rgba(241, 203, 120, 0.18);
-      --line-strong: rgba(241, 203, 120, 0.32);
-      --text: #f8f2e8;
-      --muted: rgba(241, 232, 219, 0.78);
-      --gold: #f1cb78;
-      --gold-strong: #d69a38;
-      --sky: #8fdaf7;
-      --shadow: 0 28px 70px rgba(2, 7, 18, 0.34);
-    }
-
     * { box-sizing: border-box; }
 
     body {
@@ -50,9 +39,9 @@
       color: var(--text);
       min-height: 100vh;
       background:
-        radial-gradient(circle at 12% 20%, rgba(115, 186, 255, 0.16), transparent 26%),
-        radial-gradient(circle at 84% 18%, rgba(241, 203, 120, 0.12), transparent 18%),
-        radial-gradient(circle at 84% 76%, rgba(215, 121, 162, 0.16), transparent 24%),
+        radial-gradient(circle at 12% 20%, rgba(91, 132, 180, 0.18), transparent 26%),
+        radial-gradient(circle at 84% 18%, rgba(232, 184, 109, 0.1), transparent 18%),
+        radial-gradient(circle at 84% 76%, rgba(107, 78, 158, 0.12), transparent 24%),
         linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
     }
 
@@ -89,12 +78,12 @@
       align-items: center;
       gap: 14px;
       margin-bottom: 18px;
-      padding: 12px 14px;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      background: rgba(10, 17, 29, 0.74);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 18px 34px rgba(2, 7, 18, 0.22);
+      padding: 14px 16px;
+      border-radius: 24px;
+      border: 1px solid rgba(232, 184, 109, 0.22);
+      background: linear-gradient(180deg, rgba(14, 18, 32, 0.9), rgba(6, 10, 20, 0.82));
+      backdrop-filter: blur(16px) saturate(120%);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 22px 50px rgba(2, 6, 16, 0.45);
     }
 
     .brand {
@@ -154,13 +143,13 @@
       grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.92fr);
       gap: 20px;
       align-items: stretch;
-      border-radius: 28px;
-      border: 1px solid var(--line-strong);
+      border-radius: 30px;
+      border: 1px solid rgba(232, 184, 109, 0.26);
       background:
-        radial-gradient(circle at top left, rgba(241, 203, 120, 0.14), transparent 26%),
-        linear-gradient(145deg, rgba(9, 18, 30, 0.84), rgba(17, 31, 49, 0.78) 45%, rgba(43, 23, 54, 0.74));
+        radial-gradient(ellipse 80% 50% at 0% 0%, rgba(232, 184, 109, 0.1), transparent 40%),
+        linear-gradient(148deg, rgba(10, 16, 28, 0.9), rgba(16, 28, 44, 0.85) 48%, rgba(32, 22, 40, 0.78));
       padding: 28px;
-      box-shadow: var(--shadow);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 28px 64px rgba(2, 4, 10, 0.48);
       margin-bottom: 20px;
     }
 
@@ -182,15 +171,20 @@
     }
 
     h1, h2, h3 {
-      font-family: "Sora", sans-serif;
       margin: 0;
     }
 
     h1 {
-      font-size: clamp(28px, 4vw, 46px);
-      line-height: 1.08;
-      letter-spacing: -0.03em;
+      font-family: "Cormorant Garamond", "Sora", Georgia, serif;
+      font-size: clamp(30px, 4vw, 50px);
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+      font-weight: 600;
+      text-shadow: 0 0 45px rgba(232, 184, 109, 0.12);
       margin-bottom: 14px;
+    }
+    h2, h3 {
+      font-family: "Sora", "Manrope", sans-serif;
     }
 
     .hero-copy p,
@@ -302,7 +296,7 @@
     }
   </style>
 </head>
-<body>
+<body class="gita-ambient">
   <div class="page">
     <div class="topbar">
       <a class="brand" href="/">

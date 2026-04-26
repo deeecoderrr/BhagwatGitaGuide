@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="{{ language|default:'en' }}">
 <head>
@@ -28,30 +29,12 @@
   {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
   <style>
-    :root {
-      --bg-1: #081321;
-      --bg-2: #10233a;
-      --bg-3: #25173d;
-      --surface: rgba(11, 20, 35, 0.74);
-      --surface-strong: rgba(12, 19, 32, 0.9);
-      --surface-soft: rgba(255, 255, 255, 0.05);
-      --line: rgba(243, 209, 143, 0.16);
-      --line-strong: rgba(243, 209, 143, 0.3);
-      --text: #f7f1e6;
-      --muted: rgba(235, 228, 214, 0.78);
-      --gold: #f1cb78;
-      --gold-strong: #d69a38;
-      --sky: #8fdaf7;
-      --rose: #e7a4b8;
-      --shadow: 0 28px 70px rgba(2, 7, 18, 0.38);
-      --radius-xl: 30px;
-      --radius-lg: 24px;
-      --radius-md: 18px;
-      --reading: 68ch;
-    }
-
     * { box-sizing: border-box; }
 
     body {
@@ -60,9 +43,9 @@
       color: var(--text);
       min-height: 100vh;
       background:
-        radial-gradient(circle at 8% 14%, rgba(115, 186, 255, 0.18), transparent 24%),
-        radial-gradient(circle at 84% 18%, rgba(241, 203, 120, 0.13), transparent 20%),
-        radial-gradient(circle at 82% 72%, rgba(216, 112, 160, 0.16), transparent 24%),
+        radial-gradient(circle at 8% 14%, rgba(91, 132, 180, 0.2), transparent 24%),
+        radial-gradient(circle at 84% 18%, rgba(232, 184, 109, 0.1), transparent 20%),
+        radial-gradient(circle at 82% 72%, rgba(107, 78, 158, 0.12), transparent 24%),
         linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
       overflow-x: hidden;
     }
@@ -100,13 +83,13 @@
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      padding: 12px 14px;
+      padding: 14px 16px;
       margin-bottom: 18px;
-      border-radius: 22px;
-      border: 1px solid var(--line);
-      background: rgba(10, 17, 29, 0.74);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 18px 34px rgba(2, 7, 18, 0.22);
+      border-radius: 24px;
+      border: 1px solid rgba(232, 184, 109, 0.24);
+      background: linear-gradient(180deg, rgba(14, 18, 32, 0.9), rgba(6, 10, 20, 0.82));
+      backdrop-filter: blur(16px) saturate(120%);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 22px 50px rgba(2, 6, 16, 0.45);
     }
 
     .brand-lockup {
@@ -118,9 +101,10 @@
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      font-family: "Sora", sans-serif;
-      font-weight: 800;
-      font-size: 18px;
+      font-family: "Cormorant Garamond", "Sora", Georgia, serif;
+      font-weight: 600;
+      font-size: 1.3rem;
+      letter-spacing: 0.04em;
     }
 
     .brand-mark span:last-child {
@@ -191,13 +175,13 @@
       grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
       gap: 24px;
       align-items: stretch;
-      border: 1px solid var(--line-strong);
+      border: 1px solid rgba(232, 184, 109, 0.3);
       border-radius: var(--radius-xl);
       background:
-        radial-gradient(circle at top left, rgba(241, 203, 120, 0.18), transparent 28%),
-        linear-gradient(145deg, rgba(9, 18, 30, 0.84), rgba(17, 31, 49, 0.78) 45%, rgba(43, 23, 54, 0.74));
+        radial-gradient(ellipse 80% 45% at 0% 0%, rgba(232, 184, 109, 0.1), transparent 40%),
+        linear-gradient(148deg, rgba(10, 16, 28, 0.9), rgba(16, 28, 44, 0.85) 48%, rgba(32, 22, 40, 0.78));
       padding: 30px;
-      box-shadow: var(--shadow);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 28px 64px rgba(2, 4, 10, 0.48);
       overflow: hidden;
       position: relative;
       margin-bottom: 24px;
@@ -211,10 +195,10 @@
       width: 170px;
       height: 170px;
       border-radius: 50%;
-      border: 1px solid rgba(241, 203, 120, 0.14);
+      border: 1px solid rgba(232, 184, 109, 0.15);
       box-shadow:
-        0 0 0 18px rgba(241, 203, 120, 0.03),
-        0 0 0 42px rgba(241, 203, 120, 0.02);
+        0 0 0 18px rgba(232, 184, 109, 0.03),
+        0 0 0 42px rgba(232, 184, 109, 0.02);
       pointer-events: none;
     }
 
@@ -225,27 +209,35 @@
       width: fit-content;
       border-radius: 999px;
       border: 1px solid var(--line);
-      background: rgba(241, 203, 120, 0.08);
+      background: rgba(232, 184, 109, 0.1);
       color: var(--gold);
       font-size: 12px;
+      font-family: "Sora", "Manrope", sans-serif;
       font-weight: 700;
-      letter-spacing: 0.16em;
+      letter-spacing: 0.2em;
       padding: 10px 14px;
       text-transform: uppercase;
       margin-bottom: 16px;
     }
 
     h1, h2, h3 {
-      font-family: "Sora", sans-serif;
       margin: 0;
     }
 
     h1 {
+      font-family: "Cormorant Garamond", "Sora", Georgia, serif;
       font-size: clamp(34px, 5.2vw, 62px);
-      line-height: 1.04;
-      letter-spacing: -0.03em;
+      line-height: 1.06;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 55px rgba(232, 184, 109, 0.12);
       max-width: 12ch;
       margin-bottom: 16px;
+    }
+
+    h2,
+    h3 {
+      font-family: "Sora", "Manrope", sans-serif;
     }
 
     .hero-copy > p,
@@ -603,7 +595,7 @@
     }
   </style>
 </head>
-<body>
+<body class="gita-ambient">
   <div class="page">
     <div class="topbar">
       <div class="brand-lockup">

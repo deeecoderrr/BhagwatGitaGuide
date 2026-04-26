@@ -1,0 +1,181 @@
+/**
+ * Web theme aligned with mobile: expo/constants/theme.ts
+ * Calm night field, gold accents, one token set for chat + public pages.
+ */
+
+:root {
+  /* —— Mobile source (expo/constants/theme.ts) —— */
+  --gita-bg: #0b0f2a;
+  --gita-bg-deep: #05060d;
+  --gita-bg-soft: #12152c;
+  --gita-gold: #e8b86d;
+  --gita-gold-light: #f5d49a;
+  --gita-gold-deep: #b8893e;
+  --gita-text: #f5efe0;
+  --gita-text-soft: #c8c4d6;
+  --gita-text-dim: #8a8aa8;
+  --gita-border: rgba(232, 184, 109, 0.18);
+  --gita-sea: #173044;
+  --gita-saffron: #f08c3a;
+  --gita-violet: #6b4e9e;
+  --gita-on-gold: #1a1042;
+  --gita-glass: rgba(20, 24, 56, 0.65);
+  --gita-panel: rgba(14, 18, 44, 0.92);
+  --gita-danger: #e07a6a;
+  --gita-success: #7fbf8f;
+  --gita-radius-sm: 10px;
+  --gita-radius-md: 16px;
+  --gita-radius-lg: 22px;
+  --gita-radius-xl: 28px;
+  /* Fine gold rim on glass surfaces (chat / cards) */
+  --gita-hairline: rgba(232, 184, 109, 0.2);
+
+  /* —— Chat UI —— */
+  --font-body: "Manrope", "Segoe UI", Roboto, Arial, sans-serif;
+  /* Display: liturgical / manuscript feel — Cormorant is loaded in templates. */
+  --font-sacred: "Cormorant Garamond", "Times New Roman", Georgia, serif;
+  --font-display: "Cormorant Garamond", "Sora", "Manrope", Georgia, serif;
+  --font-ui: "Sora", "Manrope", sans-serif;
+  --bg-a: #05060d;
+  --bg-b: #101320;
+  --bg-c: #17283a;
+  --bg-d: #2a1b10;
+  --divine-gold: var(--gita-gold);
+  --divine-gold-soft: rgba(232, 184, 109, 0.38);
+  --lotus-rose: #9b7ba8;
+  --lotus-rose-soft: rgba(107, 78, 158, 0.16);
+  --sky-glow: #5ba3c4;
+  --surface: var(--gita-glass);
+  --surface-strong: rgba(16, 22, 48, 0.88);
+  --surface-soft: rgba(255, 255, 255, 0.06);
+  --border: var(--gita-border);
+  --border-strong: rgba(232, 184, 109, 0.28);
+  --text: var(--gita-text);
+  --muted: var(--gita-text-soft);
+  --text-muted: var(--gita-text-dim);
+  --accent: var(--gita-gold-deep);
+  --accent-2: #6ba8c4;
+  --danger-bg: rgba(224, 122, 106, 0.2);
+  --danger-border: rgba(224, 122, 106, 0.45);
+  --success-bg: rgba(127, 191, 143, 0.2);
+  --success-border: rgba(127, 191, 143, 0.45);
+  --shadow: 0 24px 60px rgba(2, 7, 18, 0.48);
+  --shadow-soft: 0 14px 36px rgba(2, 7, 18, 0.28);
+  --reading-width: 72ch;
+  --dark-bg: var(--gita-on-gold);
+  --blue: #6ecce3;
+
+  /* —— practice_hub, community, shared answer, SEO —— */
+  --bg: var(--gita-bg-deep);
+  --panel: var(--gita-panel);
+  --radius: 18px;
+  --gold: var(--gita-gold);
+  --cyan: #5ba3c4;
+  --line: var(--gita-border);
+  --line-strong: rgba(232, 184, 109, 0.3);
+  --bg-1: #05060d;
+  --bg-2: #101320;
+  --bg-3: #1a1f32;
+  --gold-strong: var(--gita-gold-deep);
+  --sky: #5ba3c4;
+  --rose: #9b7ba8;
+  --radius-xl: 30px;
+  --radius-lg: 24px;
+  --radius-md: 18px;
+  --reading: 68ch;
+}
+
+/* —— Base polish —— */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(232, 184, 109, 0.22);
+  color: #fffef8;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(232, 184, 109, 0.55);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .aurora-veils,
+  .stardust,
+  .bg-orb {
+    animation: none !important;
+  }
+}
+
+/* —— Public pages: ambient shell (practice, community, shared, SEO) —— */
+body.gita-ambient {
+  position: relative;
+  isolation: isolate;
+}
+
+body.gita-ambient::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 90% 50% at 50% -12%, rgba(232, 184, 109, 0.1), transparent 52%),
+    radial-gradient(ellipse 50% 45% at 100% 100%, rgba(23, 48, 68, 0.45), transparent 50%),
+    linear-gradient(180deg, rgba(5, 6, 13, 0) 0%, rgba(3, 5, 12, 0.5) 100%);
+}
+
+body.gita-ambient::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.05;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 75% 55% at 50% 32%, black 0%, transparent 100%);
+}
+
+body.gita-ambient .page,
+body.gita-ambient .wrap,
+body.gita-ambient > header,
+body.gita-ambient > main {
+  position: relative;
+  z-index: 1;
+}
+
+body.gita-ambient header h1 {
+  font-family: var(--font-sacred);
+  font-weight: 500;
+  font-size: clamp(24px, 3.5vw, 34px);
+  letter-spacing: 0.03em;
+  color: var(--gita-text);
+  text-shadow: 0 0 50px rgba(232, 184, 109, 0.12);
+}
+
+body.gita-ambient h1,
+body.gita-ambient .hero h1,
+body.gita-ambient .article-title {
+  font-family: var(--font-sacred);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+/* Glass panels on sadhana + similar */
+body.gita-ambient .panel,
+body.gita-ambient .topbar,
+body.gita-ambient .composer,
+body.gita-ambient .hero,
+body.gita-ambient .hero-side {
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+}
