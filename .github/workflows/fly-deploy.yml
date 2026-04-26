@@ -1,4 +1,7 @@
 # See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
+#
+# Requires repo secret FLY_API_TOKEN (Fly dashboard → tokens, or `fly tokens create`).
+# If deploy fails in ~10s, open the job log: usually "not authenticated" or missing secret.
 
 name: Fly Deploy
 on:
@@ -13,6 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only
+      - name: Verify Fly API token
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "${FLY_API_TOKEN}" ]; then
+            echo "::error::FLY_API_TOKEN is not set. GitHub → Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          flyctl version
+      - name: Deploy to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy --remote-only -a askbhagavadgita

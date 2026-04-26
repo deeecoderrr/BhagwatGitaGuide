@@ -90,6 +90,8 @@ Critical Django production setting behind Fly proxy:
 - `SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")`
 - Without it, HTTPS redirect loops can occur (`301` to same URL repeatedly).
 
+If **GitHub Actions → Fly Deploy** fails in **under ~15 seconds**, open the job log: it is almost always **`FLY_API_TOKEN` missing** in the repo (**Settings → Secrets and variables → Actions**) or an **expired / revoked** token. Create a new deploy token in Fly (**Dashboard → Account → Fly.io org tokens**, or `fly tokens create`) and update the **`FLY_API_TOKEN`** secret. The workflow **`.github/workflows/fly-deploy.yml`** includes an explicit **`flyctl deploy ... -a askbhagavadgita`** and a token presence check so the log states the fix clearly.
+
 Useful production commands:
 
 ```bash
