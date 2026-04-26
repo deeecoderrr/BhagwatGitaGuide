@@ -138,11 +138,9 @@
       background: rgba(143, 218, 247, 0.08);
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.92fr);
-      gap: 20px;
-      align-items: stretch;
+    .hero.hero-sanctum {
+      display: flex;
+      flex-direction: column;
       border-radius: 30px;
       border: 1px solid rgba(232, 184, 109, 0.26);
       background:
@@ -151,6 +149,23 @@
       padding: 28px;
       box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 28px 64px rgba(2, 4, 10, 0.48);
       margin-bottom: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-sanctum .hero-split-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(260px, 0.92fr);
+      gap: 20px;
+      align-items: stretch;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 900px) {
+      .hero-sanctum .hero-split-row {
+        grid-template-columns: 1fr;
+      }
     }
 
     .eyebrow {
@@ -160,7 +175,7 @@
       width: fit-content;
       border-radius: 999px;
       border: 1px solid var(--line);
-      background: rgba(241, 203, 120, 0.08);
+      background: rgba(232, 184, 109, 0.1);
       color: var(--gold);
       font-size: 12px;
       font-weight: 700;
@@ -227,7 +242,7 @@
     .verse-chip {
       border-radius: 999px;
       border: 1px solid var(--line);
-      background: rgba(241, 203, 120, 0.08);
+      background: rgba(232, 184, 109, 0.1);
       color: var(--gold);
       padding: 9px 13px;
       font-size: 13px;
@@ -309,43 +324,86 @@
       </div>
     </div>
 
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow">Shared Gita Guidance</div>
-        <h1>{{ shared.question }}</h1>
-        <p>
-          {% if shared.language == "hi" %}
-            यह उत्तर भगवद गीता की शिक्षा पर आधारित है और किसी वास्तविक जीवन स्थिति को शांत, स्पष्ट और लागू करने योग्य भाषा में समझाने के लिए साझा किया गया है।
-          {% else %}
-            This guidance is rooted in the Bhagavad Gita and shared as a calm, practical response to a real-life question.
-          {% endif %}
-        </p>
-      </div>
-
-      <div class="hero-side">
-        <h2>{% if shared.language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses used{% endif %}</h2>
-        {% if shared.verse_references %}
-          <div class="verse-list">
-            {% for ref in shared.verse_references %}
-              <span class="verse-chip">BG {{ ref }}</span>
-            {% endfor %}
-          </div>
-        {% else %}
-          <p class="card-copy">
+    <section class="hero hero-sanctum">
+      <div class="hero-aurora" aria-hidden="true"></div>
+      <div class="hero-split-row">
+        <div class="hero-copy">
+          <div class="eyebrow">Shared Gita Guidance</div>
+          <h1>{{ shared.question }}</h1>
+          <p>
             {% if shared.language == "hi" %}
-              इस उत्तर के लिए श्लोक संदर्भ उपलब्ध नहीं है।
+              यह उत्तर भगवद गीता की शिक्षा पर आधारित है और किसी वास्तविक जीवन स्थिति को शांत, स्पष्ट और लागू करने योग्य भाषा में समझाने के लिए साझा किया गया है।
             {% else %}
-              No verse references were stored for this answer.
+              This guidance is rooted in the Bhagavad Gita and shared as a calm, practical response to a real-life question.
             {% endif %}
           </p>
-        {% endif %}
-        <div class="cta-row">
-          <a class="btn primary" href="{{ chat_url }}">
-            {% if shared.language == "hi" %}अपना प्रश्न पूछें{% else %}Ask your own question{% endif %}
-          </a>
-          <button type="button" class="btn secondary" id="shareBtn">
-            {% if shared.language == "hi" %}इस उत्तर को शेयर करें{% else %}Share this answer{% endif %}
-          </button>
+        </div>
+
+        <div class="hero-side">
+          <h2>{% if shared.language == "hi" %}उपयोग किए गए श्लोक{% else %}Verses used{% endif %}</h2>
+          {% if shared.verse_references %}
+            <div class="verse-list">
+              {% for ref in shared.verse_references %}
+                <span class="verse-chip">BG {{ ref }}</span>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="card-copy">
+              {% if shared.language == "hi" %}
+                इस उत्तर के लिए श्लोक संदर्भ उपलब्ध नहीं है।
+              {% else %}
+                No verse references were stored for this answer.
+              {% endif %}
+            </p>
+          {% endif %}
+          <div class="cta-row">
+            <a class="btn primary" href="{{ chat_url }}">
+              {% if shared.language == "hi" %}अपना प्रश्न पूछें{% else %}Ask your own question{% endif %}
+            </a>
+            <button type="button" class="btn secondary" id="shareBtn">
+              {% if shared.language == "hi" %}इस उत्तर को शेयर करें{% else %}Share this answer{% endif %}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="hero-glass-deck" role="region" aria-label="{% if shared.language == 'hi' %}संदर्भ{% else %}Context{% endif %}">
+        <div class="hero-glass-card">
+          <div class="hero-glass-card-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7V15" /></svg>
+          </div>
+          <div>
+            <div class="hero-glass-card-kicker">{% if shared.language == "hi" %}श्लोक{% else %}Verses{% endif %}</div>
+            <div class="hero-glass-card-title">
+              {% if shared.language == "hi" %}साझा उत्तर, स्पष्ट संदर्भ{% else %}Shared answer, clear context{% endif %}
+            </div>
+            <p class="hero-glass-card-sub">
+              {% if shared.language == "hi" %}
+                जब उपलब्ध हो, श्लोक संदर्भ सहेजे जाते हैं — पूर्ण ऐप में गहराई से जुड़ें।
+              {% else %}
+                Verse references are kept when available — open the app to go deeper.
+              {% endif %}
+            </p>
+            <div class="hero-glass-card-meter hero-glass-card-meter--full" aria-hidden="true"><span></span></div>
+          </div>
+        </div>
+        <div class="hero-glass-card">
+          <div class="hero-glass-card-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7V15" /></svg>
+          </div>
+          <div>
+            <div class="hero-glass-card-kicker">{% if shared.language == "hi" %}आगे{% else %}Next{% endif %}</div>
+            <div class="hero-glass-card-title">
+              {% if shared.language == "hi" %}अपनी स्थिति पर लागू करें{% else %}Apply it to your situation{% endif %}
+            </div>
+            <p class="hero-glass-card-sub">
+              {% if shared.language == "hi" %}
+                एक नया प्रश्न लिखकर उसी शांत प्रवाह में मार्गदर्शन जारी रखें।
+              {% else %}
+                Ask a fresh question and continue in the same calm guidance flow.
+              {% endif %}
+            </p>
+            <div class="hero-glass-card-meter hero-glass-card-meter--high" aria-hidden="true"><span></span></div>
+          </div>
         </div>
       </div>
     </section>

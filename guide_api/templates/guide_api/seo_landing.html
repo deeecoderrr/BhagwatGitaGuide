@@ -170,11 +170,9 @@
       font-weight: 700;
     }
 
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
-      gap: 24px;
-      align-items: stretch;
+    .hero.hero-sanctum {
+      display: flex;
+      flex-direction: column;
       border: 1px solid rgba(232, 184, 109, 0.3);
       border-radius: var(--radius-xl);
       background:
@@ -187,7 +185,22 @@
       margin-bottom: 24px;
     }
 
-    .hero::after {
+    .hero-sanctum .hero-top-split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+      gap: 24px;
+      align-items: stretch;
+      position: relative;
+      z-index: 1;
+    }
+
+    @media (max-width: 1024px) {
+      .hero-sanctum .hero-top-split {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .hero.hero-sanctum::after {
       content: "";
       position: absolute;
       right: 5%;
@@ -551,7 +564,7 @@
     }
 
     @media (max-width: 1040px) {
-      .hero,
+      .hero-sanctum .hero-top-split,
       .grid {
         grid-template-columns: 1fr;
       }
@@ -628,47 +641,90 @@
       </div>
     </div>
 
-    <section class="hero">
-      <div class="hero-copy">
-        <div class="eyebrow">{{ topic_label|default:"Bhagavad Gita guidance" }}</div>
-        <h1>{{ page_heading }}</h1>
-        <p>{{ page_intro }}</p>
-        <div class="trust-row">
-          <div class="trust-pill">{% if language == "hi" %}गीता श्लोक आधारित{% else %}Verse-grounded guidance{% endif %}</div>
-          <div class="trust-pill">{% if language == "hi" %}आधुनिक जीवन से जुड़ा हुआ{% else %}Connected to modern life{% endif %}</div>
-          <div class="trust-pill">{% if language == "hi" %}सरल, शांत, उपयोगी{% else %}Simple, calm, practical{% endif %}</div>
+    <section class="hero hero-sanctum">
+      <div class="hero-aurora" aria-hidden="true"></div>
+      <div class="hero-top-split">
+        <div class="hero-copy">
+          <div class="eyebrow">{{ topic_label|default:"Bhagavad Gita guidance" }}</div>
+          <h1>{{ page_heading }}</h1>
+          <p>{{ page_intro }}</p>
+          <div class="trust-row">
+            <div class="trust-pill">{% if language == "hi" %}गीता श्लोक आधारित{% else %}Verse-grounded guidance{% endif %}</div>
+            <div class="trust-pill">{% if language == "hi" %}आधुनिक जीवन से जुड़ा हुआ{% else %}Connected to modern life{% endif %}</div>
+            <div class="trust-pill">{% if language == "hi" %}सरल, शांत, उपयोगी{% else %}Simple, calm, practical{% endif %}</div>
+          </div>
+        </div>
+
+        <div class="ask-card">
+          <h2>{% if language == "hi" %}यहीं से शुरू करें{% else %}Ask right away{% endif %}</h2>
+          <p>
+            {% if language == "hi" %}
+              यदि आप अभी तनाव, डर, उलझन, संबंध या करियर की स्थिति में हैं, तो सीधे अपना प्रश्न लिखें।
+            {% else %}
+              If you’re arriving here in stress, confusion, heartbreak, or uncertainty, you should be able to ask immediately.
+            {% endif %}
+          </p>
+          <form class="cta-form" method="get" action="/api/chat-ui/">
+            <input type="hidden" name="mode" value="simple">
+            <input type="hidden" name="language" value="{{ language|default:'en' }}">
+            <textarea name="prefill" placeholder="{% if starter_question %}{{ starter_question }}{% else %}{% if language == 'hi' %}उदा. मैं बहुत चिंतित हूं और समझ नहीं पा रहा/रही कि क्या करूं। गीता क्या कहती है?{% else %}e.g. I feel overwhelmed and do not know what to do next. What does the Gita say?{% endif %}{% endif %}"></textarea>
+            {% if language == "hi" %}
+              <p class="muted" style="margin: 0 0 10px; font-size: 14px;"><a href="/api/chat-ui/?mode=simple&amp;language=hi">ऐप खोलें</a></p>
+            {% else %}
+              <p class="muted" style="margin: 0 0 10px; font-size: 14px;">Ask This In The App</p>
+            {% endif %}
+            <div class="ask-card-actions">
+              <button class="btn primary" type="submit">
+                {% if language == "hi" %}पूर्ण मार्गदर्शन खोलें{% else %}Open Full Guidance{% endif %}
+              </button>
+              {% if starter_question %}
+                <a class="btn secondary" href="{{ chat_url_with_prefill }}">
+                  {% if language == "hi" %}उदाहरण से शुरू करें{% else %}Use Example Prompt{% endif %}
+                </a>
+              {% endif %}
+            </div>
+          </form>
         </div>
       </div>
-
-      <div class="ask-card">
-        <h2>{% if language == "hi" %}यहीं से शुरू करें{% else %}Ask right away{% endif %}</h2>
-        <p>
-          {% if language == "hi" %}
-            यदि आप अभी तनाव, डर, उलझन, संबंध या करियर की स्थिति में हैं, तो सीधे अपना प्रश्न लिखें।
-          {% else %}
-            If you’re arriving here in stress, confusion, heartbreak, or uncertainty, you should be able to ask immediately.
-          {% endif %}
-        </p>
-        <form class="cta-form" method="get" action="/api/chat-ui/">
-          <input type="hidden" name="mode" value="simple">
-          <input type="hidden" name="language" value="{{ language|default:'en' }}">
-          <textarea name="prefill" placeholder="{% if starter_question %}{{ starter_question }}{% else %}{% if language == 'hi' %}उदा. मैं बहुत चिंतित हूं और समझ नहीं पा रहा/रही कि क्या करूं। गीता क्या कहती है?{% else %}e.g. I feel overwhelmed and do not know what to do next. What does the Gita say?{% endif %}{% endif %}"></textarea>
-          {% if language == "hi" %}
-            <p class="muted" style="margin: 0 0 10px; font-size: 14px;"><a href="/api/chat-ui/?mode=simple&amp;language=hi">ऐप खोलें</a></p>
-          {% else %}
-            <p class="muted" style="margin: 0 0 10px; font-size: 14px;">Ask This In The App</p>
-          {% endif %}
-          <div class="ask-card-actions">
-            <button class="btn primary" type="submit">
-              {% if language == "hi" %}पूर्ण मार्गदर्शन खोलें{% else %}Open Full Guidance{% endif %}
-            </button>
-            {% if starter_question %}
-              <a class="btn secondary" href="{{ chat_url_with_prefill }}">
-                {% if language == "hi" %}उदाहरण से शुरू करें{% else %}Use Example Prompt{% endif %}
-              </a>
-            {% endif %}
+      <div class="hero-glass-deck" role="region" aria-label="{% if language == 'hi' %}मुख्य विशेषताएँ{% else %}Key qualities{% endif %}">
+        <div class="hero-glass-card">
+          <div class="hero-glass-card-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7V15" /></svg>
           </div>
-        </form>
+          <div>
+            <div class="hero-glass-card-kicker">{% if language == "hi" %}श्रोत{% else %}Source{% endif %}</div>
+            <div class="hero-glass-card-title">
+              {% if language == "hi" %}श्लोक-प्रथम मार्गदर्शन{% else %}Verse-first guidance{% endif %}
+            </div>
+            <p class="hero-glass-card-sub">
+              {% if language == "hi" %}
+                उत्तर गीता के श्लोकों से जुड़े रहते हैं — स्पष्ट संदर्भ के साथ।
+              {% else %}
+                Answers stay anchored to the Gita’s verses with clear references.
+              {% endif %}
+            </p>
+            <div class="hero-glass-card-meter hero-glass-card-meter--full" aria-hidden="true"><span></span></div>
+          </div>
+        </div>
+        <div class="hero-glass-card">
+          <div class="hero-glass-card-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M7 17L17 7M17 7H9M17 7V15" /></svg>
+          </div>
+          <div>
+            <div class="hero-glass-card-kicker">{% if language == "hi" %}अनुभव{% else %}Experience{% endif %}</div>
+            <div class="hero-glass-card-title">
+              {% if language == "hi" %}शांत, स्पष्ट, लागू{% else %}Calm, clear, applicable{% endif %}
+            </div>
+            <p class="hero-glass-card-sub">
+              {% if language == "hi" %}
+                तेज़ शोर नहीं — धीमी, सम्मानजनक गति।
+              {% else %}
+                No noisy hype — a slower, respectful pace for real decisions.
+              {% endif %}
+            </p>
+            <div class="hero-glass-card-meter hero-glass-card-meter--high" aria-hidden="true"><span></span></div>
+          </div>
+        </div>
       </div>
     </section>
 

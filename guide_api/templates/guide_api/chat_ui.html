@@ -4954,6 +4954,9 @@
       font-weight: 600;
       text-shadow: 0 0 50px rgba(232, 184, 109, 0.16);
     }
+    body.gita-sanctum .hero.hero-sanctum .hero-grid {
+      flex: 1 1 auto;
+    }
   </style>
 </head>
 <body
@@ -5065,7 +5068,14 @@
       </div>
     </nav>
 
-    <section class="hero animate__animated animate__fadeInDown" data-aos="fade-up" data-parallax data-depth="16">
+    <section
+      class="hero hero-sanctum animate__animated animate__fadeInDown"
+      data-aos="fade-up"
+      data-parallax
+      data-depth="16"
+      aria-label="{% if language == 'hi' %}मुख्य परिचय{% else %}Introduction{% endif %}"
+    >
+      <div class="hero-aurora" aria-hidden="true"></div>
       <div class="hero-grid">
         <div class="hero-copy" data-parallax data-depth="10">
           <div class="eyebrow">
@@ -5144,6 +5154,50 @@
                 • {% if language == "hi" %}मोड{% else %}Approach{% endif %}: <strong>{{ mode|default:"simple" }}</strong>
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-glass-deck" role="region" aria-label="{% if language == 'hi' %}मुख्य विशेषताएँ{% else %}Key qualities{% endif %}">
+        <div class="hero-glass-card">
+          <div class="hero-glass-card-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M7 17L17 7M17 7H9M17 7V15" />
+            </svg>
+          </div>
+          <div>
+            <div class="hero-glass-card-kicker">{% if language == "hi" %}श्रोत{% else %}Source{% endif %}</div>
+            <div class="hero-glass-card-title">
+              {% if language == "hi" %}७०० श्लोक, एक ही खोज{% else %}700 ślokas, one search{% endif %}
+            </div>
+            <p class="hero-glass-card-sub">
+              {% if language == "hi" %}
+                हर उत्तर प्रासंगिक श्लोकों और अध्याय-संदर्भ से जुड़ा रहता है।
+              {% else %}
+                Every answer stays tied to cited verses and chapter context.
+              {% endif %}
+            </p>
+            <div class="hero-glass-card-meter hero-glass-card-meter--full" aria-hidden="true"><span></span></div>
+          </div>
+        </div>
+        <div class="hero-glass-card">
+          <div class="hero-glass-card-icon" aria-hidden="true">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M7 17L17 7M17 7H9M17 7V15" />
+            </svg>
+          </div>
+          <div>
+            <div class="hero-glass-card-kicker">{% if language == "hi" %}भाषा{% else %}Languages{% endif %}</div>
+            <div class="hero-glass-card-title">
+              {% if language == "hi" %}अंग्रेज़ी · हिंदी{% else %}English · Hindi{% endif %}
+            </div>
+            <p class="hero-glass-card-sub">
+              {% if language == "hi" %}
+                शांत गति, स्पष्ट भाषा — बिना शोर के मार्गदर्शन।
+              {% else %}
+                Calm pacing and plain language — guidance without hype.
+              {% endif %}
+            </p>
+            <div class="hero-glass-card-meter hero-glass-card-meter--high" aria-hidden="true"><span></span></div>
           </div>
         </div>
       </div>

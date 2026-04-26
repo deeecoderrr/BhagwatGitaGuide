@@ -108,8 +108,12 @@ html {
   }
   .aurora-veils,
   .stardust,
-  .bg-orb {
+  .bg-orb,
+  .hero-sanctum > .hero-aurora {
     animation: none !important;
+  }
+  .hero-glass-card:hover {
+    transform: none;
   }
 }
 
@@ -178,4 +182,167 @@ body.gita-ambient .hero,
 body.gita-ambient .hero-side {
   backdrop-filter: blur(16px) saturate(120%);
   -webkit-backdrop-filter: blur(16px) saturate(120%);
+}
+
+/* ═══ Sanctum hero (reference: layered glow + glass stats; Gita gold / sea / violet) ═══ */
+
+.hero-sanctum {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero-sanctum > .hero-aurora {
+  position: absolute;
+  left: -14%;
+  right: -14%;
+  bottom: -48%;
+  height: 92%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+  border-radius: 50%;
+  transform-origin: 50% 100%;
+  background:
+    radial-gradient(ellipse 52% 36% at 50% 100%, rgba(232, 184, 109, 0.45), transparent 58%),
+    radial-gradient(ellipse 38% 32% at 18% 88%, rgba(23, 48, 68, 0.9), transparent 54%),
+    radial-gradient(ellipse 42% 34% at 82% 90%, rgba(107, 78, 158, 0.32), transparent 52%),
+    radial-gradient(ellipse 68% 48% at 50% 115%, rgba(5, 6, 13, 0.98), transparent 48%);
+  animation: sanctumAuroraBreath 16s ease-in-out infinite alternate;
+}
+
+@keyframes sanctumAuroraBreath {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-10px) scale(1.035);
+    opacity: 1;
+  }
+}
+
+.hero-sanctum .hero-grid,
+.hero-sanctum .hero-top-split,
+.hero-sanctum .hero-split-row {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-sanctum .hero-glass-deck {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+  margin-top: 20px;
+}
+
+@media (min-width: 900px) {
+  .hero-sanctum .hero-glass-deck {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .hero-sanctum .hero-glass-deck {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero-glass-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(165deg, rgba(255, 255, 255, 0.08), rgba(6, 10, 22, 0.72));
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.28),
+    0 20px 48px rgba(2, 4, 12, 0.4);
+  transition: border-color 0.28s ease, box-shadow 0.28s ease, transform 0.28s ease;
+}
+
+.hero-glass-card:hover {
+  border-color: rgba(232, 184, 109, 0.32);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.28),
+    0 24px 56px rgba(2, 4, 12, 0.48),
+    0 0 40px rgba(232, 184, 109, 0.06);
+  transform: translateY(-2px);
+}
+
+.hero-glass-card-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(232, 184, 109, 0.38);
+  background: rgba(232, 184, 109, 0.09);
+  color: #f5d49a;
+}
+
+.hero-glass-card-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.hero-glass-card-kicker {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(232, 184, 109, 0.88);
+  margin-bottom: 6px;
+  font-family: var(--font-ui);
+}
+
+.hero-glass-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+  font-family: var(--font-body);
+}
+
+.hero-glass-card-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: 5px;
+}
+
+.hero-glass-card-meter {
+  margin-top: 12px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.hero-glass-card-meter > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #b8893e, #e8b86d, #f5d49a);
+  box-shadow: 0 0 14px rgba(232, 184, 109, 0.35);
+}
+
+.hero-glass-card-meter--full > span {
+  width: 100%;
+}
+
+.hero-glass-card-meter--high > span {
+  width: 92%;
 }
