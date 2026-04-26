@@ -3167,6 +3167,7 @@ class AskView(APIView):
             mode=data["mode"],
             language=data["language"],
             conversation_id=data.get("conversation_id"),
+            plan=subscription.plan,
         )
         usage.ask_count += 1
         usage.save(update_fields=["ask_count"])
