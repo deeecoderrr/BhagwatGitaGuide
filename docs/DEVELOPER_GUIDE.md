@@ -102,6 +102,34 @@ flyctl ssh console -a askbhagavadgita -C "python manage.py growth_report"
 flyctl ssh console -a askbhagavadgita -C "python manage.py shell -c \"from guide_api.models import Verse; print(Verse.objects.count())\""
 ```
 
+### Fly: Expo push reminder environment (step 2)
+
+Django reads **`EXPO_ACCESS_TOKEN`**, **`PUSH_REMINDER_WINDOW_MINUTES`**, **`PUSH_REMINDER_TITLE`**, and **`PUSH_REMINDER_BODY`** from the environment (`config/settings.py`). For **`askbhagavadgita`**:
+
+1. **Optional but recommended at scale — set the Expo access token as a Fly secret** (do not put this in `fly.toml` or git):
+   - Create a token in the [Expo dashboard](https://expo.dev/) under **Access tokens** (scope: at least what Expo documents for the Push API).
+   - Apply it to the Fly app (replace the placeholder):
+
+   ```bash
+   flyctl secrets set EXPO_ACCESS_TOKEN="paste-token-here" -a askbhagavadgita
+   ```
+
+   Redeploy is not always required; Fly injects secrets at machine start. Restart or deploy if the app was already running.
+
+2. **Non-secret defaults** for window, title, and body are set in **`fly.toml`** under **`[env]`**. Override any of them without touching secrets, for example:
+
+   ```bash
+   flyctl secrets set PUSH_REMINDER_TITLE="Your title" -a askbhagavadgita
+   ```
+
+   (Fly secrets override `[env]` for the same key.) To rely only on `fly.toml` `[env]`, omit those secrets.
+
+3. **Confirm the app sees configuration** (does not print the token):
+
+   ```bash
+   flyctl ssh console -a askbhagavadgita -C "python manage.py shell -c \"from django.conf import settings; print('token_set=', bool(settings.EXPO_ACCESS_TOKEN), 'window=', settings.PUSH_REMINDER_WINDOW_MINUTES)\""
+   ```
+
 ## Endpoint Walkthrough Index
 
 Use this map to understand the exact call chain for each endpoint.

@@ -14,6 +14,11 @@ console_command = '/code/manage.py shell'
 
 [env]
   PORT = '8000'
+  # Push reminders (Expo). Non-secret copy + window; see docs/DEVELOPER_GUIDE.md (Fly + push).
+  PUSH_REMINDER_WINDOW_MINUTES = '15'
+  PUSH_REMINDER_TITLE = 'Daily Gita reflection'
+  PUSH_REMINDER_BODY = "Take a quiet moment with today's verse in Ask Bhagavad Gita."
+  # Secret: set EXPO_ACCESS_TOKEN only via `flyctl secrets set` (never commit).
 
 [http_service]
   internal_port = 8000
