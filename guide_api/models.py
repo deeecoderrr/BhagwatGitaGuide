@@ -601,6 +601,11 @@ class UserEngagementProfile(models.Model):
     )
     # User-local calendar date (in their reminder timezone) when we last sent a push reminder.
     last_reminder_push_date = models.DateField(null=True, blank=True)
+    reminder_language = models.CharField(
+        max_length=4,
+        default="en",
+        help_text="Language for daily reminder push copy (en|hi); mirrors app UI language.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

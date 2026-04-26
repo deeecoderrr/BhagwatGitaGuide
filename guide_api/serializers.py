@@ -181,6 +181,10 @@ class EngagementProfileUpdateSerializer(serializers.Serializer):
         choices=["push", "email", "none"],
         required=False,
     )
+    reminder_language = serializers.ChoiceField(
+        choices=["en", "hi"],
+        required=False,
+    )
 
 
 class SupportRequestSerializer(serializers.Serializer):
@@ -528,6 +532,10 @@ class NotificationPreferenceSerializer(serializers.Serializer):
     timezone = serializers.CharField(max_length=64, required=False)
     preferred_channel = serializers.ChoiceField(
         choices=["push", "email", "none"],
+        required=False,
+    )
+    reminder_language = serializers.ChoiceField(
+        choices=["en", "hi"],
         required=False,
     )
 

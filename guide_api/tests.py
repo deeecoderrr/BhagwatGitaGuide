@@ -44,6 +44,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from guide_api.push_reminders import (
+    _expo_fields_for_daily_reminder,
     is_expo_push_token,
     is_within_reminder_window,
     run_push_reminders,
@@ -603,16 +604,19 @@ class GuideApiTests(APITestCase):
     def test_notifications_preferences_endpoint_get_and_patch(self):
         get_response = self.client.get("/api/notifications/preferences/")
         self.assertEqual(get_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(get_response.data.get("reminder_language"), "en")
         patch_response = self.client.patch(
             "/api/notifications/preferences/",
             {
                 "reminder_enabled": True,
                 "preferred_channel": "push",
+                "reminder_language": "hi",
             },
             format="json",
         )
         self.assertEqual(patch_response.status_code, status.HTTP_200_OK)
         self.assertTrue(patch_response.data["reminder_enabled"])
+        self.assertEqual(patch_response.data.get("reminder_language"), "hi")
 
     def test_devices_register_and_delete(self):
         create_response = self.client.post(
@@ -891,6 +895,7 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.data["daily_streak"], 0)
         self.assertEqual(response.data["preferred_channel"], "none")
         self.assertEqual(response.data["timezone"], "UTC")
+        self.assertEqual(response.data.get("reminder_language"), "en")
 
     def test_engagement_me_patch_updates_preferences(self):
         response = self.client.patch(
@@ -4268,3 +4273,21 @@ class PushReminderRunTests(TestCase):
         now_utc = datetime(2026, 4, 25, 12, 9, tzinfo=ZoneInfo("UTC"))
         stats = run_push_reminders(dry_run=True, now_utc=now_utc, window_minutes=15)
         self.assertEqual(stats["due_users"], 0)
+
+    def test_expo_fields_for_daily_reminder_has_signal_shape(self):
+        user = User.objects.create_user("push-fields", password="x")
+        p, _ = UserEngagementProfile.objects.get_or_create(user=user)
+        p.reminder_language = "en"
+        p.save()
+        fields = _expo_fields_for_daily_reminder(
+            profile=p,
+            local_date=date(2026, 4, 25),
+        )
+        self.assertIn("title", fields)
+        self.assertIn("body", fields)
+        self.assertGreater(len(fields["title"]), 3)
+        self.assertGreater(len(fields["body"]), 3)
+        data = fields.get("data") or {}
+        self.assertEqual(data.get("type"), "daily_reminder")
+        if data.get("verseRef"):
+            self.assertRegex(str(data["verseRef"]), r"^\d+\.\d+$")

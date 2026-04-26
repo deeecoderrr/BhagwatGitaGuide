@@ -59,6 +59,57 @@ def is_expo_push_token(token: str) -> bool:
     return bool(token and token.startswith("ExponentPushToken["))
 
 
+def _expo_fields_for_daily_reminder(
+    *,
+    profile: UserEngagementProfile,
+    local_date: date,
+) -> dict[str, Any]:
+    """
+    Title/body/data for one push, using the same daily verse as the app for ``local_date``.
+
+    ``local_date`` must be the user's wall date in their reminder timezone (not server UTC).
+    """
+    from guide_api.views import DailyVerseView
+
+    default_title = getattr(
+        settings,
+        "PUSH_REMINDER_TITLE",
+        "Daily Gita reflection",
+    )
+    default_body = getattr(
+        settings,
+        "PUSH_REMINDER_BODY",
+        "Take a quiet moment with today's verse in Ask Bhagavad Gita.",
+    )
+    lang = getattr(profile, "reminder_language", None) or "en"
+    if lang not in {"en", "hi"}:
+        lang = "en"
+    payload = DailyVerseView._build_daily_payload(day=local_date, language=lang)
+    ref = str(payload.get("reference") or "").strip()
+    quote = str(payload.get("quote") or "").strip()
+    meaning = str(payload.get("meaning") or "").strip()
+    if not ref and not quote and not meaning:
+        return {
+            "title": str(default_title),
+            "body": str(default_body),
+            "data": {"type": "daily_reminder"},
+        }
+    title = f"Today's signal · BG {ref}" if ref else str(default_title)
+    if len(title) > 64:
+        title = title[:63] + "…"
+    # Prefer translation/meaning (language-aware); keep within typical OS truncation.
+    body = meaning or quote or str(default_body)
+    if quote and meaning and quote not in meaning and len(body) < 200:
+        body = f"{meaning} — {quote[:80]}" if len(meaning) + len(quote) < 280 else meaning
+    body = body.strip() or str(default_body)
+    if len(body) > 280:
+        body = body[:279] + "…"
+    data: dict[str, str] = {"type": "daily_reminder"}
+    if ref:
+        data["verseRef"] = ref
+    return {"title": title, "body": body, "data": data}
+
+
 def is_within_reminder_window(
     now_local: datetime,
     reminder_time: time,
@@ -171,17 +222,6 @@ def run_push_reminders(
     elif now_utc.tzinfo is None:
         now_utc = now_utc.replace(tzinfo=ZoneInfo("UTC"))
 
-    title = getattr(
-        settings,
-        "PUSH_REMINDER_TITLE",
-        "Daily Gita reflection",
-    )
-    body = getattr(
-        settings,
-        "PUSH_REMINDER_BODY",
-        "Take a quiet moment with today's verse in Ask Bhagavad Gita.",
-    )
-
     poster = POST_EXPO_BATCH or _default_post_expo_batch
 
     profiles = (
@@ -234,12 +274,14 @@ def run_push_reminders(
 
     for profile, now_local, expo_devices in planned:
         local_date = now_local.date()
+        fields = _expo_fields_for_daily_reminder(profile=profile, local_date=local_date)
         for dev in expo_devices:
             messages.append(
                 {
                     "to": dev.token,
-                    "title": str(title),
-                    "body": str(body),
+                    "title": str(fields["title"]),
+                    "body": str(fields["body"]),
+                    "data": fields.get("data") or {},
                     "sound": "default",
                     "priority": "high",
                 },

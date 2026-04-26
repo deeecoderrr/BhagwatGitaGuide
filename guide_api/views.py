@@ -2622,6 +2622,7 @@ def _serialize_engagement_profile(profile) -> dict:
         ),
         "timezone": profile.timezone,
         "preferred_channel": profile.preferred_channel,
+        "reminder_language": getattr(profile, "reminder_language", None) or "en",
     }
 
 
