@@ -82,7 +82,9 @@ def is_within_reminder_window(
 def _default_post_expo_batch(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not messages:
         return []
-    payload = json.dumps({"messages": messages}).encode("utf-8")
+    # Expo expects a JSON array of message objects (or one object), not {"messages": [...]}.
+    # See https://docs.expo.dev/push-notifications/sending-notifications/#http2-api
+    payload = json.dumps(messages).encode("utf-8")
     req = urllib.request.Request(
         EXPO_PUSH_URL,
         data=payload,
