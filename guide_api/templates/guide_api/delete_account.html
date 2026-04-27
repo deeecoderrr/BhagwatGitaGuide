@@ -1,0 +1,141 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delete Account Request | Ask, Meditate, Inner Peace</title>
+  <meta
+    name="description"
+    content="How to request deletion of your Ask Bhagavad Gita account and associated data."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 8% 10%, rgba(91, 132, 180, 0.2), transparent 28%),
+        radial-gradient(circle at 85% 18%, rgba(232, 184, 109, 0.1), transparent 24%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
+    }
+    .page {
+      width: min(940px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 24px 0 72px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(232, 184, 109, 0.1), transparent 30%),
+        rgba(12, 19, 32, 0.86);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 28px 64px rgba(2, 4, 10, 0.45);
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(32px, 5vw, 48px);
+      line-height: 1.06;
+      letter-spacing: 0.02em;
+      color: #fff2d6;
+      font-weight: 600;
+    }
+    h2 {
+      margin: 22px 0 10px;
+      font-size: 20px;
+      color: #ffefcc;
+      font-family: "Sora", "Manrope", sans-serif;
+    }
+    p, li {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+    ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+    .notice {
+      border: 1px solid rgba(232, 184, 109, 0.32);
+      border-radius: 14px;
+      padding: 12px 14px;
+      background: rgba(232, 184, 109, 0.08);
+      color: #ffefca;
+      margin-top: 12px;
+      font-size: 14px;
+      line-height: 1.62;
+    }
+    a { color: #9fdff8; }
+    .top-links {
+      margin-bottom: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      text-decoration: none;
+      color: var(--text);
+      padding: 9px 13px;
+      font-size: 13px;
+      background: rgba(255, 255, 255, 0.04);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body class="gita-ambient">
+  <div class="page">
+    <div class="top-links">
+      <a class="pill" href="/">Home</a>
+      <a class="pill" href="/privacy-policy/">Privacy Policy</a>
+      <a class="pill" href="/api/chat-ui/?mode=simple&language=en">Open App</a>
+    </div>
+    <article class="card">
+      <h1>Delete Account Request</h1>
+      <p>
+        You can request deletion of your account and associated personal data for
+        <strong>Ask, Meditate, Inner Peace</strong> (Ask Bhagavad Gita) by contacting:
+        <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+      </p>
+
+      <h2>How to request deletion</h2>
+      <ul>
+        <li>Send an email to <a href="mailto:{{ support_email }}">{{ support_email }}</a>.</li>
+        <li>Use subject: <strong>Delete My Account</strong>.</li>
+        <li>Include your registered account email/username so we can locate your account.</li>
+      </ul>
+
+      <h2>What data is deleted</h2>
+      <ul>
+        <li>Account profile data linked to your user account.</li>
+        <li>Saved app content associated with your account (for example: conversation history and saved reflections), except where retention is required by law.</li>
+        <li>Associated notification device registrations linked to your account.</li>
+      </ul>
+
+      <h2>What may be retained and why</h2>
+      <ul>
+        <li>Limited billing/transaction records may be retained for legal, accounting, anti-fraud, and compliance obligations.</li>
+        <li>Security and abuse-prevention logs may be retained for a limited period.</li>
+      </ul>
+
+      <div class="notice">
+        We process verified account deletion requests within a reasonable timeframe.
+        If we must retain specific records for legal/compliance reasons, those records
+        are isolated and retained only as required.
+      </div>
+    </article>
+  </div>
+</body>
+</html>

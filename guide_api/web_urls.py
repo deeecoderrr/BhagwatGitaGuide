@@ -6,6 +6,7 @@ from guide_api.sadhana_views import PracticeHubView
 from guide_api.staff_views import CourseStudioView
 from guide_api.views import (
     CommunityWallView,
+    DeleteAccountPageView,
     PrivacyPolicyPageView,
     SEO_LANDING_PAGES,
     SharedAnswerPageView,
@@ -43,6 +44,11 @@ urlpatterns = [
         "privacy/",
         PrivacyPolicyPageView.as_view(),
         name="privacy-policy-short",
+    ),
+    path(
+        "delete-account/",
+        DeleteAccountPageView.as_view(),
+        name="delete-account",
     ),
     path("robots.txt", robots_txt_view, name="robots-txt"),
     path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),

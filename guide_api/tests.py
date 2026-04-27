@@ -245,6 +245,13 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Mental Health and Medical Disclaimer")
         self.assertContains(response, "contact:")
 
+    def test_delete_account_page_loads(self):
+        response = self.client.get("/delete-account/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Delete Account Request")
+        self.assertContains(response, "Delete My Account")
+        self.assertContains(response, "What data is deleted")
+
     def test_robots_txt_exposes_sitemap(self):
         response = self.client.get("/robots.txt")
         self.assertEqual(response.status_code, status.HTTP_200_OK)

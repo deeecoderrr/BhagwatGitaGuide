@@ -2146,6 +2146,26 @@ class PrivacyPolicyPageView(TemplateView):
         return context
 
 
+class DeleteAccountPageView(TemplateView):
+    """Public account deletion instructions for store compliance."""
+
+    template_name = "guide_api/delete_account.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        support_email = (
+            getattr(settings, "SUPPORT_EMAIL", "")
+            or getattr(settings, "DEFAULT_FROM_EMAIL", "")
+            or "support@askbhagavadgita.co.in"
+        )
+        context.update(
+            {
+                "support_email": support_email,
+            }
+        )
+        return context
+
+
 def _get_user_plan_and_usage(user):
     """Return user subscription record and today's usage counter."""
     subscription, _ = UserSubscription.objects.get_or_create(user=user)
