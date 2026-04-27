@@ -1466,6 +1466,7 @@ def sitemap_xml_view(request):
     ] + [
         "/frequently-asked-bhagavad-gita-questions/",
         "/daily-bhagavad-gita-verse/",
+        "/privacy-policy/",
         "/api/chat-ui/",
     ]
     entries = []
@@ -2122,6 +2123,27 @@ class SeoLandingTopicView(View):
         response = render(request, self.template_name, context)
         _attach_web_audience_cookie(request, response)
         return response
+
+
+class PrivacyPolicyPageView(TemplateView):
+    """Public privacy policy page for store listings and user trust."""
+
+    template_name = "guide_api/privacy_policy.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        support_email = (
+            getattr(settings, "SUPPORT_EMAIL", "")
+            or getattr(settings, "DEFAULT_FROM_EMAIL", "")
+            or "support@askbhagavadgita.co.in"
+        )
+        context.update(
+            {
+                "effective_date": "2026-04-27",
+                "support_email": support_email,
+            }
+        )
+        return context
 
 
 def _get_user_plan_and_usage(user):

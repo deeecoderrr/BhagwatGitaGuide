@@ -6,6 +6,7 @@ from guide_api.sadhana_views import PracticeHubView
 from guide_api.staff_views import CourseStudioView
 from guide_api.views import (
     CommunityWallView,
+    PrivacyPolicyPageView,
     SEO_LANDING_PAGES,
     SharedAnswerPageView,
     SeoDailyVerseHubView,
@@ -32,6 +33,16 @@ urlpatterns = [
         "community/",
         CommunityWallView.as_view(),
         name="community-wall",
+    ),
+    path(
+        "privacy-policy/",
+        PrivacyPolicyPageView.as_view(),
+        name="privacy-policy",
+    ),
+    path(
+        "privacy/",
+        PrivacyPolicyPageView.as_view(),
+        name="privacy-policy-short",
     ),
     path("robots.txt", robots_txt_view, name="robots-txt"),
     path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),

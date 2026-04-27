@@ -1,0 +1,257 @@
+<!doctype html>
+{% load static %}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy | Ask, Meditate, Inner Peace</title>
+  <meta
+    name="description"
+    content="Privacy Policy for Ask, Meditate, Inner Peace (Ask Bhagavad Gita): data collection, usage, retention, notifications, and user rights."
+  >
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% 12%, rgba(91, 132, 180, 0.2), transparent 26%),
+        radial-gradient(circle at 86% 20%, rgba(232, 184, 109, 0.1), transparent 24%),
+        linear-gradient(135deg, var(--bg-1) 0%, var(--bg-2) 48%, var(--bg-3) 100%);
+    }
+
+    .page {
+      width: min(980px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 24px 0 72px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 12px 14px;
+      background: rgba(10, 17, 29, 0.74);
+      backdrop-filter: blur(12px);
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      text-decoration: none;
+      color: var(--text);
+      font-family: "Cormorant Garamond", serif;
+      font-size: 26px;
+      letter-spacing: 0.02em;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .pill {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--text);
+      text-decoration: none;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .pill.primary {
+      border-color: rgba(232, 184, 109, 0.4);
+      background: linear-gradient(135deg, rgba(232, 184, 109, 0.2), rgba(184, 137, 62, 0.08));
+      color: #ffeec6;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top left, rgba(232, 184, 109, 0.1), transparent 30%),
+        rgba(12, 19, 32, 0.86);
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 28px 64px rgba(2, 4, 10, 0.45);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(34px, 5vw, 52px);
+      line-height: 1.06;
+      letter-spacing: 0.02em;
+      font-weight: 600;
+      color: #fff2d6;
+    }
+
+    h2 {
+      margin: 26px 0 10px;
+      font-family: "Sora", "Manrope", sans-serif;
+      font-size: 20px;
+      letter-spacing: 0.01em;
+      color: #ffefcc;
+    }
+
+    p, li {
+      color: var(--muted);
+      line-height: 1.75;
+      font-size: 15px;
+    }
+
+    ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .meta {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    .notice {
+      border: 1px solid rgba(232, 184, 109, 0.32);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(232, 184, 109, 0.08);
+      color: #ffefca;
+      font-size: 14px;
+      line-height: 1.65;
+      margin: 14px 0 8px;
+    }
+
+    a {
+      color: #9fdff8;
+    }
+
+    @media (max-width: 720px) {
+      .page { width: min(100% - 18px, 980px); }
+      .topbar { flex-direction: column; align-items: stretch; }
+      .actions { justify-content: flex-start; }
+      .card { padding: 20px; border-radius: 22px; }
+    }
+  </style>
+</head>
+<body class="gita-ambient">
+  <div class="page">
+    <div class="topbar">
+      <a class="brand" href="/">
+        <span>🙏</span>
+        <span>Ask Bhagavad Gita</span>
+      </a>
+      <div class="actions">
+        <a class="pill" href="/">Home</a>
+        <a class="pill primary" href="/api/chat-ui/?mode=simple&language=en">Open App</a>
+      </div>
+    </div>
+
+    <article class="card">
+      <h1>Privacy Policy</h1>
+      <p class="meta">
+        Effective date: {{ effective_date }}
+      </p>
+      <p>
+        This Privacy Policy explains how we collect, use, and protect information when you use
+        our services, including the website and mobile application currently listed on Google Play
+        as <strong>Ask, Meditate, Inner Peace</strong> (also referred to as
+        <strong>Ask Bhagavad Gita</strong>).
+      </p>
+
+      <h2>1) Information We Collect</h2>
+      <ul>
+        <li>Account information: username, email, and authentication details when you register.</li>
+        <li>User input and content: questions, reflections, saved entries, and interaction history.</li>
+        <li>Device and app data: app/device identifiers, notification token (if you enable reminders), and basic diagnostics.</li>
+        <li>Usage analytics: page visits, feature usage, and events used to improve product quality and reliability.</li>
+        <li>Billing details: payment/order references for subscription and transaction tracking (processed via integrated payment providers).</li>
+      </ul>
+
+      <h2>2) How We Use Information</h2>
+      <ul>
+        <li>Provide core product functionality, including guidance responses, history, and personalization.</li>
+        <li>Improve response quality, app performance, and reliability.</li>
+        <li>Deliver notifications and reminders when enabled by you.</li>
+        <li>Prevent abuse, enforce quotas/permissions, and maintain platform safety.</li>
+        <li>Support account, billing, and customer support operations.</li>
+      </ul>
+
+      <h2>3) Sharing of Information</h2>
+      <p>
+        We do not sell personal data. We may share limited data with service providers strictly to
+        operate the product (for example: hosting, push notifications, analytics, and payment
+        processing). These providers process data under their own privacy and security obligations.
+      </p>
+
+      <h2>4) Data Retention</h2>
+      <p>
+        We retain data for as long as needed to provide service, meet legal obligations, resolve
+        disputes, and enforce agreements. You may request deletion of account-linked data by
+        contacting support.
+      </p>
+
+      <h2>5) Notifications and Permissions</h2>
+      <p>
+        If you allow notifications, we store a push token to send reminders and product updates.
+        You can disable notifications at any time from app settings or your device settings.
+      </p>
+
+      <h2>6) Security</h2>
+      <p>
+        We use reasonable technical and organizational safeguards to protect data. No internet
+        transmission or storage system is 100% secure, so absolute security cannot be guaranteed.
+      </p>
+
+      <h2>7) Children's Privacy</h2>
+      <p>
+        Our services are not directed to children under 13. If you believe a child provided us
+        personal data, contact us and we will take appropriate action.
+      </p>
+
+      <h2>8) Mental Health and Medical Disclaimer</h2>
+      <div class="notice">
+        This app provides spiritual and reflective guidance and is not a medical, psychiatric, or
+        emergency service. If you are in immediate danger or experiencing a crisis, contact local
+        emergency services or a qualified mental-health professional immediately.
+      </div>
+
+      <h2>9) Your Choices and Rights</h2>
+      <ul>
+        <li>You may update account/profile details through available in-app settings.</li>
+        <li>You can disable notifications at any time.</li>
+        <li>You may request access or deletion of your account-linked personal data via support.</li>
+      </ul>
+
+      <h2>10) Contact</h2>
+      <p>
+        For privacy questions, data requests, or support, contact:
+        <a href="mailto:{{ support_email }}">{{ support_email }}</a>
+      </p>
+
+      <h2>11) Policy Updates</h2>
+      <p>
+        We may update this policy over time. Material updates will be reflected on this page with
+        a revised effective date.
+      </p>
+    </article>
+  </div>
+</body>
+</html>

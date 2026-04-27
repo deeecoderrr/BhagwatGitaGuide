@@ -77,6 +77,7 @@ Useful `Makefile` targets: `make run`, `make test`, `make setup`,
 | Management commands | `guide_api/management/commands/` (`ingest_gita_multiscript`, `import_gita`, `tag_gita_themes`, `embed_gita_verses`, `setup_pgvector_index`, `sync_pgvector_embeddings`, `eval_retrieval`, `growth_report`) |
 | Tests | `guide_api/tests.py` |
 | ITR (optional) | `apps/` (`documents`, `exports`, `billing`, …), `config/settings_itr.py`, `config/urls_itr.py`, `templates/` (ITR HTML), `static_itr/` |
+| Meditation UX planning | `docs/MEDITATION_UX_BLUEPRINT.md` |
 
 Long procedures are documented in `docs/DEVELOPER_GUIDE.md`; user-facing behavior in `docs/USER_GUIDE.md`. Build status and roadmap: `PROGRESS.md`, `README.md`.
 Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.

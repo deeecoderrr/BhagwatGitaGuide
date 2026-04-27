@@ -4,6 +4,13 @@ Last updated: 2026-04-25
 
 ## Completed
 
+- Added dedicated guided meditation planning blueprint:
+  - `docs/MEDITATION_UX_BLUEPRINT.md`
+  - defines 30-min canonical sequence (settling + pranayam + yoga + mantra +
+    affirmation + living-the-mantra + bhakti + close)
+  - defines web/mobile IA, screen-by-screen flow, MVP implementation order,
+    and integration points with ask/chat flow
+
 - Mobile API parity expansion completed (no need to replicate web-only logic in
   Android/iOS clients):
   - added account/profile endpoints:

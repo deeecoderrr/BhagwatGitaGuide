@@ -238,6 +238,13 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Bhagavad Gita Guides For Real Life Problems")
         self.assertContains(response, "bhagavad-gita-for-anxiety")
 
+    def test_privacy_policy_page_loads(self):
+        response = self.client.get("/privacy-policy/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "Privacy Policy")
+        self.assertContains(response, "Mental Health and Medical Disclaimer")
+        self.assertContains(response, "contact:")
+
     def test_robots_txt_exposes_sitemap(self):
         response = self.client.get("/robots.txt")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -264,6 +271,7 @@ class GuideApiTests(APITestCase):
         self.assertIn("/bhagavad-gita-for-purpose/", body)
         self.assertIn("/frequently-asked-bhagavad-gita-questions/", body)
         self.assertIn("/daily-bhagavad-gita-verse/", body)
+        self.assertIn("/privacy-policy/", body)
         self.assertIn("/api/chat-ui/", body)
         self.assertIn("<lastmod>", body)
 
