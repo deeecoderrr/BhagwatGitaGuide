@@ -64,6 +64,7 @@ from guide_api.views import (
     StarterPromptsView,
     SupportTicketListView,
     SubscriptionStatusView,
+    UserInsightsSummaryView,
     VerifyPaymentView,
     VerseDetailView,
     VerseSearchView,
@@ -99,6 +100,11 @@ urlpatterns = [
         "engagement/me/",
         EngagementProfileView.as_view(),
         name="engagement-me",
+    ),
+    path(
+        "insights/me/",
+        UserInsightsSummaryView.as_view(),
+        name="insights-me",
     ),
     path(
         "notifications/preferences/",

@@ -1,6 +1,6 @@
 """HTTP views for chat, retrieval evaluation, and feedback flows."""
 
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import date, timedelta
 import json
 import logging
@@ -56,6 +56,8 @@ from guide_api.models import (
     NotificationDevice,
     RequestQuotaSettings,
     ResponseFeedback,
+    SadhanaDayCompletion,
+    SadhanaEnrollment,
     SadhanaProgram,
     SavedReflection,
     SharedAnswer,
@@ -3148,6 +3150,129 @@ class NotificationPreferencesView(APIView):
                 metadata={"changed_fields": changed},
             )
         return Response(_serialize_engagement_profile(profile))
+
+
+def _normalize_verse_reference(ref: object) -> str | None:
+    """Normalize a verse key like '2.47', 'BG 2.47', or '  12.3 ' to ``chapter.verse``."""
+    s = str(ref or "").strip()
+    if not s:
+        return None
+    s = re.sub(r"^\s*BG\s+", "", s, flags=re.I).strip()
+    m = re.search(r"(\d+)\s*\.\s*(\d+)", s)
+    if not m:
+        return None
+    return f"{int(m.group(1))}.{int(m.group(2))}"
+
+
+class UserInsightsSummaryView(APIView):
+    """Lightweight journey snapshot for the mobile Insights tab (streaks, counts, verse companions)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        username = user.get_username()
+        now = timezone.now()
+        since_30d = now - timedelta(days=30)
+
+        engagement = _serialize_engagement_profile(_get_engagement_profile(user))
+
+        conv_qs = Conversation.objects.filter(user_id=username)
+        conv_total = conv_qs.count()
+        last_conv = conv_qs.order_by("-updated_at").first()
+        last_activity_at = last_conv.updated_at.isoformat() if last_conv else None
+
+        saved_total = SavedReflection.objects.filter(user=user).count()
+
+        verse_counter: Counter[str] = Counter()
+        for refs in SavedReflection.objects.filter(user=user).values_list(
+            "verse_references", flat=True
+        ):
+            if not refs:
+                continue
+            for raw in refs:
+                key = _normalize_verse_reference(raw)
+                if key:
+                    verse_counter[key] += 1
+        verse_companions = [
+            {"reference": ref, "count": count} for ref, count in verse_counter.most_common(8)
+        ]
+
+        recent_questions: list[dict[str, str]] = []
+        for msg in (
+            Message.objects.filter(
+                conversation__user_id=username,
+                role=Message.ROLE_USER,
+            )
+            .order_by("-created_at")[:12]
+        ):
+            snippet = " ".join((msg.content or "").strip().split())
+            if not snippet:
+                continue
+            if len(snippet) > 120:
+                snippet = snippet[:117].rstrip() + "…"
+            recent_questions.append(
+                {
+                    "snippet": snippet,
+                    "created_at": msg.created_at.isoformat(),
+                }
+            )
+            if len(recent_questions) >= 5:
+                break
+
+        root_posts = CommunityPost.objects.filter(
+            author=user, parent__isnull=True, deleted_at__isnull=True
+        ).count()
+        reply_posts = CommunityPost.objects.filter(
+            author=user, parent__isnull=False, deleted_at__isnull=True
+        ).count()
+
+        sadhana_active = None
+        enrollment = (
+            SadhanaEnrollment.objects.filter(
+                user=user,
+                access_ends_at__gt=now,
+                access_starts_at__lte=now,
+            )
+            .select_related("program")
+            .order_by("-access_ends_at")
+            .first()
+        )
+        if enrollment is not None:
+            sadhana_active = {
+                "slug": enrollment.program.slug,
+                "title": enrollment.program.title,
+                "access_ends_at": enrollment.access_ends_at.isoformat(),
+            }
+
+        sadhana_completions_30d = (
+            SadhanaDayCompletion.objects.filter(completed_at__gte=since_30d)
+            .filter(Q(user=user) | Q(enrollment__user=user))
+            .distinct()
+            .count()
+        )
+
+        return Response(
+            {
+                "engagement": engagement,
+                "conversations": {
+                    "total": conv_total,
+                    "last_activity_at": last_activity_at,
+                },
+                "saved_reflections": {"total": saved_total},
+                "verse_companions": verse_companions,
+                "recent_questions": recent_questions,
+                "community": {
+                    "root_posts": root_posts,
+                    "replies": reply_posts,
+                },
+                "sadhana": {
+                    "active": sadhana_active,
+                    "completed_days_last_30d": sadhana_completions_30d,
+                },
+                "generated_at": now.isoformat(),
+            }
+        )
 
 
 class AskView(APIView):

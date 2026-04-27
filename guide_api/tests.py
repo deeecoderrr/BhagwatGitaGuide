@@ -2699,6 +2699,43 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, 301)
         self.assertEqual(response["Location"], f"/share/{shared.share_id}/")
 
+    def test_insights_me_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/v1/insights/me/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_insights_me_returns_journey_snapshot(self):
+        """Authenticated user receives counts, verse companions, and recent prompts."""
+        conv = Conversation.objects.create(user_id="demo-user")
+        Message.objects.create(
+            conversation=conv,
+            role=Message.ROLE_USER,
+            content="How do I stay calm when everything feels uncertain?",
+        )
+        SavedReflection.objects.create(
+            user=self.user,
+            message="What is my duty?",
+            guidance="Act with steadiness.",
+            verse_references=["2.47", "BG 2.47", "3.1"],
+        )
+        response = self.client.get("/api/v1/insights/me/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("engagement", response.data)
+        self.assertEqual(response.data["conversations"]["total"], 1)
+        self.assertIsNotNone(response.data["conversations"]["last_activity_at"])
+        self.assertEqual(response.data["saved_reflections"]["total"], 1)
+        self.assertGreaterEqual(len(response.data["verse_companions"]), 1)
+        top = response.data["verse_companions"][0]
+        self.assertEqual(top["reference"], "2.47")
+        self.assertEqual(top["count"], 2)
+        self.assertGreaterEqual(len(response.data["recent_questions"]), 1)
+        self.assertTrue(
+            response.data["recent_questions"][0]["snippet"].strip().startswith("How"),
+        )
+        self.assertIn("community", response.data)
+        self.assertIn("sadhana", response.data)
+        self.assertIn("generated_at", response.data)
+
 
 # Razorpay Payment Integration Tests
 # =============================================================================
