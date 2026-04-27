@@ -128,6 +128,61 @@ def _active_enrollment(user, program: SadhanaProgram) -> SadhanaEnrollment | Non
     )
 
 
+def _coerce_subtitle_tracks(raw: object) -> list[dict]:
+    """Expose only sane caption track objects to API clients."""
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for x in raw[:24]:
+        if not isinstance(x, dict):
+            continue
+        url = str(x.get("url") or "").strip()[:2048]
+        if not url:
+            continue
+        out.append(
+            {
+                "language": str(x.get("language") or "")[:12],
+                "label": str(x.get("label") or "")[:120],
+                "format": str(x.get("format") or "webvtt")[:16],
+                "url": url,
+                "is_default": bool(x.get("is_default")),
+            },
+        )
+    return out
+
+
+def _coerce_timed_cues(raw: object) -> list[dict]:
+    if not isinstance(raw, list):
+        return []
+    out: list[dict] = []
+    for x in raw[:400]:
+        if not isinstance(x, dict):
+            continue
+        try:
+            t_ms = int(x.get("t_ms", 0))
+        except (TypeError, ValueError):
+            continue
+        if t_ms < 0 or t_ms > 86400000 * 2:
+            continue
+        text = str(x.get("text") or "").strip()[:500]
+        if not text:
+            continue
+        out.append({"t_ms": t_ms, "text": text})
+    return out
+
+
+def _primary_media(step: SadhanaStep) -> str:
+    a = bool((step.audio_url or "").strip())
+    v = bool((step.video_url or "").strip())
+    if a and v:
+        return "both"
+    if v:
+        return "video"
+    if a:
+        return "audio"
+    return "none"
+
+
 def _step_payload(step: SadhanaStep) -> dict:
     return {
         "id": step.id,
@@ -138,6 +193,11 @@ def _step_payload(step: SadhanaStep) -> dict:
         "audio_url": step.audio_url or "",
         "video_url": step.video_url or "",
         "duration_minutes": step.duration_minutes,
+        "subtitle_tracks": _coerce_subtitle_tracks(step.subtitle_tracks),
+        "timed_cues": _coerce_timed_cues(step.timed_cues),
+        "safety_tier": step.safety_tier,
+        "requires_standing": step.requires_standing,
+        "primary_media": _primary_media(step),
     }
 
 

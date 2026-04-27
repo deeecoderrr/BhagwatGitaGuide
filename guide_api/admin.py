@@ -542,6 +542,17 @@ class SupportTicketAdmin(admin.ModelAdmin):
 class SadhanaStepInline(admin.TabularInline):
     model = SadhanaStep
     extra = 0
+    fields = (
+        "sequence",
+        "step_type",
+        "title",
+        "duration_minutes",
+        "safety_tier",
+        "requires_standing",
+        "audio_url",
+        "video_url",
+    )
+    show_change_link = True
 
 
 class SadhanaDayInline(admin.TabularInline):
@@ -566,6 +577,34 @@ class SadhanaDayAdmin(admin.ModelAdmin):
     search_fields = ("title", "summary")
     ordering = ("program", "day_number")
     inlines = [SadhanaStepInline]
+
+
+@admin.register(SadhanaStep)
+class SadhanaStepAdmin(admin.ModelAdmin):
+    list_display = ("day", "sequence", "step_type", "title", "duration_minutes", "safety_tier")
+    list_filter = ("step_type", "safety_tier")
+    search_fields = ("title", "instructions")
+    ordering = ("day", "sequence")
+    raw_id_fields = ("day",)
+    fieldsets = (
+        (None, {"fields": ("day", "sequence", "step_type", "title", "instructions")}),
+        ("Media", {"fields": ("audio_url", "video_url", "duration_minutes", "primary_media_readonly")}),
+        ("Follow-along", {"fields": ("subtitle_tracks", "timed_cues")}),
+        ("Safety / UX", {"fields": ("safety_tier", "requires_standing")}),
+    )
+    readonly_fields = ("primary_media_readonly",)
+
+    @admin.display(description="Primary media (computed)")
+    def primary_media_readonly(self, obj: SadhanaStep) -> str:
+        a = bool((obj.audio_url or "").strip())
+        v = bool((obj.video_url or "").strip())
+        if a and v:
+            return "both"
+        if v:
+            return "video"
+        if a:
+            return "audio"
+        return "none"
 
 
 @admin.register(SadhanaEnrollment)

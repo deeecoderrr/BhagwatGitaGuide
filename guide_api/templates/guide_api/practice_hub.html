@@ -144,6 +144,47 @@
       color: rgba(160, 210, 240, 0.75);
     }
     details.dev-hint code { font-size: 10px; color: rgba(200, 220, 245, 0.85); }
+    #day-player h2 { margin: 0 0 12px; font-size: 18px; }
+    article.step-card {
+      margin-top: 16px;
+      padding: 14px 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(232, 184, 109, 0.14);
+      background: rgba(6, 12, 22, 0.45);
+    }
+    article.step-card h3 { margin: 8px 0 6px; font-size: 16px; }
+    article.step-card video,
+    article.step-card audio {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      border-radius: 12px;
+    }
+    article.step-card video { max-height: min(420px, 56vh); background: #000; }
+    .caption-strip {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(4, 8, 18, 0.72);
+      border: 1px solid rgba(232, 184, 109, 0.18);
+      min-height: 2.6em;
+      font-size: 15px;
+      line-height: 1.45;
+      text-align: center;
+      color: rgba(248, 244, 230, 0.96);
+    }
+    .day-open-row {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    button.mini-open {
+      padding: 6px 12px;
+      font-size: 11px;
+      border-radius: 999px;
+    }
   </style>
 </head>
 <body class="gita-ambient" data-lang="{{ language|default:'en' }}" data-currency="{{ billing_currency|default:'INR' }}">
@@ -174,6 +215,7 @@
       </p>
       <div id="status"></div>
       <div id="programs" class="programs" aria-live="polite"></div>
+      <div id="day-player" class="panel hidden" style="margin-top: 16px" aria-live="polite"></div>
       <small class="hint">
         {% if language == "hi" %}
           पहले होम पर जाकर रजिस्टर या लॉगिन करें। भुगतान वही Razorpay प्रवाह उपयोग करता है जो सदस्यता के लिए है। पूरा चक्र शुरू होने पर आपको यहीं और भविष्य के ऐप में समान अनुभव मिलेगा।
@@ -197,6 +239,7 @@
   <script>
     (function () {
       const programsEl = document.getElementById("programs");
+      const dayPlayerEl = document.getElementById("day-player");
       const statusEl = document.getElementById("status");
       const billingCurrency = (
         document.body.getAttribute("data-currency") || "INR"
@@ -235,6 +278,273 @@
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
           .replace(/"/g, "&quot;");
+      }
+
+      function parseVttTimestampPart(p) {
+        var s = String(p || "").trim();
+        var m = s.match(/^(\d{2}):(\d{2}):(\d{2})\.(\d{3})$/);
+        if (m) {
+          return (
+            ((Number(m[1]) * 60 + Number(m[2])) * 60 + Number(m[3])) * 1000 +
+            Number(m[4])
+          );
+        }
+        m = s.match(/^(\d{2}):(\d{2})\.(\d{3})$/);
+        if (m) {
+          return (Number(m[1]) * 60 + Number(m[2])) * 1000 + Number(m[3]);
+        }
+        return null;
+      }
+
+      function parseWebVttCues(text) {
+        var cues = [];
+        var lines = String(text || "").split(/\r?\n/);
+        var i = 0;
+        if (lines[0] && lines[0].indexOf("WEBVTT") === 0) {
+          i = 1;
+        }
+        while (i < lines.length) {
+          var line = (lines[i] || "").trim();
+          if (!line || line.indexOf("NOTE") === 0 || /^\d+$/.test(line)) {
+            i++;
+            continue;
+          }
+          if (line.indexOf("-->") >= 0) {
+            var parts = line.split("-->");
+            if (parts.length >= 2) {
+              var startMs = parseVttTimestampPart(parts[0]);
+              var endPart = parts[1].trim().split(/\s+/)[0];
+              var endMs = parseVttTimestampPart(endPart);
+              i++;
+              var textLines = [];
+              while (i < lines.length && (lines[i] || "").trim()) {
+                textLines.push(lines[i].trim());
+                i++;
+              }
+              if (
+                startMs != null &&
+                endMs != null &&
+                endMs > startMs &&
+                textLines.length
+              ) {
+                cues.push({
+                  startMs: startMs,
+                  endMs: endMs,
+                  text: textLines.join(" "),
+                });
+              }
+              continue;
+            }
+          }
+          i++;
+        }
+        return cues;
+      }
+
+      function cuesFromTimedCues(tc) {
+        if (!tc || !tc.length) {
+          return [];
+        }
+        var sorted = tc
+          .filter(function (x) {
+            return typeof x.t_ms === "number" && String(x.text || "").trim();
+          })
+          .slice()
+          .sort(function (a, b) {
+            return (a.t_ms || 0) - (b.t_ms || 0);
+          });
+        var out = [];
+        for (var j = 0; j < sorted.length; j++) {
+          var startMs = Math.max(0, sorted[j].t_ms || 0);
+          var nextStart =
+            j + 1 < sorted.length
+              ? Math.max(startMs, sorted[j + 1].t_ms || 0)
+              : startMs + 8000;
+          var endMs = Math.max(startMs + 500, nextStart);
+          out.push({ startMs: startMs, endMs: endMs, text: String(sorted[j].text).trim() });
+        }
+        return out;
+      }
+
+      function captionAt(cues, ms) {
+        for (var k = 0; k < cues.length; k++) {
+          if (ms >= cues[k].startMs && ms < cues[k].endMs) {
+            return cues[k].text;
+          }
+        }
+        return "";
+      }
+
+      function buildStepCard(step) {
+        var wrap = document.createElement("article");
+        wrap.className = "step-card";
+        var head = document.createElement("div");
+        head.className = "muted";
+        head.style.fontSize = "12px";
+        head.innerHTML =
+          "<strong>#" +
+          step.sequence +
+          "</strong> · " +
+          escapeHtml(step.step_type || "") +
+          " · " +
+          escapeHtml(step.primary_media || "") +
+          (step.safety_tier && step.safety_tier !== "gentle"
+            ? " · <span style=\"color:#e8c46d\">" + escapeHtml(step.safety_tier) + "</span>"
+            : "");
+        wrap.appendChild(head);
+        var ttl = document.createElement("h3");
+        ttl.textContent = step.title || "";
+        wrap.appendChild(ttl);
+        if (step.instructions) {
+          var p = document.createElement("p");
+          p.className = "muted";
+          p.style.lineHeight = "1.55";
+          p.textContent = step.instructions;
+          wrap.appendChild(p);
+        }
+        var capBox = document.createElement("div");
+        capBox.className = "caption-strip";
+        capBox.textContent = "";
+        var cues = cuesFromTimedCues(step.timed_cues || []);
+
+        function bindMedia(msGetter, el) {
+          el.addEventListener("timeupdate", function () {
+            capBox.textContent = captionAt(cues, msGetter());
+          });
+        }
+
+        if (step.video_url) {
+          var vid = document.createElement("video");
+          vid.setAttribute("controls", "controls");
+          vid.setAttribute("playsinline", "playsinline");
+          vid.setAttribute("crossorigin", "anonymous");
+          vid.src = step.video_url;
+          (step.subtitle_tracks || []).forEach(function (tr, idx) {
+            if (!tr || !tr.url) {
+              return;
+            }
+            var tk = document.createElement("track");
+            tk.kind = "subtitles";
+            tk.label = tr.label || tr.language || "subs";
+            tk.srclang = tr.language || "en";
+            tk.src = tr.url;
+            if (tr.is_default || idx === 0) {
+              tk.setAttribute("default", "default");
+            }
+            vid.appendChild(tk);
+          });
+          bindMedia(function () {
+            return vid.currentTime * 1000;
+          }, vid);
+          wrap.appendChild(vid);
+        } else if (step.audio_url) {
+          var aud = document.createElement("audio");
+          aud.setAttribute("controls", "controls");
+          aud.setAttribute("crossorigin", "anonymous");
+          aud.src = step.audio_url;
+          bindMedia(function () {
+            return aud.currentTime * 1000;
+          }, aud);
+          wrap.appendChild(aud);
+          if (!cues.length && step.subtitle_tracks && step.subtitle_tracks.length) {
+            var tr0 =
+              step.subtitle_tracks.find(function (t) {
+                return t && t.is_default;
+              }) || step.subtitle_tracks[0];
+            var fmt = String((tr0 && tr0.format) || "webvtt").toLowerCase();
+            if (tr0 && tr0.url && (fmt === "webvtt" || fmt === "text/vtt")) {
+              fetch(tr0.url)
+                .then(function (r) {
+                  return r.text();
+                })
+                .then(function (txt) {
+                  var parsed = parseWebVttCues(txt);
+                  if (parsed.length) {
+                    cues = parsed;
+                  }
+                })
+                .catch(function () {});
+            }
+          }
+        } else {
+          capBox.style.opacity = "0.65";
+          capBox.textContent = langIsHi
+            ? "केवल पाठ — ऊपर निर्देश पढ़ें।"
+            : "Text-only step — follow the instructions above.";
+        }
+        wrap.appendChild(capBox);
+        return wrap;
+      }
+
+      function renderSadhanaDayDetail(slug, dayNumber) {
+        if (!dayPlayerEl) {
+          return;
+        }
+        dayPlayerEl.classList.remove("hidden");
+        dayPlayerEl.innerHTML =
+          "<p class=\"muted\">" +
+          (langIsHi ? "लोड हो रहा है…" : "Loading day…") +
+          "</p>";
+        fetch(
+          "/api/sadhana/programs/" +
+            encodeURIComponent(slug) +
+            "/days/" +
+            dayNumber +
+            "/",
+          { credentials: "same-origin" },
+        )
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (payload) {
+            if (payload && payload.error) {
+              throw new Error("api");
+            }
+            if (!payload.unlocked) {
+              var reason =
+                payload.locked_reason === "purchase_required"
+                  ? langIsHi
+                    ? "इस दिन के लिए सदस्यता या नमूना दिन चुनें।"
+                    : "Subscribe or open the free sample day first."
+                  : langIsHi
+                    ? "पिछला दिन पूरा करें।"
+                    : "Complete the previous day first.";
+              dayPlayerEl.innerHTML = "<p class=\"muted\">" + reason + "</p>";
+              return;
+            }
+            dayPlayerEl.innerHTML = "";
+            var title = document.createElement("h2");
+            title.textContent =
+              (langIsHi ? "दिन " : "Day ") +
+              payload.day_number +
+              " — " +
+              (payload.title || "");
+            dayPlayerEl.appendChild(title);
+            if (payload.summary) {
+              var sm = document.createElement("p");
+              sm.className = "muted";
+              sm.style.lineHeight = "1.55";
+              sm.textContent = payload.summary;
+              dayPlayerEl.appendChild(sm);
+            }
+            if (payload.intention) {
+              var it = document.createElement("p");
+              it.className = "muted";
+              it.style.fontStyle = "italic";
+              it.textContent = payload.intention;
+              dayPlayerEl.appendChild(it);
+            }
+            (payload.steps || []).forEach(function (st) {
+              dayPlayerEl.appendChild(buildStepCard(st));
+            });
+            dayPlayerEl.scrollIntoView({ behavior: "smooth", block: "start" });
+          })
+          .catch(function () {
+            dayPlayerEl.innerHTML =
+              "<p class=\"muted\">" +
+              (langIsHi ? "दिन लोड नहीं हो सका।" : "Could not load this day.") +
+              "</p>";
+          });
       }
 
       window.initiateSadhanaCheckout = async function (programSlug, triggerBtn) {
@@ -477,23 +787,39 @@
                 })
                 .then(function (detail) {
                   var days = detail.days || [];
-                  shell.innerHTML =
-                    '<p class="muted" style="margin:8px 0">' +
-                    days
-                      .map(function (d) {
-                        return (
-                          "<strong>Day " +
-                          d.day_number +
-                          "</strong> — " +
-                          escapeHtml(d.title) +
-                          (d.unlocked
-                            ? ""
-                            : " ({% filter escapejs %}{% if language == 'hi' %}बंद{% else %}locked{% endif %}{% endfilter %})") +
-                          (d.completed ? " ✓" : "")
-                        );
-                      })
-                      .join("<br>") +
-                    "</p>";
+                  shell.innerHTML = "";
+                  var intro = document.createElement("p");
+                  intro.className = "muted";
+                  intro.style.margin = "8px 0 4px";
+                  intro.textContent = langIsHi
+                    ? "दिन चुनें — खुले दिन पर चलाएँ।"
+                    : "Open a day — players load with optional captions.";
+                  shell.appendChild(intro);
+                  days.forEach(function (d) {
+                    var row = document.createElement("div");
+                    row.className = "day-open-row";
+                    var lab = document.createElement("span");
+                    lab.innerHTML =
+                      "<strong>Day " +
+                      d.day_number +
+                      "</strong> — " +
+                      escapeHtml(d.title || "") +
+                      (d.completed ? " ✓" : "") +
+                      (!d.unlocked
+                        ? " <span class=\"muted\">({% filter escapejs %}{% if language == 'hi' %}बंद{% else %}locked{% endif %}{% endfilter %})</span>"
+                        : "");
+                    row.appendChild(lab);
+                    var ob = document.createElement("button");
+                    ob.type = "button";
+                    ob.className = "secondary mini-open";
+                    ob.textContent = langIsHi ? "चलाएँ" : "Open";
+                    ob.disabled = !d.unlocked;
+                    ob.addEventListener("click", function () {
+                      renderSadhanaDayDetail(slug, d.day_number);
+                    });
+                    row.appendChild(ob);
+                    shell.appendChild(row);
+                  });
                   shell.classList.remove("hidden");
                 })
                 .catch(function () {

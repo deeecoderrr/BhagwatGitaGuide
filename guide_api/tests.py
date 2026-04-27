@@ -4252,6 +4252,18 @@ class SadhanaApiTests(APITestCase):
             step_type=SadhanaStep.STEP_MANTRA,
             title="Listen",
             instructions="Sit comfortably.",
+            subtitle_tracks=[
+                {
+                    "language": "en",
+                    "label": "English",
+                    "format": "webvtt",
+                    "url": "https://cdn.example.com/captions/day1-step1-en.vtt",
+                    "is_default": True,
+                },
+            ],
+            timed_cues=[{"t_ms": 0, "text": "Hare Kṛṣṇa"}],
+            safety_tier=SadhanaStep.SAFETY_GENTLE,
+            requires_standing=False,
         )
 
     def test_programs_list_public(self):
@@ -4266,6 +4278,15 @@ class SadhanaApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         payload = response.json()
         self.assertEqual(len(payload["steps"]), 1)
+        step0 = payload["steps"][0]
+        self.assertEqual(step0["step_type"], SadhanaStep.STEP_MANTRA)
+        self.assertEqual(step0["primary_media"], "none")
+        self.assertEqual(step0["safety_tier"], SadhanaStep.SAFETY_GENTLE)
+        self.assertFalse(step0["requires_standing"])
+        self.assertEqual(len(step0["subtitle_tracks"]), 1)
+        self.assertEqual(step0["subtitle_tracks"][0]["language"], "en")
+        self.assertEqual(len(step0["timed_cues"]), 1)
+        self.assertEqual(step0["timed_cues"][0]["t_ms"], 0)
 
     def test_complete_requires_sign_in(self):
         response = self.client.post(

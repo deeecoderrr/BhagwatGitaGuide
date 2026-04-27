@@ -887,19 +887,48 @@ class SadhanaDay(models.Model):
 
 
 class SadhanaStep(models.Model):
-    """Ordered step within a day (warm-up, breath, bhakti, mantra, integration)."""
+    """Ordered step within a day — supports media, captions, and extended modalities."""
 
     STEP_WARMUP_YOGA = "warmup_yoga"
+    STEP_YOGA_FLOW = "yoga_flow"
     STEP_PRANAYAMA = "pranayama"
+    STEP_BREATH_AWARENESS = "breath_awareness"
     STEP_BHAKTI = "bhakti"
     STEP_MANTRA = "mantra"
+    STEP_NAAM_JAPA_GUIDED = "naam_japa_guided"
+    STEP_KIRTAN_LISTEN = "kirtan_listen"
+    STEP_BHAJAN_LISTEN = "bhajan_listen"
+    STEP_SILENT_SIT = "silent_sit"
+    STEP_SOUNDSCAPE = "soundscape"
+    STEP_AFFIRMATION_SANKALPA = "affirmation_sankalpa"
+    STEP_TEACHING_DHARMA = "teaching_dharma"
+    STEP_SUBTLE_BODY_GUIDED = "subtle_body_guided"
     STEP_INTEGRATION = "integration"
     STEP_CHOICES = (
         (STEP_WARMUP_YOGA, "Warm-up yoga"),
+        (STEP_YOGA_FLOW, "Yoga flow"),
         (STEP_PRANAYAMA, "Prānāyāma"),
+        (STEP_BREATH_AWARENESS, "Breath awareness"),
         (STEP_BHAKTI, "Bhakti / remembrance"),
         (STEP_MANTRA, "Mantra chanting"),
-        (STEP_INTEGRATION, "Living the mantra"),
+        (STEP_NAAM_JAPA_GUIDED, "Nām japa (guided)"),
+        (STEP_KIRTAN_LISTEN, "Kīrtan (listen / follow)"),
+        (STEP_BHAJAN_LISTEN, "Bhajan (listen / follow)"),
+        (STEP_SILENT_SIT, "Silent sitting"),
+        (STEP_SOUNDSCAPE, "Soundscape / ambience"),
+        (STEP_AFFIRMATION_SANKALPA, "Affirmation / saṅkalpa"),
+        (STEP_TEACHING_DHARMA, "Teaching / śāstra moment"),
+        (STEP_SUBTLE_BODY_GUIDED, "Subtle body (guided — advanced)"),
+        (STEP_INTEGRATION, "Living the mantra / integration"),
+    )
+
+    SAFETY_GENTLE = "gentle"
+    SAFETY_MODERATE = "moderate"
+    SAFETY_INTENSE = "intense"
+    SAFETY_TIER_CHOICES = (
+        (SAFETY_GENTLE, "Gentle"),
+        (SAFETY_MODERATE, "Moderate"),
+        (SAFETY_INTENSE, "Intense — extra care"),
     )
 
     day = models.ForeignKey(
@@ -908,12 +937,31 @@ class SadhanaStep(models.Model):
         related_name="steps",
     )
     sequence = models.PositiveSmallIntegerField()
-    step_type = models.CharField(max_length=24, choices=STEP_CHOICES)
+    step_type = models.CharField(max_length=32, choices=STEP_CHOICES)
     title = models.CharField(max_length=160)
     instructions = models.TextField(blank=True)
     audio_url = models.URLField(blank=True)
     video_url = models.URLField(blank=True)
     duration_minutes = models.PositiveSmallIntegerField(blank=True, null=True)
+    subtitle_tracks = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of {language, label, format, url, is_default?} for WebVTT/SRT captions.",
+    )
+    timed_cues = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Optional list of {t_ms, text} for on-screen follow-along (e.g. mantra lines).",
+    )
+    safety_tier = models.CharField(
+        max_length=16,
+        choices=SAFETY_TIER_CHOICES,
+        default=SAFETY_GENTLE,
+    )
+    requires_standing = models.BooleanField(
+        default=False,
+        help_text="If true, UI can warn users who practice seated only.",
+    )
 
     class Meta:
         ordering = ["sequence"]
