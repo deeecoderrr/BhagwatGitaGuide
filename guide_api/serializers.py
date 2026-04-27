@@ -7,9 +7,11 @@ from guide_api.models import (
     CommunityPost,
     Message,
     NotificationDevice,
+    PracticeLogEntry,
     SavedReflection,
     SupportTicket,
     Verse,
+    VerseUserNote,
 )
 
 
@@ -48,6 +50,8 @@ class AskRequestSerializer(serializers.Serializer):
         default="simple",
     )
     conversation_id = serializers.IntegerField(required=False)
+    verse_ref = serializers.CharField(max_length=16, required=False, allow_blank=True)
+    verse_note_excerpt = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
 class GuestAskRequestSerializer(serializers.Serializer):
@@ -57,6 +61,8 @@ class GuestAskRequestSerializer(serializers.Serializer):
     message = serializers.CharField()
     language = serializers.ChoiceField(choices=["en", "hi"], default="en")
     mode = serializers.ChoiceField(choices=["simple", "deep"], default="simple")
+    verse_ref = serializers.CharField(max_length=16, required=False, allow_blank=True)
+    verse_note_excerpt = serializers.CharField(max_length=2000, required=False, allow_blank=True)
 
 
 class RetrievalEvalRequestSerializer(serializers.Serializer):
@@ -553,3 +559,52 @@ class SupportTicketSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+
+class VerseUserNoteSerializer(serializers.ModelSerializer):
+    """Serialize a user's private note for one verse."""
+
+    reference = serializers.SerializerMethodField()
+
+    class Meta:
+        model = VerseUserNote
+        fields = ["reference", "chapter", "verse", "body", "created_at", "updated_at"]
+
+    def get_reference(self, obj: VerseUserNote) -> str:
+        return f"{obj.chapter}.{obj.verse}"
+
+
+class VerseUserNoteWriteSerializer(serializers.Serializer):
+    body = serializers.CharField(max_length=12000, allow_blank=True)
+
+
+class VerseOpenSerializer(serializers.Serializer):
+    chapter = serializers.IntegerField(min_value=1, max_value=18)
+    verse = serializers.IntegerField(min_value=1, max_value=999)
+
+
+class PracticeLogCreateSerializer(serializers.Serializer):
+    logged_on = serializers.DateField()
+    entry_type = serializers.ChoiceField(
+        choices=[
+            PracticeLogEntry.TYPE_JAPA_ROUNDS,
+            PracticeLogEntry.TYPE_MEDITATION_MINUTES,
+            PracticeLogEntry.TYPE_READ_MINUTES,
+        ],
+    )
+    quantity = serializers.IntegerField(min_value=1, max_value=86400)
+    mantra_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    note = serializers.CharField(max_length=500, required=False, allow_blank=True)
+
+
+class MeditationSessionCreateSerializer(serializers.Serializer):
+    pre_mood = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
+    pre_stress = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
+    pre_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+    post_mood = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
+    post_stress = serializers.IntegerField(min_value=1, max_value=5, required=False, allow_null=True)
+    post_note = serializers.CharField(max_length=2000, required=False, allow_blank=True)
+    duration_seconds = serializers.IntegerField(
+        min_value=0, max_value=86400 * 2, required=False, allow_null=True
+    )
+    program_slug = serializers.SlugField(max_length=96, required=False, allow_blank=True)

@@ -40,6 +40,7 @@ from guide_api.views import (
     LoginView,
     LogoutView,
     MantraView,
+    MeditationSessionLogCreateView,
     MeView,
     NotificationDeviceDeleteView,
     NotificationDeviceListView,
@@ -47,6 +48,7 @@ from guide_api.views import (
     NotificationPreferencesView,
     PlanCatalogView,
     PlanUpdateView,
+    PracticeLogListCreateView,
     PaymentHistoryView,
     PaymentStatusUpdateView,
     PaymentCheckoutBridgeView,
@@ -54,6 +56,8 @@ from guide_api.views import (
     QuoteArtStylesView,
     QuoteArtView,
     RazorpayWebhookView,
+    ReadingStateView,
+    ReadingVerseOpenView,
     RegisterView,
     ResetPasswordConfirmView,
     RetrievalEvalView,
@@ -68,6 +72,7 @@ from guide_api.views import (
     VerifyPaymentView,
     VerseDetailView,
     VerseSearchView,
+    VerseUserNoteView,
 )
 
 urlpatterns = [
@@ -174,11 +179,24 @@ urlpatterns = [
         name="chapter-detail",
     ),
     path(
+        "verses/<int:chapter>.<int:verse>/note/",
+        VerseUserNoteView.as_view(),
+        name="verse-user-note",
+    ),
+    path(
         "verses/<int:chapter>.<int:verse>/",
         VerseDetailView.as_view(),
         name="verse-detail",
     ),
     path("verses/search/", VerseSearchView.as_view(), name="verse-search"),
+    path("reading/state/", ReadingStateView.as_view(), name="reading-state"),
+    path("reading/verse-open/", ReadingVerseOpenView.as_view(), name="reading-verse-open"),
+    path("practice/log/", PracticeLogListCreateView.as_view(), name="practice-log"),
+    path(
+        "practice/meditation-sessions/",
+        MeditationSessionLogCreateView.as_view(),
+        name="practice-meditation-session",
+    ),
     path("history/me/", ConversationHistoryView.as_view(), {"user_id": "me"}),
     path(
         "history/<str:user_id>/",

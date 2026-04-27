@@ -56,6 +56,8 @@ from guide_api.models import (
     NotificationDevice,
     RequestQuotaSettings,
     ResponseFeedback,
+    MeditationSessionLog,
+    PracticeLogEntry,
     SadhanaDayCompletion,
     SadhanaEnrollment,
     SadhanaProgram,
@@ -63,8 +65,10 @@ from guide_api.models import (
     SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
+    UserReadingState,
     UserSubscription,
     Verse,
+    VerseUserNote,
     WebAudienceProfile,
 )
 from guide_api.sadhana_views import (
@@ -91,11 +95,13 @@ from guide_api.serializers import (
     GoogleAuthRequestSerializer,
     LoginRequestSerializer,
     MantraRequestSerializer,
+    MeditationSessionCreateSerializer,
     MessageSerializer,
     NotificationDeviceRegisterSerializer,
     NotificationDeviceSerializer,
     NotificationPreferenceSerializer,
     PlanUpdateRequestSerializer,
+    PracticeLogCreateSerializer,
     ProfileUpdateSerializer,
     QuoteArtRequestSerializer,
     QuoteArtResponseSerializer,
@@ -108,7 +114,10 @@ from guide_api.serializers import (
     SupportRequestSerializer,
     SupportTicketSerializer,
     VerseDetailSerializer,
+    VerseOpenSerializer,
     VerseSerializer,
+    VerseUserNoteSerializer,
+    VerseUserNoteWriteSerializer,
 )
 from guide_api.google_auth import (
     get_or_create_user_from_google_claims,
@@ -505,6 +514,29 @@ def _attach_web_audience_cookie(request, response) -> None:
     )
 
 
+def _apply_verse_anchor_to_message(
+    raw_message: str,
+    *,
+    anchor_verse_ref: str | None,
+    anchor_note: str | None,
+) -> str:
+    """Augment the user message for retrieval/LLM while the DB stores the raw question."""
+    raw = (raw_message or "").strip()
+    ref = (anchor_verse_ref or "").strip()
+    if not ref:
+        return raw
+    m = re.match(r"^(\d+)\s*\.\s*(\d+)\s*$", ref)
+    if not m:
+        return raw
+    ref_norm = f"{int(m.group(1))}.{int(m.group(2))}"
+    note = (anchor_note or "").strip()
+    note_block = f"\nTheir saved study note for this verse:\n{note}\n" if note else ""
+    return (
+        f"[Study context: the user is focused on Bhagavad Gita verse BG {ref_norm}.]"
+        f"{note_block}\nQuestion:\n{raw}"
+    )
+
+
 def _run_guidance_flow(
     *,
     user_id: str,
@@ -513,10 +545,17 @@ def _run_guidance_flow(
     language: str = "en",
     conversation_id: int | None = None,
     plan: str = UserSubscription.PLAN_FREE,
+    anchor_verse_ref: str | None = None,
+    anchor_note: str | None = None,
 ):
     """Run end-to-end ask pipeline and persist conversation messages."""
-    message = normalize_chat_user_message(str(message or "").strip())
-    language = resolve_guidance_language(language, message)
+    raw_message = normalize_chat_user_message(str(message or "").strip())
+    effective_message = _apply_verse_anchor_to_message(
+        raw_message,
+        anchor_verse_ref=anchor_verse_ref,
+        anchor_note=anchor_note,
+    )
+    language = resolve_guidance_language(language, raw_message)
     if conversation_id:
         conversation = Conversation.objects.filter(
             id=conversation_id,
@@ -531,11 +570,11 @@ def _run_guidance_flow(
     Message.objects.create(
         conversation=conversation,
         role=Message.ROLE_USER,
-        content=message,
+        content=raw_message,
     )
 
     conversation_messages = list(conversation.messages.order_by("created_at"))
-    intent = classify_user_intent(message, mode=mode)
+    intent = classify_user_intent(effective_message, mode=mode)
     if intent.intent_type == "verse_explanation" and intent.explicit_references:
         ensure_seed_verses()
         primary_ref = intent.explicit_references[0]
@@ -546,7 +585,10 @@ def _run_guidance_flow(
         ).first()
         if verse is not None:
             verses = [verse]
-            support_verses = [verse, *get_related_verses(message=message, seed_verses=[verse], limit=4)]
+            support_verses = [
+                verse,
+                *get_related_verses(message=effective_message, seed_verses=[verse], limit=4),
+            ]
             retrieval = empty_retrieval_result(
                 intent=intent,
                 query_interpretation={
@@ -558,7 +600,7 @@ def _run_guidance_flow(
                 retrieval_mode="direct_reference",
             )
             guidance = build_verse_explanation(
-                message=message,
+                message=effective_message,
                 verse=verse,
                 support_verses=support_verses,
                 language=language,
@@ -580,7 +622,7 @@ def _run_guidance_flow(
                 retrieval_mode="direct_reference_missing",
             )
             guidance = build_guidance(
-                message,
+                effective_message,
                 verses,
                 conversation_messages=conversation_messages,
                 language=language,
@@ -602,7 +644,7 @@ def _run_guidance_flow(
             retrieval_mode="direct_chapter",
         )
         guidance = build_chapter_explanation(
-            message=message,
+            message=effective_message,
             chapter_number=intent.chapter_number,
             language=language,
         )
@@ -619,7 +661,7 @@ def _run_guidance_flow(
             retrieval_mode="none",
         )
         guidance = build_guidance(
-            message,
+            effective_message,
             verses,
             conversation_messages=conversation_messages,
             language=language,
@@ -630,12 +672,12 @@ def _run_guidance_flow(
         )
     else:
         retrieval = retrieve_verses_with_trace(
-            message=message,
+            message=effective_message,
             limit=_plan_max_context_verses(plan, mode),
         )
-        verses = refine_verses_for_guidance(message, retrieval.verses)
+        verses = refine_verses_for_guidance(effective_message, retrieval.verses)
         guidance = build_guidance(
-            message,
+            effective_message,
             verses,
             conversation_messages=conversation_messages,
             language=language,
@@ -3252,6 +3294,42 @@ class UserInsightsSummaryView(APIView):
             .count()
         )
 
+        read_state = UserReadingState.objects.filter(user=user).first()
+        verses_seen_list = (
+            read_state.verses_seen
+            if read_state and isinstance(read_state.verses_seen, list)
+            else []
+        )
+        since_7d_date = (now - timedelta(days=7)).date()
+        japa_7d = (
+            PracticeLogEntry.objects.filter(
+                user=user,
+                logged_on__gte=since_7d_date,
+                entry_type=PracticeLogEntry.TYPE_JAPA_ROUNDS,
+            ).aggregate(total=Sum("quantity"))["total"]
+            or 0
+        )
+        med_min_7d = (
+            PracticeLogEntry.objects.filter(
+                user=user,
+                logged_on__gte=since_7d_date,
+                entry_type=PracticeLogEntry.TYPE_MEDITATION_MINUTES,
+            ).aggregate(total=Sum("quantity"))["total"]
+            or 0
+        )
+        read_min_7d = (
+            PracticeLogEntry.objects.filter(
+                user=user,
+                logged_on__gte=since_7d_date,
+                entry_type=PracticeLogEntry.TYPE_READ_MINUTES,
+            ).aggregate(total=Sum("quantity"))["total"]
+            or 0
+        )
+        meditation_logs_30d = MeditationSessionLog.objects.filter(
+            user=user,
+            created_at__gte=since_30d,
+        ).count()
+
         return Response(
             {
                 "engagement": engagement,
@@ -3269,6 +3347,30 @@ class UserInsightsSummaryView(APIView):
                 "sadhana": {
                     "active": sadhana_active,
                     "completed_days_last_30d": sadhana_completions_30d,
+                },
+                "reading": {
+                    "verses_opened_count": len(
+                        {str(x).strip() for x in verses_seen_list if str(x).strip()}
+                    ),
+                    "read_streak": read_state.read_streak if read_state else 0,
+                    "last_read_date": (
+                        read_state.last_read_date.isoformat()
+                        if read_state and read_state.last_read_date
+                        else None
+                    ),
+                    "last_verse": (
+                        f"{read_state.last_chapter}.{read_state.last_verse}"
+                        if read_state
+                        and read_state.last_chapter is not None
+                        and read_state.last_verse is not None
+                        else None
+                    ),
+                },
+                "practice": {
+                    "japa_rounds_7d": int(japa_7d),
+                    "meditation_minutes_7d": int(med_min_7d),
+                    "read_minutes_7d": int(read_min_7d),
+                    "meditation_session_logs_30d": meditation_logs_30d,
                 },
                 "generated_at": now.isoformat(),
             }
@@ -3329,6 +3431,8 @@ class AskView(APIView):
             data["language"],
             data["message"],
         )
+        vref = (data.get("verse_ref") or "").strip() or None
+        vnote = (data.get("verse_note_excerpt") or "").strip() or None
         conversation, verses, guidance, retrieval = _run_guidance_flow(
             user_id=request.user.get_username(),
             message=data["message"],
@@ -3336,6 +3440,8 @@ class AskView(APIView):
             language=data["language"],
             conversation_id=data.get("conversation_id"),
             plan=subscription.plan,
+            anchor_verse_ref=vref,
+            anchor_note=vnote,
         )
         usage.ask_count += 1
         usage.save(update_fields=["ask_count"])
@@ -3470,11 +3576,15 @@ class GuestAskView(APIView):
             )
 
         response_language = resolve_guidance_language(language, message)
+        vref = (data.get("verse_ref") or "").strip() or None
+        vnote = (data.get("verse_note_excerpt") or "").strip() or None
         verses, guidance, retrieval = helper._run_guest_guidance_flow(
             request,
             message=message,
             mode=mode,
             language=language,
+            anchor_verse_ref=vref,
+            anchor_note=vnote,
         )
         _log_ask_event(
             user_id=f"guest:{guest_id}",
@@ -4234,6 +4344,215 @@ class VerseDetailView(APIView):
                 code="verse_not_found",
             )
         return Response(verse_data)
+
+
+def _get_or_create_reading_state(user):
+    state, _ = UserReadingState.objects.get_or_create(user=user)
+    if state.verses_seen is None:
+        state.verses_seen = []
+    return state
+
+
+class VerseUserNoteView(APIView):
+    """GET/PUT private study note for one verse (mobile + web)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, chapter: int, verse: int):
+        note = VerseUserNote.objects.filter(
+            user=request.user,
+            chapter=chapter,
+            verse=verse,
+        ).first()
+        if note is None:
+            return Response(
+                {
+                    "reference": f"{chapter}.{verse}",
+                    "chapter": chapter,
+                    "verse": verse,
+                    "body": "",
+                    "created_at": None,
+                    "updated_at": None,
+                }
+            )
+        return Response(VerseUserNoteSerializer(note).data)
+
+    def put(self, request, chapter: int, verse: int):
+        serializer = VerseUserNoteWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        body = serializer.validated_data.get("body", "")
+        if not isinstance(body, str):
+            body = str(body)
+        body = body.strip()
+        obj, _ = VerseUserNote.objects.update_or_create(
+            user=request.user,
+            chapter=chapter,
+            verse=verse,
+            defaults={"body": body},
+        )
+        return Response(VerseUserNoteSerializer(obj).data)
+
+
+class ReadingStateView(APIView):
+    """Return reading checkpoint and unique verses opened."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        state = UserReadingState.objects.filter(user=request.user).first()
+        verses_seen = state.verses_seen if state and isinstance(state.verses_seen, list) else []
+        opened = len({str(x).strip() for x in verses_seen if str(x).strip()})
+        return Response(
+            {
+                "verses_opened_count": opened,
+                "read_streak": state.read_streak if state else 0,
+                "last_read_date": (
+                    state.last_read_date.isoformat()
+                    if state and state.last_read_date
+                    else None
+                ),
+                "last_verse": (
+                    f"{state.last_chapter}.{state.last_verse}"
+                    if state
+                    and state.last_chapter is not None
+                    and state.last_verse is not None
+                    else None
+                ),
+                "updated_at": state.updated_at.isoformat() if state else None,
+            }
+        )
+
+
+class ReadingVerseOpenView(APIView):
+    """Record that the user opened a verse (progress + streak)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = VerseOpenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ch = int(serializer.validated_data["chapter"])
+        v = int(serializer.validated_data["verse"])
+        state = _get_or_create_reading_state(request.user)
+        key = f"{ch}.{v}"
+        seen = list(state.verses_seen or [])
+        if key not in seen and len(seen) < 801:
+            seen.append(key)
+        state.verses_seen = seen
+        state.last_chapter = ch
+        state.last_verse = v
+        today = timezone.localdate()
+        prev = state.last_read_date
+        if prev != today:
+            if prev == today - timedelta(days=1):
+                state.read_streak = max(1, state.read_streak + 1)
+            else:
+                state.read_streak = 1
+            state.last_read_date = today
+        state.save()
+        return Response(
+            {
+                "ok": True,
+                "verses_opened_count": len({str(x).strip() for x in state.verses_seen if str(x).strip()}),
+                "read_streak": state.read_streak,
+                "last_verse": key,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PracticeLogListCreateView(APIView):
+    """List or append manual practice logs (japa, meditation minutes, reading minutes)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+        qs = PracticeLogEntry.objects.filter(user=request.user).order_by("-logged_on", "-created_at")
+        total = qs.count()
+        rows = qs[offset : offset + limit]
+        next_offset = offset + limit if (offset + limit) < total else None
+        return Response(
+            {
+                "count": total,
+                "limit": limit,
+                "offset": offset,
+                "next_offset": next_offset,
+                "results": [
+                    {
+                        "id": r.id,
+                        "logged_on": r.logged_on.isoformat(),
+                        "entry_type": r.entry_type,
+                        "quantity": r.quantity,
+                        "mantra_label": r.mantra_label,
+                        "note": r.note,
+                        "created_at": r.created_at.isoformat(),
+                    }
+                    for r in rows
+                ],
+            }
+        )
+
+    def post(self, request):
+        serializer = PracticeLogCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+        row = PracticeLogEntry.objects.create(
+            user=request.user,
+            logged_on=d["logged_on"],
+            entry_type=d["entry_type"],
+            quantity=int(d["quantity"]),
+            mantra_label=(d.get("mantra_label") or "").strip()[:120],
+            note=(d.get("note") or "").strip()[:500],
+        )
+        return Response(
+            {
+                "id": row.id,
+                "logged_on": row.logged_on.isoformat(),
+                "entry_type": row.entry_type,
+                "quantity": row.quantity,
+                "mantra_label": row.mantra_label,
+                "note": row.note,
+                "created_at": row.created_at.isoformat(),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class MeditationSessionLogCreateView(APIView):
+    """Log one completed meditation sit with optional pre/post self-reports."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = MeditationSessionCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        d = serializer.validated_data
+        row = MeditationSessionLog.objects.create(
+            user=request.user,
+            pre_mood=d.get("pre_mood"),
+            pre_stress=d.get("pre_stress"),
+            pre_note=(d.get("pre_note") or "").strip()[:2000],
+            post_mood=d.get("post_mood"),
+            post_stress=d.get("post_stress"),
+            post_note=(d.get("post_note") or "").strip()[:2000],
+            duration_seconds=d.get("duration_seconds"),
+            program_slug=(d.get("program_slug") or "").strip()[:96],
+        )
+        return Response(
+            {
+                "id": row.id,
+                "created_at": row.created_at.isoformat(),
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class MantraView(APIView):
@@ -6241,15 +6560,22 @@ class ChatUIView(View):
         message: str,
         mode: str,
         language: str = "en",
+        anchor_verse_ref: str | None = None,
+        anchor_note: str | None = None,
     ):
         """Generate a guest-mode answer without persisting any DB history."""
-        message = normalize_chat_user_message(str(message or "").strip())
-        language = resolve_guidance_language(language, message)
+        raw_message = normalize_chat_user_message(str(message or "").strip())
+        effective_message = _apply_verse_anchor_to_message(
+            raw_message,
+            anchor_verse_ref=anchor_verse_ref,
+            anchor_note=anchor_note,
+        )
+        language = resolve_guidance_language(language, raw_message)
         guest_messages = self._guest_conversation_objects(request)
         conversation_messages = guest_messages + [
-            SimpleNamespace(role=Message.ROLE_USER, content=message)
+            SimpleNamespace(role=Message.ROLE_USER, content=raw_message)
         ]
-        intent = classify_user_intent(message, mode=mode)
+        intent = classify_user_intent(effective_message, mode=mode)
         if intent.intent_type == "verse_explanation" and intent.explicit_references:
             ensure_seed_verses()
             primary_ref = intent.explicit_references[0]
@@ -6260,7 +6586,10 @@ class ChatUIView(View):
             ).first()
             if verse is not None:
                 verses = [verse]
-                support_verses = [verse, *get_related_verses(message=message, seed_verses=[verse], limit=4)]
+                support_verses = [
+                    verse,
+                    *get_related_verses(message=effective_message, seed_verses=[verse], limit=4),
+                ]
                 retrieval = empty_retrieval_result(
                     intent=intent,
                     query_interpretation={
@@ -6272,7 +6601,7 @@ class ChatUIView(View):
                     retrieval_mode="direct_reference",
                 )
                 guidance = build_verse_explanation(
-                    message=message,
+                    message=effective_message,
                     verse=verse,
                     support_verses=support_verses,
                     language=language,
@@ -6294,7 +6623,7 @@ class ChatUIView(View):
                     retrieval_mode="direct_reference_missing",
                 )
                 guidance = build_guidance(
-                    message,
+                    effective_message,
                     verses,
                     conversation_messages=conversation_messages,
                     language=language,
@@ -6316,7 +6645,7 @@ class ChatUIView(View):
                 retrieval_mode="direct_chapter",
             )
             guidance = build_chapter_explanation(
-                message=message,
+                message=effective_message,
                 chapter_number=intent.chapter_number,
                 language=language,
             )
@@ -6333,7 +6662,7 @@ class ChatUIView(View):
                 retrieval_mode="none",
             )
             guidance = build_guidance(
-                message,
+                effective_message,
                 verses,
                 conversation_messages=conversation_messages,
                 language=language,
@@ -6344,12 +6673,12 @@ class ChatUIView(View):
             )
         else:
             retrieval = retrieve_verses_with_trace(
-                message=message,
+                message=effective_message,
                 limit=_plan_max_context_verses(UserSubscription.PLAN_FREE, mode),
             )
-            verses = refine_verses_for_guidance(message, retrieval.verses)
+            verses = refine_verses_for_guidance(effective_message, retrieval.verses)
             guidance = build_guidance(
-                message,
+                effective_message,
                 verses,
                 conversation_messages=conversation_messages,
                 language=language,
@@ -6360,7 +6689,7 @@ class ChatUIView(View):
             )
         self._append_guest_exchange(
             request,
-            user_message=message,
+            user_message=raw_message,
             assistant_message=guidance.guidance,
         )
         return verses, guidance, retrieval

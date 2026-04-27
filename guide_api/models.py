@@ -1008,3 +1008,111 @@ class SadhanaDayCompletion(models.Model):
                 name="sadhana_completion_has_actor",
             ),
         ]
+
+
+class VerseUserNote(models.Model):
+    """Private per-verse study notes for revisiting and verse-scoped Q&A context."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="verse_notes",
+    )
+    chapter = models.PositiveSmallIntegerField()
+    verse = models.PositiveSmallIntegerField()
+    body = models.TextField(blank=True, max_length=12000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "chapter", "verse"],
+                name="unique_user_verse_note",
+            ),
+        ]
+        ordering = ["-updated_at"]
+
+    def __str__(self) -> str:
+        return f"Note {self.user_id} BG{self.chapter}.{self.verse}"
+
+
+class UserReadingState(models.Model):
+    """Tracks last read position, unique verses opened, and a simple read streak."""
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="reading_state",
+    )
+    last_chapter = models.PositiveSmallIntegerField(null=True, blank=True)
+    last_verse = models.PositiveSmallIntegerField(null=True, blank=True)
+    verses_seen = models.JSONField(default=list, blank=True)
+    last_read_date = models.DateField(null=True, blank=True)
+    read_streak = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self) -> str:
+        return f"ReadingState {self.user_id}"
+
+
+class PracticeLogEntry(models.Model):
+    """Manual log of japa, meditation minutes, or reading minutes."""
+
+    TYPE_JAPA_ROUNDS = "japa_rounds"
+    TYPE_MEDITATION_MINUTES = "meditation_minutes"
+    TYPE_READ_MINUTES = "read_minutes"
+    TYPE_CHOICES = (
+        (TYPE_JAPA_ROUNDS, "Japa (mala rounds)"),
+        (TYPE_MEDITATION_MINUTES, "Meditation minutes"),
+        (TYPE_READ_MINUTES, "Reading minutes"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="practice_log_entries",
+    )
+    logged_on = models.DateField()
+    entry_type = models.CharField(max_length=32, choices=TYPE_CHOICES)
+    quantity = models.PositiveIntegerField()
+    mantra_label = models.CharField(max_length=120, blank=True)
+    note = models.CharField(max_length=500, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-logged_on", "-created_at"]
+        indexes = [
+            models.Index(fields=["user", "logged_on"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} {self.logged_on} {self.entry_type}"
+
+
+class MeditationSessionLog(models.Model):
+    """Self-reported pre/post mood around a meditation sit (wellness journaling, not clinical)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="meditation_session_logs",
+    )
+    pre_mood = models.PositiveSmallIntegerField(null=True, blank=True)
+    pre_stress = models.PositiveSmallIntegerField(null=True, blank=True)
+    pre_note = models.TextField(blank=True, max_length=2000)
+    post_mood = models.PositiveSmallIntegerField(null=True, blank=True)
+    post_stress = models.PositiveSmallIntegerField(null=True, blank=True)
+    post_note = models.TextField(blank=True, max_length=2000)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    program_slug = models.SlugField(max_length=96, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "-created_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"MeditationLog {self.user_id} {self.created_at}"

@@ -26,6 +26,7 @@ from guide_api.models import (
     GuestChatIdentity,
     Message,
     NotificationDevice,
+    PracticeLogEntry,
     RequestQuotaSettings,
     ResponseFeedback,
     SadhanaDay,
@@ -35,8 +36,10 @@ from guide_api.models import (
     SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
+    UserReadingState,
     UserSubscription,
     Verse,
+    VerseUserNote,
     WebAudienceProfile,
 )
 from django.test import Client, TestCase, override_settings
@@ -2734,7 +2737,51 @@ class GuideApiTests(APITestCase):
         )
         self.assertIn("community", response.data)
         self.assertIn("sadhana", response.data)
+        self.assertIn("reading", response.data)
+        self.assertIn("practice", response.data)
         self.assertIn("generated_at", response.data)
+
+    def test_verse_user_note_put_and_get(self):
+        url = "/api/v1/verses/2.47/note/"
+        r = self.client.put(url, data={"body": "  My reflection  "}, format="json")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertEqual(r.data["body"], "My reflection")
+        r2 = self.client.get(url)
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertEqual(r2.data["body"], "My reflection")
+
+    def test_reading_verse_open_records_progress(self):
+        r = self.client.post(
+            "/api/v1/reading/verse-open/",
+            data={"chapter": 1, "verse": 1},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertTrue(r.data.get("ok"))
+        self.assertGreaterEqual(r.data.get("verses_opened_count", 0), 1)
+        st = UserReadingState.objects.get(user=self.user)
+        self.assertEqual(st.last_chapter, 1)
+        self.assertEqual(st.last_verse, 1)
+        self.assertIn("1.1", st.verses_seen)
+
+    def test_practice_log_create_and_list(self):
+        from datetime import date as date_cls
+
+        d = date_cls.today()
+        r = self.client.post(
+            "/api/v1/practice/log/",
+            data={
+                "logged_on": d.isoformat(),
+                "entry_type": PracticeLogEntry.TYPE_JAPA_ROUNDS,
+                "quantity": 3,
+                "mantra_label": "Hare Krishna",
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_201_CREATED)
+        r2 = self.client.get("/api/v1/practice/log/?limit=10&offset=0")
+        self.assertEqual(r2.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(r2.data.get("count", 0), 1)
 
 
 # Razorpay Payment Integration Tests
