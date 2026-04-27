@@ -71,6 +71,7 @@ from guide_api.models import (
     VerseUserNote,
     WebAudienceProfile,
 )
+from guide_api.japa_views import japa_insights_for_user
 from guide_api.sadhana_views import (
     _is_sadhana_cycle_amount,
     _payment_amount_for_sadhana_cycle,
@@ -3372,6 +3373,7 @@ class UserInsightsSummaryView(APIView):
                     "read_minutes_7d": int(read_min_7d),
                     "meditation_session_logs_30d": meditation_logs_30d,
                 },
+                "japa": japa_insights_for_user(user),
                 "generated_at": now.isoformat(),
             }
         )
@@ -4494,6 +4496,7 @@ class PracticeLogListCreateView(APIView):
                         "mantra_label": r.mantra_label,
                         "note": r.note,
                         "created_at": r.created_at.isoformat(),
+                        "japa_commitment_id": r.japa_commitment_id,
                     }
                     for r in rows
                 ],

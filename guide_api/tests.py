@@ -2739,7 +2739,54 @@ class GuideApiTests(APITestCase):
         self.assertIn("sadhana", response.data)
         self.assertIn("reading", response.data)
         self.assertIn("practice", response.data)
+        self.assertIn("japa", response.data)
+        self.assertIn("active_commitments", response.data["japa"])
         self.assertIn("generated_at", response.data)
+
+    def test_japa_commitment_start_finish_day_syncs_practice_log(self):
+        d0 = date.today()
+        r = self.client.post(
+            "/api/v1/japa/commitments/",
+            data={
+                "title": "Morning japa",
+                "focus_label": "Śrī Kṛṣṇa",
+                "mantra_label": "Hare Kṛṣṇa",
+                "daily_target_malas": 4,
+                "started_on": d0.isoformat(),
+            },
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_201_CREATED)
+        cid = r.data["id"]
+        r0 = self.client.post(f"/api/v1/japa/commitments/{cid}/sessions/start/", data={}, format="json")
+        self.assertEqual(r0.status_code, status.HTTP_201_CREATED)
+        sid = r0.data["id"]
+        r1 = self.client.post(
+            f"/api/v1/japa/sessions/{sid}/finish-day/",
+            data={"local_date": d0.isoformat(), "malas_completed": 2},
+            format="json",
+        )
+        self.assertEqual(r1.status_code, status.HTTP_200_OK)
+        self.assertEqual(r1.data["daily_total_malas"], 2)
+        pl = PracticeLogEntry.objects.get(
+            user=self.user,
+            japa_commitment_id=cid,
+            logged_on=d0,
+            entry_type=PracticeLogEntry.TYPE_JAPA_ROUNDS,
+        )
+        self.assertEqual(pl.quantity, 2)
+        r2 = self.client.post(f"/api/v1/japa/commitments/{cid}/sessions/start/", data={}, format="json")
+        self.assertEqual(r2.status_code, status.HTTP_201_CREATED)
+        sid2 = r2.data["id"]
+        r3 = self.client.post(
+            f"/api/v1/japa/sessions/{sid2}/finish-day/",
+            data={"local_date": d0.isoformat(), "malas_completed": 3},
+            format="json",
+        )
+        self.assertEqual(r3.status_code, status.HTTP_200_OK)
+        self.assertEqual(r3.data["daily_total_malas"], 5)
+        pl.refresh_from_db()
+        self.assertEqual(pl.quantity, 5)
 
     def test_verse_user_note_put_and_get(self):
         url = "/api/v1/verses/2.47/note/"

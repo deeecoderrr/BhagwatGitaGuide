@@ -608,3 +608,34 @@ class MeditationSessionCreateSerializer(serializers.Serializer):
         min_value=0, max_value=86400 * 2, required=False, allow_null=True
     )
     program_slug = serializers.SlugField(max_length=96, required=False, allow_blank=True)
+
+
+class JapaCommitmentCreateSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=120)
+    focus_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    mantra_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    daily_target_malas = serializers.IntegerField(min_value=1, max_value=9999, default=1)
+    started_on = serializers.DateField(required=False)
+    ends_on = serializers.DateField(required=False, allow_null=True)
+    preferred_time = serializers.TimeField(required=False, allow_null=True)
+
+
+class JapaCommitmentPatchSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=120, required=False)
+    focus_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    mantra_label = serializers.CharField(max_length=120, required=False, allow_blank=True)
+    daily_target_malas = serializers.IntegerField(required=False, min_value=1, max_value=9999)
+    ends_on = serializers.DateField(required=False, allow_null=True)
+    preferred_time = serializers.TimeField(required=False, allow_null=True)
+    status = serializers.ChoiceField(
+        choices=["active", "paused", "archived"],
+        required=False,
+    )
+
+
+class JapaFinishDaySerializer(serializers.Serializer):
+    """Mālā rounds completed this sit; summed into the commitment's calendar day."""
+
+    local_date = serializers.DateField()
+    malas_completed = serializers.IntegerField(min_value=1, max_value=9999)
+    note = serializers.CharField(max_length=240, required=False, allow_blank=True)

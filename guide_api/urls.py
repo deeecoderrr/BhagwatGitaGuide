@@ -9,6 +9,16 @@ from guide_api.sadhana_views import (
     SadhanaProgramDetailView,
     SadhanaProgramListView,
 )
+from guide_api.japa_views import (
+    JapaCommitmentDetailView,
+    JapaCommitmentFulfillView,
+    JapaCommitmentListCreateView,
+    JapaSessionAbandonView,
+    JapaSessionFinishDayView,
+    JapaSessionPauseView,
+    JapaSessionResumeView,
+    JapaSessionStartView,
+)
 from guide_api.views import (
     AnalyticsEventIngestView,
     AnalyticsSummaryView,
@@ -196,6 +206,34 @@ urlpatterns = [
         "practice/meditation-sessions/",
         MeditationSessionLogCreateView.as_view(),
         name="practice-meditation-session",
+    ),
+    path("japa/commitments/", JapaCommitmentListCreateView.as_view(), name="japa-commitments"),
+    path(
+        "japa/commitments/<int:pk>/",
+        JapaCommitmentDetailView.as_view(),
+        name="japa-commitment-detail",
+    ),
+    path(
+        "japa/commitments/<int:pk>/fulfill/",
+        JapaCommitmentFulfillView.as_view(),
+        name="japa-commitment-fulfill",
+    ),
+    path(
+        "japa/commitments/<int:pk>/sessions/start/",
+        JapaSessionStartView.as_view(),
+        name="japa-session-start",
+    ),
+    path("japa/sessions/<int:pk>/pause/", JapaSessionPauseView.as_view(), name="japa-session-pause"),
+    path("japa/sessions/<int:pk>/resume/", JapaSessionResumeView.as_view(), name="japa-session-resume"),
+    path(
+        "japa/sessions/<int:pk>/finish-day/",
+        JapaSessionFinishDayView.as_view(),
+        name="japa-session-finish-day",
+    ),
+    path(
+        "japa/sessions/<int:pk>/abandon/",
+        JapaSessionAbandonView.as_view(),
+        name="japa-session-abandon",
     ),
     path("history/me/", ConversationHistoryView.as_view(), {"user_id": "me"}),
     path(

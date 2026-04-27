@@ -1078,12 +1078,21 @@ class PracticeLogEntry(models.Model):
     quantity = models.PositiveIntegerField()
     mantra_label = models.CharField(max_length=120, blank=True)
     note = models.CharField(max_length=500, blank=True)
+    japa_commitment = models.ForeignKey(
+        "JapaCommitment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="practice_log_entries",
+        help_text="When set, this row syncs one calendar day of japa for that personal track.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ["-logged_on", "-created_at"]
         indexes = [
             models.Index(fields=["user", "logged_on"]),
+            models.Index(fields=["user", "japa_commitment", "logged_on"]),
         ]
 
     def __str__(self) -> str:
@@ -1116,3 +1125,119 @@ class MeditationSessionLog(models.Model):
 
     def __str__(self) -> str:
         return f"MeditationLog {self.user_id} {self.created_at}"
+
+
+class JapaCommitment(models.Model):
+    """User-defined personal japa / mālā sankalpa (distinct from curated SadhanaProgram)."""
+
+    STATUS_ACTIVE = "active"
+    STATUS_PAUSED = "paused"
+    STATUS_FULFILLED = "fulfilled"
+    STATUS_ARCHIVED = "archived"
+    STATUS_CHOICES = (
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_PAUSED, "Paused"),
+        (STATUS_FULFILLED, "Fulfilled"),
+        (STATUS_ARCHIVED, "Archived"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="japa_commitments",
+    )
+    title = models.CharField(max_length=120)
+    focus_label = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Iṣṭa / deity / form (free text).",
+    )
+    mantra_label = models.CharField(max_length=120, blank=True)
+    daily_target_malas = models.PositiveSmallIntegerField(default=1)
+    started_on = models.DateField()
+    ends_on = models.DateField(null=True, blank=True)
+    preferred_time = models.TimeField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    fulfilled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["user", "status"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"JapaCommitment {self.user_id} {self.title!r}"
+
+
+class JapaSession(models.Model):
+    """One sit for a commitment (start / pause / resume / finish-day or abandon)."""
+
+    STATUS_IN_PROGRESS = "in_progress"
+    STATUS_COMPLETED = "completed"
+    STATUS_ABANDONED = "abandoned"
+    STATUS_CHOICES = (
+        (STATUS_IN_PROGRESS, "In progress"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_ABANDONED, "Abandoned"),
+    )
+
+    commitment = models.ForeignKey(
+        JapaCommitment,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="japa_sessions",
+    )
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    pause_started_at = models.DateTimeField(null=True, blank=True)
+    paused_seconds = models.PositiveIntegerField(default=0)
+    reported_malas = models.PositiveIntegerField(null=True, blank=True)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_IN_PROGRESS)
+
+    class Meta:
+        ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["user", "status"]),
+            models.Index(fields=["commitment", "-started_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"JapaSession {self.user_id} c={self.commitment_id}"
+
+
+class JapaDailyCompletion(models.Model):
+    """Idempotent per-calendar-day completion for a commitment (local date from client)."""
+
+    commitment = models.ForeignKey(
+        JapaCommitment,
+        on_delete=models.CASCADE,
+        related_name="daily_completions",
+    )
+    date = models.DateField()
+    malas_completed = models.PositiveIntegerField()
+    session = models.ForeignKey(
+        JapaSession,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="daily_completions",
+    )
+    note = models.CharField(max_length=240, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["commitment", "date"], name="unique_japa_commitment_date"),
+        ]
+        ordering = ["-date"]
+
+    def __str__(self) -> str:
+        return f"JapaDaily {self.commitment_id} {self.date} m={self.malas_completed}"
