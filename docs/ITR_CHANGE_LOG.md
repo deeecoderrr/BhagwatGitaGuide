@@ -8,6 +8,10 @@ Use this file to remember **what touched the repo** beyond pure “Gita-only” 
 
 - **`ITR_ENABLED=false`** — Disables allauth, all `apps.*` ITR URLs, and ITR settings injection. Deploy looks like Bhagavad Gita only (still same `requirements.txt`; dependencies stay installed unless you trim them).
 
+**Note:** Bhagavad Gita **subscription / practice / sadhana** Razorpay flows live in
+`guide_api` and are documented in **`PAYMENT_INTEGRATION_ANALYSIS.md`** (separate from
+ITR’s `apps.billing` Razorpay hooks).
+
 ---
 
 ## Core Django wiring (Bhagwat Gita process)

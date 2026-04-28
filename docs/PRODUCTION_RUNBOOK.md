@@ -39,6 +39,13 @@ Support and payment config
    flyctl secrets set RAZORPAY_KEY_SECRET="your_key_secret" -a askbhagavadgita
    flyctl secrets set RAZORPAY_WEBHOOK_SECRET="your_webhook_secret" -a askbhagavadgita
 
+   Webhook behavior: **`payment.captured`** for tagged **practice workflow** and **sadhana**
+   orders only completes enrollment when the capture **amount/currency** match the
+   catalog price and the existing **`BillingRecord`** row. Skips are logged at **INFO**
+   (`razorpay_webhook_skip_practice_workflow_capture`, `razorpay_webhook_skip_sadhana_capture`);
+   ensure production log level or sinks include **`guide_api`** INFO if you rely on these
+   for support. See **`PAYMENT_INTEGRATION_ANALYSIS.md`**.
+
 3. Set pricing values
    flyctl secrets set SUBSCRIPTION_PRICE_PLUS_INR="4900" -a askbhagavadgita
    flyctl secrets set SUBSCRIPTION_PRICE_PLUS_USD="149" -a askbhagavadgita

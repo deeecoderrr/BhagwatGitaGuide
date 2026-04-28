@@ -4,7 +4,8 @@
 
 **Project:** Django + DRF backend for a Bhagavad Gita–based life guidance app (RAG + OpenAI generation, safety guardrails, auth, quota, mobile-friendly JSON APIs).
 
-**Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).
+**Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).  
+**Payments:** see root **`PAYMENT_INTEGRATION_ANALYSIS.md`** (Razorpay products, verify, webhooks, bridge URL).
 
 **Optional:** **ITR Summary Generator** — income-tax computation PDF workflow mounted at
 `ITR_URL_PREFIX` (default `/itr-computation/`). Toggle with **`ITR_ENABLED`**. Settings
@@ -127,7 +128,8 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - `POST eval/retrieval/` — retrieval trace / benchmark (no generation); **auth required**
 - payment/subscription: `payments/create-order` (body `product`: `subscription`
   default, `sadhana_cycle`, **`practice_workflow`** + `workflow_slug`),
-  `payments/verify`, `payments/history`, `subscription/status`
+  `payments/verify`, `payments/history`, `payments/status`, **`payments/checkout/bridge/`** (GET),
+  `payments/webhook`, `subscription/status`
 - **Practice workflows (curated sessions):** `GET practice/tags/`,
   `GET practice/workflows/?tag=<slug>`, `GET practice/workflows/<slug>/`,
   `GET practice/workflows/me/` — catalog + per-step tags; access modes
@@ -206,7 +208,7 @@ Deployment/ops snapshot:
 - if production fails to boot after deploy, verify Fly has a real `SECRET_KEY`
   secret set rather than relying on any local/dev fallback
 
-**Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, **Stripe** and production billing, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today), SEO FAQ schema markup for topic pages, shareable answer pages with og:image.
+**Explicitly not done / next waves:** Push or email **delivery** for reminders, **scheduled** reminder worker, automated **subscription renewal** beyond current Razorpay one-shot checkout + webhooks, possible **pgvector** migration for retrieval at scale (SQLite + embeddings in DB today), SEO FAQ schema markup for topic pages, shareable answer pages with og:image.
 
 **See `PROGRESS.md` for the authoritative checklist** and “Next 3 Tasks” before large new scope.
 

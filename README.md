@@ -8,6 +8,7 @@ Run `make test` for the current test count (see `guide_api/tests.py`).
 ## Documentation
 
 - User documentation: `docs/USER_GUIDE.md`
+- Razorpay / billing reference: `PAYMENT_INTEGRATION_ANALYSIS.md`
 - Developer documentation: `docs/DEVELOPER_GUIDE.md`
 - Mobile build handoff: `docs/MOBILE_APP_PARITY_BLUEPRINT.md`
 - Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`
@@ -223,8 +224,10 @@ Versioning:
 - `DELETE /api/saved-reflections/<reflection_id>/` (auth required)
 - `POST /api/answers/share/`
 - `GET /api/payments/history/`
-- `POST /api/payments/create-order/`
+- `POST /api/payments/create-order/` (body `product`: `subscription` \| `sadhana_cycle` \| `practice_workflow`)
 - `POST /api/payments/verify/`
+- `POST /api/payments/status/` (client-reported cancel/fail for ledger)
+- `GET /api/payments/checkout/bridge/` (HTML Razorpay bridge for native `redirect_uri` flows)
 - `POST /api/payments/webhook/` (gateway callback)
 - `GET /api/subscription/status/`
 - `GET /api/sadhana/programs/`
@@ -547,4 +550,4 @@ Error shape (non-breaking, additive):
 1. Replace keyword retrieval with pgvector semantic retrieval.
 2. Add retrieval eval dataset + scoring command for quality tracking.
 3. Add streak/reminder signals for daily return behavior.
-4. Add Stripe checkout and paid plan lifecycle hooks.
+4. Extend paid lifecycle (e.g. subscription renewal reminders, optional admin reconcile tools) beyond current Razorpay one-shot checkout + webhooks.

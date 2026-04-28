@@ -376,11 +376,19 @@ The Razorpay checkout path now keeps one export-friendly billing row per order:
    - upserts a single `BillingRecord` row keyed by `razorpay_order_id`
 2. `POST /api/payments/verify/`
    - resolves the same active chat-ui user identity
-   - verifies signature
-   - activates subscription
-   - updates the same `BillingRecord` row to `verified`
+   - verifies Razorpay signature (`order_id|payment_id`)
+   - if a `BillingRecord` exists for the order, its `user_id` must match (or fall
+     back to legacy `UserSubscription.razorpay_order_id` match when the row has no user)
+   - branches: **sadhana** (`purchase_kind` / pending session), **practice workflow**,
+     then **subscription** (plan from pending session, request body, or billing row plan)
+   - rejects verify when ledger `amount_minor` does not match catalog pricing for the
+     resolved product/plan/currency
+   - activates the appropriate product and updates the same `BillingRecord` to `verified`
 3. `POST /api/payments/webhook/`
-   - `payment.captured` updates the same row to `captured`
+   - `payment.captured`: for tagged **sadhana** / **practice_workflow** orders, enrollment
+     and captured billing update run only when webhook amount/currency match catalog
+     and the existing ledger row (otherwise skip + `logger.info` skip event)
+   - other captures follow subscription inference path
    - `payment.failed` updates the same row to `failed`
 
 `BillingRecord` is intended to be the single table exported to Tally or other
@@ -393,6 +401,11 @@ Related payment inspection endpoints:
 - `GET /api/payments/history/?limit=&offset=`
   - returns paginated `BillingRecord` rows for the authenticated user
   - useful for account screens, support, and payment-history UI
+- `GET /api/payments/checkout/bridge/`
+  - HTML bridge that runs Razorpay Checkout.js and redirects back to `redirect_uri`
+    with query params (native app deep links)
+- `POST /api/payments/status/`
+  - authenticated client marks an order cancelled/failed for ledger accuracy
 
 Deployment note:
 

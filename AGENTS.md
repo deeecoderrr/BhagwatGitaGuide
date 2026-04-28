@@ -6,6 +6,7 @@ Any AI assistant working in this repository should treat the following as **mand
 2. **`PROGRESS.md`** — What is done, what is next, deferred items; update when you finish a milestone.
 3. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
 4. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
+5. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
 
 ## Non-negotiables
 

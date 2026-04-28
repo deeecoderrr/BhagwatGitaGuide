@@ -265,6 +265,8 @@ You can also call API directly:
 - `GET /api/plans/catalog/`
 - `POST /api/payments/create-order/`
 - `POST /api/payments/verify/`
+- `POST /api/payments/status/` (optional: tell the server an in-app checkout was cancelled)
+- `GET /api/payments/checkout/bridge/` (used by native apps for Razorpay + deep-link return; not needed for normal chat-ui browser checkout)
 
 Use this when you want to list the signed-in user’s recent billing/payment rows.
 This is especially useful for account screens, invoice lookup, and support

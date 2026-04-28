@@ -137,6 +137,8 @@ Frontend/mobile-owned:
 - `GET /payments/history/`
 - `POST /payments/create-order/`
 - `POST /payments/verify/`
+- `POST /payments/status/` (mark order cancelled/failed for ledger)
+- `GET /payments/checkout/bridge/` (HTML Razorpay bridge; pass `redirect_uri` = app deep link)
 - `POST /payments/webhook/` (server-to-server only)
 
 ### Sadhana
@@ -251,6 +253,18 @@ Note: web flow clears guest transcript on login/register; mobile should mimic.
 4. Verify payment:
    - `POST /payments/verify/`
 5. Access program days via sadhana endpoints.
+
+## J. Practice workflow purchase (paid courses)
+
+1. Load catalog: `GET /practice/workflows/` and detail `GET /practice/workflows/<slug>/`.
+2. Use **`purchase_currency_options`** from the detail payload when both INR and USD
+   exist; otherwise send the single supported `currency` from the API.
+3. Create order: `POST /payments/create-order/` with
+   `{ "product": "practice_workflow", "workflow_slug": "<slug>", "currency": "INR"|"USD" }`.
+4. Open checkout: native apps typically use **`GET /payments/checkout/bridge/`** with
+   order fields and `redirect_uri` pointing at the app (e.g. **`/payments/callback`**).
+5. On return URL with Razorpay params: `POST /payments/verify/` then refresh
+   `GET /practice/workflows/<slug>/` and `GET /practice/workflows/me/`.
 
 ---
 

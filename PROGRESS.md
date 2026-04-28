@@ -4,6 +4,16 @@ Last updated: 2026-04-27
 
 ## Completed
 
+- **Payments hardening (2026-04-27):** `VerifyPaymentView` ties order ownership to
+  **`BillingRecord`** when present so a stale `UserSubscription.razorpay_order_id`
+  does not block verify after a second checkout; subscription verify resolves plan
+  from session, request, or ledger and rejects **ledger amount** mismatches;
+  sadhana verify uses billing **currency** + amount check. **`RazorpayWebhookView`**
+  requires captured **amount/currency** to match catalog + ledger for
+  **`practice_workflow`** and **`sadhana_cycle`** before enrolling; skips log at
+  **`INFO`** (`razorpay_webhook_skip_*`). New regression tests in
+  `PaymentIntegrationTests`. See **`PAYMENT_INTEGRATION_ANALYSIS.md`**.
+
 - **Practice workflows (backend):** models `PracticeTag`, `PracticeWorkflow`,
   `PracticeWorkflowStep` (M2M tags), `PracticeWorkflowEnrollment`; migrations
   `0032_practice_workflows`, `0033_practice_workflow_purchase_prices` (per-currency
@@ -1110,17 +1120,10 @@ Last updated: 2026-04-27
   - added 3 new tests for SEO metadata, canonical, hreflang, and Google verification
   - all 86 tests pass
 
-- Razorpay payment integration tested and validated:
-  - comprehensive test suite for payment flow (21 new tests):
-    - CreateOrderView: INR/USD flows, default currency, unauthenticated failure, gateway misconfiguration
-    - VerifyPaymentView: valid signature verification, invalid signature rejection, order ID mismatch, missing parameters, unauthenticated failure
-    - RazorpayWebhookView: payment.captured event handling, payment.failed event, invalid signature rejection, webhook misconfiguration, invalid JSON handling
-    - SubscriptionStatusView: free plan status, active pro plan, expired pro plan, unauthenticated failure
-    - End-to-end payment flow: complete order creation → payment verification → subscription activation cycle
-  - all payment endpoints verified working against mocked Razorpay client
-  - webhook signature verification validated with HMAC-SHA256
-  - subscription activation logic confirmed (plan upgrade, is_active, 30-day expiry)
-  - all 107 tests pass (86 existing + 21 new payment tests)
+- Razorpay payment integration tested and validated (suite grown since; run `make test`):
+  - CreateOrder / verify / webhook / subscription status / billing history / checkout bridge / client status updates
+  - Plus **sadhana_cycle**, **practice_workflow**, ledger amount checks, webhook capture alignment, stale `razorpay_order_id` verify
+  - See **`PAYMENT_INTEGRATION_ANALYSIS.md`** for the current contract
 
 - UX focus (current):
   - improve emotional clarity and response tone quality

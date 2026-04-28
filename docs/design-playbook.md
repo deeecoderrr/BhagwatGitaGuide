@@ -1,6 +1,6 @@
 # Design Playbook
 
-Last reviewed: 2026-04-15
+Last reviewed: 2026-04-27
 
 This document helps AI coding agents choose a fitting UI direction before
 editing the frontend. It is especially important for automated redesign or UX
@@ -22,7 +22,9 @@ For this repository, the product identity is:
 
 Before substantial frontend edits:
 
-1. Inspect routes, templates, copy, models, and user flows.
+1. Inspect routes, templates, copy, models, and user flows. If touching upgrade or
+   checkout surfaces, cross-check **`PAYMENT_INTEGRATION_ANALYSIS.md`** so UX matches
+   the live Razorpay + billing contract.
 2. Infer the app purpose, user mindset, and key interaction loops.
 3. Choose a theme name and visual direction.
 4. Define or refine design tokens before scattered style edits.

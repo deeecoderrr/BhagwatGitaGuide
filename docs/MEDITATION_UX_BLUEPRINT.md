@@ -218,6 +218,8 @@ Potential API endpoints:
 - Preserve separation between ask flow and practice flow.
 - Keep the 30-minute structure explicit and editable in one config source.
 - Reuse existing theme tokens (`gita-app-theme.css` and mobile `theme.ts`).
+- If a future meditation SKU is sold through Razorpay, align with the shared payment
+  patterns in **`PAYMENT_INTEGRATION_ANALYSIS.md`** (ledger row, verify, webhooks).
 - If implementing UI changes, also update:
   - `docs/USER_GUIDE.md`
   - `docs/DEVELOPER_GUIDE.md`
