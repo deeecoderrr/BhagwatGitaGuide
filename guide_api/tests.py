@@ -707,6 +707,9 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["days"], 3)
         self.assertEqual(len(response.data["results"]), 3)
+        first = response.data["results"][0]
+        self.assertIn("meaning_plain", first)
+        self.assertTrue(first.get("meaning_plain"))
 
     def test_verse_search_endpoint_returns_matches(self):
         Verse.objects.create(
@@ -1240,9 +1243,11 @@ class GuideApiTests(APITestCase):
         self.assertIn("verse", response.data)
         self.assertIn("quote", response.data)
         self.assertIn("meaning", response.data)
+        self.assertIn("meaning_plain", response.data)
         self.assertTrue(response.data["verse"]["reference"])
         self.assertTrue(response.data["quote"])
         self.assertTrue(response.data["meaning"])
+        self.assertTrue(response.data["meaning_plain"])
 
     def test_daily_verse_hindi_meaning_skips_short_prefix_sentence(self):
         from unittest.mock import patch

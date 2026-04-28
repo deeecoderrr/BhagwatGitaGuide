@@ -3927,6 +3927,53 @@ class DailyVerseView(APIView):
             return candidate
         return candidate[: limit - 1].rstrip() + "…"
 
+    @classmethod
+    def _plain_signal_meaning(cls, text: str, *, language: str) -> str:
+        """
+        One short, easy-to-read line for Today's Signal (mobile / notifications).
+
+        English: soften archaic pronouns, prefer the first clause before ';'
+        (often one clear idea). Hindi: first substantive sentence, trimmed.
+        """
+        raw = cls._clean_signal_text(text)
+        if not raw:
+            return ""
+
+        if language == "hi":
+            stripped = re.sub(r"^[।|\s\d.-]+", "", raw).strip()
+            parts = [
+                p.strip()
+                for p in re.split(r"(?<=[।!?])\s+", stripped)
+                if p.strip()
+            ]
+            chunk = ""
+            for p in parts:
+                dev_count = len(re.findall(r"[\u0900-\u097F]", p))
+                if dev_count >= 16 or len(p) >= 42:
+                    chunk = p
+                    break
+            if not chunk:
+                chunk = parts[0] if parts else stripped
+            if len(chunk) > 220:
+                chunk = chunk[:219].rstrip() + "…"
+            return chunk
+
+        t = raw
+        t = re.sub(r"(?i)^verily,?\s*", "", t)
+        t = re.sub(r"\bThee\b", "you", t)
+        t = re.sub(r"\bthy\b", "your", t)
+        t = re.sub(r"\bThou\b", "You", t)
+        t = re.sub(r"\s+", " ", t).strip()
+        if ";" in t:
+            t = t.split(";", 1)[0].strip()
+        else:
+            bits = re.split(r"(?<=[.!?])\s+", t)
+            t = bits[0].strip() if bits else t
+        if len(t) > 200:
+            cut = t[:200].rsplit(" ", 1)[0]
+            t = cut + "…" if cut else t[:197] + "…"
+        return t
+
     @staticmethod
     def _resolve_daily_verse(day: date):
         """Pick a stable verse for a given day from the canonical verse table."""
@@ -3949,6 +3996,7 @@ class DailyVerseView(APIView):
                 "verse": None,
                 "quote": "",
                 "meaning": "",
+                "meaning_plain": "",
                 "reflection": "",
             }
 
@@ -3995,6 +4043,7 @@ class DailyVerseView(APIView):
             if language == "hi"
             else "Practice applying this verse today in one decision, one reaction, and one concrete action."
         )
+        meaning_plain = cls._plain_signal_meaning(meaning, language=language)
         reference = f"{verse.chapter}.{verse.verse}"
         prefill = (
             f"Explain Bhagavad Gita {reference} in simple Hindi and show how I can apply it today."
@@ -4007,6 +4056,7 @@ class DailyVerseView(APIView):
             "reference": reference,
             "quote": quote,
             "meaning": meaning,
+            "meaning_plain": meaning_plain,
             "reflection": reflection,
             "prefill": prefill,
         }
@@ -4026,6 +4076,7 @@ class DailyVerseView(APIView):
                 "verse": payload["verse"],
                 "quote": payload["quote"],
                 "meaning": payload["meaning"],
+                "meaning_plain": payload["meaning_plain"],
                 "reflection": payload["reflection"],
             }
         )
@@ -4062,6 +4113,7 @@ class DailyVerseHistoryView(APIView):
                     "reference": payload.get("reference", ""),
                     "quote": payload["quote"],
                     "meaning": payload["meaning"],
+                    "meaning_plain": payload["meaning_plain"],
                     "reflection": payload["reflection"],
                     "verse": payload["verse"],
                 }

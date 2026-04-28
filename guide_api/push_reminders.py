@@ -87,7 +87,7 @@ def _expo_fields_for_daily_reminder(
     payload = DailyVerseView._build_daily_payload(day=local_date, language=lang)
     ref = str(payload.get("reference") or "").strip()
     quote = str(payload.get("quote") or "").strip()
-    meaning = str(payload.get("meaning") or "").strip()
+    meaning = str(payload.get("meaning_plain") or payload.get("meaning") or "").strip()
     if not ref and not quote and not meaning:
         return {
             "title": str(default_title),
