@@ -1,8 +1,20 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-25
+Last updated: 2026-04-27
 
 ## Completed
+
+- **Practice workflows (backend):** models `PracticeTag`, `PracticeWorkflow`,
+  `PracticeWorkflowStep` (M2M tags), `PracticeWorkflowEnrollment`; migrations
+  `0032_practice_workflows`, `0033_practice_workflow_purchase_prices` (per-currency
+  minor prices + optional access window); REST `GET /api/practice/tags/`,
+  `GET /api/practice/workflows/` (optional `?tag=`), `GET /api/practice/workflows/<slug>/`,
+  `GET /api/practice/workflows/me/`; **`POST /api/payments/create-order/`** with
+  `product=practice_workflow` + `workflow_slug`; **`POST /api/payments/verify/`** and
+  Razorpay **`payment.captured`** webhook activate `PracticeWorkflowEnrollment` via
+  `activate_workflow_enrollment`; admin registration; subscription normalization in
+  `guide_api/subscription_helpers.py`. Tests: `PracticeWorkflowApiTests`,
+  `PaymentIntegrationTests` workflow cases.
 
 - Added dedicated guided meditation planning blueprint:
   - `docs/MEDITATION_UX_BLUEPRINT.md`

@@ -2,6 +2,12 @@
 
 from django.urls import path
 
+from guide_api.practice_workflow_views import (
+    PracticeTagListView,
+    PracticeWorkflowDetailView,
+    PracticeWorkflowListView,
+    PracticeWorkflowMeView,
+)
 from guide_api.sadhana_views import (
     SadhanaDayCompleteView,
     SadhanaDayDetailView,
@@ -315,4 +321,16 @@ urlpatterns = [
         name="sadhana-day-complete",
     ),
     path("sadhana/me/", SadhanaMeView.as_view(), name="sadhana-me"),
+    path("practice/tags/", PracticeTagListView.as_view(), name="practice-tags"),
+    path("practice/workflows/", PracticeWorkflowListView.as_view(), name="practice-workflows"),
+    path(
+        "practice/workflows/me/",
+        PracticeWorkflowMeView.as_view(),
+        name="practice-workflows-me",
+    ),
+    path(
+        "practice/workflows/<slug:slug>/",
+        PracticeWorkflowDetailView.as_view(),
+        name="practice-workflow-detail",
+    ),
 ]

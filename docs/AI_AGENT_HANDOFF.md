@@ -125,8 +125,17 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - history under `history/me/`, `history/<user_id>/` (owner)
 - `GET|POST|DELETE conversations/...` — mobile-native thread management
 - `POST eval/retrieval/` — retrieval trace / benchmark (no generation); **auth required**
-- payment/subscription: `payments/create-order`, `payments/verify`,
-  `payments/history`, `subscription/status`
+- payment/subscription: `payments/create-order` (body `product`: `subscription`
+  default, `sadhana_cycle`, **`practice_workflow`** + `workflow_slug`),
+  `payments/verify`, `payments/history`, `subscription/status`
+- **Practice workflows (curated sessions):** `GET practice/tags/`,
+  `GET practice/workflows/?tag=<slug>`, `GET practice/workflows/<slug>/`,
+  `GET practice/workflows/me/` — catalog + per-step tags; access modes
+  `free_public` | `pro_included` | `purchase_required`. Purchases:
+  `POST payments/create-order/` with `product=practice_workflow` and
+  `workflow_slug`; prices on `PracticeWorkflow.purchase_price_minor_*`; enrollment
+  opened by `POST payments/verify/` and Razorpay `payment.captured` webhook
+  (`activate_workflow_enrollment`).
 - device/reminder: `GET|PATCH notifications/preferences`,
   `GET devices/`, `POST devices/register`, `DELETE devices/<id>`;
   `manage.py send_push_reminders` sends Expo push for due profiles (cron).

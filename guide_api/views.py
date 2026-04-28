@@ -58,6 +58,7 @@ from guide_api.models import (
     ResponseFeedback,
     MeditationSessionLog,
     PracticeLogEntry,
+    PracticeWorkflow,
     SadhanaDayCompletion,
     SadhanaEnrollment,
     SadhanaProgram,
@@ -72,6 +73,11 @@ from guide_api.models import (
     WebAudienceProfile,
 )
 from guide_api.japa_views import japa_insights_for_user
+from guide_api.subscription_helpers import normalize_subscription_state as _normalize_subscription_state
+from guide_api.practice_workflow_views import (
+    activate_workflow_enrollment,
+    workflow_purchase_amount_minor,
+)
 from guide_api.sadhana_views import (
     _is_sadhana_cycle_amount,
     _payment_amount_for_sadhana_cycle,
@@ -2221,31 +2227,6 @@ def _get_user_plan_and_usage(user):
         defaults={"ask_count": 0},
     )
     return subscription, usage
-
-
-def _normalize_subscription_state(subscription: UserSubscription) -> UserSubscription:
-    """Downgrade expired paid subscriptions to Free and persist the change.
-
-    This keeps runtime behavior correct even without a background scheduler.
-    """
-    if subscription.plan == UserSubscription.PLAN_FREE:
-        return subscription
-    if (
-        subscription.subscription_end_date is not None
-        and subscription.subscription_end_date <= timezone.now()
-    ):
-        subscription.plan = UserSubscription.PLAN_FREE
-        subscription.is_active = False
-        subscription.subscription_end_date = None
-        subscription.save(
-            update_fields=[
-                "plan",
-                "is_active",
-                "subscription_end_date",
-                "updated_at",
-            ],
-        )
-    return subscription
 
 
 def _request_quota_settings() -> RequestQuotaSettings | None:
@@ -7664,6 +7645,87 @@ class CreateOrderView(APIView):
                     ],
                 })
 
+            if product == "practice_workflow":
+                workflow_slug = str(request.data.get("workflow_slug") or "").strip()
+                workflow = PracticeWorkflow.objects.filter(
+                    slug=workflow_slug,
+                    is_published=True,
+                    access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+                ).first()
+                if not workflow:
+                    return Response(
+                        {"error": "Unknown or unpublished purchasable workflow."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                amount = workflow_purchase_amount_minor(workflow, currency=currency)
+                if not amount or amount < 1:
+                    return Response(
+                        {
+                            "error": (
+                                "Workflow has no purchase price for this currency "
+                                "in admin."
+                            ),
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+                order_data = {
+                    "amount": amount,
+                    "currency": currency,
+                    "receipt": (
+                        f"pworkflow_{user.id}_{timezone.now().timestamp()}"
+                    ),
+                    "notes": {
+                        "user_id": str(user.id),
+                        "product": "practice_workflow",
+                        "workflow_slug": workflow_slug[:96],
+                        "billing_email": billing_profile["billing_email"][:64],
+                        "billing_country": billing_profile[
+                            "billing_country_code"
+                        ][:2],
+                    },
+                }
+                order = client.order.create(data=order_data)
+                subscription.razorpay_order_id = order["id"]
+                subscription.payment_currency = currency
+                subscription.save()
+
+                _upsert_billing_record(
+                    user=user,
+                    subscription=subscription,
+                    order_id=order["id"],
+                    plan=UserSubscription.PLAN_FREE,
+                    currency=currency,
+                    amount_minor=amount,
+                    billing_profile=billing_profile,
+                    payment_status=BillingRecord.STATUS_CREATED,
+                    raw_order_payload=order,
+                    extra_metadata={
+                        "purchase_kind": "practice_workflow",
+                        "workflow_slug": workflow_slug,
+                    },
+                )
+
+                pending_wf = request.session.get("pending_workflow_orders", {})
+                if not isinstance(pending_wf, dict):
+                    pending_wf = {}
+                pending_wf[order["id"]] = workflow_slug
+                request.session["pending_workflow_orders"] = pending_wf
+
+                return Response({
+                    "product": "practice_workflow",
+                    "workflow_slug": workflow_slug,
+                    "order_id": order["id"],
+                    "amount": amount,
+                    "currency": currency,
+                    "key_id": key_id,
+                    "user_email": user.email,
+                    "user_name": user.get_full_name() or user.username,
+                    "billing_country_code": billing_profile["billing_country_code"],
+                    "billing_country_name": billing_profile[
+                        "billing_country_name"
+                    ],
+                })
+
             selected_plan = _normalize_paid_plan(request.data.get("plan"))
             if selected_plan is None:
                 selected_plan = UserSubscription.PLAN_PRO
@@ -7913,112 +7975,82 @@ class VerifyPaymentView(APIView):
             )
 
         # Activate subscription or sadhana cycle
+        billing_record = BillingRecord.objects.filter(
+            razorpay_order_id=razorpay_order_id,
+        ).first()
         try:
             subscription = UserSubscription.objects.get(user=user)
-            if subscription.razorpay_order_id != razorpay_order_id:
+        except UserSubscription.DoesNotExist:
+            return Response(
+                {"error": "Subscription not found"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Prefer ledger row for this order (mobile may start another checkout that
+        # advances subscription.razorpay_order_id before verify runs).
+        if billing_record:
+            br_uid = billing_record.user_id
+            if br_uid and br_uid != user.id:
                 return Response(
                     {"error": "Order ID mismatch"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-
-            billing_record = BillingRecord.objects.filter(
-                razorpay_order_id=razorpay_order_id,
-            ).first()
-            meta = (billing_record.metadata if billing_record else {}) or {}
-            pending_sadhana = request.session.get("pending_sadhana_orders", {})
-            sadhana_via_meta = meta.get("purchase_kind") == "sadhana_cycle"
-            sadhana_via_session = (
-                isinstance(pending_sadhana, dict)
-                and razorpay_order_id in pending_sadhana
+            if not br_uid and subscription.razorpay_order_id != razorpay_order_id:
+                return Response(
+                    {"error": "Order ID mismatch"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+        elif subscription.razorpay_order_id != razorpay_order_id:
+            return Response(
+                {"error": "Order ID mismatch"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-            program_slug = str(meta.get("program_slug") or "").strip()
-            if isinstance(pending_sadhana, dict):
-                program_slug = program_slug or str(
-                    pending_sadhana.get(razorpay_order_id) or "",
-                ).strip()
-            if (
-                program_slug
-                and (sadhana_via_meta or sadhana_via_session)
+
+        meta = (billing_record.metadata if billing_record else {}) or {}
+        pending_sadhana = request.session.get("pending_sadhana_orders", {})
+        sadhana_via_meta = meta.get("purchase_kind") == "sadhana_cycle"
+        sadhana_via_session = (
+            isinstance(pending_sadhana, dict)
+            and razorpay_order_id in pending_sadhana
+        )
+        program_slug = str(meta.get("program_slug") or "").strip()
+        if isinstance(pending_sadhana, dict):
+            program_slug = program_slug or str(
+                pending_sadhana.get(razorpay_order_id) or "",
+            ).strip()
+        if (
+            program_slug
+            and (sadhana_via_meta or sadhana_via_session)
+        ):
+            program = SadhanaProgram.objects.filter(
+                slug=program_slug,
+                is_published=True,
+            ).first()
+            if not program:
+                return Response(
+                    {"error": "Sadhana program unavailable"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            cur = (
+                str(billing_record.currency or "").strip().upper()
+                if billing_record
+                else ""
+            ) or (
+                subscription.payment_currency or UserSubscription.CURRENCY_INR
+            )
+            amount_sad = _payment_amount_for_sadhana_cycle(currency=cur)
+            if billing_record and int(billing_record.amount_minor or 0) != int(
+                amount_sad,
             ):
-                program = SadhanaProgram.objects.filter(
-                    slug=program_slug,
-                    is_published=True,
-                ).first()
-                if not program:
-                    return Response(
-                        {"error": "Sadhana program unavailable"},
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                cur = subscription.payment_currency or UserSubscription.CURRENCY_INR
-                amount_sad = _payment_amount_for_sadhana_cycle(currency=cur)
-                enrollment = activate_sadhana_enrollment(
-                    user=user,
-                    program=program,
-                    billing_record=billing_record,
+                return Response(
+                    {"error": "Order amount mismatch"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-                billing_profile = (
-                    {
-                        "billing_name": billing_record.billing_name,
-                        "billing_email": billing_record.billing_email,
-                        "business_name": billing_record.business_name,
-                        "gstin": billing_record.gstin,
-                        "billing_country_code": billing_record.billing_country_code,
-                        "billing_country_name": billing_record.billing_country_name,
-                        "billing_state": billing_record.billing_state,
-                        "billing_city": billing_record.billing_city,
-                        "billing_postal_code": billing_record.billing_postal_code,
-                        "billing_address": billing_record.billing_address,
-                        "tax_treatment": billing_record.tax_treatment,
-                        "is_international": billing_record.is_international,
-                    }
-                    if billing_record
-                    else _collect_billing_profile(request, user=user)
-                )
-                _upsert_billing_record(
-                    user=user,
-                    subscription=subscription,
-                    order_id=razorpay_order_id,
-                    plan=UserSubscription.PLAN_FREE,
-                    currency=cur,
-                    amount_minor=amount_sad,
-                    billing_profile=billing_profile,
-                    payment_status=BillingRecord.STATUS_VERIFIED,
-                    raw_payment_payload={"razorpay_payment_id": razorpay_payment_id},
-                    payment_id=razorpay_payment_id,
-                    verified_at=timezone.now(),
-                    extra_metadata={
-                        "purchase_kind": "sadhana_cycle",
-                        "program_slug": program_slug,
-                    },
-                )
-                if isinstance(pending_sadhana, dict):
-                    pending_sadhana.pop(razorpay_order_id, None)
-                    request.session["pending_sadhana_orders"] = pending_sadhana
-
-                return Response({
-                    "success": True,
-                    "product": "sadhana_cycle",
-                    "program_slug": program_slug,
-                    "access_starts_at": enrollment.access_starts_at.isoformat(),
-                    "access_ends_at": enrollment.access_ends_at.isoformat(),
-                    "renewal_count": enrollment.renewal_count,
-                })
-
-            pending_plans = request.session.get("pending_subscription_plans", {})
-            pending_plan = None
-            if isinstance(pending_plans, dict):
-                pending_plan = _normalize_paid_plan(
-                    pending_plans.get(razorpay_order_id),
-                )
-
-            requested_plan = _normalize_paid_plan(request.data.get("plan"))
-            selected_plan = pending_plan or requested_plan or UserSubscription.PLAN_PRO
-
-            subscription.plan = selected_plan
-            subscription.is_active = True
-            subscription.subscription_end_date = timezone.now() + timedelta(days=30)
-            subscription.save()
-
+            enrollment = activate_sadhana_enrollment(
+                user=user,
+                program=program,
+                billing_record=billing_record,
+            )
             billing_profile = (
                 {
                     "billing_name": billing_record.billing_name,
@@ -8041,35 +8073,220 @@ class VerifyPaymentView(APIView):
                 user=user,
                 subscription=subscription,
                 order_id=razorpay_order_id,
-                plan=selected_plan,
-                currency=subscription.payment_currency or UserSubscription.CURRENCY_INR,
-                amount_minor=_payment_amount_for_plan(
-                    plan=selected_plan,
-                    currency=subscription.payment_currency
-                    or UserSubscription.CURRENCY_INR,
-                ),
+                plan=UserSubscription.PLAN_FREE,
+                currency=cur,
+                amount_minor=amount_sad,
                 billing_profile=billing_profile,
                 payment_status=BillingRecord.STATUS_VERIFIED,
+                raw_payment_payload={"razorpay_payment_id": razorpay_payment_id},
                 payment_id=razorpay_payment_id,
                 verified_at=timezone.now(),
+                extra_metadata={
+                    "purchase_kind": "sadhana_cycle",
+                    "program_slug": program_slug,
+                },
             )
-
-            if isinstance(pending_plans, dict) and razorpay_order_id in pending_plans:
-                pending_plans.pop(razorpay_order_id, None)
-                request.session["pending_subscription_plans"] = pending_plans
+            if isinstance(pending_sadhana, dict):
+                pending_sadhana.pop(razorpay_order_id, None)
+                request.session["pending_sadhana_orders"] = pending_sadhana
 
             return Response({
                 "success": True,
-                "message": "Subscription activated successfully",
-                "plan": subscription.plan,
-                "valid_until": subscription.subscription_end_date.isoformat(),
+                "product": "sadhana_cycle",
+                "program_slug": program_slug,
+                "access_starts_at": enrollment.access_starts_at.isoformat(),
+                "access_ends_at": enrollment.access_ends_at.isoformat(),
+                "renewal_count": enrollment.renewal_count,
             })
 
-        except UserSubscription.DoesNotExist:
-            return Response(
-                {"error": "Subscription not found"},
-                status=status.HTTP_404_NOT_FOUND,
+        pending_workflow = request.session.get("pending_workflow_orders", {})
+        workflow_via_meta = meta.get("purchase_kind") == "practice_workflow"
+        workflow_via_session = (
+            isinstance(pending_workflow, dict)
+            and razorpay_order_id in pending_workflow
+        )
+        workflow_slug = str(meta.get("workflow_slug") or "").strip()
+        if isinstance(pending_workflow, dict):
+            workflow_slug = workflow_slug or str(
+                pending_workflow.get(razorpay_order_id) or "",
+            ).strip()
+        if workflow_slug and (workflow_via_meta or workflow_via_session):
+            workflow = PracticeWorkflow.objects.filter(
+                slug=workflow_slug,
+                is_published=True,
+                access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            ).first()
+            if not workflow:
+                return Response(
+                    {"error": "Practice workflow unavailable"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            cur = (
+                str(billing_record.currency or "").strip().upper()
+                if billing_record
+                else ""
+            ) or (
+                subscription.payment_currency or UserSubscription.CURRENCY_INR
             )
+            expected = workflow_purchase_amount_minor(workflow, currency=cur)
+            if not expected or expected < 1:
+                return Response(
+                    {"error": "Workflow is not purchasable"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if billing_record and billing_record.amount_minor != expected:
+                return Response(
+                    {"error": "Order amount mismatch"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            enrollment = activate_workflow_enrollment(
+                user=user,
+                workflow=workflow,
+                billing_record=billing_record,
+            )
+            billing_profile = (
+                {
+                    "billing_name": billing_record.billing_name,
+                    "billing_email": billing_record.billing_email,
+                    "business_name": billing_record.business_name,
+                    "gstin": billing_record.gstin,
+                    "billing_country_code": billing_record.billing_country_code,
+                    "billing_country_name": billing_record.billing_country_name,
+                    "billing_state": billing_record.billing_state,
+                    "billing_city": billing_record.billing_city,
+                    "billing_postal_code": billing_record.billing_postal_code,
+                    "billing_address": billing_record.billing_address,
+                    "tax_treatment": billing_record.tax_treatment,
+                    "is_international": billing_record.is_international,
+                }
+                if billing_record
+                else _collect_billing_profile(request, user=user)
+            )
+            _upsert_billing_record(
+                user=user,
+                subscription=subscription,
+                order_id=razorpay_order_id,
+                plan=UserSubscription.PLAN_FREE,
+                currency=cur,
+                amount_minor=expected,
+                billing_profile=billing_profile,
+                payment_status=BillingRecord.STATUS_VERIFIED,
+                raw_payment_payload={"razorpay_payment_id": razorpay_payment_id},
+                payment_id=razorpay_payment_id,
+                verified_at=timezone.now(),
+                extra_metadata={
+                    "purchase_kind": "practice_workflow",
+                    "workflow_slug": workflow_slug,
+                },
+            )
+            if isinstance(pending_workflow, dict):
+                pending_workflow.pop(razorpay_order_id, None)
+                request.session["pending_workflow_orders"] = pending_workflow
+
+            return Response({
+                "success": True,
+                "product": "practice_workflow",
+                "workflow_slug": workflow_slug,
+                "access_starts_at": enrollment.access_starts_at.isoformat(),
+                "access_ends_at": (
+                    enrollment.access_ends_at.isoformat()
+                    if enrollment.access_ends_at
+                    else None
+                ),
+            })
+
+        purchase_kind = meta.get("purchase_kind")
+        pending_plans = request.session.get("pending_subscription_plans", {})
+        pending_plan = None
+        if isinstance(pending_plans, dict):
+            pending_plan = _normalize_paid_plan(
+                pending_plans.get(razorpay_order_id),
+            )
+
+        requested_plan = _normalize_paid_plan(request.data.get("plan"))
+        ledger_plan = None
+        if billing_record and purchase_kind not in (
+            "sadhana_cycle",
+            "practice_workflow",
+        ):
+            ledger_plan = _normalize_paid_plan(billing_record.plan)
+        selected_plan = (
+            pending_plan
+            or requested_plan
+            or ledger_plan
+            or UserSubscription.PLAN_PRO
+        )
+
+        sub_cur = (
+            str(billing_record.currency or "").strip().upper()
+            if billing_record
+            else ""
+        ) or (
+            subscription.payment_currency or UserSubscription.CURRENCY_INR
+        )
+        expected_sub = _payment_amount_for_plan(
+            plan=selected_plan,
+            currency=sub_cur,
+        )
+        if billing_record and purchase_kind not in (
+            "sadhana_cycle",
+            "practice_workflow",
+        ):
+            if int(billing_record.amount_minor or 0) != int(expected_sub):
+                return Response(
+                    {"error": "Order amount mismatch"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        subscription.plan = selected_plan
+        subscription.is_active = True
+        subscription.subscription_end_date = timezone.now() + timedelta(days=30)
+        subscription.save()
+
+        billing_profile = (
+            {
+                "billing_name": billing_record.billing_name,
+                "billing_email": billing_record.billing_email,
+                "business_name": billing_record.business_name,
+                "gstin": billing_record.gstin,
+                "billing_country_code": billing_record.billing_country_code,
+                "billing_country_name": billing_record.billing_country_name,
+                "billing_state": billing_record.billing_state,
+                "billing_city": billing_record.billing_city,
+                "billing_postal_code": billing_record.billing_postal_code,
+                "billing_address": billing_record.billing_address,
+                "tax_treatment": billing_record.tax_treatment,
+                "is_international": billing_record.is_international,
+            }
+            if billing_record
+            else _collect_billing_profile(request, user=user)
+        )
+        _upsert_billing_record(
+            user=user,
+            subscription=subscription,
+            order_id=razorpay_order_id,
+            plan=selected_plan,
+            currency=sub_cur,
+            amount_minor=_payment_amount_for_plan(
+                plan=selected_plan,
+                currency=sub_cur,
+            ),
+            billing_profile=billing_profile,
+            payment_status=BillingRecord.STATUS_VERIFIED,
+            payment_id=razorpay_payment_id,
+            verified_at=timezone.now(),
+        )
+
+        if isinstance(pending_plans, dict) and razorpay_order_id in pending_plans:
+            pending_plans.pop(razorpay_order_id, None)
+            request.session["pending_subscription_plans"] = pending_plans
+
+        return Response({
+            "success": True,
+            "message": "Subscription activated successfully",
+            "plan": subscription.plan,
+            "valid_until": subscription.subscription_end_date.isoformat(),
+        })
 
 
 class PaymentStatusUpdateView(APIView):
@@ -8203,8 +8420,35 @@ class RazorpayWebhookView(APIView):
                             slug=slug,
                             is_published=True,
                         ).first()
+                        cur = str(currency or "INR").upper()
+                        expected_sad = _payment_amount_for_sadhana_cycle(currency=cur)
+                        sad_amount_ok = (
+                            program is not None
+                            and int(expected_sad) >= 1
+                            and int(amount) == int(expected_sad)
+                            and billing_record is not None
+                            and str(billing_record.currency or "").upper() == cur
+                            and int(billing_record.amount_minor or 0) == int(expected_sad)
+                        )
+                        if order_id and not sad_amount_ok:
+                            logger.info(
+                                "razorpay_webhook_skip_sadhana_capture",
+                                extra={
+                                    "order_id": order_id,
+                                    "program_slug": slug,
+                                    "amount": amount,
+                                    "currency": cur,
+                                    "expected_minor": int(expected_sad),
+                                    "billing_minor": (
+                                        billing_record.amount_minor
+                                        if billing_record
+                                        else None
+                                    ),
+                                },
+                            )
                         if (
-                            billing_record
+                            sad_amount_ok
+                            and billing_record
                             and billing_record.user
                             and program
                         ):
@@ -8213,8 +8457,7 @@ class RazorpayWebhookView(APIView):
                                 program=program,
                                 billing_record=billing_record,
                             )
-                        cur = str(currency or "INR").upper()
-                        amount_sad = _payment_amount_for_sadhana_cycle(currency=cur)
+                        amount_sad = expected_sad
                         billing_profile = (
                             {
                                 "billing_name": billing_record.billing_name,
@@ -8251,7 +8494,12 @@ class RazorpayWebhookView(APIView):
                             if billing_record and billing_record.subscription_id
                             else None
                         )
-                        if billing_record and billing_record.user and sub:
+                        if (
+                            sad_amount_ok
+                            and billing_record
+                            and billing_record.user
+                            and sub
+                        ):
                             _upsert_billing_record(
                                 user=billing_record.user,
                                 subscription=sub,
@@ -8268,6 +8516,120 @@ class RazorpayWebhookView(APIView):
                                 extra_metadata={
                                     "purchase_kind": "sadhana_cycle",
                                     "program_slug": slug,
+                                },
+                            )
+                    elif meta.get("purchase_kind") == "practice_workflow":
+                        wf_slug = str(meta.get("workflow_slug") or "").strip()
+                        workflow = PracticeWorkflow.objects.filter(
+                            slug=wf_slug,
+                            is_published=True,
+                            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+                        ).first()
+                        cur = str(currency or "INR").upper()
+                        expected_wf = (
+                            workflow_purchase_amount_minor(workflow, currency=cur)
+                            if workflow
+                            else None
+                        )
+                        wf_amount_ok = (
+                            workflow
+                            and expected_wf is not None
+                            and int(expected_wf) >= 1
+                            and int(amount) == int(expected_wf)
+                            and billing_record is not None
+                            and str(billing_record.currency or "").upper() == cur
+                            and int(billing_record.amount_minor or 0)
+                            == int(expected_wf)
+                        )
+                        if order_id and not wf_amount_ok:
+                            logger.info(
+                                "razorpay_webhook_skip_practice_workflow_capture",
+                                extra={
+                                    "order_id": order_id,
+                                    "workflow_slug": wf_slug,
+                                    "amount": amount,
+                                    "currency": cur,
+                                    "expected_minor": (
+                                        int(expected_wf)
+                                        if expected_wf is not None
+                                        else None
+                                    ),
+                                    "billing_minor": (
+                                        billing_record.amount_minor
+                                        if billing_record
+                                        else None
+                                    ),
+                                },
+                            )
+                        if (
+                            wf_amount_ok
+                            and billing_record
+                            and billing_record.user
+                            and workflow
+                        ):
+                            activate_workflow_enrollment(
+                                user=billing_record.user,
+                                workflow=workflow,
+                                billing_record=billing_record,
+                            )
+                        billing_profile = (
+                            {
+                                "billing_name": billing_record.billing_name,
+                                "billing_email": billing_record.billing_email,
+                                "business_name": billing_record.business_name,
+                                "gstin": billing_record.gstin,
+                                "billing_country_code": billing_record.billing_country_code,
+                                "billing_country_name": billing_record.billing_country_name,
+                                "billing_state": billing_record.billing_state,
+                                "billing_city": billing_record.billing_city,
+                                "billing_postal_code": billing_record.billing_postal_code,
+                                "billing_address": billing_record.billing_address,
+                                "tax_treatment": billing_record.tax_treatment,
+                                "is_international": billing_record.is_international,
+                            }
+                            if billing_record
+                            else {
+                                "billing_name": "",
+                                "billing_email": "",
+                                "business_name": "",
+                                "gstin": "",
+                                "billing_country_code": "",
+                                "billing_country_name": "",
+                                "billing_state": "",
+                                "billing_city": "",
+                                "billing_postal_code": "",
+                                "billing_address": "",
+                                "tax_treatment": BillingRecord.TAX_UNKNOWN,
+                                "is_international": False,
+                            }
+                        )
+                        sub = (
+                            billing_record.subscription
+                            if billing_record and billing_record.subscription_id
+                            else None
+                        )
+                        if (
+                            wf_amount_ok
+                            and billing_record
+                            and billing_record.user
+                            and sub
+                        ):
+                            _upsert_billing_record(
+                                user=billing_record.user,
+                                subscription=sub,
+                                order_id=order_id,
+                                plan=UserSubscription.PLAN_FREE,
+                                currency=cur,
+                                amount_minor=amount,
+                                billing_profile=billing_profile,
+                                payment_status=BillingRecord.STATUS_CAPTURED,
+                                raw_payment_payload=payment_entity,
+                                payment_id=payment_entity.get("id", ""),
+                                payment_method=payment_entity.get("method", ""),
+                                paid_at=timezone.now(),
+                                extra_metadata={
+                                    "purchase_kind": "practice_workflow",
+                                    "workflow_slug": wf_slug,
                                 },
                             )
                     else:

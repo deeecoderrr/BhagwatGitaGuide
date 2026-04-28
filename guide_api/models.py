@@ -1058,6 +1058,181 @@ class SadhanaDayCompletion(models.Model):
         ]
 
 
+class PracticeTag(models.Model):
+    """Filter / discovery tag for practice materials (e.g. deity, lineage, modality)."""
+
+    slug = models.SlugField(max_length=64, unique=True, db_index=True)
+    label = models.CharField(max_length=80)
+    category = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Optional grouping for UI facets (e.g. deity, lineage).",
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["sort_order", "slug"]
+
+    def __str__(self) -> str:
+        return self.label
+
+
+class PracticeWorkflow(models.Model):
+    """Single-session or short guided flow (e.g. flagship ~30 min meditation)."""
+
+    ACCESS_FREE_PUBLIC = "free_public"
+    ACCESS_PRO_INCLUDED = "pro_included"
+    ACCESS_PURCHASE_REQUIRED = "purchase_required"
+    ACCESS_CHOICES = (
+        (ACCESS_FREE_PUBLIC, "Free — all signed-in users"),
+        (ACCESS_PRO_INCLUDED, "Included with active Pro"),
+        (ACCESS_PURCHASE_REQUIRED, "Purchase required (any plan)"),
+    )
+
+    slug = models.SlugField(max_length=96, unique=True)
+    title = models.CharField(max_length=160)
+    subtitle = models.CharField(max_length=220, blank=True)
+    description = models.TextField(blank=True)
+    philosophy_blurb = models.TextField(
+        blank=True,
+        help_text="Optional wellness / non-medical disclaimer shown with the flow.",
+    )
+    access_mode = models.CharField(
+        max_length=24,
+        choices=ACCESS_CHOICES,
+        default=ACCESS_FREE_PUBLIC,
+        db_index=True,
+    )
+    is_featured = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Highlight in Meditate / practice hub when true.",
+    )
+    is_published = models.BooleanField(default=False, db_index=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    estimated_total_minutes = models.PositiveSmallIntegerField(blank=True, null=True)
+    purchase_notes = models.CharField(
+        max_length=240,
+        blank=True,
+        help_text="Short copy when purchase is required (checkout wiring is separate).",
+    )
+    purchase_price_minor_inr = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Razorpay order amount (paise) when access_mode is purchase_required.",
+    )
+    purchase_price_minor_usd = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Razorpay order amount (cents) when access_mode is purchase_required.",
+    )
+    purchase_access_days = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        help_text="Access window after purchase; null = lifetime (no fixed end).",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class PracticeWorkflowStep(models.Model):
+    """Ordered step inside a practice workflow — mirrors sadhana step media shape."""
+
+    workflow = models.ForeignKey(
+        PracticeWorkflow,
+        on_delete=models.CASCADE,
+        related_name="steps",
+    )
+    sequence = models.PositiveSmallIntegerField()
+    step_type = models.CharField(max_length=32, choices=SadhanaStep.STEP_CHOICES)
+    title = models.CharField(max_length=160)
+    instructions = models.TextField(blank=True)
+    audio_url = models.URLField(blank=True)
+    video_url = models.URLField(blank=True)
+    duration_minutes = models.PositiveSmallIntegerField(blank=True, null=True)
+    subtitle_tracks = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of {language, label, format, url, is_default?} for WebVTT/SRT captions.",
+    )
+    timed_cues = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Optional list of {t_ms, text} for on-screen follow-along.",
+    )
+    safety_tier = models.CharField(
+        max_length=16,
+        choices=SadhanaStep.SAFETY_TIER_CHOICES,
+        default=SadhanaStep.SAFETY_GENTLE,
+    )
+    requires_standing = models.BooleanField(default=False)
+    tags = models.ManyToManyField(
+        PracticeTag,
+        blank=True,
+        related_name="workflow_steps",
+    )
+
+    class Meta:
+        ordering = ["sequence"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["workflow", "sequence"],
+                name="unique_practice_workflow_step_sequence",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.workflow.slug}:{self.sequence}"
+
+
+class PracticeWorkflowEnrollment(models.Model):
+    """Time-bounded access after purchase (or staff grant); not used for free_public."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="practice_workflow_enrollments",
+    )
+    workflow = models.ForeignKey(
+        PracticeWorkflow,
+        on_delete=models.CASCADE,
+        related_name="enrollments",
+    )
+    access_starts_at = models.DateTimeField()
+    access_ends_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Null means no fixed end (lifetime / open window).",
+    )
+    billing_record = models.ForeignKey(
+        "BillingRecord",
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name="practice_workflow_enrollments",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "workflow"],
+                name="unique_practice_workflow_user_enrollment",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id}:{self.workflow.slug}"
+
+
 class VerseUserNote(models.Model):
     """Private per-verse study notes for revisiting and verse-scoped Q&A context."""
 

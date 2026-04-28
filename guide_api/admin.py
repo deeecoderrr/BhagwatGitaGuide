@@ -17,6 +17,10 @@ from guide_api.models import (
     FollowUpEvent,
     GrowthEvent,
     Message,
+    PracticeTag,
+    PracticeWorkflow,
+    PracticeWorkflowEnrollment,
+    PracticeWorkflowStep,
     RequestQuotaSettings,
     ResponseFeedback,
     SadhanaDay,
@@ -559,6 +563,70 @@ class SadhanaDayInline(admin.TabularInline):
     model = SadhanaDay
     extra = 0
     show_change_link = True
+
+
+@admin.register(PracticeTag)
+class PracticeTagAdmin(admin.ModelAdmin):
+    list_display = ("label", "slug", "category", "sort_order")
+    list_filter = ("category",)
+    search_fields = ("slug", "label")
+    ordering = ("sort_order", "slug")
+    prepopulated_fields = {"slug": ("label",)}
+
+
+class PracticeWorkflowStepInline(admin.TabularInline):
+    model = PracticeWorkflowStep
+    extra = 0
+    autocomplete_fields = ("tags",)
+    fields = (
+        "sequence",
+        "step_type",
+        "title",
+        "duration_minutes",
+        "safety_tier",
+        "requires_standing",
+        "audio_url",
+        "video_url",
+        "tags",
+    )
+    show_change_link = True
+
+
+@admin.register(PracticeWorkflow)
+class PracticeWorkflowAdmin(admin.ModelAdmin):
+    list_display = (
+        "title",
+        "slug",
+        "access_mode",
+        "is_featured",
+        "is_published",
+        "purchase_price_minor_inr",
+        "purchase_price_minor_usd",
+        "sort_order",
+    )
+    list_filter = ("access_mode", "is_published", "is_featured")
+    search_fields = ("title", "slug", "description")
+    prepopulated_fields = {"slug": ("title",)}
+    ordering = ("sort_order", "title")
+    inlines = [PracticeWorkflowStepInline]
+
+
+@admin.register(PracticeWorkflowStep)
+class PracticeWorkflowStepAdmin(admin.ModelAdmin):
+    list_display = ("workflow", "sequence", "step_type", "title", "duration_minutes")
+    list_filter = ("step_type", "safety_tier")
+    search_fields = ("title", "instructions", "workflow__slug")
+    ordering = ("workflow", "sequence")
+    raw_id_fields = ("workflow",)
+    autocomplete_fields = ("tags",)
+
+
+@admin.register(PracticeWorkflowEnrollment)
+class PracticeWorkflowEnrollmentAdmin(admin.ModelAdmin):
+    list_display = ("user", "workflow", "access_starts_at", "access_ends_at", "billing_record")
+    list_filter = ("workflow",)
+    search_fields = ("user__username", "workflow__slug")
+    raw_id_fields = ("user", "workflow", "billing_record")
 
 
 @admin.register(SadhanaProgram)

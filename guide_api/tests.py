@@ -27,9 +27,14 @@ from guide_api.models import (
     Message,
     NotificationDevice,
     PracticeLogEntry,
+    PracticeTag,
+    PracticeWorkflow,
+    PracticeWorkflowEnrollment,
+    PracticeWorkflowStep,
     RequestQuotaSettings,
     ResponseFeedback,
     SadhanaDay,
+    SadhanaEnrollment,
     SadhanaProgram,
     SadhanaStep,
     SavedReflection,
@@ -3940,6 +3945,682 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["is_pro"])
 
+    def test_create_order_practice_workflow_inr(self):
+        """Razorpay order for a purchasable practice workflow."""
+        from unittest.mock import patch, MagicMock
+
+        PracticeWorkflow.objects.create(
+            slug="paid-mini-flow",
+            title="Paid mini",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+            purchase_price_minor_inr=2500,
+            purchase_price_minor_usd=199,
+            purchase_access_days=14,
+        )
+        mock_order = {
+            "id": "order_wf_inr",
+            "entity": "order",
+            "amount": 2500,
+            "currency": "INR",
+            "status": "created",
+        }
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order
+            response = self.client.post(
+                "/api/payments/create-order/",
+                {
+                    "currency": "INR",
+                    "product": "practice_workflow",
+                    "workflow_slug": "paid-mini-flow",
+                },
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["product"], "practice_workflow")
+        self.assertEqual(response.data["workflow_slug"], "paid-mini-flow")
+        self.assertEqual(response.data["amount"], 2500)
+        br = BillingRecord.objects.get(razorpay_order_id="order_wf_inr")
+        self.assertEqual(br.metadata.get("purchase_kind"), "practice_workflow")
+        self.assertEqual(br.metadata.get("workflow_slug"), "paid-mini-flow")
+
+    def test_create_order_practice_workflow_rejects_missing_price(self):
+        PracticeWorkflow.objects.create(
+            slug="no-price-flow",
+            title="No price",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+        )
+        response = self.client.post(
+            "/api/payments/create-order/",
+            {
+                "currency": "INR",
+                "product": "practice_workflow",
+                "workflow_slug": "no-price-flow",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("error", response.data)
+
+    def test_verify_payment_practice_workflow(self):
+        """Verify signature activates PracticeWorkflowEnrollment for purchase_required."""
+        import hmac
+        import hashlib
+        from unittest.mock import patch, MagicMock
+
+        PracticeWorkflow.objects.create(
+            slug="paid-verify-flow",
+            title="Paid verify",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+            purchase_price_minor_inr=1800,
+            purchase_access_days=None,
+        )
+        mock_order = {
+            "id": "order_wf_verify",
+            "entity": "order",
+            "amount": 1800,
+            "currency": "INR",
+            "status": "created",
+        }
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order
+            co = self.client.post(
+                "/api/payments/create-order/",
+                {
+                    "currency": "INR",
+                    "product": "practice_workflow",
+                    "workflow_slug": "paid-verify-flow",
+                },
+                format="json",
+            )
+        self.assertEqual(co.status_code, status.HTTP_200_OK)
+        order_id = co.data["order_id"]
+        subscription = UserSubscription.objects.get(user=self.user)
+        self.assertEqual(subscription.razorpay_order_id, order_id)
+
+        payment_id = "pay_wf_verify"
+        msg = f"{order_id}|{payment_id}"
+        sig = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        vr = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            },
+            format="json",
+        )
+        self.assertEqual(vr.status_code, status.HTTP_200_OK)
+        self.assertEqual(vr.data.get("product"), "practice_workflow")
+        self.assertEqual(vr.data.get("workflow_slug"), "paid-verify-flow")
+        self.assertIsNone(vr.data.get("access_ends_at"))
+        enr = PracticeWorkflowEnrollment.objects.get(
+            user=self.user,
+            workflow__slug="paid-verify-flow",
+        )
+        self.assertIsNone(enr.access_ends_at)
+        self.assertIsNotNone(enr.billing_record_id)
+
+    def test_verify_practice_workflow_uses_billing_when_subscription_order_stale(self):
+        """New checkout can overwrite subscription.razorpay_order_id before verify; ledger still matches."""
+        import hmac
+        import hashlib
+        from unittest.mock import patch, MagicMock
+
+        PracticeWorkflow.objects.create(
+            slug="stale-pointer-flow",
+            title="Stale",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+            purchase_price_minor_inr=2200,
+            purchase_access_days=None,
+        )
+        mock_order = {
+            "id": "order_wf_stale",
+            "entity": "order",
+            "amount": 2200,
+            "currency": "INR",
+            "status": "created",
+        }
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order
+            co = self.client.post(
+                "/api/payments/create-order/",
+                {
+                    "currency": "INR",
+                    "product": "practice_workflow",
+                    "workflow_slug": "stale-pointer-flow",
+                },
+                format="json",
+            )
+        self.assertEqual(co.status_code, status.HTTP_200_OK)
+        order_id = co.data["order_id"]
+        sub = UserSubscription.objects.get(user=self.user)
+        sub.razorpay_order_id = "order_something_else"
+        sub.save()
+
+        payment_id = "pay_wf_stale"
+        msg = f"{order_id}|{payment_id}"
+        sig = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        vr = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            },
+            format="json",
+        )
+        self.assertEqual(vr.status_code, status.HTTP_200_OK)
+        self.assertEqual(vr.data.get("product"), "practice_workflow")
+        PracticeWorkflowEnrollment.objects.get(
+            user=self.user,
+            workflow__slug="stale-pointer-flow",
+        )
+
+    def test_verify_rejects_billing_row_owned_by_another_user(self):
+        import hmac
+        import hashlib
+
+        UserSubscription.objects.get_or_create(
+            user=self.user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+        other = User.objects.create_user(
+            username="payment-user-2",
+            email="otherpay@test.com",
+            password="test-pass-456",
+        )
+        sub_other = UserSubscription.objects.create(
+            user=other,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        BillingRecord.objects.create(
+            user=other,
+            subscription=sub_other,
+            plan=UserSubscription.PLAN_FREE,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Other",
+            billing_email="otherpay@test.com",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=100,
+            amount_major="1.00",
+            razorpay_order_id="order_foreign",
+            metadata={
+                "purchase_kind": "practice_workflow",
+                "workflow_slug": "nope",
+            },
+        )
+        order_id = "order_foreign"
+        payment_id = "pay_x"
+        msg = f"{order_id}|{payment_id}"
+        sig = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        vr = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            },
+            format="json",
+        )
+        self.assertEqual(vr.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_razorpay_webhook_practice_workflow_skips_activation_when_amount_wrong(self):
+        """payment.captured must match workflow + ledger amount before enrolling."""
+        import hmac
+        import hashlib
+        import json
+
+        PracticeWorkflow.objects.create(
+            slug="wf-webhook-amt",
+            title="WF",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+            purchase_price_minor_inr=5000,
+        )
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=self.user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+        subscription.razorpay_order_id = "order_wf_webhook_bad"
+        subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_FREE,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="U",
+            billing_email=self.user.email,
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=5000,
+            amount_major="50.00",
+            razorpay_order_id="order_wf_webhook_bad",
+            metadata={
+                "purchase_kind": "practice_workflow",
+                "workflow_slug": "wf-webhook-amt",
+            },
+        )
+        webhook_body = json.dumps({
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_wf_web_bad",
+                        "order_id": "order_wf_webhook_bad",
+                        "status": "captured",
+                        "amount": 100,
+                        "currency": "inr",
+                    }
+                }
+            },
+        })
+        wh_sig = hmac.new(
+            "webhook_secret_key".encode(),
+            webhook_body.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        self.client.force_authenticate(user=None)
+        r = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=wh_sig,
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            PracticeWorkflowEnrollment.objects.filter(
+                user=self.user,
+                workflow__slug="wf-webhook-amt",
+            ).exists(),
+        )
+
+    def test_razorpay_webhook_practice_workflow_enrolls_when_amount_matches(self):
+        import hmac
+        import hashlib
+        import json
+
+        wf = PracticeWorkflow.objects.create(
+            slug="wf-webhook-ok",
+            title="WF ok",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+            purchase_price_minor_inr=5000,
+        )
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=self.user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+        subscription.razorpay_order_id = "order_wf_webhook_ok"
+        subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_FREE,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="U",
+            billing_email=self.user.email,
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=5000,
+            amount_major="50.00",
+            razorpay_order_id="order_wf_webhook_ok",
+            metadata={
+                "purchase_kind": "practice_workflow",
+                "workflow_slug": "wf-webhook-ok",
+            },
+        )
+        webhook_body = json.dumps({
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_wf_web_ok",
+                        "order_id": "order_wf_webhook_ok",
+                        "status": "captured",
+                        "amount": 5000,
+                        "currency": "inr",
+                    }
+                }
+            },
+        })
+        wh_sig = hmac.new(
+            "webhook_secret_key".encode(),
+            webhook_body.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        self.client.force_authenticate(user=None)
+        r = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=wh_sig,
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            PracticeWorkflowEnrollment.objects.filter(
+                user=self.user,
+                workflow=wf,
+            ).exists(),
+        )
+
+    @override_settings(SADHANA_CYCLE_PRICE_INR=3333)
+    def test_razorpay_webhook_sadhana_skips_when_amount_wrong(self):
+        import hmac
+        import hashlib
+
+        SadhanaProgram.objects.create(
+            slug="sad-webhook-amt",
+            title="S",
+            is_published=True,
+        )
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=self.user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+        subscription.razorpay_order_id = "order_sad_webhook_bad"
+        subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_FREE,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="U",
+            billing_email=self.user.email,
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=3333,
+            amount_major="33.33",
+            razorpay_order_id="order_sad_webhook_bad",
+            metadata={
+                "purchase_kind": "sadhana_cycle",
+                "program_slug": "sad-webhook-amt",
+            },
+        )
+        webhook_body = json.dumps({
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_sad_web_bad",
+                        "order_id": "order_sad_webhook_bad",
+                        "status": "captured",
+                        "amount": 100,
+                        "currency": "inr",
+                    }
+                }
+            },
+        })
+        wh_sig = hmac.new(
+            "webhook_secret_key".encode(),
+            webhook_body.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        self.client.force_authenticate(user=None)
+        r = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=wh_sig,
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            SadhanaEnrollment.objects.filter(
+                user=self.user,
+                program__slug="sad-webhook-amt",
+            ).exists(),
+        )
+
+    @override_settings(SADHANA_CYCLE_PRICE_INR=4444)
+    def test_razorpay_webhook_sadhana_enrolls_when_amount_matches(self):
+        import hmac
+        import hashlib
+
+        prog = SadhanaProgram.objects.create(
+            slug="sad-webhook-ok",
+            title="S ok",
+            is_published=True,
+        )
+        subscription, _ = UserSubscription.objects.get_or_create(
+            user=self.user,
+            defaults={"plan": UserSubscription.PLAN_FREE},
+        )
+        subscription.razorpay_order_id = "order_sad_webhook_ok"
+        subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_FREE,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="U",
+            billing_email=self.user.email,
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=4444,
+            amount_major="44.44",
+            razorpay_order_id="order_sad_webhook_ok",
+            metadata={
+                "purchase_kind": "sadhana_cycle",
+                "program_slug": "sad-webhook-ok",
+            },
+        )
+        webhook_body = json.dumps({
+            "event": "payment.captured",
+            "payload": {
+                "payment": {
+                    "entity": {
+                        "id": "pay_sad_web_ok",
+                        "order_id": "order_sad_webhook_ok",
+                        "status": "captured",
+                        "amount": 4444,
+                        "currency": "inr",
+                    }
+                }
+            },
+        })
+        wh_sig = hmac.new(
+            "webhook_secret_key".encode(),
+            webhook_body.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        self.client.force_authenticate(user=None)
+        r = self.client.post(
+            "/api/payments/webhook/",
+            webhook_body,
+            content_type="application/json",
+            HTTP_X_RAZORPAY_SIGNATURE=wh_sig,
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertTrue(
+            SadhanaEnrollment.objects.filter(
+                user=self.user,
+                program=prog,
+            ).exists(),
+        )
+
+    def test_verify_subscription_uses_billing_when_subscription_order_stale(self):
+        """Subscription verify succeeds from ledger row after razorpay_order_id moved."""
+        import hmac
+        import hashlib
+        from unittest.mock import patch, MagicMock
+
+        mock_order = {
+            "id": "order_sub_stale_verify",
+            "entity": "order",
+            "amount": 9900,
+            "currency": "INR",
+            "status": "created",
+        }
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order
+            co = self.client.post(
+                "/api/payments/create-order/",
+                {"currency": "INR"},
+                format="json",
+            )
+        self.assertEqual(co.status_code, status.HTTP_200_OK)
+        order_id = co.data["order_id"]
+        sub = UserSubscription.objects.get(user=self.user)
+        sub.razorpay_order_id = "order_other_checkout"
+        sub.save()
+
+        payment_id = "pay_sub_stale"
+        msg = f"{order_id}|{payment_id}"
+        sig = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        vr = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            },
+            format="json",
+        )
+        self.assertEqual(vr.status_code, status.HTTP_200_OK)
+        sub.refresh_from_db()
+        self.assertEqual(sub.plan, UserSubscription.PLAN_PRO)
+        self.assertTrue(sub.is_active)
+
+    def test_verify_subscription_rejects_ledger_amount_mismatch(self):
+        import hmac
+        import hashlib
+
+        subscription = UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+        )
+        subscription.razorpay_order_id = "order_ledger_mismatch"
+        subscription.payment_currency = "INR"
+        subscription.save()
+        BillingRecord.objects.create(
+            user=self.user,
+            subscription=subscription,
+            plan=UserSubscription.PLAN_PRO,
+            payment_status=BillingRecord.STATUS_CREATED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="U",
+            billing_email=self.user.email,
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency="INR",
+            amount_minor=100,
+            amount_major="1.00",
+            razorpay_order_id="order_ledger_mismatch",
+        )
+        order_id = "order_ledger_mismatch"
+        payment_id = "pay_ledger_mm"
+        msg = f"{order_id}|{payment_id}"
+        sig = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        vr = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            },
+            format="json",
+        )
+        self.assertEqual(vr.status_code, status.HTTP_400_BAD_REQUEST)
+        subscription.refresh_from_db()
+        self.assertEqual(subscription.plan, UserSubscription.PLAN_FREE)
+
+    @override_settings(SADHANA_CYCLE_PRICE_INR=5555)
+    def test_verify_sadhana_rejects_ledger_amount_mismatch(self):
+        import hmac
+        import hashlib
+        from unittest.mock import patch, MagicMock
+
+        SadhanaProgram.objects.create(
+            slug="sad-verify-amt",
+            title="S",
+            is_published=True,
+        )
+        mock_order = {
+            "id": "order_sad_v_amt",
+            "entity": "order",
+            "amount": 5555,
+            "currency": "INR",
+            "status": "created",
+        }
+        with patch("razorpay.Client") as MockClient:
+            mock_client = MagicMock()
+            MockClient.return_value = mock_client
+            mock_client.order.create.return_value = mock_order
+            co = self.client.post(
+                "/api/payments/create-order/",
+                {
+                    "currency": "INR",
+                    "product": "sadhana_cycle",
+                    "program_slug": "sad-verify-amt",
+                },
+                format="json",
+            )
+        self.assertEqual(co.status_code, status.HTTP_200_OK)
+        order_id = co.data["order_id"]
+        br = BillingRecord.objects.get(razorpay_order_id=order_id)
+        br.amount_minor = 1
+        br.save(update_fields=["amount_minor"])
+
+        payment_id = "pay_sad_v_amt"
+        msg = f"{order_id}|{payment_id}"
+        sig = hmac.new(
+            "secret_key_67890".encode(),
+            msg.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        vr = self.client.post(
+            "/api/payments/verify/",
+            {
+                "razorpay_order_id": order_id,
+                "razorpay_payment_id": payment_id,
+                "razorpay_signature": sig,
+            },
+            format="json",
+        )
+        self.assertEqual(vr.status_code, status.HTTP_400_BAD_REQUEST)
+
 
 class GuidanceGroundingTests(TestCase):
     """Unit tests for verse grounding helpers (no OpenAI)."""
@@ -4298,6 +4979,160 @@ class SadhanaApiTests(APITestCase):
         response = self.client.get("/practice/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertContains(response, "Daily Sadhana")
+
+
+class PracticeWorkflowApiTests(APITestCase):
+    """Curated practice workflows (tags, access modes, enrollments)."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            "workflow-user",
+            "workflow-user@test.example",
+            "test-pass-xyz",
+        )
+        self.tag_shiv = PracticeTag.objects.create(
+            slug="shiv",
+            label="Shiv",
+            category="deity",
+        )
+        self.wf_free = PracticeWorkflow.objects.create(
+            slug="free-breath",
+            title="Free breath",
+            access_mode=PracticeWorkflow.ACCESS_FREE_PUBLIC,
+            is_published=True,
+        )
+        step = PracticeWorkflowStep.objects.create(
+            workflow=self.wf_free,
+            sequence=1,
+            step_type=SadhanaStep.STEP_PRANAYAMA,
+            title="Breath",
+            instructions="Sit.",
+            audio_url="https://cdn.example.com/breath.mp3",
+        )
+        step.tags.add(self.tag_shiv)
+        self.wf_pro = PracticeWorkflow.objects.create(
+            slug="pro-30",
+            title="Pro thirty",
+            access_mode=PracticeWorkflow.ACCESS_PRO_INCLUDED,
+            is_published=True,
+            is_featured=True,
+        )
+        PracticeWorkflowStep.objects.create(
+            workflow=self.wf_pro,
+            sequence=1,
+            step_type=SadhanaStep.STEP_SILENT_SIT,
+            title="Sit",
+        )
+        self.wf_paid = PracticeWorkflow.objects.create(
+            slug="paid-course",
+            title="Paid course",
+            access_mode=PracticeWorkflow.ACCESS_PURCHASE_REQUIRED,
+            is_published=True,
+            purchase_price_minor_inr=49900,
+            purchase_price_minor_usd=499,
+            purchase_access_days=30,
+        )
+        PracticeWorkflowStep.objects.create(
+            workflow=self.wf_paid,
+            sequence=1,
+            step_type=SadhanaStep.STEP_MANTRA,
+            title="Secret mantra",
+            audio_url="https://cdn.example.com/secret.mp3",
+        )
+
+    def test_tags_list(self):
+        r = self.client.get("/api/practice/tags/")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        data = r.json()
+        self.assertEqual(data["count"], 1)
+        self.assertEqual(data["results"][0]["slug"], "shiv")
+
+    def test_workflows_list_tag_filter(self):
+        r = self.client.get("/api/practice/workflows/", {"tag": "shiv"})
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        slugs = {x["slug"] for x in r.json()["results"]}
+        self.assertEqual(slugs, {"free-breath"})
+
+    def test_free_workflow_detail_unlocked_anonymous(self):
+        r = self.client.get("/api/practice/workflows/free-breath/")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        body = r.json()
+        self.assertTrue(body["content_unlocked"])
+        self.assertEqual(len(body["steps"]), 1)
+        self.assertEqual(body["steps"][0]["audio_url"], "https://cdn.example.com/breath.mp3")
+        self.assertEqual(len(body["step_outline"]), 0)
+
+    def test_pro_workflow_locked_for_free_user(self):
+        self.client.force_authenticate(self.user)
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+            is_active=True,
+        )
+        r = self.client.get("/api/practice/workflows/pro-30/")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        body = r.json()
+        self.assertFalse(body["content_unlocked"])
+        self.assertEqual(body["locked_reason"], "pro_required")
+        self.assertEqual(len(body["steps"]), 0)
+        self.assertEqual(len(body["step_outline"]), 1)
+        self.assertEqual(body["step_outline"][0]["title"], "Sit")
+
+    def test_pro_workflow_unlocked_for_pro_user(self):
+        self.client.force_authenticate(self.user)
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PRO,
+            is_active=True,
+            subscription_end_date=timezone.now() + timedelta(days=14),
+        )
+        r = self.client.get("/api/practice/workflows/pro-30/")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        body = r.json()
+        self.assertTrue(body["content_unlocked"])
+        self.assertEqual(len(body["steps"]), 1)
+
+    def test_purchase_workflow_unlocked_after_enrollment(self):
+        br = BillingRecord.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+            payment_status=BillingRecord.STATUS_VERIFIED,
+            tax_treatment=BillingRecord.TAX_DOMESTIC,
+            billing_name="Buyer",
+            billing_email="buyer@test.example",
+            billing_country_code="IN",
+            billing_country_name="India",
+            currency=UserSubscription.CURRENCY_INR,
+            amount_minor=49900,
+            amount_major=Decimal("499.00"),
+            razorpay_order_id="order_workflow_paid_1",
+            razorpay_payment_id="pay_workflow_paid_1",
+        )
+        now = timezone.now()
+        PracticeWorkflowEnrollment.objects.create(
+            user=self.user,
+            workflow=self.wf_paid,
+            access_starts_at=now - timedelta(days=1),
+            access_ends_at=now + timedelta(days=30),
+            billing_record=br,
+        )
+        self.client.force_authenticate(self.user)
+        r = self.client.get("/api/practice/workflows/paid-course/")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        body = r.json()
+        self.assertTrue(body["content_unlocked"])
+        self.assertEqual(body["steps"][0]["audio_url"], "https://cdn.example.com/secret.mp3")
+
+    def test_workflows_me_requires_auth(self):
+        r = self.client.get("/api/practice/workflows/me/")
+        self.assertEqual(r.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_workflow_detail_includes_purchase_currency_options(self):
+        r = self.client.get("/api/practice/workflows/paid-course/")
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        body = r.json()
+        self.assertEqual(body["purchase_currency_options"], ["INR", "USD"])
 
 
 class CourseStudioWebTests(TestCase):
