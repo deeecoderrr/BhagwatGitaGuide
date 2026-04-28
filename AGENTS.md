@@ -3,13 +3,13 @@
 Any AI assistant working in this repository should treat the following as **mandatory context** (read before large edits):
 
 1. **`docs/AI_AGENT_HANDOFF.md`** — Architecture, file map, API surface, conventions, security, roadmap snapshot.
-2. **`docs/KNOWLEDGE_BASE.md`** — Full-stack feature map (backend + mobile), models, API inventory, screen→API matrix; use for large features or onboarding agents to both repos.
-   Also read **`docs/CODEBASE_KNOWLEDGE_BASE.md`** for the deeper backend feature map created after the full codebase review.
-3. **`PROGRESS.md`** — What is done, what is next, deferred items; update when you finish a milestone.
-4. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
-5. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
-6. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
-7. **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** — Step-by-step flows from user intent through API, Razorpay, and ledger (when changing checkout behavior).
+2. **`docs/KNOWLEDGE_BASE.md`** — Full-stack feature map (backend + mobile), models, API inventory, screen→API matrix; use for large features or onboarding agents to both repos. Deep-dive backend map: **`docs/CODEBASE_KNOWLEDGE_BASE.md`**.
+3. **`docs/USER_APP_FLOWS.md`** — Mobile app user flows from login through each feature (Mermaid diagrams).
+4. **`PROGRESS.md`** — What is done, what is next, deferred items; update when you finish a milestone.
+5. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
+6. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
+7. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
+8. **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** — Step-by-step flows from user intent through API, Razorpay, and ledger (when changing checkout behavior).
 
 ## Non-negotiables
 

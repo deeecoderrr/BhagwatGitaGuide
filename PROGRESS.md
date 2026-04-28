@@ -4,6 +4,13 @@ Last updated: 2026-04-27
 
 ## Completed
 
+- **Codebase knowledge-base pass (2026-04-28):** reviewed backend and mobile
+  code structure, feature docs, route maps, model inventory, mobile screens,
+  payment/practice/insights flows, and optional ITR boundaries. Added
+  **`docs/CODEBASE_KNOWLEDGE_BASE.md`** and linked it from **`AGENTS.md`** and
+  **`docs/KNOWLEDGE_BASE.md`** so future sessions can start with durable
+  context instead of re-discovering the codebase.
+
 - **Payment E2E documentation:** added **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`**
   (subscription, sadhana, practice workflow, webhooks, verify edge cases, diagrams);
   linked from **`README.md`**, **`AGENTS.md`**, **`PAYMENT_INTEGRATION_ANALYSIS.md`**,
