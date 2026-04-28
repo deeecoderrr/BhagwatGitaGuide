@@ -2,6 +2,8 @@
 
 **Purpose:** Upload or paste this file when starting or resuming work in GitHub Copilot Chat, Codex, Cursor, or similar tools. It summarizes architecture, conventions, and current scope so you do not need full repo exploration to be productive.
 
+**Full-stack + mobile map:** see **`docs/KNOWLEDGE_BASE.md`** (API inventory, Django models, Expo screens, cross-links).
+
 **Project:** Django + DRF backend for a Bhagavad Gita–based life guidance app (RAG + OpenAI generation, safety guardrails, auth, quota, mobile-friendly JSON APIs).
 
 **Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).  

@@ -3,11 +3,12 @@
 Any AI assistant working in this repository should treat the following as **mandatory context** (read before large edits):
 
 1. **`docs/AI_AGENT_HANDOFF.md`** — Architecture, file map, API surface, conventions, security, roadmap snapshot.
-2. **`PROGRESS.md`** — What is done, what is next, deferred items; update when you finish a milestone.
-3. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
-4. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
-5. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
-6. **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** — Step-by-step flows from user intent through API, Razorpay, and ledger (when changing checkout behavior).
+2. **`docs/KNOWLEDGE_BASE.md`** — Full-stack feature map (backend + mobile), models, API inventory, screen→API matrix; use for large features or onboarding agents to both repos.
+3. **`PROGRESS.md`** — What is done, what is next, deferred items; update when you finish a milestone.
+4. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
+5. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
+6. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
+7. **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** — Step-by-step flows from user intent through API, Razorpay, and ledger (when changing checkout behavior).
 
 ## Non-negotiables
 
