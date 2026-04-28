@@ -11,6 +11,10 @@
 
 **Also read:** `docs/AI_AGENT_HANDOFF.md`, `PROGRESS.md`, `docs/DEVELOPER_GUIDE.md`, mobile `AGENTS.md`, `PAYMENT_INTEGRATION_ANALYSIS.md`.
 
+**Deep companion notes:** `docs/CODEBASE_KNOWLEDGE_BASE.md` now contains a
+backend-focused feature map generated from the full codebase review. The mobile
+repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
+
 ---
 
 ## 1. Product intent

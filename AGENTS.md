@@ -4,6 +4,7 @@ Any AI assistant working in this repository should treat the following as **mand
 
 1. **`docs/AI_AGENT_HANDOFF.md`** — Architecture, file map, API surface, conventions, security, roadmap snapshot.
 2. **`docs/KNOWLEDGE_BASE.md`** — Full-stack feature map (backend + mobile), models, API inventory, screen→API matrix; use for large features or onboarding agents to both repos.
+   Also read **`docs/CODEBASE_KNOWLEDGE_BASE.md`** for the deeper backend feature map created after the full codebase review.
 3. **`PROGRESS.md`** — What is done, what is next, deferred items; update when you finish a milestone.
 4. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
 5. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
