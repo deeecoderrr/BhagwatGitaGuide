@@ -364,6 +364,8 @@ Related:
 
 ### Payment billing ledger flow
 
+For **narrative end-to-end sequences** (subscription, sadhana, workflow, webhooks, edge cases), read **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`**.
+
 The Razorpay checkout path now keeps one export-friendly billing row per order:
 
 1. `POST /api/payments/create-order/`
@@ -475,6 +477,16 @@ Deployment note:
    - `preferred_channel`
 4. `PATCH` emits `reminder_pref_updated` engagement event on changes
 5. `/api/ask/` updates streak on successful response (`streak_updated` event).
+
+### `GET /api/insights/me/` (alias `/api/v1/insights/me/`)
+
+1. `guide_api/views.py` → `UserInsightsSummaryView` (auth required): serializes
+   engagement via existing helpers, then delegates to
+   **`guide_api/user_insights_summary.build_user_insights_summary`**.
+2. **`guide_api/user_insights_summary.py`** aggregates journey snapshot queries in
+   one module (conversations, saved reflections + verse companion counts, recent user
+   messages, community posts, sadhana enrollment/completions, reading state,
+   practice log rollups, **`japa_insights_for_user`** from `japa_views.py`).
 
 ## Error Envelope Contract
 

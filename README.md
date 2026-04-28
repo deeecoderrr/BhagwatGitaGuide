@@ -9,6 +9,7 @@ Run `make test` for the current test count (see `guide_api/tests.py`).
 
 - User documentation: `docs/USER_GUIDE.md`
 - Razorpay / billing reference: `PAYMENT_INTEGRATION_ANALYSIS.md`
+- Payment E2E workflows (subscription, sadhana, workflow, webhooks): `docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`
 - Developer documentation: `docs/DEVELOPER_GUIDE.md`
 - Mobile build handoff: `docs/MOBILE_APP_PARITY_BLUEPRINT.md`
 - Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`

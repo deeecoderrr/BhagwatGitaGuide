@@ -7,6 +7,7 @@ Any AI assistant working in this repository should treat the following as **mand
 3. **`docs/DEVELOPER_GUIDE.md`** — Deeper technical detail when changing behavior or adding endpoints.
 4. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
 5. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
+6. **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** — Step-by-step flows from user intent through API, Razorpay, and ledger (when changing checkout behavior).
 
 ## Non-negotiables
 

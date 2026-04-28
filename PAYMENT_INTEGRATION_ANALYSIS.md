@@ -4,6 +4,8 @@
 **Last reviewed:** 2026-04-27  
 **Tests:** `PaymentIntegrationTests` and related cases in `guide_api/tests.py` — run `make test` for the current total count.
 
+**End-to-end workflows (sequences, diagrams, edge cases):** `docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`
+
 ---
 
 ## 1. Products and flows

@@ -72,7 +72,7 @@ from guide_api.models import (
     VerseUserNote,
     WebAudienceProfile,
 )
-from guide_api.japa_views import japa_insights_for_user
+from guide_api.user_insights_summary import build_user_insights_summary
 from guide_api.subscription_helpers import normalize_subscription_state as _normalize_subscription_state
 from guide_api.practice_workflow_views import (
     activate_workflow_enrollment,
@@ -3176,18 +3176,6 @@ class NotificationPreferencesView(APIView):
         return Response(_serialize_engagement_profile(profile))
 
 
-def _normalize_verse_reference(ref: object) -> str | None:
-    """Normalize a verse key like '2.47', 'BG 2.47', or '  12.3 ' to ``chapter.verse``."""
-    s = str(ref or "").strip()
-    if not s:
-        return None
-    s = re.sub(r"^\s*BG\s+", "", s, flags=re.I).strip()
-    m = re.search(r"(\d+)\s*\.\s*(\d+)", s)
-    if not m:
-        return None
-    return f"{int(m.group(1))}.{int(m.group(2))}"
-
-
 class UserInsightsSummaryView(APIView):
     """Lightweight journey snapshot for the mobile Insights tab (streaks, counts, verse companions)."""
 
@@ -3195,168 +3183,10 @@ class UserInsightsSummaryView(APIView):
 
     def get(self, request):
         user = request.user
-        username = user.get_username()
         now = timezone.now()
-        since_30d = now - timedelta(days=30)
-
         engagement = _serialize_engagement_profile(_get_engagement_profile(user))
-
-        conv_qs = Conversation.objects.filter(user_id=username)
-        conv_total = conv_qs.count()
-        last_conv = conv_qs.order_by("-updated_at").first()
-        last_activity_at = last_conv.updated_at.isoformat() if last_conv else None
-
-        saved_total = SavedReflection.objects.filter(user=user).count()
-
-        verse_counter: Counter[str] = Counter()
-        for refs in SavedReflection.objects.filter(user=user).values_list(
-            "verse_references", flat=True
-        ):
-            if not refs:
-                continue
-            for raw in refs:
-                key = _normalize_verse_reference(raw)
-                if key:
-                    verse_counter[key] += 1
-        verse_companions = [
-            {"reference": ref, "count": count} for ref, count in verse_counter.most_common(8)
-        ]
-
-        recent_questions: list[dict[str, str]] = []
-        for msg in (
-            Message.objects.filter(
-                conversation__user_id=username,
-                role=Message.ROLE_USER,
-            )
-            .order_by("-created_at")[:12]
-        ):
-            snippet = " ".join((msg.content or "").strip().split())
-            if not snippet:
-                continue
-            if len(snippet) > 120:
-                snippet = snippet[:117].rstrip() + "…"
-            recent_questions.append(
-                {
-                    "snippet": snippet,
-                    "created_at": msg.created_at.isoformat(),
-                }
-            )
-            if len(recent_questions) >= 5:
-                break
-
-        root_posts = CommunityPost.objects.filter(
-            author=user, parent__isnull=True, deleted_at__isnull=True
-        ).count()
-        reply_posts = CommunityPost.objects.filter(
-            author=user, parent__isnull=False, deleted_at__isnull=True
-        ).count()
-
-        sadhana_active = None
-        enrollment = (
-            SadhanaEnrollment.objects.filter(
-                user=user,
-                access_ends_at__gt=now,
-                access_starts_at__lte=now,
-            )
-            .select_related("program")
-            .order_by("-access_ends_at")
-            .first()
-        )
-        if enrollment is not None:
-            sadhana_active = {
-                "slug": enrollment.program.slug,
-                "title": enrollment.program.title,
-                "access_ends_at": enrollment.access_ends_at.isoformat(),
-            }
-
-        sadhana_completions_30d = (
-            SadhanaDayCompletion.objects.filter(completed_at__gte=since_30d)
-            .filter(Q(user=user) | Q(enrollment__user=user))
-            .distinct()
-            .count()
-        )
-
-        read_state = UserReadingState.objects.filter(user=user).first()
-        verses_seen_list = (
-            read_state.verses_seen
-            if read_state and isinstance(read_state.verses_seen, list)
-            else []
-        )
-        since_7d_date = (now - timedelta(days=7)).date()
-        japa_7d = (
-            PracticeLogEntry.objects.filter(
-                user=user,
-                logged_on__gte=since_7d_date,
-                entry_type=PracticeLogEntry.TYPE_JAPA_ROUNDS,
-            ).aggregate(total=Sum("quantity"))["total"]
-            or 0
-        )
-        med_min_7d = (
-            PracticeLogEntry.objects.filter(
-                user=user,
-                logged_on__gte=since_7d_date,
-                entry_type=PracticeLogEntry.TYPE_MEDITATION_MINUTES,
-            ).aggregate(total=Sum("quantity"))["total"]
-            or 0
-        )
-        read_min_7d = (
-            PracticeLogEntry.objects.filter(
-                user=user,
-                logged_on__gte=since_7d_date,
-                entry_type=PracticeLogEntry.TYPE_READ_MINUTES,
-            ).aggregate(total=Sum("quantity"))["total"]
-            or 0
-        )
-        meditation_logs_30d = MeditationSessionLog.objects.filter(
-            user=user,
-            created_at__gte=since_30d,
-        ).count()
-
         return Response(
-            {
-                "engagement": engagement,
-                "conversations": {
-                    "total": conv_total,
-                    "last_activity_at": last_activity_at,
-                },
-                "saved_reflections": {"total": saved_total},
-                "verse_companions": verse_companions,
-                "recent_questions": recent_questions,
-                "community": {
-                    "root_posts": root_posts,
-                    "replies": reply_posts,
-                },
-                "sadhana": {
-                    "active": sadhana_active,
-                    "completed_days_last_30d": sadhana_completions_30d,
-                },
-                "reading": {
-                    "verses_opened_count": len(
-                        {str(x).strip() for x in verses_seen_list if str(x).strip()}
-                    ),
-                    "read_streak": read_state.read_streak if read_state else 0,
-                    "last_read_date": (
-                        read_state.last_read_date.isoformat()
-                        if read_state and read_state.last_read_date
-                        else None
-                    ),
-                    "last_verse": (
-                        f"{read_state.last_chapter}.{read_state.last_verse}"
-                        if read_state
-                        and read_state.last_chapter is not None
-                        and read_state.last_verse is not None
-                        else None
-                    ),
-                },
-                "practice": {
-                    "japa_rounds_7d": int(japa_7d),
-                    "meditation_minutes_7d": int(med_min_7d),
-                    "read_minutes_7d": int(read_min_7d),
-                    "meditation_session_logs_30d": meditation_logs_30d,
-                },
-                "japa": japa_insights_for_user(user),
-                "generated_at": now.isoformat(),
-            }
+            build_user_insights_summary(user, now=now, engagement=engagement),
         )
 
 

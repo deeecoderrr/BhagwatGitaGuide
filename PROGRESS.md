@@ -4,6 +4,11 @@ Last updated: 2026-04-27
 
 ## Completed
 
+- **Payment E2E documentation:** added **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`**
+  (subscription, sadhana, practice workflow, webhooks, verify edge cases, diagrams);
+  linked from **`README.md`**, **`AGENTS.md`**, **`PAYMENT_INTEGRATION_ANALYSIS.md`**,
+  **`docs/AI_AGENT_HANDOFF.md`**.
+
 - **Payments hardening (2026-04-27):** `VerifyPaymentView` ties order ownership to
   **`BillingRecord`** when present so a stale `UserSubscription.razorpay_order_id`
   does not block verify after a second checkout; subscription verify resolves plan

@@ -2714,6 +2714,7 @@ class GuideApiTests(APITestCase):
 
     def test_insights_me_returns_journey_snapshot(self):
         """Authenticated user receives counts, verse companions, and recent prompts."""
+        self.client.force_authenticate(user=self.user)
         conv = Conversation.objects.create(user_id="demo-user")
         Message.objects.create(
             conversation=conv,
@@ -2834,6 +2835,18 @@ class GuideApiTests(APITestCase):
         r2 = self.client.get("/api/v1/practice/log/?limit=10&offset=0")
         self.assertEqual(r2.status_code, status.HTTP_200_OK)
         self.assertGreaterEqual(r2.data.get("count", 0), 1)
+
+
+class UserInsightsVerseNormalizeTests(TestCase):
+    """Unit tests for ``guide_api.user_insights_summary`` verse key parsing."""
+
+    def test_normalize_verse_reference_accepts_bg_prefix_and_whitespace(self):
+        from guide_api.user_insights_summary import normalize_verse_reference
+
+        self.assertEqual(normalize_verse_reference("  BG 12.3  "), "12.3")
+        self.assertEqual(normalize_verse_reference("2.47"), "2.47")
+        self.assertIsNone(normalize_verse_reference("nope"))
+        self.assertIsNone(normalize_verse_reference(""))
 
 
 # Razorpay Payment Integration Tests

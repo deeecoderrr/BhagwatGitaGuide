@@ -5,7 +5,7 @@
 **Project:** Django + DRF backend for a Bhagavad Gita–based life guidance app (RAG + OpenAI generation, safety guardrails, auth, quota, mobile-friendly JSON APIs).
 
 **Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).  
-**Payments:** see root **`PAYMENT_INTEGRATION_ANALYSIS.md`** (Razorpay products, verify, webhooks, bridge URL).
+**Payments:** see root **`PAYMENT_INTEGRATION_ANALYSIS.md`** (Razorpay products, verify, webhooks, bridge URL) and **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** (end-to-end sequences).
 
 **Optional:** **ITR Summary Generator** — income-tax computation PDF workflow mounted at
 `ITR_URL_PREFIX` (default `/itr-computation/`). Toggle with **`ITR_ENABLED`**. Settings
