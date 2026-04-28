@@ -2727,6 +2727,29 @@ class GuideApiTests(APITestCase):
             guidance="Act with steadiness.",
             verse_references=["2.47", "BG 2.47", "3.1"],
         )
+        UserReadingState.objects.create(
+            user=self.user,
+            verses_seen=["1.1", "2.47", "2.1"],
+            read_streak=2,
+            last_read_date=date.today(),
+            last_chapter=2,
+            last_verse=47,
+        )
+        VerseUserNote.objects.create(
+            user=self.user,
+            chapter=2,
+            verse=47,
+            body="Study note",
+        )
+        AskEvent.objects.create(
+            user_id=self.user.username,
+            source=AskEvent.SOURCE_API,
+            mode=AskEvent.MODE_SIMPLE,
+            outcome=AskEvent.OUTCOME_SERVED,
+            response_mode=AskEvent.RESPONSE_MODE_LLM,
+            retrieval_mode="hybrid",
+            plan="free",
+        )
         response = self.client.get("/api/v1/insights/me/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("engagement", response.data)
@@ -2748,6 +2771,15 @@ class GuideApiTests(APITestCase):
         self.assertIn("japa", response.data)
         self.assertIn("active_commitments", response.data["japa"])
         self.assertIn("generated_at", response.data)
+        gita = response.data["gita"]
+        self.assertEqual(gita["chapters_explored"], 2)
+        self.assertEqual(gita["verses_opened"], 3)
+        self.assertEqual(gita["verse_notes"], 1)
+        self.assertEqual(gita["saved_reflections_with_verses"], 1)
+        self.assertEqual(gita["asks_with_guidance_30d"], 1)
+        self.assertGreaterEqual(len(gita["top_chapters"]), 1)
+        self.assertEqual(gita["top_chapters"][0]["chapter"], 2)
+        self.assertGreaterEqual(gita["top_chapters"][0]["count"], 4)
 
     def test_japa_commitment_start_finish_day_syncs_practice_log(self):
         d0 = date.today()

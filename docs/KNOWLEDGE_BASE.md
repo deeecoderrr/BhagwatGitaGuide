@@ -55,7 +55,7 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 | Module | Responsibility |
 |--------|----------------|
-| `user_insights_summary.py` | **`GET …/insights/me/`** — aggregates journey snapshot (conversations, saved reflections, verse companions, recent asks, community counts, sadhana, reading, practice rollups, `japa_insights_for_user`). |
+| `user_insights_summary.py` | **`GET …/insights/me/`** — journey snapshot + **`gita`** (chapters/verses opened, notes, saves with verses, read min 7d, asks served 30d, top chapters). |
 | `japa_views.py` | Japa commitments CRUD, sessions (start/pause/resume/finish-day/abandon), fulfill; **`japa_insights_for_user`**. |
 | `sadhana_views.py` | Sadhana program list/detail/day, day completion, enrollments; web **PracticeHubView**. |
 | `practice_workflow_views.py` | Practice tags, workflow list/detail, **`/practice/workflows/me/`**. |

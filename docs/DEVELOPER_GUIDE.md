@@ -486,7 +486,9 @@ Deployment note:
 2. **`guide_api/user_insights_summary.py`** aggregates journey snapshot queries in
    one module (conversations, saved reflections + verse companion counts, recent user
    messages, community posts, sadhana enrollment/completions, reading state,
-   practice log rollups, **`japa_insights_for_user`** from `japa_views.py`).
+   practice log rollups, **`japa_insights_for_user`**, and a **`gita`** block:
+   chapters explored from `verses_seen`, verse notes count, saves tagged with verses,
+   read minutes 7d, asks served (30d) from `AskEvent`, top chapters by weight).
 
 ## Error Envelope Contract
 

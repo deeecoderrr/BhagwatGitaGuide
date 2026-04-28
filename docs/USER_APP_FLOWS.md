@@ -6,6 +6,8 @@
 
 **Backend routes:** `/api/…` and `/api/v1/…` are equivalent (`config/urls.py`).
 
+**Product quirk (Today screen):** The second quick card (Heart icon / “saved” copy) navigates to **`/history`** — **conversation threads**, not the saved-reflections list. **Saved reflections** are listed on **`/profile`** (`expo/app/(tabs)/profile.tsx`).
+
 ---
 
 ## 1. Entry and authentication
@@ -70,20 +72,26 @@ flowchart TD
   Verse --> Note[Verse note API]
   Verse --> RO[reading/verse-open]
 
-  Today --> AskTab[Go to Ask]
-  Today --> ReadTab[Go to Read library]
-  Today --> ProfileBtn[Profile / settings entry]
+  Today --> AskTab["/ask shortcut"]
+  Today --> ReadTab["/read library"]
+  Today --> ProfileBtn["Header → /profile"]
+
+  Today --> HistShortcut["Heart card → /history · chat threads"]
+  Today --> MedShortcut["Meditation row → /meditate"]
 
   Today --> NH[Naam japa section]
   Today --> CH[Community preview]
   CH --> CommFull["/community"]
 
   ProfileBtn --> Profile["/profile"]
-  Profile --> Saved[saved-reflections list]
+  Profile --> Saved["Saved reflections list + tap → /saved-reflection/id"]
   Profile --> Acct["/account"]
   Profile --> Notif["/notifications"]
   Profile --> Plans["/plans"]
+  Profile --> PayHist["/payments"]
+  Profile --> QA["/quote-art"]
   Profile --> Support["/support"]
+  Profile --> HistAgain["/(tabs)/history"]
 ```
 
 ---
@@ -178,9 +186,11 @@ flowchart TD
 
 ## 9. Sadhana (guided programs)
 
+Primary entry in app: **Meditate tab** → “Guided sadhana programs” → **`/sadhana`**.
+
 ```mermaid
 flowchart TD
-  Entry[From Today / Meditate CTAs]
+  Entry[Meditate tab → /sadhana]
 
   Entry --> ProgList["GET /api/v1/sadhana/programs/"]
   ProgList --> ProgDetail["/sadhana/slug"]
@@ -257,7 +267,32 @@ flowchart TD
 
 ---
 
-## 14. Typical journey (qualitative)
+## 14. Quote art
+
+Stack screen **`/quote-art`** (opened from Profile). Uses **`GitaBrowseAPIPermission`**: browser-style access without a token is allowed; **token + Free plan** may receive **403** on quote-art JSON routes — typically **Plus/Pro** for in-app token calls.
+
+```mermaid
+flowchart TD
+  QA["/quote-art"]
+  QA --> Styles["GET …/quote-art/styles/"]
+  QA --> Feat["GET …/quote-art/featured/"]
+  QA --> Gen["POST …/quote-art/generate/"]
+```
+
+---
+
+## 15. Saved reflection detail
+
+```mermaid
+flowchart TD
+  SR["/saved-reflection/id"]
+  SR --> Get["GET /api/saved-reflections/id/"]
+  SR --> Del["DELETE …"]
+```
+
+---
+
+## 16. Typical journey (qualitative)
 
 ```mermaid
 journey
@@ -279,8 +314,16 @@ journey
 
 - **Primary loop:** **Today** → **Ask** or **Read** → **Verse** → optional save / log practice.
 - **Secondary loop:** **Meditate** / **Sadhana** / **Japa** → **Insights** and reminders.
-- **Account:** **Profile** (stack) → **Plans**, **notifications**, **account**, **support**.
+- **Account:** **Profile** (`/profile`) → **Plans**, **payments history**, **notifications**, **account**, **quote art**, **support**, **saved reflections**, shortcuts back to **History** tab.
 
 ---
 
-*Last aligned with Expo tab layout and routes: 2026-04-27.*
+## Possible follow-ups (product / doc)
+
+- Rename or clarify Today’s Heart card if users confuse **chat history** with **saved reflections**.
+- **`POST …/sadhana/.../complete/`** exists on the API for day completion; confirm whether mobile should call it after playback.
+- Align client paths on **`/api/v1/`** consistently (today some screens use `/api/...` without `v1`; behavior is the same).
+
+---
+
+*Last aligned with Expo tab layout and routes: 2026-04-27 (revised for Today → history vs profile, Meditate entry points, quote art / saved reflection / payments).*

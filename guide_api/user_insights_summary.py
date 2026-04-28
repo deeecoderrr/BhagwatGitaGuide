@@ -19,6 +19,7 @@ from django.utils import timezone
 
 from guide_api.japa_views import japa_insights_for_user
 from guide_api.models import (
+    AskEvent,
     CommunityPost,
     Conversation,
     MeditationSessionLog,
@@ -28,6 +29,7 @@ from guide_api.models import (
     SadhanaEnrollment,
     SavedReflection,
     UserReadingState,
+    VerseUserNote,
 )
 
 
@@ -41,6 +43,84 @@ def normalize_verse_reference(ref: object) -> str | None:
     if not m:
         return None
     return f"{int(m.group(1))}.{int(m.group(2))}"
+
+
+def _chapter_from_normalized_ref(key: str) -> int | None:
+    """Return Gita chapter 1–18 from ``chapter.verse`` or None."""
+    parts = (key or "").split(".", 1)
+    if len(parts) != 2:
+        return None
+    try:
+        c = int(parts[0])
+    except ValueError:
+        return None
+    if 1 <= c <= 18:
+        return c
+    return None
+
+
+def _build_gita_insights(
+    *,
+    user: AbstractBaseUser,
+    username: str,
+    since_30d,
+    saved_rows: list,
+    verse_counter: Counter,
+    verses_seen_list: list,
+    read_minutes_7d: int,
+) -> dict[str, Any]:
+    """Bhagavad Gita–centric study footprint (reading, notes, saves, guidance)."""
+    seen_chapters: set[int] = set()
+    unique_verse_keys: set[str] = set()
+    for raw in verses_seen_list:
+        key = normalize_verse_reference(raw)
+        if not key:
+            continue
+        unique_verse_keys.add(key)
+        ch = _chapter_from_normalized_ref(key)
+        if ch is not None:
+            seen_chapters.add(ch)
+
+    chapter_weight: Counter[int] = Counter()
+    for ref, w in verse_counter.items():
+        cht = _chapter_from_normalized_ref(ref)
+        if cht is not None:
+            chapter_weight[cht] += w
+    for raw in verses_seen_list:
+        key = normalize_verse_reference(raw)
+        if not key:
+            continue
+        cht = _chapter_from_normalized_ref(key)
+        if cht is not None:
+            chapter_weight[cht] += 1
+
+    top_chapters = [
+        {"chapter": c, "count": n} for c, n in chapter_weight.most_common(5)
+    ]
+
+    saved_with_verses = sum(
+        1
+        for row in saved_rows
+        if row.verse_references
+        and any(str(x).strip() for x in row.verse_references)
+    )
+
+    verse_notes = VerseUserNote.objects.filter(user=user).count()
+    asks_served_30d = AskEvent.objects.filter(
+        user_id=username,
+        outcome=AskEvent.OUTCOME_SERVED,
+        created_at__gte=since_30d,
+    ).count()
+
+    return {
+        "chapters_explored": len(seen_chapters),
+        "verses_opened": len(unique_verse_keys),
+        "verse_notes": verse_notes,
+        "saved_reflections_with_verses": saved_with_verses,
+        "read_minutes_7d": int(read_minutes_7d),
+        "asks_with_guidance_30d": asks_served_30d,
+        "top_chapters": top_chapters,
+    }
 
 
 def build_user_insights_summary(
@@ -177,6 +257,16 @@ def build_user_insights_summary(
         created_at__gte=since_30d,
     ).count()
 
+    gita = _build_gita_insights(
+        user=user,
+        username=username,
+        since_30d=since_30d,
+        saved_rows=saved_rows,
+        verse_counter=verse_counter,
+        verses_seen_list=verses_seen_list,
+        read_minutes_7d=read_min_7d,
+    )
+
     return {
         "engagement": engagement,
         "conversations": {
@@ -219,5 +309,6 @@ def build_user_insights_summary(
             "meditation_session_logs_30d": meditation_logs_30d,
         },
         "japa": japa_insights_for_user(user),
+        "gita": gita,
         "generated_at": now.isoformat(),
     }
