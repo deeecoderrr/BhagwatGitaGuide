@@ -17,6 +17,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.db.models import Count, Max, Q, Sum
 from django.utils import timezone
 
+from guide_api.gita_sequence import path_progress_payload
 from guide_api.japa_views import japa_insights_for_user
 from guide_api.models import (
     AskEvent,
@@ -28,6 +29,7 @@ from guide_api.models import (
     SadhanaDayCompletion,
     SadhanaEnrollment,
     SavedReflection,
+    UserGitaSequenceJourney,
     UserReadingState,
     VerseUserNote,
 )
@@ -267,6 +269,10 @@ def build_user_insights_summary(
         read_minutes_7d=read_min_7d,
     )
 
+    gita_path = path_progress_payload(
+        UserGitaSequenceJourney.objects.filter(user=user).first(),
+    )
+
     return {
         "engagement": engagement,
         "conversations": {
@@ -310,5 +316,6 @@ def build_user_insights_summary(
         },
         "japa": japa_insights_for_user(user),
         "gita": gita,
+        "gita_path": gita_path,
         "generated_at": now.isoformat(),
     }

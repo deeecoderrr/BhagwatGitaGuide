@@ -32,6 +32,7 @@ from guide_api.models import (
     SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
+    UserGitaSequenceJourney,
     UserSubscription,
     Verse,
     WebAudienceProfile,
@@ -687,3 +688,11 @@ class SadhanaEnrollmentAdmin(admin.ModelAdmin):
 class SadhanaDayCompletionAdmin(admin.ModelAdmin):
     list_display = ("day", "enrollment", "user", "completed_at")
     raw_id_fields = ("enrollment", "user", "day")
+
+
+@admin.register(UserGitaSequenceJourney)
+class UserGitaSequenceJourneyAdmin(admin.ModelAdmin):
+    list_display = ("user", "status", "next_chapter", "next_verse", "started_at", "completed_at")
+    list_filter = ("status",)
+    search_fields = ("user__username", "intention_text")
+    raw_id_fields = ("user",)

@@ -1279,6 +1279,43 @@ class UserReadingState(models.Model):
         return f"ReadingState {self.user_id}"
 
 
+class UserGitaSequenceJourney(models.Model):
+    """Canonical verse-by-verse reading path from 1.1 through the full text (optional guided mode)."""
+
+    STATUS_ACTIVE = "active"
+    STATUS_PAUSED = "paused"
+    STATUS_COMPLETED = "completed"
+    STATUS_CHOICES = (
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_PAUSED, "Paused"),
+        (STATUS_COMPLETED, "Completed"),
+    )
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="gita_sequence_journey",
+    )
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_ACTIVE)
+    next_chapter = models.PositiveSmallIntegerField(null=True, blank=True)
+    next_verse = models.PositiveSmallIntegerField(null=True, blank=True)
+    intention_text = models.CharField(
+        max_length=2000,
+        blank=True,
+        help_text="Optional sankalpa / note when starting the path.",
+    )
+    started_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Gita sequence journey"
+        verbose_name_plural = "Gita sequence journeys"
+
+    def __str__(self) -> str:
+        return f"GitaPath {self.user_id} {self.status}"
+
+
 class PracticeLogEntry(models.Model):
     """Manual log of japa, meditation minutes, or reading minutes."""
 

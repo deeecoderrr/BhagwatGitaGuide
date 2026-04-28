@@ -41,6 +41,7 @@ from guide_api.models import (
     SharedAnswer,
     SupportTicket,
     UserEngagementProfile,
+    UserGitaSequenceJourney,
     UserReadingState,
     UserSubscription,
     Verse,
@@ -5338,3 +5339,64 @@ class PushReminderRunTests(TestCase):
         self.assertEqual(data.get("type"), "daily_reminder")
         if data.get("verseRef"):
             self.assertRegex(str(data["verseRef"]), r"^\d+\.\d+$")
+
+
+class GitaPathApiTests(APITestCase):
+    """Sequential Gita path (verse-by-verse) APIs."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="gita-path-user",
+            password="test-pass-123",
+        )
+        self.client.force_authenticate(user=self.user)
+        Verse.objects.create(chapter=1, verse=1, translation="one")
+        Verse.objects.create(chapter=1, verse=2, translation="two")
+        Verse.objects.create(chapter=2, verse=1, translation="three")
+
+    def test_gita_path_start_advance_pause_resume_complete(self):
+        r0 = self.client.get("/api/v1/reading/gita-path/")
+        self.assertEqual(r0.status_code, status.HTTP_200_OK)
+        self.assertFalse(r0.data["enrolled"])
+
+        r = self.client.post(
+            "/api/v1/reading/gita-path/start/",
+            {"intention": " Read steadily "},
+            format="json",
+        )
+        self.assertEqual(r.status_code, status.HTTP_200_OK)
+        self.assertEqual(r.data["journey"]["next"], "1.1")
+        self.assertEqual(r.data["journey"]["verses_completed"], 0)
+        obj = UserGitaSequenceJourney.objects.get(user=self.user)
+        self.assertEqual(obj.intention_text.strip(), "Read steadily")
+
+        adv = self.client.post("/api/v1/reading/gita-path/advance/", {})
+        self.assertEqual(adv.status_code, status.HTTP_200_OK)
+        self.assertEqual(adv.data["journey"]["next"], "1.2")
+        self.assertEqual(adv.data["journey"]["verses_completed"], 1)
+
+        pause = self.client.post("/api/v1/reading/gita-path/pause/", {})
+        self.assertEqual(pause.status_code, status.HTTP_200_OK)
+        self.assertEqual(pause.data["journey"]["status"], UserGitaSequenceJourney.STATUS_PAUSED)
+
+        resume = self.client.post("/api/v1/reading/gita-path/resume/", {})
+        self.assertEqual(resume.status_code, status.HTTP_200_OK)
+        self.assertEqual(resume.data["journey"]["status"], UserGitaSequenceJourney.STATUS_ACTIVE)
+
+        self.client.post("/api/v1/reading/gita-path/advance/", {})
+        self.client.post("/api/v1/reading/gita-path/advance/", {})
+        fin = self.client.post("/api/v1/reading/gita-path/advance/", {})
+        self.assertEqual(fin.status_code, status.HTTP_200_OK)
+        self.assertEqual(fin.data["journey"]["status"], UserGitaSequenceJourney.STATUS_COMPLETED)
+        self.assertIsNone(fin.data["journey"]["next"])
+        self.assertEqual(fin.data["journey"]["percent"], 100.0)
+
+        ins = self.client.get("/api/v1/insights/me/")
+        self.assertEqual(ins.status_code, status.HTTP_200_OK)
+        self.assertIsNotNone(ins.data.get("gita_path"))
+        self.assertEqual(ins.data["gita_path"]["status"], "completed")
+
+        ab = self.client.post("/api/v1/reading/gita-path/abandon/", {})
+        self.assertEqual(ab.status_code, status.HTTP_200_OK)
+        self.assertTrue(ab.data["deleted"])
+        self.assertFalse(UserGitaSequenceJourney.objects.filter(user=self.user).exists())

@@ -15,6 +15,14 @@ from guide_api.sadhana_views import (
     SadhanaProgramDetailView,
     SadhanaProgramListView,
 )
+from guide_api.gita_sequence_views import (
+    GitaPathAbandonView,
+    GitaPathAdvanceView,
+    GitaPathPauseView,
+    GitaPathResumeView,
+    GitaPathStartView,
+    GitaPathView,
+)
 from guide_api.japa_views import (
     JapaCommitmentDetailView,
     JapaCommitmentFulfillView,
@@ -207,6 +215,12 @@ urlpatterns = [
     path("verses/search/", VerseSearchView.as_view(), name="verse-search"),
     path("reading/state/", ReadingStateView.as_view(), name="reading-state"),
     path("reading/verse-open/", ReadingVerseOpenView.as_view(), name="reading-verse-open"),
+    path("reading/gita-path/", GitaPathView.as_view(), name="gita-path"),
+    path("reading/gita-path/start/", GitaPathStartView.as_view(), name="gita-path-start"),
+    path("reading/gita-path/pause/", GitaPathPauseView.as_view(), name="gita-path-pause"),
+    path("reading/gita-path/resume/", GitaPathResumeView.as_view(), name="gita-path-resume"),
+    path("reading/gita-path/advance/", GitaPathAdvanceView.as_view(), name="gita-path-advance"),
+    path("reading/gita-path/abandon/", GitaPathAbandonView.as_view(), name="gita-path-abandon"),
     path("practice/log/", PracticeLogListCreateView.as_view(), name="practice-log"),
     path(
         "practice/meditation-sessions/",
