@@ -99,7 +99,7 @@ class RegisterRequestSerializer(serializers.Serializer):
 
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(min_length=8, write_only=True)
-    email = serializers.EmailField(required=False, allow_blank=True)
+    email = serializers.EmailField(required=True)
 
 
 class LoginRequestSerializer(serializers.Serializer):

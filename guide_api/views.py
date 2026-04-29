@@ -3081,6 +3081,7 @@ class ResetPasswordConfirmView(APIView):
     """Set a new password using uid + token sent in reset email."""
 
     permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request):
         serializer = ResetPasswordConfirmSerializer(data=request.data)
@@ -3109,6 +3110,7 @@ class ResetPasswordConfirmView(APIView):
         return Response({"status": "password_reset"})
 
 
+@method_decorator(ensure_csrf_cookie, name='dispatch')
 class ResetPasswordPageView(View):
     """
     Landing page for /reset-password/ links.
