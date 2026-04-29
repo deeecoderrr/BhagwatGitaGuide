@@ -10,6 +10,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from guide_api.models import Verse, VerseSynthesis
+from guide_api.services import _verse_synthesis_source_hash, _verse_synthesis_source_text
 
 logger = logging.getLogger(__name__)
 
@@ -40,41 +41,7 @@ Guidelines:
 """
 
 
-def _build_verse_context(verse: Verse) -> str:
-    """Gather all available text for the verse into a prompt context block."""
-    parts = [f"Bhagavad Gita {verse.chapter}.{verse.verse}"]
 
-    if verse.text:
-        parts.append(f"\nSanskrit:\n{verse.text}")
-    if verse.transliteration:
-        parts.append(f"\nTransliteration:\n{verse.transliteration}")
-    if verse.word_meanings:
-        parts.append(f"\nWord-for-word:\n{verse.word_meanings}")
-    if verse.translation_en:
-        parts.append(f"\nTranslation (EN):\n{verse.translation_en}")
-    if verse.translation_hi:
-        parts.append(f"\nTranslation (HI):\n{verse.translation_hi}")
-    if verse.meaning_plain:
-        parts.append(f"\nMeaning (plain):\n{verse.meaning_plain}")
-
-    # Include all commentaries
-    for field in [
-        "shankaracharya_commentary",
-        "ramanujacharya_commentary",
-        "madhvacharya_commentary",
-        "vallabhacharya_commentary",
-        "chinmayananda_commentary",
-    ]:
-        text = getattr(verse, field, None) or ""
-        if text.strip():
-            label = field.replace("_commentary", "").title()
-            parts.append(f"\n{label} Commentary:\n{text.strip()}")
-
-    return "\n".join(parts)
-
-
-def _source_hash(context: str) -> str:
-    return hashlib.sha256(context.encode()).hexdigest()[:32]
 
 
 def _call_openai(context: str) -> dict | None:
@@ -171,8 +138,8 @@ class Command(BaseCommand):
 
         for i, verse in enumerate(verses, 1):
             ref = f"BG {verse.chapter}.{verse.verse}"
-            context = _build_verse_context(verse)
-            s_hash = _source_hash(context)
+            context = _verse_synthesis_source_text(verse)
+            s_hash = _verse_synthesis_source_hash(verse)[:32]
 
             if dry_run:
                 self.stdout.write(
