@@ -3039,7 +3039,8 @@ class ForgotPasswordView(APIView):
         if user:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
-            reset_link = f"/reset-password/?uid={uid}&token={token}"
+            path = f"/reset-password/?uid={uid}&token={token}"
+            reset_link = request.build_absolute_uri(path)
             send_mail(
                 subject="Reset your Bhagavad Gita Guide password",
                 message=(
