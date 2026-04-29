@@ -75,10 +75,31 @@ def japa_insights_for_user(user) -> dict:
     now = timezone.now()
     since_30d = now - timedelta(days=30)
     since_date = since_30d.date()
-    active_count = JapaCommitment.objects.filter(
+    active_commitments_qs = JapaCommitment.objects.filter(
         user=user,
         status=JapaCommitment.STATUS_ACTIVE,
-    ).count()
+    )
+    active_count = active_commitments_qs.count()
+    active_commitments_list = [
+        {
+            "id": c.id,
+            "title": c.title,
+            "mantra_label": c.mantra_label,
+            "daily_target_malas": c.daily_target_malas,
+            "started_on": c.started_on.isoformat() if c.started_on else None,
+            "completed_malas_30d": (
+                JapaDailyCompletion.objects.filter(
+                    commitment=c, date__gte=since_date
+                ).aggregate(t=Sum("malas_completed"))["t"] or 0
+            ),
+            "distinct_days_30d": (
+                JapaDailyCompletion.objects.filter(
+                    commitment=c, date__gte=since_date
+                ).values_list("date", flat=True).distinct().count()
+            )
+        } for c in active_commitments_qs
+    ]
+
     sessions_30d = JapaSession.objects.filter(
         user=user,
         status=JapaSession.STATUS_COMPLETED,
@@ -98,6 +119,7 @@ def japa_insights_for_user(user) -> dict:
     )
     return {
         "active_commitments": active_count,
+        "active_commitments_list": active_commitments_list,
         "completed_sessions_30d": sessions_30d,
         "malas_logged_via_tracks_30d": int(malas_30d),
         "distinct_practice_days_30d": distinct_days,

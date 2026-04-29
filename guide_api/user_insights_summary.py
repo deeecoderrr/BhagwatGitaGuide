@@ -70,6 +70,7 @@ def _build_gita_insights(
     verse_counter: Counter,
     verses_seen_list: list,
     read_minutes_7d: int,
+    read_minutes_total: int,
 ) -> dict[str, Any]:
     """Bhagavad Gita–centric study footprint (reading, notes, saves, guidance)."""
     seen_chapters: set[int] = set()
@@ -120,8 +121,11 @@ def _build_gita_insights(
         "verse_notes": verse_notes,
         "saved_reflections_with_verses": saved_with_verses,
         "read_minutes_7d": int(read_minutes_7d),
+        "read_minutes_total": int(read_minutes_total),
         "asks_with_guidance_30d": asks_served_30d,
         "top_chapters": top_chapters,
+        "verses_opened_list": sorted(list(unique_verse_keys)),
+        "chapters_explored_list": sorted(list(seen_chapters)),
     }
 
 
@@ -202,8 +206,7 @@ def build_user_insights_summary(
     root_posts = community_agg["root_posts"] or 0
     reply_posts = community_agg["replies"] or 0
 
-    sadhana_active = None
-    enrollment = (
+    active_enrollments = (
         SadhanaEnrollment.objects.filter(
             user=user,
             access_ends_at__gt=now,
@@ -211,14 +214,15 @@ def build_user_insights_summary(
         )
         .select_related("program")
         .order_by("-access_ends_at")
-        .first()
     )
-    if enrollment is not None:
-        sadhana_active = {
-            "slug": enrollment.program.slug,
-            "title": enrollment.program.title,
-            "access_ends_at": enrollment.access_ends_at.isoformat(),
-        }
+    sadhana_active_list = [
+        {
+            "slug": e.program.slug,
+            "title": e.program.title,
+            "access_ends_at": e.access_ends_at.isoformat(),
+        } for e in active_enrollments
+    ]
+    sadhana_active = sadhana_active_list[0] if sadhana_active_list else None
 
     sadhana_completions_30d = (
         SadhanaDayCompletion.objects.filter(completed_at__gte=since_30d)
@@ -259,6 +263,16 @@ def build_user_insights_summary(
         created_at__gte=since_30d,
     ).count()
 
+    practice_all_agg = PracticeLogEntry.objects.filter(
+        user=user,
+    ).aggregate(
+        read_min=Sum(
+            "quantity",
+            filter=Q(entry_type=PracticeLogEntry.TYPE_READ_MINUTES),
+        ),
+    )
+    read_min_all = practice_all_agg["read_min"] or 0
+
     gita = _build_gita_insights(
         user=user,
         username=username,
@@ -267,6 +281,7 @@ def build_user_insights_summary(
         verse_counter=verse_counter,
         verses_seen_list=verses_seen_list,
         read_minutes_7d=read_min_7d,
+        read_minutes_total=read_min_all,
     )
 
     gita_path = path_progress_payload(
@@ -288,6 +303,7 @@ def build_user_insights_summary(
         },
         "sadhana": {
             "active": sadhana_active,
+            "active_list": sadhana_active_list,
             "completed_days_last_30d": sadhana_completions_30d,
         },
         "reading": {
@@ -312,6 +328,7 @@ def build_user_insights_summary(
             "japa_rounds_7d": int(japa_7d),
             "meditation_minutes_7d": int(med_min_7d),
             "read_minutes_7d": int(read_min_7d),
+            "read_minutes_total": int(read_min_all),
             "meditation_session_logs_30d": meditation_logs_30d,
         },
         "japa": japa_insights_for_user(user),
