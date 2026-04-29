@@ -2815,6 +2815,7 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         username = serializer.validated_data["username"].strip()
         password = serializer.validated_data["password"]
+        email = serializer.validated_data.get("email", "").strip().lower()
 
         user_model = get_user_model()
         if user_model.objects.filter(username=username).exists():
@@ -2827,6 +2828,7 @@ class RegisterView(APIView):
         user = user_model.objects.create_user(
             username=username,
             password=password,
+            email=email,
         )
         token, _ = Token.objects.get_or_create(user=user)
         return Response(
@@ -3032,11 +3034,20 @@ class ForgotPasswordView(APIView):
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data["email"].strip().lower()
-        user = get_user_model().objects.filter(email__iexact=email).first()
+        username = serializer.validated_data.get("username", "").strip()
+        email = serializer.validated_data.get("email", "").strip().lower()
+
+        user_model = get_user_model()
+        user = None
+
+        if username:
+            user = user_model.objects.filter(username=username).first()
+        
+        if not user and email:
+            user = user_model.objects.filter(email__iexact=email).first()
 
         # Return generic success so clients cannot enumerate users.
-        if user:
+        if user and user.email:
             uid = urlsafe_base64_encode(force_bytes(user.pk))
             token = default_token_generator.make_token(user)
             path = f"/reset-password/?uid={uid}&token={token}"
@@ -3052,6 +3063,10 @@ class ForgotPasswordView(APIView):
                 recipient_list=[user.email],
                 fail_silently=True,
             )
+        elif user and not user.email:
+            # User exists but no email is on file.
+            # We can't send a link, but we still return OK to avoid enumeration.
+            pass
         return Response(
             {
                 "status": "ok",
@@ -3092,6 +3107,20 @@ class ResetPasswordConfirmView(APIView):
         user.set_password(new_password)
         user.save(update_fields=["password"])
         return Response({"status": "password_reset"})
+
+
+class ResetPasswordPageView(View):
+    """
+    Landing page for /reset-password/ links.
+    Serves a simple HTML form that calls ResetPasswordConfirmView via JS.
+    """
+
+    def get(self, request):
+        uid = request.GET.get("uid")
+        token = request.GET.get("token")
+        if not uid or not token:
+            return HttpResponse("Missing reset parameters.", status=400)
+        return render(request, "reset_password.html", {"uid": uid, "token": token})
 
 
 class PlanUpdateView(APIView):

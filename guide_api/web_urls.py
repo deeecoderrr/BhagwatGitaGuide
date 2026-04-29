@@ -16,10 +16,16 @@ from guide_api.views import (
     SeoLandingTopicView,
     robots_txt_view,
     sitemap_xml_view,
+    ResetPasswordPageView,
 )
 
 
 urlpatterns = [
+    path(
+        "reset-password/",
+        ResetPasswordPageView.as_view(),
+        name="reset-password-page",
+    ),
     path(
         "staff/course-studio/",
         CourseStudioView.as_view(),

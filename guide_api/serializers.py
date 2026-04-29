@@ -99,6 +99,7 @@ class RegisterRequestSerializer(serializers.Serializer):
 
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(min_length=8, write_only=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
 
 
 class LoginRequestSerializer(serializers.Serializer):
@@ -130,11 +131,13 @@ class SavedReflectionCreateSerializer(serializers.Serializer):
     actions = serializers.ListField(
         child=serializers.CharField(),
         required=False,
+        default=list,
     )
     reflection = serializers.CharField(required=False, allow_blank=True)
     verse_references = serializers.ListField(
         child=serializers.CharField(),
         required=False,
+        default=list,
     )
     note = serializers.CharField(
         required=False,
@@ -497,8 +500,14 @@ class ChangePasswordSerializer(serializers.Serializer):
 class ForgotPasswordSerializer(serializers.Serializer):
     """Validate forgot-password request payload."""
 
-    email = serializers.EmailField()
+    username = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    email = serializers.EmailField(required=False, allow_blank=True)
 
+    def validate(self, data):
+        """Require at least one of username or email."""
+        if not data.get("username") and not data.get("email"):
+            raise serializers.ValidationError("Either username or email is required.")
+        return data
 
 class ResetPasswordConfirmSerializer(serializers.Serializer):
     """Validate token-based password reset confirmation payload."""
