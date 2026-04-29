@@ -3,7 +3,7 @@
 from django.urls import path
 
 from guide_api.sadhana_views import PracticeHubView
-from guide_api.staff_views import CourseStudioView
+from guide_api.staff_views import CourseStudioView, AdminAnalyticsDashboardView
 from guide_api.views import (
     CommunityWallView,
     DeleteAccountPageView,
@@ -24,6 +24,11 @@ urlpatterns = [
         "staff/course-studio/",
         CourseStudioView.as_view(),
         name="staff-course-studio",
+    ),
+    path(
+        "staff/analytics/",
+        AdminAnalyticsDashboardView.as_view(),
+        name="staff-analytics",
     ),
     path(
         "practice/",

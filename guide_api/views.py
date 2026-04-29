@@ -2807,6 +2807,8 @@ class PlanCatalogView(APIView):
 class RegisterView(APIView):
     """Create user account and return API token."""
 
+    throttle_scope = "auth_register"
+
     def post(self, request):
         """Validate signup input and issue authentication token."""
         serializer = RegisterRequestSerializer(data=request.data)
@@ -2835,6 +2837,8 @@ class RegisterView(APIView):
 
 class LoginView(APIView):
     """Authenticate existing user and return API token."""
+
+    throttle_scope = "auth_login"
 
     def post(self, request):
         """Validate credentials and issue existing/new token."""
@@ -3023,6 +3027,7 @@ class ForgotPasswordView(APIView):
     """Send a reset link/token to the account email."""
 
     permission_classes = [AllowAny]
+    throttle_scope = "auth_forgot"
 
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)

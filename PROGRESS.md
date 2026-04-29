@@ -4,6 +4,20 @@ Last updated: 2026-04-27
 
 ## Completed
 
+- **Phase 6 "Nice-to-Haves" Implementation (2026-04-29):**
+  - **pgvector:** Verified infrastructure and configuration flags (`ENABLE_PGVECTOR_RETRIEVAL`) are ready for production.
+  - **Admin Analytics:** Built `AdminAnalyticsDashboardView` to track funnel drops and queries.
+  - **Japa Timer:** Added an interactive Bell sound to the `japa` session tracker using `expo-av` and a downloaded audio asset.
+  - **Weekly Email Digest:** Created a Django management command (`send_weekly_digest.py`) to send a curated featured verse to all active users.
+  - **iOS Widget Polish:** Verified that `meaning_plain` correctly synchronizes with `widget_daily_meaning` for the Apple target.
+
+- **Phase 3, 4, 5 Gap Remediation (2026-04-29):**
+  - **Auth/Quota UX:** Added expandable "Forgot Password" UI flow in mobile app (`auth.tsx`). Added upgrade CTA card in mobile chat UI (`ask.tsx`) when daily/guest quotas are exceeded.
+  - **Backend Hardening:** Applied `ScopedRateThrottle` limits to DRF authentication endpoints (`LoginView`, `RegisterView`, `ForgotPasswordView`) to prevent brute-force attacks.
+  - **Admin Polish:** Enhanced `SupportTicketAdmin` with `mark_tickets_in_progress`, `resolved`, `closed` actions and `date_hierarchy`. Added a server-rendered `AdminAnalyticsDashboardView` to track funnel drops and query volumes (Phase 6.2).
+  - **Content Generation:** Added `generate_verse_syntheses` management command to bulk-generate `VerseSynthesis` rows via OpenAI `gpt-4o-mini`.
+  - **Mobile Polish:** Dimmed deep mode button with a padlock icon when deep mode is not allowed. Added user-friendly empty states for the History (Journal) and Community screens with navigation CTAs. Added local text-based search/filter to Saved Reflections list (Phase 5.5). Added documentation for timezone behaviors. Integrated `react-native-view-shot` and `expo-sharing` to enable Quote Art image exports directly to device (Phase 5.4). Added a localized language toggle on the Ask screen hero section (Phase 6.6).
+
 - **Codebase knowledge-base pass (2026-04-28):** reviewed backend and mobile
   code structure, feature docs, route maps, model inventory, mobile screens,
   payment/practice/insights flows, and optional ITR boundaries. Added

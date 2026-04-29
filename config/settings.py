@@ -429,6 +429,14 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.SessionAuthentication",
         "rest_framework.authentication.BasicAuthentication",
     ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "auth_login": "10/min",
+        "auth_register": "5/min",
+        "auth_forgot": "3/min",
+    },
 }
 
 # Daily push reminders (``manage.py send_push_reminders``; schedule every N minutes).

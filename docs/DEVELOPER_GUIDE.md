@@ -253,6 +253,24 @@ Use this map to understand the exact call chain for each endpoint.
 - quota settings are read through a short-lived cache so transient production
   DB latency does not take down guest chat or quota rendering paths
 
+### Timezone behavior for daily quotas and streaks
+
+Daily ask quotas (`DailyAskUsage.date`) and engagement streaks
+(`UserEngagementProfile.last_active_date`) both use **`timezone.localdate()`**,
+which defaults to **UTC** when `USE_TZ=True` (the project default). This means:
+
+- **All daily quota resets happen at UTC midnight** regardless of the user's
+  local timezone. This is a deliberate design simplification — it avoids
+  complex per-user timezone bookkeeping for quota enforcement while remaining
+  fair across geographies.
+- **Streak tracking** follows the same UTC-day boundary. A user's
+  `last_active_date` is compared against `timezone.localdate()` (UTC today).
+- The `UserEngagementProfile.timezone` field stores the user's declared timezone
+  (e.g., `Asia/Kolkata`) but is used **only** for scheduling push reminders
+  (`send_push_reminders`), not for quota or streak calculation.
+- Mobile clients should display quota reset timing as "resets daily" without
+  specifying an exact local time, since the reset boundary is UTC midnight.
+
 ### `POST /api/eval/retrieval/`
 
 1. `guide_api/urls.py` -> `RetrievalEvalView`

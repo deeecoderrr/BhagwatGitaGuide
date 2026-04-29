@@ -9,10 +9,20 @@ from django.db.models import Max
 from django.http import HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 
+from datetime import timedelta
+
 from guide_api.forms import SadhanaDayQuickForm, SadhanaProgramStudioForm
-from guide_api.models import SadhanaDay, SadhanaProgram, SadhanaStep
+from guide_api.models import (
+    AskEvent,
+    GrowthEvent,
+    SadhanaDay,
+    SadhanaProgram,
+    SadhanaStep,
+    WebAudienceProfile,
+)
 
 
 class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
@@ -30,6 +40,59 @@ class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
 def _admin_change_url(instance) -> str:
     opts = instance._meta
     return reverse(f"admin:{opts.app_label}_{opts.model_name}_change", args=[instance.pk])
+
+
+class AdminAnalyticsDashboardView(StaffRequiredMixin, View):
+    """Staff-only visual dashboard for analytics."""
+    
+    template_name = "guide_api/staff_analytics_dashboard.html"
+
+    def get(self, request):
+        days = int(request.GET.get("days", 7))
+        today = timezone.localdate()
+        since = timezone.now() - timedelta(days=days - 1)
+
+        ask_qs = AskEvent.objects.filter(created_at__gte=since)
+        growth_qs = GrowthEvent.objects.filter(created_at__gte=since)
+
+        daily_rows = []
+        for offset in range(days):
+            day = today - timedelta(days=(days - 1 - offset))
+            day_ask_qs = ask_qs.filter(created_at__date=day)
+            day_growth_qs = growth_qs.filter(created_at__date=day)
+            landing_views = day_growth_qs.filter(
+                event_type=GrowthEvent.EVENT_LANDING_VIEW,
+            ).count()
+            starter_clicks = day_growth_qs.filter(
+                event_type=GrowthEvent.EVENT_STARTER_CLICK,
+            ).count()
+            ask_submits = day_growth_qs.filter(
+                event_type=GrowthEvent.EVENT_ASK_SUBMIT,
+            ).count()
+            
+            # Simple funnel math: landing -> starter -> submit
+            daily_rows.append(
+                {
+                    "date": day,
+                    "unique_visitors": WebAudienceProfile.objects.filter(
+                        last_seen_at__date=day,
+                    ).count(),
+                    "queries_fired": day_ask_qs.count(),
+                    "landing_views": landing_views,
+                    "starter_clicks": starter_clicks,
+                    "ask_submits": ask_submits,
+                }
+            )
+
+        daily_rows.reverse() # Most recent first
+
+        ctx = {
+            "days": days,
+            "daily_rows": daily_rows,
+            "total_asks": ask_qs.count(),
+            "total_growth_events": growth_qs.count(),
+        }
+        return render(request, self.template_name, ctx)
 
 
 class CourseStudioView(StaffRequiredMixin, View):

@@ -528,6 +528,21 @@ class EngagementEventAdmin(admin.ModelAdmin):
     search_fields = ("user__username",)
 
 
+@admin.action(description="Mark selected tickets as In Progress")
+def mark_tickets_in_progress(modeladmin, request, queryset):
+    queryset.update(status="in_progress")
+
+
+@admin.action(description="Mark selected tickets as Resolved")
+def mark_tickets_resolved(modeladmin, request, queryset):
+    queryset.update(status="resolved")
+
+
+@admin.action(description="Mark selected tickets as Closed")
+def mark_tickets_closed(modeladmin, request, queryset):
+    queryset.update(status="closed")
+
+
 @admin.register(SupportTicket)
 class SupportTicketAdmin(admin.ModelAdmin):
     """Support request queue for payment/account/user issue handling."""
@@ -542,6 +557,8 @@ class SupportTicketAdmin(admin.ModelAdmin):
     )
     list_filter = ("issue_type", "status", "created_at")
     search_fields = ("name", "email", "requester_id", "message")
+    date_hierarchy = "created_at"
+    actions = [mark_tickets_in_progress, mark_tickets_resolved, mark_tickets_closed]
 
 
 class SadhanaStepInline(admin.TabularInline):
