@@ -1,6 +1,6 @@
 # BhagwatGitaGuide Backend Knowledge Base
 
-Last reviewed: 2026-04-28
+Last reviewed: 2026-04-29
 
 This document is a durable map of the backend so future coding sessions can start
 with product and technical context already loaded. It complements
@@ -172,8 +172,11 @@ Important behavior:
 - `GET /api/v1/verses/<chapter>.<verse>/`: full verse detail, commentary,
   optional synthesis.
 - `GET /api/v1/verses/search/`: lightweight search.
-- `GET /api/v1/daily-verse/`: deterministic date-seeded daily verse.
-- `GET /api/v1/daily-verse/history/`: rolling daily-verse archive.
+- `GET /api/v1/daily-verse/`: deterministic date-seeded daily verse; response
+  includes **`meaning_plain`** (short plain-language line for mobile Today +
+  push) alongside `meaning` / `reflection`.
+- `GET /api/v1/daily-verse/history/`: rolling daily-verse archive (each row
+  includes **`meaning_plain`** when present).
 - `GET/PUT/PATCH /api/v1/verses/<chapter>.<verse>/note/`: private verse note.
 - `POST /api/v1/reading/verse-open/`: update reading state and streak.
 

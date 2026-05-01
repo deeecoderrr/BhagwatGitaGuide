@@ -1,8 +1,15 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-27
+Last updated: 2026-04-29
 
 ## Completed
+
+- **Mobile docs + daily verse API (2026-04-29):** Documented **`meaning_plain`**
+  on `GET /api/daily-verse/` and `GET /api/daily-verse/history/` in
+  **`docs/CODEBASE_KNOWLEDGE_BASE.md`**, **`docs/DEVELOPER_GUIDE.md`**,
+  **`docs/MOBILE_APP_PARITY_BLUEPRINT.md`**, and **`docs/KNOWLEDGE_BASE.md`**.
+  **`docs/USER_APP_FLOWS.md`** now includes cold-start **intro video** before
+  session hydrate. (Mobile implementation lives in `bhagavadgitaguide_mobile-main`.)
 
 - **Phase 6 "Nice-to-Haves" Implementation (2026-04-29):**
   - **pgvector:** Verified infrastructure and configuration flags (`ENABLE_PGVECTOR_RETRIEVAL`) are ready for production.

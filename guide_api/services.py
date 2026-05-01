@@ -108,6 +108,7 @@ _verse_additional_angle_cache: dict[str, list[dict[str, str]]] | None = None
 _merged_verse_context_cache: dict[str, dict[str, object]] = {}
 _chapter_summary_cache: dict[int, dict[str, object]] | None = None
 _vedic_slok_cache: dict[str, dict[str, object]] = {}
+_verse_list_cache: list[Verse] | None = None
 
 RISK_KEYWORDS = {
     "suicide",
@@ -2306,6 +2307,14 @@ def _hybrid_retrieve_with_trace(
     )
 
 
+def _get_all_verses_cached() -> list[Verse]:
+    """Return all Gita verses from memory cache, loading once if needed."""
+    global _verse_list_cache
+    if _verse_list_cache is None:
+        _verse_list_cache = list(Verse.objects.all())
+    return _verse_list_cache
+
+
 def retrieve_semantic_verses_with_trace(
     message: str,
     limit: int = 3,
@@ -2314,7 +2323,7 @@ def retrieve_semantic_verses_with_trace(
     ensure_seed_verses()
     themes = detect_themes(message)
     query_tokens = _tokenize(message)
-    verses = list(Verse.objects.all())
+    verses = _get_all_verses_cached()
     query_themes = sorted(themes)
     sorted_tokens = sorted(query_tokens)
 
@@ -2381,7 +2390,7 @@ def retrieve_hybrid_verses_with_trace(
     ensure_seed_verses()
     themes = detect_themes(message)
     query_tokens = _tokenize(message)
-    verses = list(Verse.objects.all())
+    verses = _get_all_verses_cached()
     return _hybrid_retrieve_with_trace(
         verses=verses,
         themes=themes,

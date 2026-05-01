@@ -96,7 +96,16 @@ def japa_insights_for_user(user) -> dict:
                 JapaDailyCompletion.objects.filter(
                     commitment=c, date__gte=since_date
                 ).values_list("date", flat=True).distinct().count()
-            )
+            ),
+            "daily_history": [
+                {
+                    "date": dc.date.isoformat(),
+                    "malas": dc.malas_completed
+                }
+                for dc in JapaDailyCompletion.objects.filter(
+                    commitment=c, date__gte=since_date
+                ).order_by("-date")
+            ]
         } for c in active_commitments_qs
     ]
 

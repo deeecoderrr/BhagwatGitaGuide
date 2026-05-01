@@ -148,6 +148,7 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 ### 3.1 Stack
 
+- **Cold start (mobile):** fullscreen **`AppIntroVideo`** (`expo/assets/videos/intro-lotus.mp4`) before tabs; skip or end-of-play continues into `AuthGate` + stack.
 - **Expo Router** (file-based routes), **React Query**, **AsyncStorage** for token.
 - **Default API host:** `expo/lib/api.ts` → `API_BASE` (`https://askbhagavadgita.co.in`). Paths are appended (`/api/...` or `/api/v1/...`).
 - **i18n:** `providers/i18n.tsx` — large inline `en` / `hi` string maps (not separate JSON files).
@@ -162,7 +163,7 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 | Route file | Screen purpose |
 |------------|----------------|
-| `app/(tabs)/index.tsx` | **Today** — daily verse, shortcuts, naam japa section, community preview, healing CTAs |
+| `app/(tabs)/index.tsx` | **Today** — daily verse (`meaning_plain` when API sends it), `TodaySignalFlipCard` (long-press synthesis), shortcuts, naam japa, community preview, saved-reflections entry |
 | `app/(tabs)/ask.tsx` | **Ask** — guest or authed ask, conversations, save reflection, feedback |
 | `app/(tabs)/read.tsx` | **Read** — chapter list, verse search |
 | `app/(tabs)/history.tsx` | Conversation list / delete |
@@ -192,7 +193,7 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 | Ask | `/api/v1/ask/` or `/api/v1/guest/ask/`, guest history/reset |
 | Conversations | `/api/v1/conversations/`, `.../messages/` |
 | Saved reflections | `/api/saved-reflections/` (list/create/delete — mixed `/api/` prefix in app) |
-| Daily verse | `/api/daily-verse/` |
+| Daily verse | `/api/daily-verse/` (JSON includes **`meaning_plain`** for short UI copy; history rows too) |
 | Chapters / verse | `/api/chapters/`, `/api/v1/verses/...`, `/api/v1/verses/search/` |
 | Verse note / reading | `/api/v1/verses/.../note/`, `/api/v1/reading/verse-open/` |
 | Insights | `/api/v1/insights/me/` |

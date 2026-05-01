@@ -24,6 +24,7 @@ from django.core.mail import send_mail
 from django.db.models import Q
 from django.db import transaction
 from django.db.models import Sum
+from django.core.cache import cache
 from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str
@@ -3221,10 +3222,19 @@ class UserInsightsSummaryView(APIView):
     def get(self, request):
         user = request.user
         now = timezone.now()
+        
+        # Cache key unique to user and day (or short window)
+        cache_key = f"user_insights_{user.id}_{now.strftime('%Y%m%d_%H')}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+
         engagement = _serialize_engagement_profile(_get_engagement_profile(user))
-        return Response(
-            build_user_insights_summary(user, now=now, engagement=engagement),
-        )
+        insights = build_user_insights_summary(user, now=now, engagement=engagement)
+        
+        # Cache for 1 hour to handle peak traffic
+        cache.set(cache_key, insights, 3600)
+        return Response(insights)
 
 
 class AskView(APIView):

@@ -124,7 +124,7 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - `POST support/` — guest/auth support ticket intake
 - `GET support/tickets/` — signed-in user ticket history
 - `GET|POST saved-reflections/`, `DELETE saved-reflections/<id>/`
-- `GET daily-verse/`, `GET daily-verse/history/`
+- `GET daily-verse/`, `GET daily-verse/history/` (payload includes **`meaning_plain`** for mobile Today + push copy)
 - history under `history/me/`, `history/<user_id>/` (owner)
 - `GET|POST|DELETE conversations/...` — mobile-native thread management
 - `POST eval/retrieval/` — retrieval trace / benchmark (no generation); **auth required**

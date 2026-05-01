@@ -292,11 +292,13 @@ which defaults to **UTC** when `USE_TZ=True` (the project default). This means:
 1. `guide_api/urls.py` -> `DailyVerseView`
 2. `guide_api/views.py` -> `DailyVerseView.get()`
 3. Reads first verse from DB, or seeds/fetches via `retrieve_verses()`
-4. Returns one verse + short reflection.
+4. Returns one verse + short reflection + optional **`meaning_plain`** (mobile
+   Today line + reminders; derived in `DailyVerseView`).
 
 Related:
 - `GET /api/daily-verse/history/?days=&language=` returns a rolling,
-  deterministic daily verse list for recap/archive screens.
+  deterministic daily verse list for recap/archive screens (includes
+  **`meaning_plain`** per row when available).
 
 ### `GET /api/chapters/`, `GET /api/chapters/<n>/`, `GET /api/verses/<ch>.<v>/`
 

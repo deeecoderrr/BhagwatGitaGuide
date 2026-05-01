@@ -11,7 +11,8 @@ Run `make test` for the current test count (see `guide_api/tests.py`).
 - Razorpay / billing reference: `PAYMENT_INTEGRATION_ANALYSIS.md`
 - Payment E2E workflows (subscription, sadhana, workflow, webhooks): `docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`
 - Developer documentation: `docs/DEVELOPER_GUIDE.md`
-- Mobile build handoff: `docs/MOBILE_APP_PARITY_BLUEPRINT.md`
+- Mobile build handoff: `docs/MOBILE_APP_PARITY_BLUEPRINT.md` (see also
+  `docs/KNOWLEDGE_BASE.md` §3 for Expo ↔ API map, intro video + Today’s Signal)
 - Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`
 - AI / coding-agent handoff: `AGENTS.md` (start here) and `docs/AI_AGENT_HANDOFF.md`
 - ITR merge / revert audit list: `docs/ITR_CHANGE_LOG.md`

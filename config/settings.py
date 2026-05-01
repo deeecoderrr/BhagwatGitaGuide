@@ -116,6 +116,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'django.middleware.gzip.GZipMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'guide_api.middleware.CanonicalHostRedirectMiddleware',
     'guide_api.middleware.MixedContentProtectionMiddleware',
@@ -167,6 +168,7 @@ def _postgres_db_from_url(url: str) -> dict:
         "PASSWORD": unquote(parsed.password or ""),
         "HOST": parsed.hostname or "localhost",
         "PORT": str(parsed.port or "5432"),
+        "CONN_MAX_AGE": 600,
     }
 
 

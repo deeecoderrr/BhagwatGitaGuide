@@ -297,6 +297,9 @@ the immediate `ask` call.
 
 ### Reader + discovery helpers
 
+- `GET /api/daily-verse/?language=` — daily verse payload includes optional
+  **`meaning_plain`** (short plain-language line for mobile Today, widgets, and
+  push bodies when configured).
 - `GET /api/daily-verse/history/?days=&language=`
 - `GET /api/verses/search/?q=&limit=`
 - `GET /api/starter-prompts/`

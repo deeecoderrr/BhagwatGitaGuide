@@ -82,8 +82,9 @@ Frontend/mobile-owned:
 
 ### Reader / content
 
-- `GET /daily-verse/`
-- `GET /daily-verse/history/?days=&language=`
+- `GET /daily-verse/` (response includes **`meaning_plain`** for compact UI)
+- `GET /daily-verse/history/?days=&language=` (each item includes
+  **`meaning_plain`** when present)
 - `GET /chapters/`
 - `GET /chapters/<chapter_number>/`
 - `GET /verses/<chapter>.<verse>/`

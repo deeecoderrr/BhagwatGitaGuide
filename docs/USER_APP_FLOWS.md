@@ -6,7 +6,7 @@
 
 **Backend routes:** `/api/…` and `/api/v1/…` are equivalent (`config/urls.py`).
 
-**Product quirk (Today screen):** The second quick card (Heart icon / “saved” copy) navigates to **`/history`** — **conversation threads**, not the saved-reflections list. **Saved reflections** are listed on **`/profile`** (`expo/app/(tabs)/profile.tsx`).
+**Product note (Today screen):** Some shortcuts still point to **`/history`** (conversation threads). **Saved reflections library** is also reachable from Today (**`/saved-reflections`**) and from Profile (`expo/app/(tabs)/profile.tsx`).
 
 ---
 
@@ -14,7 +14,8 @@
 
 ```mermaid
 flowchart TD
-  A[App launch] --> B{Hydrate session}
+  A[App launch] --> V[Intro video — play or Skip]
+  V --> B{Hydrate session}
   B -->|token in storage| C[Signed in user]
   B -->|guest flag, no token| D[Guest mode]
   B -->|nothing| E[/auth screen/]
@@ -67,7 +68,8 @@ flowchart LR
 flowchart TD
   Today[Today tab]
 
-  Today --> DV[Daily verse card]
+  Today --> DV[Daily verse card — tap verse]
+  Today --> LP[Long-press card → synthesis insight]
   DV --> Verse["/verse/ch.vrs"]
   Verse --> Note[Verse note API]
   Verse --> RO[reading/verse-open]
@@ -77,6 +79,7 @@ flowchart TD
   Today --> ProfileBtn["Header → /profile"]
 
   Today --> HistShortcut["Heart card → /history · chat threads"]
+  Today --> SavedLib["Saved reflections tile → /saved-reflections"]
   Today --> MedShortcut["Meditation row → /meditate"]
 
   Today --> NH[Naam japa section]
