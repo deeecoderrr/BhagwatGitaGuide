@@ -142,6 +142,26 @@ class ResponseFeedback(models.Model):
         (RESPONSE_MODE_FALLBACK, "Fallback"),
     )
 
+    SURFACE_API = "api"
+    SURFACE_MOBILE_ASK = "mobile_ask"
+    SURFACE_WEB_CHAT_UI = "web_chat_ui"
+    SURFACE_CHOICES = (
+        (SURFACE_API, "API"),
+        (SURFACE_MOBILE_ASK, "Mobile Ask"),
+        (SURFACE_WEB_CHAT_UI, "Web Chat UI"),
+    )
+
+    REVIEW_NEW = "new"
+    REVIEW_REVIEWED = "reviewed"
+    REVIEW_ACTIONED = "actioned"
+    REVIEW_IGNORED = "ignored"
+    REVIEW_STATUS_CHOICES = (
+        (REVIEW_NEW, "New"),
+        (REVIEW_REVIEWED, "Reviewed"),
+        (REVIEW_ACTIONED, "Actioned"),
+        (REVIEW_IGNORED, "Ignored"),
+    )
+
     conversation = models.ForeignKey(
         Conversation,
         on_delete=models.SET_NULL,
@@ -161,8 +181,23 @@ class ResponseFeedback(models.Model):
         choices=RESPONSE_MODE_CHOICES,
         default=RESPONSE_MODE_FALLBACK,
     )
+    surface = models.CharField(
+        max_length=24,
+        choices=SURFACE_CHOICES,
+        default=SURFACE_API,
+    )
     helpful = models.BooleanField()
     note = models.CharField(max_length=255, blank=True)
+    response_preview = models.TextField(blank=True)
+    primary_verse_ref = models.CharField(max_length=16, blank=True, db_index=True)
+    issue_bucket = models.CharField(max_length=32, blank=True, db_index=True)
+    review_status = models.CharField(
+        max_length=16,
+        choices=REVIEW_STATUS_CHOICES,
+        default=REVIEW_NEW,
+        db_index=True,
+    )
+    response_context = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
