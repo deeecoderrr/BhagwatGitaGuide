@@ -4,6 +4,19 @@ Last updated: 2026-05-01
 
 ## Completed
 
+- **Feedback quality pipeline upgrade (2026-05-01):**
+  - `ResponseFeedback` now stores structured quality-review context:
+    `surface`, `response_preview`, `primary_verse_ref`, `issue_bucket`,
+    `review_status`, and `response_context`.
+  - `POST /api/feedback/` now accepts richer feedback payloads and auto-tags
+    likely failure patterns such as `ungrounded`, `thin_answer`, or `unclear`
+    when the client does not provide a bucket.
+  - Django admin feedback review is now much more actionable with filters for
+    `issue_bucket`, `surface`, `review_status`, verse reference visibility,
+    and bulk actions to mark feedback as reviewed, actioned, or ignored.
+  - Added regression coverage for enriched feedback save + issue-bucket
+    inference.
+
 - **Mobile app code quality pass (2026-05-01):** Complete quality sweep across
   the mobile Expo app (`bhagavadgitaguide_mobile-main`):
   - **401 auto-logout:** `expo/lib/api.ts` now has `setUnauthorizedHandler`;

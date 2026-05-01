@@ -2083,12 +2083,21 @@ class GuideApiTests(APITestCase):
             "message": "This helped me think clearly.",
             "mode": "simple",
             "response_mode": "llm",
+            "surface": "mobile_ask",
             "helpful": True,
             "note": "Clear and practical",
+            "response_preview": "You have a right to action, not to its fruits.",
+            "verse_references": ["2.47", "2.48"],
+            "response_context": {"has_meaning": True},
         }
         response = self.client.post("/api/feedback/", payload, format="json")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(ResponseFeedback.objects.count(), 1)
+        entry = ResponseFeedback.objects.get()
+        self.assertEqual(entry.surface, ResponseFeedback.SURFACE_MOBILE_ASK)
+        self.assertEqual(entry.primary_verse_ref, "2.47")
+        self.assertEqual(entry.issue_bucket, "positive")
+        self.assertEqual(entry.response_context["verse_references"], ["2.47", "2.48"])
 
     def test_feedback_list_supports_limit_offset(self):
         for idx in range(3):
@@ -2108,6 +2117,20 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.data["limit"], 2)
         self.assertEqual(response.data["offset"], 1)
         self.assertEqual(len(response.data["results"]), 2)
+
+    def test_feedback_api_infers_issue_bucket_for_unhelpful_ungrounded_reply(self):
+        payload = {
+            "message": "Explain this properly.",
+            "mode": "simple",
+            "response_mode": "llm",
+            "helpful": False,
+            "response_preview": "Try to stay calm.",
+        }
+        response = self.client.post("/api/feedback/", payload, format="json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        entry = ResponseFeedback.objects.latest("id")
+        self.assertEqual(entry.issue_bucket, "ungrounded")
+        self.assertEqual(entry.review_status, ResponseFeedback.REVIEW_NEW)
 
     def test_support_api_saves_ticket(self):
         self.client.force_authenticate(user=None)

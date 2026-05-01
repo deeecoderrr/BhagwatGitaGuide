@@ -87,6 +87,24 @@ class ConversationAdmin(admin.ModelAdmin):
     inlines = [MessageInline]
 
 
+@admin.action(description="Mark selected feedback as reviewed")
+def mark_feedback_reviewed(modeladmin, request, queryset):
+    """Mark feedback rows as seen and triaged."""
+    queryset.update(review_status=ResponseFeedback.REVIEW_REVIEWED)
+
+
+@admin.action(description="Mark selected feedback as actioned")
+def mark_feedback_actioned(modeladmin, request, queryset):
+    """Mark feedback rows as converted into product or prompt work."""
+    queryset.update(review_status=ResponseFeedback.REVIEW_ACTIONED)
+
+
+@admin.action(description="Mark selected feedback as ignored")
+def mark_feedback_ignored(modeladmin, request, queryset):
+    """Mark feedback rows as intentionally ignored."""
+    queryset.update(review_status=ResponseFeedback.REVIEW_IGNORED)
+
+
 @admin.register(ResponseFeedback)
 class ResponseFeedbackAdmin(admin.ModelAdmin):
     """Feedback dashboard for response quality signals."""
