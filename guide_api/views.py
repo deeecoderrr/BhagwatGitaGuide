@@ -4458,19 +4458,25 @@ class ChapterDetailView(APIView):
 
     def get(self, request, chapter_number: int):
         """Return chapter metadata, summary, and verse list."""
-        chapter = get_chapter_detail(chapter_number)
-        if chapter is None:
-            return _error_response(
-                message=f"Chapter {chapter_number} not found.",
-                status_code=status.HTTP_404_NOT_FOUND,
-                code="chapter_not_found",
-            )
+        cache_key = f"chapter_detail_payload:{chapter_number}"
+        payload = cache.get(cache_key)
+        if payload is None:
+            chapter = get_chapter_detail(chapter_number)
+            if chapter is None:
+                return _error_response(
+                    message=f"Chapter {chapter_number} not found.",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    code="chapter_not_found",
+                )
 
-        verses = get_chapter_verses(chapter_number)
-        response = Response({
-            "chapter": chapter,
-            "verses": verses,
-        })
+            verses = get_chapter_verses(chapter_number)
+            payload = {
+                "chapter": chapter,
+                "verses": verses,
+            }
+            cache.set(cache_key, payload, 86400)
+
+        response = Response(payload)
         response["Cache-Control"] = "public, max-age=86400"
         return response
 
@@ -4482,13 +4488,17 @@ class VerseDetailView(APIView):
 
     def get(self, request, chapter: int, verse: int):
         """Return verse with sanskrit, translations, and multi-author commentary."""
-        verse_data = get_verse_detail(chapter, verse)
+        cache_key = f"verse_detail_payload:{chapter}:{verse}"
+        verse_data = cache.get(cache_key)
         if verse_data is None:
-            return _error_response(
-                message=f"Verse {chapter}.{verse} not found.",
-                status_code=status.HTTP_404_NOT_FOUND,
-                code="verse_not_found",
-            )
+            verse_data = get_verse_detail(chapter, verse)
+            if verse_data is None:
+                return _error_response(
+                    message=f"Verse {chapter}.{verse} not found.",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    code="verse_not_found",
+                )
+            cache.set(cache_key, verse_data, 86400)
         response = Response(verse_data)
         response["Cache-Control"] = "public, max-age=86400"
         return response
