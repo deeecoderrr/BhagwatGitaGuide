@@ -4745,8 +4745,14 @@ class QuoteArtStylesView(APIView):
 
     def get(self, request):
         """Return all quote art style options."""
-        styles = get_quote_art_styles()
-        return Response({"styles": styles})
+        cache_key = "quote_art_styles:list"
+        payload = cache.get(cache_key)
+        if payload is None:
+            payload = {"styles": get_quote_art_styles()}
+            cache.set(cache_key, payload, 86400)
+        response = Response(payload)
+        response["Cache-Control"] = "public, max-age=86400"
+        return response
 
 
 class QuoteArtView(APIView):
@@ -4788,9 +4794,14 @@ class FeaturedQuotesView(APIView):
         language = request.query_params.get("language", "en")
         limit = int(request.query_params.get("limit", "5"))
         limit = min(max(1, limit), 10)  # Clamp between 1-10
-
-        quotes = get_featured_quotes(language=language, limit=limit)
-        return Response({"quotes": quotes})
+        cache_key = f"featured_quotes:{language}:{limit}"
+        payload = cache.get(cache_key)
+        if payload is None:
+            payload = {"quotes": get_featured_quotes(language=language, limit=limit)}
+            cache.set(cache_key, payload, 3600)
+        response = Response(payload)
+        response["Cache-Control"] = "public, max-age=3600"
+        return response
 
 
 def _conversation_preview_title(conversation: Conversation) -> str:
