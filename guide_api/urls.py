@@ -54,6 +54,7 @@ from guide_api.views import (
     EngagementProfileView,
     FeaturedQuotesView,
     FeedbackView,
+    StaffFeedbackReviewView,
     FollowUpGenerateView,
     GuestAskView,
     GuestHistoryResetView,
@@ -289,6 +290,16 @@ urlpatterns = [
         name="community-posts",
     ),
     path("feedback/", FeedbackView.as_view(), name="feedback"),
+    path(
+        "staff/feedback/review-queue/",
+        StaffFeedbackReviewView.as_view(),
+        name="staff-feedback-review-queue",
+    ),
+    path(
+        "staff/feedback/review-queue/<int:pk>/",
+        StaffFeedbackReviewView.as_view(),
+        name="staff-feedback-review-queue-detail",
+    ),
     path("support/", SupportRequestView.as_view(), name="support"),
     path("support/tickets/", SupportTicketListView.as_view(), name="support-tickets"),
     path(

@@ -5104,6 +5104,165 @@ class FeedbackView(APIView):
         )
 
 
+class StaffFeedbackReviewView(APIView):
+    """Staff-only bad-answer review queue.
+
+    GET  /api/v1/staff/feedback/review-queue/
+         Returns paginated list of feedback rows for triage.
+         Supports filters: helpful, review_status, issue_bucket, surface, mode.
+         Also returns aggregate stats (total rows, counts by bucket/status).
+
+    PATCH /api/v1/staff/feedback/review-queue/<int:pk>/
+         Update review_status and optionally staff_note on a single row.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def _check_staff(self, request):
+        if not (request.user.is_staff or request.user.is_superuser):
+            return _error_response(
+                message="Staff access required.",
+                status_code=status.HTTP_403_FORBIDDEN,
+                code="staff_required",
+            )
+        return None
+
+    def _row_dict(self, entry: ResponseFeedback) -> dict:
+        return {
+            "id": entry.id,
+            "user_id": entry.user_id,
+            "helpful": entry.helpful,
+            "mode": entry.mode,
+            "response_mode": entry.response_mode,
+            "surface": entry.surface,
+            "issue_bucket": entry.issue_bucket,
+            "primary_verse_ref": entry.primary_verse_ref,
+            "review_status": entry.review_status,
+            "message": entry.message,
+            "response_preview": entry.response_preview,
+            "note": entry.note,
+            "conversation_id": entry.conversation_id,
+            "response_context": entry.response_context,
+            "created_at": entry.created_at.isoformat(),
+        }
+
+    def get(self, request):
+        denied = self._check_staff(request)
+        if denied:
+            return denied
+
+        try:
+            limit, offset = _pagination_params(request)
+        except ValueError:
+            return _error_response(
+                message="limit and offset must be integers.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_pagination",
+            )
+        limit = min(limit, 100)
+
+        qs = ResponseFeedback.objects.select_related("conversation").order_by("-created_at")
+
+        # Filters
+        helpful_param = request.query_params.get("helpful")
+        if helpful_param is not None:
+            if helpful_param.lower() in {"false", "0", "no"}:
+                qs = qs.filter(helpful=False)
+            elif helpful_param.lower() in {"true", "1", "yes"}:
+                qs = qs.filter(helpful=True)
+
+        review_status_param = request.query_params.get("review_status")
+        if review_status_param:
+            valid = {ResponseFeedback.REVIEW_NEW, ResponseFeedback.REVIEW_REVIEWED,
+                     ResponseFeedback.REVIEW_ACTIONED, ResponseFeedback.REVIEW_IGNORED}
+            statuses = [s.strip() for s in review_status_param.split(",") if s.strip() in valid]
+            if statuses:
+                qs = qs.filter(review_status__in=statuses)
+
+        issue_bucket_param = request.query_params.get("issue_bucket")
+        if issue_bucket_param:
+            buckets = [b.strip() for b in issue_bucket_param.split(",") if b.strip()]
+            if buckets:
+                qs = qs.filter(issue_bucket__in=buckets)
+
+        surface_param = request.query_params.get("surface")
+        if surface_param:
+            surfaces = [s.strip() for s in surface_param.split(",") if s.strip()]
+            if surfaces:
+                qs = qs.filter(surface__in=surfaces)
+
+        mode_param = request.query_params.get("mode")
+        if mode_param and mode_param in {"simple", "deep"}:
+            qs = qs.filter(mode=mode_param)
+
+        verse_param = request.query_params.get("verse")
+        if verse_param:
+            qs = qs.filter(primary_verse_ref=verse_param.strip()[:16])
+
+        # Stats on the full filtered queryset (before pagination)
+        total = qs.count()
+        # Bucket breakdown: count not-positive rows only (actionable negatives)
+        negative_qs = qs.filter(helpful=False)
+        bucket_counts: dict[str, int] = {}
+        for row in negative_qs.values("issue_bucket").annotate(n=Count("id")):
+            bucket_counts[row["issue_bucket"] or "other"] = row["n"]
+        status_counts: dict[str, int] = {}
+        for row in qs.filter(helpful=False).values("review_status").annotate(n=Count("id")):
+            status_counts[row["review_status"] or "new"] = row["n"]
+
+        rows = list(qs[offset: offset + limit])
+        next_offset = offset + limit if (offset + limit) < total else None
+
+        return Response({
+            "count": total,
+            "limit": limit,
+            "offset": offset,
+            "next_offset": next_offset,
+            "stats": {
+                "total_negative": negative_qs.count(),
+                "pending_review": qs.filter(
+                    helpful=False, review_status=ResponseFeedback.REVIEW_NEW
+                ).count(),
+                "bucket_counts": bucket_counts,
+                "status_counts": status_counts,
+            },
+            "results": [self._row_dict(r) for r in rows],
+        })
+
+    def patch(self, request, pk: int):
+        denied = self._check_staff(request)
+        if denied:
+            return denied
+
+        valid_statuses = {
+            ResponseFeedback.REVIEW_NEW,
+            ResponseFeedback.REVIEW_REVIEWED,
+            ResponseFeedback.REVIEW_ACTIONED,
+            ResponseFeedback.REVIEW_IGNORED,
+        }
+        new_status = str(request.data.get("review_status", "")).strip()
+        if new_status not in valid_statuses:
+            return _error_response(
+                message=f"review_status must be one of: {', '.join(sorted(valid_statuses))}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_review_status",
+            )
+        update_fields = {"review_status": new_status}
+        staff_note = str(request.data.get("note", "")).strip()
+        if staff_note:
+            update_fields["note"] = staff_note[:255]
+
+        updated = ResponseFeedback.objects.filter(pk=pk).update(**update_fields)
+        if not updated:
+            return _error_response(
+                message="Feedback entry not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="not_found",
+            )
+        entry = ResponseFeedback.objects.get(pk=pk)
+        return Response(self._row_dict(entry))
+
+
 def _community_post_public_dict(post: CommunityPost) -> dict:
     """Shape one post for JSON APIs (non-deleted rows only)."""
     return {

@@ -18,6 +18,7 @@ from guide_api.forms import SadhanaDayQuickForm, SadhanaProgramStudioForm
 from guide_api.models import (
     AskEvent,
     GrowthEvent,
+    ResponseFeedback,
     SadhanaDay,
     SadhanaProgram,
     SadhanaStep,
@@ -44,7 +45,7 @@ def _admin_change_url(instance) -> str:
 
 class AdminAnalyticsDashboardView(StaffRequiredMixin, View):
     """Staff-only visual dashboard for analytics."""
-    
+
     template_name = "guide_api/staff_analytics_dashboard.html"
 
     def get(self, request):
@@ -69,7 +70,7 @@ class AdminAnalyticsDashboardView(StaffRequiredMixin, View):
             ask_submits = day_growth_qs.filter(
                 event_type=GrowthEvent.EVENT_ASK_SUBMIT,
             ).count()
-            
+
             # Simple funnel math: landing -> starter -> submit
             daily_rows.append(
                 {
@@ -248,3 +249,136 @@ class CourseStudioView(StaffRequiredMixin, View):
             "program_admin_url": _admin_change_url(program) if program else "",
             "step_types": SadhanaStep.STEP_CHOICES,
         }
+
+
+class BadAnswerReviewQueueView(StaffRequiredMixin, View):
+    """Staff dashboard for triaging negative feedback rows.
+
+    Displays the full bad-answer queue with filters for review_status,
+    issue_bucket, and surface.  Staff can mark items reviewed / actioned /
+    ignored directly from the table using HTMX-friendly inline forms.
+    """
+
+    template_name = "staff/feedback_review_queue.html"
+    PAGE_SIZE = 50
+
+    # ------------------------------------------------------------------ #
+    #  Helpers                                                             #
+    # ------------------------------------------------------------------ #
+
+    _VALID_REVIEW_STATUSES = {
+        ResponseFeedback.REVIEW_NEW,
+        ResponseFeedback.REVIEW_REVIEWED,
+        ResponseFeedback.REVIEW_ACTIONED,
+        ResponseFeedback.REVIEW_IGNORED,
+    }
+
+    _VALID_BUCKETS = {
+        "positive", "ungrounded", "thin_answer",
+        "generic_answer", "wrong_verse", "unclear", "other",
+    }
+
+    # ------------------------------------------------------------------ #
+    #  GET — list / filter                                                 #
+    # ------------------------------------------------------------------ #
+
+    def get(self, request):
+        qs = ResponseFeedback.objects.order_by(
+            "review_status", "-created_at"
+        )
+
+        filter_helpful = request.GET.get("helpful", "false")
+        if filter_helpful == "false":
+            qs = qs.filter(helpful=False)
+        elif filter_helpful == "true":
+            qs = qs.filter(helpful=True)
+        # "all" → no filter
+
+        filter_status = request.GET.get("review_status", "new")
+        if filter_status and filter_status in self._VALID_REVIEW_STATUSES:
+            qs = qs.filter(review_status=filter_status)
+
+        filter_bucket = request.GET.get("issue_bucket", "")
+        if filter_bucket and filter_bucket in self._VALID_BUCKETS:
+            qs = qs.filter(issue_bucket=filter_bucket)
+
+        filter_surface = request.GET.get("surface", "")
+        if filter_surface:
+            qs = qs.filter(surface=filter_surface)
+
+        filter_verse = request.GET.get("verse", "")
+        if filter_verse:
+            qs = qs.filter(primary_verse_ref=filter_verse[:16])
+
+        # Pagination
+        try:
+            page = max(1, int(request.GET.get("page", 1)))
+        except (TypeError, ValueError):
+            page = 1
+        offset = (page - 1) * self.PAGE_SIZE
+        total = qs.count()
+        rows = list(qs[offset: offset + self.PAGE_SIZE])
+        total_pages = max(1, (total + self.PAGE_SIZE - 1) // self.PAGE_SIZE)
+
+        # Summary stats (across ALL negative unreviewed rows, no filters)
+        negative_qs = ResponseFeedback.objects.filter(helpful=False)
+        pending_new = negative_qs.filter(
+            review_status=ResponseFeedback.REVIEW_NEW
+        ).count()
+        bucket_stats: list[dict] = []
+        for row in (
+            negative_qs
+            .values("issue_bucket")
+            .annotate(n=Max("id"))  # just a non-trivial aggregate for GROUP BY
+            .order_by("issue_bucket")
+        ):
+            # Re-count properly
+            bucket = row["issue_bucket"] or "other"
+            n = negative_qs.filter(issue_bucket=bucket).count()
+            bucket_stats.append({"bucket": bucket, "count": n})
+
+        ctx = {
+            "rows": rows,
+            "total": total,
+            "page": page,
+            "total_pages": total_pages,
+            "page_range": range(1, total_pages + 1),
+            "filter_helpful": filter_helpful,
+            "filter_status": filter_status,
+            "filter_bucket": filter_bucket,
+            "filter_surface": filter_surface,
+            "filter_verse": filter_verse,
+            "pending_new": pending_new,
+            "bucket_stats": bucket_stats,
+            "review_statuses": list(self._VALID_REVIEW_STATUSES),
+            "buckets": list(self._VALID_BUCKETS),
+            "surfaces": [c[0] for c in ResponseFeedback.SURFACE_CHOICES],
+        }
+        return render(request, self.template_name, ctx)
+
+    # ------------------------------------------------------------------ #
+    #  POST — quick status update                                          #
+    # ------------------------------------------------------------------ #
+
+    def post(self, request):
+        """Inline status update from the review queue table."""
+        entry_id = request.POST.get("entry_id", "")
+        new_status = request.POST.get("review_status", "").strip()
+
+        if not entry_id:
+            messages.error(request, "Missing entry ID.")
+        elif new_status not in self._VALID_REVIEW_STATUSES:
+            messages.error(request, f"Invalid status: {new_status}")
+        else:
+            updated = ResponseFeedback.objects.filter(pk=entry_id).update(
+                review_status=new_status
+            )
+            if updated:
+                messages.success(request, f"Entry #{entry_id} → {new_status}.")
+            else:
+                messages.error(request, f"Entry #{entry_id} not found.")
+
+        # Redirect back preserving filters
+        query_string = request.GET.urlencode()
+        base_url = reverse("staff-feedback-review-queue")
+        return redirect(f"{base_url}?{query_string}" if query_string else base_url)
