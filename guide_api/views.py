@@ -137,6 +137,7 @@ from guide_api.services import (
     build_guidance,
     build_verse_explanation,
     classify_user_intent,
+    _get_all_verses_cached,
     ensure_seed_verses,
     empty_retrieval_result,
     _fetch_verses_by_references,
@@ -4231,10 +4232,10 @@ class DailyVerseView(APIView):
     def _resolve_daily_verse(day: date):
         """Pick a stable verse for a given day from the canonical verse table."""
         ensure_seed_verses()
-        queryset = Verse.objects.order_by("chapter", "verse")
-        count = queryset.count()
-        if count > 0:
-            return queryset[Random(day.isoformat()).randrange(count)]
+        verses = _get_all_verses_cached()
+        if verses:
+            idx = Random(day.isoformat()).randrange(len(verses))
+            return verses[idx]
 
         verses = retrieve_verses("daily verse", limit=1)
         return verses[0] if verses else None
@@ -4242,9 +4243,14 @@ class DailyVerseView(APIView):
     @classmethod
     def _build_daily_payload(cls, *, day: date, language: str) -> dict:
         """Return one date-seeded verse payload for API and public pages."""
+        cache_key = f"daily_verse_payload:{day.isoformat()}:{language}"
+        cached_payload = cache.get(cache_key)
+        if cached_payload is not None:
+            return cached_payload
+
         verse = cls._resolve_daily_verse(day)
         if verse is None:
-            return {
+            empty_payload = {
                 "date": day.isoformat(),
                 "verse": None,
                 "quote": "",
@@ -4252,6 +4258,8 @@ class DailyVerseView(APIView):
                 "meaning_plain": "",
                 "reflection": "",
             }
+            cache.set(cache_key, empty_payload, 3600)
+            return empty_payload
 
         detail = get_verse_detail(verse.chapter, verse.verse) or {}
 
@@ -4303,7 +4311,7 @@ class DailyVerseView(APIView):
             if language == "hi"
             else f"Explain Bhagavad Gita {reference} in simple language and help me apply it today."
         )
-        return {
+        payload = {
             "date": day.isoformat(),
             "verse": VerseSerializer(verse).data,
             "reference": reference,
@@ -4313,6 +4321,8 @@ class DailyVerseView(APIView):
             "reflection": reflection,
             "prefill": prefill,
         }
+        cache.set(cache_key, payload, 3600)
+        return payload
 
     def get(self, request):
         """Serve one date-seeded verse with language-aware meaning."""
@@ -4324,7 +4334,7 @@ class DailyVerseView(APIView):
             day=timezone.localdate(),
             language=language,
         )
-        return Response(
+        response = Response(
             {
                 "verse": payload["verse"],
                 "quote": payload["quote"],
@@ -4333,6 +4343,8 @@ class DailyVerseView(APIView):
                 "reflection": payload["reflection"],
             }
         )
+        response["Cache-Control"] = "public, max-age=3600"
+        return response
 
 
 class DailyVerseHistoryView(APIView):
@@ -4355,6 +4367,15 @@ class DailyVerseHistoryView(APIView):
         language = str(raw_lang or "en").strip()
         if language not in {"en", "hi"}:
             language = "en"
+
+        today = timezone.localdate()
+        cache_key = f"daily_verse_history:{today.isoformat()}:{language}:{days}"
+        cached_rows = cache.get(cache_key)
+        if cached_rows is not None:
+            response = Response({"days": days, "results": cached_rows})
+            response["Cache-Control"] = "public, max-age=900"
+            return response
+
         today = timezone.localdate()
         rows = []
         for offset in range(days):
@@ -4371,7 +4392,10 @@ class DailyVerseHistoryView(APIView):
                     "verse": payload["verse"],
                 }
             )
-        return Response({"days": days, "results": rows})
+        cache.set(cache_key, rows, 900)
+        response = Response({"days": days, "results": rows})
+        response["Cache-Control"] = "public, max-age=900"
+        return response
 
 
 class VerseSearchView(APIView):
