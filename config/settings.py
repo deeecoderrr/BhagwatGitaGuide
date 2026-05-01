@@ -274,6 +274,9 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+# Retry policy for OpenAI/Ollama HTTP calls. Keep default at 0 for low-latency
+# interactive asks; higher values can improve resilience but increase tail time.
+OPENAI_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "0"))
 # When true, guidance JSON uses Ollama (OpenAI-compatible chat at OLLAMA_BASE_URL).
 USE_LOCAL_LLM = os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
 OLLAMA_BASE_URL = os.getenv(

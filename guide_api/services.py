@@ -1970,8 +1970,9 @@ def _openai_client() -> OpenAI:
     """Return a cached OpenAI client; recreate only when key/timeout changes."""
     global _openai_client_singleton, _openai_client_key
     timeout_seconds = float(getattr(settings, "OPENAI_REQUEST_TIMEOUT_SECONDS", 60))
+    max_retries = int(getattr(settings, "OPENAI_MAX_RETRIES", 0))
     api_key = settings.OPENAI_API_KEY
-    cache_key = (api_key, timeout_seconds)
+    cache_key = (api_key, timeout_seconds, max_retries)
     if _openai_client_singleton is not None and _openai_client_key == cache_key:
         return _openai_client_singleton
     with _openai_client_lock:
@@ -1982,7 +1983,7 @@ def _openai_client() -> OpenAI:
             client = OpenAI(
                 api_key=api_key,
                 timeout=timeout_seconds,
-                max_retries=1,
+                max_retries=max_retries,
             )
         except TypeError:
             client = OpenAI(api_key=api_key)
@@ -2004,6 +2005,7 @@ def _llm_generation_enabled() -> bool:
 def _ollama_client() -> OpenAI:
     """OpenAI-compatible client pointing at Ollama (typically :11434/v1)."""
     timeout_seconds = float(getattr(settings, "OPENAI_REQUEST_TIMEOUT_SECONDS", 120))
+    max_retries = int(getattr(settings, "OPENAI_MAX_RETRIES", 0))
     base = (getattr(settings, "OLLAMA_BASE_URL", "") or "http://127.0.0.1:11434/v1").rstrip(
         "/",
     )
@@ -2015,7 +2017,7 @@ def _ollama_client() -> OpenAI:
             base_url=base,
             api_key=api_key,
             timeout=timeout_seconds,
-            max_retries=1,
+            max_retries=max_retries,
         )
     except TypeError:
         return OpenAI(base_url=base, api_key=api_key)
