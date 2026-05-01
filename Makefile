@@ -2,9 +2,10 @@ PYTHON := /opt/homebrew/bin/python3
 VENV_PY := .venv/bin/python
 VENV_PIP := .venv/bin/pip
 API_BASE ?= http://127.0.0.1:8000/api
+FLY_APP ?= askbhagavadgita
 CURL_OPTS := --connect-timeout 3 --max-time 15
 
-.PHONY: setup setup-lock install install-lock run migrate makemigrations test lock convert-gita-csv ingest-gita-multiscript import-gita tag-gita-themes embed-gita-verses setup-pgvector-index sync-pgvector-embeddings eval-retrieval auth-flow auth-flow-benchmark auth-flow-benchmark-summary clean
+.PHONY: setup setup-lock install install-lock run migrate makemigrations test lock convert-gita-csv ingest-gita-multiscript import-gita tag-gita-themes embed-gita-verses setup-pgvector-index sync-pgvector-embeddings eval-retrieval auth-flow auth-flow-benchmark auth-flow-benchmark-summary fly-redis-smoke fly-cache-smoke clean
 
 setup:
 	$(PYTHON) -m venv .venv
@@ -150,6 +151,14 @@ auth-flow-benchmark-summary:
 	curl -sS $(CURL_OPTS) -X POST "$(API_BASE)/eval/retrieval/" -H "Authorization: Token $$TOKEN" -H "Content-Type: application/json" -d '{"message":"I am anxious about career growth and performance.","mode":"benchmark"}' | $(VENV_PY) scripts/print_retrieval_benchmark_summary.py; \
 	echo "Calling /auth/logout"; \
 	curl -sS $(CURL_OPTS) -X POST "$(API_BASE)/auth/logout/" -H "Authorization: Token $$TOKEN"; echo
+
+fly-redis-smoke:
+	@echo "Running Redis smoke check on Fly app: $(FLY_APP)"
+	@fly ssh console --app $(FLY_APP) --command "python -c \"import os,redis; u=os.getenv('REDIS_URL',''); print('HAS_REDIS_URL=', bool(u)); print('SCHEME=', u.split('://')[0] if '://' in u else 'missing'); r=redis.from_url(u, socket_connect_timeout=5, socket_timeout=5); print('PING=', r.ping()); r.set('smoke:fly','ok',ex=30); print('GET=', r.get('smoke:fly'))\""
+
+fly-cache-smoke:
+	@echo "Running Django cache smoke check on Fly app: $(FLY_APP)"
+	@fly ssh console --app $(FLY_APP) --command "python -c \"import os; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings'); import django; django.setup(); from django.core.cache import cache; cache.set('smoke:cache','ok',30); print('CACHE_GET=', cache.get('smoke:cache'))\""
 
 clean:
 	rm -rf .venv
