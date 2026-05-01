@@ -1011,6 +1011,7 @@ def _refine_intent_via_llm(
         f"{clipped}\n---"
     )
     intent_model = getattr(settings, "OPENAI_INTENT_MODEL", "") or settings.OPENAI_MODEL
+    timeout_seconds = float(getattr(settings, "OPENAI_INTENT_TIMEOUT_SECONDS", 8))
     try:
         out_text = _responses_output_text(
             model=intent_model,
@@ -1018,6 +1019,8 @@ def _refine_intent_via_llm(
             max_output_tokens=int(
                 getattr(settings, "INTENT_REFINEMENT_MAX_TOKENS", 120),
             ),
+            timeout_seconds=timeout_seconds,
+            json_mode=True,
         )
         payload = _parse_json_payload(out_text)
         it = str(payload.get("intent_type", "")).strip()
@@ -2037,6 +2040,8 @@ def _responses_output_text(
     model: str,
     input_messages: list[dict[str, str]],
     max_output_tokens: int | None = None,
+    timeout_seconds: float | None = None,
+    json_mode: bool = False,
 ) -> str:
     """Responses API on OpenAI cloud, or chat.completions on local Ollama."""
     effective_model = _effective_llm_model(model)
@@ -2048,9 +2053,15 @@ def _responses_output_text(
         }
         if max_output_tokens is not None:
             kwargs["max_tokens"] = max_output_tokens
+        if timeout_seconds is not None:
+            kwargs["timeout"] = timeout_seconds
         # Ollama: nudge toward valid JSON (fences are still stripped in _parse_json_payload).
         kwargs["extra_body"] = {"format": "json"}
-        response = client.chat.completions.create(**kwargs)
+        try:
+            response = client.chat.completions.create(**kwargs)
+        except TypeError:
+            kwargs.pop("timeout", None)
+            response = client.chat.completions.create(**kwargs)
         message = response.choices[0].message
         return (message.content or "").strip()
 
@@ -2061,7 +2072,23 @@ def _responses_output_text(
     }
     if max_output_tokens is not None:
         kwargs["max_output_tokens"] = max_output_tokens
-    response = client.responses.create(**kwargs)
+    if timeout_seconds is not None:
+        kwargs["timeout"] = timeout_seconds
+    if json_mode:
+        kwargs["text"] = {"format": {"type": "json_object"}}
+    try:
+        response = client.responses.create(**kwargs)
+    except TypeError:
+        kwargs.pop("timeout", None)
+        response = client.responses.create(**kwargs)
+    except Exception:
+        # Older API surfaces or model backends may reject text.format; retry once
+        # without forcing JSON mode so call sites can still apply their fallback path.
+        if json_mode:
+            kwargs.pop("text", None)
+            response = client.responses.create(**kwargs)
+        else:
+            raise
     return response.output_text
 
 
@@ -3970,11 +3997,18 @@ def _validate_and_correct_verses(
         "  In that case omit better_refs or set it to [].\n\n"
         "Return ONLY JSON, no other text."
     )
+    json_tokens = int(getattr(settings, "OPENAI_JSON_TASK_MAX_OUTPUT_TOKENS", 160))
+    timeout_seconds = float(
+        getattr(settings, "OPENAI_VERSE_RELEVANCE_TIMEOUT_SECONDS", 10),
+    )
 
     try:
         out_text = _responses_output_text(
             model=_openai_verse_relevance_model(),
             input_messages=[{"role": "user", "content": prompt}],
+            max_output_tokens=json_tokens,
+            timeout_seconds=timeout_seconds,
+            json_mode=True,
         )
         payload = _parse_json_payload(out_text)
 
@@ -4046,10 +4080,17 @@ def _suggest_verse_refs_llm(message: str) -> list[Verse]:
         "{\"refs\": []} if general principles without numbered verses are better.\n"
         "Only chapters 1-18."
     )
+    json_tokens = int(getattr(settings, "OPENAI_JSON_TASK_MAX_OUTPUT_TOKENS", 160))
+    timeout_seconds = float(
+        getattr(settings, "OPENAI_VERSE_SUGGEST_TIMEOUT_SECONDS", 10),
+    )
     try:
         out_text = _responses_output_text(
             model=_openai_verse_suggest_model(),
             input_messages=[{"role": "user", "content": prompt}],
+            max_output_tokens=json_tokens,
+            timeout_seconds=timeout_seconds,
+            json_mode=True,
         )
         payload = _parse_json_payload(out_text)
         raw = payload.get("refs", [])
@@ -4521,6 +4562,13 @@ def build_verse_explanation(
         "when it helps.\n"
         f"{deep_verse_stories}"
     )
+    guidance_timeout = float(
+        getattr(
+            settings,
+            "OPENAI_GUIDANCE_TIMEOUT_DEEP_SECONDS" if mode == "deep" else "OPENAI_GUIDANCE_TIMEOUT_SIMPLE_SECONDS",
+            40 if mode == "deep" else 20,
+        ),
+    )
     try:
         out_text = _responses_output_text(
             model=settings.OPENAI_MODEL,
@@ -4529,6 +4577,8 @@ def build_verse_explanation(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            timeout_seconds=guidance_timeout,
+            json_mode=True,
         )
         payload = _parse_json_payload(out_text)
         guidance = str(payload.get("guidance", "")).strip()
@@ -5049,6 +5099,13 @@ def build_guidance(
             + deep_append
         )
 
+    guidance_timeout = float(
+        getattr(
+            settings,
+            "OPENAI_GUIDANCE_TIMEOUT_DEEP_SECONDS" if mode == "deep" else "OPENAI_GUIDANCE_TIMEOUT_SIMPLE_SECONDS",
+            40 if mode == "deep" else 20,
+        ),
+    )
     try:
         out_text = _responses_output_text(
             model=settings.OPENAI_MODEL,
@@ -5057,6 +5114,8 @@ def build_guidance(
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            timeout_seconds=guidance_timeout,
+            json_mode=True,
         )
         payload = _parse_json_payload(out_text)
 
@@ -5535,6 +5594,7 @@ def get_or_create_verse_synthesis(verse: Verse) -> dict[str, object]:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                json_mode=True,
             )
             payload = _validate_verse_synthesis_payload(
                 _parse_json_payload(out_text),

@@ -274,9 +274,33 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+# Global network timeout (seconds) used by OpenAI/Ollama clients.
+OPENAI_REQUEST_TIMEOUT_SECONDS = float(
+    os.getenv("OPENAI_REQUEST_TIMEOUT_SECONDS", "60"),
+)
 # Retry policy for OpenAI/Ollama HTTP calls. Keep default at 0 for low-latency
 # interactive asks; higher values can improve resilience but increase tail time.
 OPENAI_MAX_RETRIES = int(os.getenv("OPENAI_MAX_RETRIES", "0"))
+# Step-specific timeout caps to reduce tail latency in ask flows.
+OPENAI_GUIDANCE_TIMEOUT_SIMPLE_SECONDS = float(
+    os.getenv("OPENAI_GUIDANCE_TIMEOUT_SIMPLE_SECONDS", "20"),
+)
+OPENAI_GUIDANCE_TIMEOUT_DEEP_SECONDS = float(
+    os.getenv("OPENAI_GUIDANCE_TIMEOUT_DEEP_SECONDS", "40"),
+)
+OPENAI_INTENT_TIMEOUT_SECONDS = float(
+    os.getenv("OPENAI_INTENT_TIMEOUT_SECONDS", "8"),
+)
+OPENAI_VERSE_RELEVANCE_TIMEOUT_SECONDS = float(
+    os.getenv("OPENAI_VERSE_RELEVANCE_TIMEOUT_SECONDS", "10"),
+)
+OPENAI_VERSE_SUGGEST_TIMEOUT_SECONDS = float(
+    os.getenv("OPENAI_VERSE_SUGGEST_TIMEOUT_SECONDS", "10"),
+)
+# Utility JSON tasks should stay brief and structured.
+OPENAI_JSON_TASK_MAX_OUTPUT_TOKENS = int(
+    os.getenv("OPENAI_JSON_TASK_MAX_OUTPUT_TOKENS", "160"),
+)
 # When true, guidance JSON uses Ollama (OpenAI-compatible chat at OLLAMA_BASE_URL).
 USE_LOCAL_LLM = os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
 OLLAMA_BASE_URL = os.getenv(

@@ -6668,6 +6668,10 @@ class ChatUIView(View):
         anchor_note: str | None = None,
     ):
         """Generate a guest-mode answer without persisting any DB history."""
+        flow_started = time.perf_counter()
+        branch = "unknown"
+        retrieval_ms: float | None = None
+        guidance_ms: float | None = None
         raw_message = normalize_chat_user_message(str(message or "").strip())
         effective_message = _apply_verse_anchor_to_message(
             raw_message,
@@ -6681,6 +6685,7 @@ class ChatUIView(View):
         ]
         intent = classify_user_intent(effective_message, mode=mode)
         if intent.intent_type == "verse_explanation" and intent.explicit_references:
+            branch = "verse_explanation"
             ensure_seed_verses()
             primary_ref = intent.explicit_references[0]
             parsed = tuple(int(part) for part in primary_ref.split(".", 1))
@@ -6737,6 +6742,7 @@ class ChatUIView(View):
                     intent_analysis=intent.as_dict(),
                 )
         elif intent.intent_type == "chapter_explanation" and intent.chapter_number:
+            branch = "chapter_explanation"
             verses = []
             retrieval = empty_retrieval_result(
                 intent=intent,
@@ -6754,6 +6760,7 @@ class ChatUIView(View):
                 language=language,
             )
         elif intent.intent_type in {"greeting", "casual_chat"}:
+            branch = "chat_or_greeting"
             verses = []
             retrieval = empty_retrieval_result(
                 intent=intent,
@@ -6776,11 +6783,15 @@ class ChatUIView(View):
                 intent_analysis=intent.as_dict(),
             )
         else:
+            branch = "retrieval_guidance"
+            retrieval_started = time.perf_counter()
             retrieval = retrieve_verses_with_trace(
                 message=effective_message,
                 limit=_plan_max_context_verses(UserSubscription.PLAN_FREE, mode),
             )
+            retrieval_ms = (time.perf_counter() - retrieval_started) * 1000
             verses = refine_verses_for_guidance(effective_message, retrieval.verses)
+            guidance_started = time.perf_counter()
             guidance = build_guidance(
                 effective_message,
                 verses,
@@ -6791,10 +6802,21 @@ class ChatUIView(View):
                 max_output_tokens=_plan_max_output_tokens(UserSubscription.PLAN_FREE),
                 intent_analysis=intent.as_dict(),
             )
+            guidance_ms = (time.perf_counter() - guidance_started) * 1000
         self._append_guest_exchange(
             request,
             user_message=raw_message,
             assistant_message=guidance.guidance,
+        )
+        total_ms = (time.perf_counter() - flow_started) * 1000
+        logger.info(
+            "Guest ask timing: intent=%s branch=%s total_ms=%.1f retrieval_ms=%s guidance_ms=%s mode=%s",
+            intent.intent_type,
+            branch,
+            total_ms,
+            f"{retrieval_ms:.1f}" if retrieval_ms is not None else "n/a",
+            f"{guidance_ms:.1f}" if guidance_ms is not None else "n/a",
+            mode,
         )
         return verses, guidance, retrieval
 
