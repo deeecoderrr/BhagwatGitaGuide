@@ -5269,7 +5269,8 @@ def get_chapter_detail(chapter_number: int) -> dict[str, object] | None:
 def get_chapter_verses(chapter_number: int) -> list[dict[str, object]]:
     """Return all verses for a chapter with basic info."""
     ensure_seed_verses()
-    verses = Verse.objects.filter(chapter=chapter_number).order_by("verse")
+    verses = [v for v in _get_all_verses_cached() if v.chapter == chapter_number]
+    verses.sort(key=lambda v: v.verse)
     result = []
     for verse in verses:
         ref = _verse_reference(verse)
@@ -5288,7 +5289,10 @@ def get_chapter_verses(chapter_number: int) -> list[dict[str, object]]:
 def get_verse_detail(chapter: int, verse: int) -> dict[str, object] | None:
     """Return full verse detail with all commentaries."""
     ensure_seed_verses()
-    verse_obj = Verse.objects.filter(chapter=chapter, verse=verse).first()
+    verse_obj = next(
+        (v for v in _get_all_verses_cached() if v.chapter == chapter and v.verse == verse),
+        None,
+    )
     if verse_obj is None:
         return None
 

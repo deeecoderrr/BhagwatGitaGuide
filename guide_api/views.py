@@ -21,7 +21,7 @@ from django.contrib.auth import (
 from django.contrib.auth.tokens import default_token_generator
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db.models import Q
+from django.db.models import Q, Count, Prefetch
 from django.db import transaction
 from django.db.models import Sum
 from django.core.cache import cache
@@ -2230,6 +2230,12 @@ def _get_user_plan_and_usage(user):
     return subscription, usage
 
 
+def _invalidate_subscription_cache(user) -> None:
+    """Clear all per-user subscription caches when plan/state changes."""
+    uid = user.pk if hasattr(user, "pk") else user
+    cache.delete(f"sub_status:{uid}")
+
+
 def _request_quota_settings() -> RequestQuotaSettings | None:
     """Return singleton admin quota settings with a short-lived safe cache."""
     now = time.monotonic()
@@ -2669,8 +2675,13 @@ def _pagination_params(request) -> tuple[int, int]:
 
 
 def _get_engagement_profile(user):
-    """Get or create engagement profile for authenticated user."""
+    """Get or create engagement profile for authenticated user, with short-lived cache."""
+    _ck = f"eng_profile:{user.pk}"
+    _cached = cache.get(_ck)
+    if _cached is not None:
+        return _cached
     profile, _ = UserEngagementProfile.objects.get_or_create(user=user)
+    cache.set(_ck, profile, 300)  # 5 min — updated via _update_streak_for_today
     return profile
 
 
@@ -2719,6 +2730,7 @@ def _update_streak_for_today(user):
     profile.save(
         update_fields=["daily_streak", "last_active_date", "updated_at"]
     )
+    cache.delete(f"eng_profile:{user.pk}")  # invalidate after write
     _log_engagement_event(
         user=user,
         event_type=EngagementEvent.EVENT_STREAK_UPDATED,
@@ -2744,12 +2756,14 @@ class StarterPromptsView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        return Response(
+        response = Response(
             {
                 "starter_prompts": ChatUIView._starter_prompts(),
                 "follow_up_prompts": ChatUIView._follow_up_prompts(),
             }
         )
+        response["Cache-Control"] = "public, max-age=3600"
+        return response
 
 
 class PlanCatalogView(APIView):
@@ -3138,6 +3152,7 @@ class PlanUpdateView(APIView):
         subscription, usage = _get_user_plan_and_usage(request.user)
         subscription.plan = serializer.validated_data["plan"]
         subscription.save(update_fields=["plan", "updated_at"])
+        _invalidate_subscription_cache(request.user)
         quota_snapshot = _quota_snapshot_for_user(
             subscription,
             usage,
@@ -4407,7 +4422,9 @@ class ChapterListView(APIView):
     def get(self, request):
         """Return all chapters with name, verse count, and translations."""
         chapters = get_all_chapters()
-        return Response({"chapters": chapters, "total": len(chapters)})
+        response = Response({"chapters": chapters, "total": len(chapters)})
+        response["Cache-Control"] = "public, max-age=86400"
+        return response
 
 
 class ChapterDetailView(APIView):
@@ -4426,10 +4443,12 @@ class ChapterDetailView(APIView):
             )
 
         verses = get_chapter_verses(chapter_number)
-        return Response({
+        response = Response({
             "chapter": chapter,
             "verses": verses,
         })
+        response["Cache-Control"] = "public, max-age=86400"
+        return response
 
 
 class VerseDetailView(APIView):
@@ -4446,7 +4465,9 @@ class VerseDetailView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
                 code="verse_not_found",
             )
-        return Response(verse_data)
+        response = Response(verse_data)
+        response["Cache-Control"] = "public, max-age=86400"
+        return response
 
 
 def _get_or_create_reading_state(user):
@@ -4739,8 +4760,16 @@ class FeaturedQuotesView(APIView):
 
 
 def _conversation_preview_title(conversation: Conversation) -> str:
-    """Generate short title from first user message in a conversation."""
-    first_user = conversation.messages.filter(role=Message.ROLE_USER).first()
+    """Generate short title from first user message in a conversation.
+
+    When called after prefetch_related with to_attr='_user_messages_cache',
+    uses the cached list to avoid extra DB queries.
+    """
+    prefetched = getattr(conversation, "_user_messages_cache", None)
+    if prefetched is not None:
+        first_user = prefetched[0] if prefetched else None
+    else:
+        first_user = conversation.messages.filter(role=Message.ROLE_USER).first()
     if not first_user:
         return f"Conversation {conversation.id}"
     text = " ".join(first_user.content.strip().split())
@@ -4765,16 +4794,22 @@ class ConversationListCreateView(APIView):
             )
         base_qs = Conversation.objects.filter(
             user_id=request.user.get_username(),
-        ).order_by("-updated_at")
+        ).annotate(message_count=Count("messages")).order_by("-updated_at")
         total = base_qs.count()
-        rows = base_qs[offset : offset + limit]
+        # Prefetch first user message per conversation in a single extra query
+        _user_msg_qs = Message.objects.filter(role=Message.ROLE_USER).order_by("created_at").only("id", "conversation_id", "content")
+        rows = list(
+            base_qs[offset : offset + limit].prefetch_related(
+                Prefetch("messages", queryset=_user_msg_qs, to_attr="_user_messages_cache")
+            )
+        )
         results = []
         for conv in rows:
             results.append(
                 {
                     "id": conv.id,
                     "title": _conversation_preview_title(conv),
-                    "message_count": conv.messages.count(),
+                    "message_count": conv.message_count,
                     "updated_at": conv.updated_at.isoformat(),
                     "created_at": conv.created_at.isoformat(),
                 }
@@ -8384,6 +8419,7 @@ class VerifyPaymentView(APIView):
         subscription.is_active = True
         subscription.subscription_end_date = timezone.now() + timedelta(days=30)
         subscription.save()
+        _invalidate_subscription_cache(user)
 
         billing_profile = (
             {
@@ -8795,9 +8831,7 @@ class RazorpayWebhookView(APIView):
                                     timezone.now() + timedelta(days=30)
                                 )
                                 subscription.save()
-                                billing_record = BillingRecord.objects.filter(
-                                    razorpay_order_id=order_id,
-                                ).first()
+                                _invalidate_subscription_cache(subscription.user)
                                 billing_profile = (
                                     {
                                         "billing_name": billing_record.billing_name,
@@ -8890,6 +8924,13 @@ class SubscriptionStatusView(APIView):
         )
         subscription = _normalize_subscription_state(subscription)
 
+        # Cache key includes updated_at so any DB-level plan change auto-busts the cache
+        _ts = int(subscription.updated_at.timestamp()) if subscription.updated_at else 0
+        _cache_key = f"sub_status:{user.pk}:{_ts}"
+        _cached = cache.get(_cache_key)
+        if _cached is not None:
+            return Response(_cached)
+
         is_pro = (
             subscription.plan == UserSubscription.PLAN_PRO
             and subscription.is_active
@@ -8903,7 +8944,7 @@ class SubscriptionStatusView(APIView):
             user=user,
         ).order_by("-created_at").first()
 
-        return Response({
+        _response_data = {
             "plan": subscription.plan,
             "is_active": subscription.is_active,
             "is_pro": is_pro,
@@ -8931,7 +8972,9 @@ class SubscriptionStatusView(APIView):
                 if latest_billing_record
                 else None
             ),
-        })
+        }
+        cache.set(_cache_key, _response_data, 120)  # 2 min TTL — key includes updated_at timestamp
+        return Response(_response_data)
 
 
 class PaymentHistoryView(APIView):

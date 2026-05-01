@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from datetime import date, timedelta
 
 from django.db import transaction
@@ -75,11 +76,29 @@ def japa_insights_for_user(user) -> dict:
     now = timezone.now()
     since_30d = now - timedelta(days=30)
     since_date = since_30d.date()
-    active_commitments_qs = JapaCommitment.objects.filter(
-        user=user,
-        status=JapaCommitment.STATUS_ACTIVE,
+
+    active_commitments = list(
+        JapaCommitment.objects.filter(user=user, status=JapaCommitment.STATUS_ACTIVE)
     )
-    active_count = active_commitments_qs.count()
+    active_count = len(active_commitments)
+    active_ids = [c.id for c in active_commitments]
+
+    # Batch-fetch all daily completions for active commitments in 1 query
+    completions_qs = JapaDailyCompletion.objects.filter(
+        commitment_id__in=active_ids,
+        date__gte=since_date,
+    ).order_by("-date").values("commitment_id", "date", "malas_completed")
+
+    # Group in Python
+    malas_by_commitment: dict[int, int] = defaultdict(int)
+    days_by_commitment: dict[int, set] = defaultdict(set)
+    history_by_commitment: dict[int, list] = defaultdict(list)
+    for row in completions_qs:
+        cid = row["commitment_id"]
+        malas_by_commitment[cid] += row["malas_completed"]
+        days_by_commitment[cid].add(row["date"])
+        history_by_commitment[cid].append({"date": row["date"].isoformat(), "malas": row["malas_completed"]})
+
     active_commitments_list = [
         {
             "id": c.id,
@@ -87,26 +106,11 @@ def japa_insights_for_user(user) -> dict:
             "mantra_label": c.mantra_label,
             "daily_target_malas": c.daily_target_malas,
             "started_on": c.started_on.isoformat() if c.started_on else None,
-            "completed_malas_30d": (
-                JapaDailyCompletion.objects.filter(
-                    commitment=c, date__gte=since_date
-                ).aggregate(t=Sum("malas_completed"))["t"] or 0
-            ),
-            "distinct_days_30d": (
-                JapaDailyCompletion.objects.filter(
-                    commitment=c, date__gte=since_date
-                ).values_list("date", flat=True).distinct().count()
-            ),
-            "daily_history": [
-                {
-                    "date": dc.date.isoformat(),
-                    "malas": dc.malas_completed
-                }
-                for dc in JapaDailyCompletion.objects.filter(
-                    commitment=c, date__gte=since_date
-                ).order_by("-date")
-            ]
-        } for c in active_commitments_qs
+            "completed_malas_30d": malas_by_commitment[c.id],
+            "distinct_days_30d": len(days_by_commitment[c.id]),
+            "daily_history": history_by_commitment[c.id],
+        }
+        for c in active_commitments
     ]
 
     sessions_30d = JapaSession.objects.filter(
@@ -114,18 +118,9 @@ def japa_insights_for_user(user) -> dict:
         status=JapaSession.STATUS_COMPLETED,
         ended_at__gte=since_30d,
     ).count()
-    malas_30d = (
-        JapaDailyCompletion.objects.filter(commitment__user=user, date__gte=since_date).aggregate(
-            t=Sum("malas_completed")
-        )["t"]
-        or 0
-    )
-    distinct_days = (
-        JapaDailyCompletion.objects.filter(commitment__user=user, date__gte=since_date)
-        .values_list("date", flat=True)
-        .distinct()
-        .count()
-    )
+    # Totals for all active commitments: already computed above
+    malas_30d = sum(malas_by_commitment.values())
+    distinct_days = len(set().union(*days_by_commitment.values()) if days_by_commitment else set())
     return {
         "active_commitments": active_count,
         "active_commitments_list": active_commitments_list,
