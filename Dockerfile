@@ -35,6 +35,6 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-# Give the LLM a bit more time on cold starts / transient latency so workers
-# don't get SIGABRT mid-request (which leads to partial HTML responses).
-CMD ["gunicorn","--bind",":8000","--workers","2","--timeout","120","--graceful-timeout","30","--keep-alive","5","config.wsgi"]
+# Gevent worker class gives better concurrency for network-bound workloads
+# (OpenAI/Redis/Postgres round-trips) and improves tail latency under load.
+CMD ["gunicorn","--bind","0.0.0.0:8000","--worker-class","gevent","--workers","4","--worker-connections","1000","--timeout","120","--graceful-timeout","30","--keep-alive","75","config.wsgi"]
