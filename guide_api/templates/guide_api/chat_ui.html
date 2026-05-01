@@ -3262,6 +3262,26 @@
       line-height: 1.6;
     }
 
+    .verse-audio-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(232, 184, 109, 0.4);
+      background: rgba(232, 184, 109, 0.08);
+      color: var(--divine-gold);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      letter-spacing: 0.03em;
+    }
+    .verse-audio-btn:hover { background: rgba(232, 184, 109, 0.18); }
+    .verse-audio-btn:disabled { opacity: 0.5; cursor: default; }
+    .verse-audio-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
     .verse-meaning-section {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.1);
@@ -8352,6 +8372,10 @@
               <div class="verse-detail-header">
                 <div class="verse-detail-ref">${t.chapter} ${verse.chapter}, ${t.verses} ${verse.verse}</div>
                 ${verse.speaker ? `<div class="verse-detail-speaker">${t.speaker}: ${verse.speaker}</div>` : ''}
+                <button type="button" class="verse-audio-btn" id="verse-audio-btn" aria-label="Play Sanskrit recitation">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+                  Sanskrit
+                </button>
               </div>
 
               <div class="verse-sanskrit-box">
@@ -8490,6 +8514,74 @@
               if (nextVerse) loadVerseDetail(nextVerse.reference);
             });
           }
+
+          // Sanskrit audio play/pause
+          (function () {
+            const ch = String(verse.chapter).padStart(3, '0');
+            const vs = String(verse.verse).padStart(3, '0');
+            const audioUrl = `https://gita-audio.jkyog.org/audio/sanskrit/gita_audios/${ch}_${vs}.mp3`;
+            const audioBtn = content.querySelector('#verse-audio-btn');
+            let audio = null;
+
+            function setPlayIcon() {
+              audioBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Sanskrit';
+              audioBtn.setAttribute('aria-label', 'Play Sanskrit recitation');
+            }
+            function setPauseIcon() {
+              audioBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg> Sanskrit';
+              audioBtn.setAttribute('aria-label', 'Pause Sanskrit recitation');
+            }
+            function setLoadingIcon() {
+              audioBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="animation:spin 1s linear infinite"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Sanskrit';
+              audioBtn.disabled = true;
+            }
+
+            if (!document.getElementById('verse-audio-spin-style')) {
+              const s = document.createElement('style');
+              s.id = 'verse-audio-spin-style';
+              s.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+              document.head.appendChild(s);
+            }
+
+            audioBtn.addEventListener('click', function () {
+              if (!audio) {
+                setLoadingIcon();
+                audio = new Audio(audioUrl);
+                audio.addEventListener('canplaythrough', function () {
+                  audioBtn.disabled = false;
+                  audio.play();
+                  setPauseIcon();
+                }, { once: true });
+                audio.addEventListener('ended', function () {
+                  setPlayIcon();
+                  audio = null;
+                });
+                audio.addEventListener('error', function () {
+                  audioBtn.disabled = false;
+                  setPlayIcon();
+                  audio = null;
+                });
+                audio.load();
+                return;
+              }
+              if (audio.paused) {
+                audio.play();
+                setPauseIcon();
+              } else {
+                audio.pause();
+                setPlayIcon();
+              }
+            });
+
+            // Stop audio when navigating away (prev/next/back)
+            function stopAudio() {
+              if (audio) { audio.pause(); audio = null; }
+            }
+            content.querySelector(`[data-back-to-chapter="${verse.chapter}"]`)
+              .addEventListener('click', stopAudio);
+            if (prevBtn) prevBtn.addEventListener('click', stopAudio);
+            if (nextBtn) nextBtn.addEventListener('click', stopAudio);
+          }());
 
           const copyBtn = content.querySelector('[data-copy-verse]');
           if (copyBtn) {
