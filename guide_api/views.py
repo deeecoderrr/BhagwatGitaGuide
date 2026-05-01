@@ -8924,8 +8924,8 @@ class SubscriptionStatusView(APIView):
         )
         subscription = _normalize_subscription_state(subscription)
 
-        # Cache key includes updated_at so any DB-level plan change auto-busts the cache
-        _ts = int(subscription.updated_at.timestamp()) if subscription.updated_at else 0
+        # Cache key includes updated_at (microseconds) so any DB-level plan change auto-busts it
+        _ts = int(subscription.updated_at.timestamp() * 1_000_000) if subscription.updated_at else 0
         _cache_key = f"sub_status:{user.pk}:{_ts}"
         _cached = cache.get(_cache_key)
         if _cached is not None:
