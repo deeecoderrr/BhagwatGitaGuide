@@ -185,13 +185,31 @@ else:
         }
     }
 
-# Cache (query embedding dedup, etc.). Use Redis in multi-instance prod if needed.
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "bhagwatgita-default",
+# Cache — use Redis when REDIS_URL is set (shared across all gevent workers and
+# multiple Fly machines), otherwise fall back to LocMemCache for local dev.
+_redis_url = os.getenv("REDIS_URL", "").strip()
+if _redis_url:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": _redis_url,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                # Connection pool: one socket per gevent greenlet is fine; keep
+                # the pool small so we do not exhaust Redis connection limit.
+                "CONNECTION_POOL_KWARGS": {"max_connections": 50},
+                # Fail silently on Redis errors so a cache miss never crashes a request.
+                "IGNORE_EXCEPTIONS": True,
+            },
+        }
     }
-}
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "bhagwatgita-default",
+        }
+    }
 
 
 # Password validation

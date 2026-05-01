@@ -9,6 +9,7 @@ import json
 import logging
 import math
 import re
+import threading
 from pathlib import Path
 
 from django.conf import settings
@@ -1350,7 +1351,15 @@ def detect_themes(message: str) -> set[str]:
 
 
 def interpret_query(message: str) -> QueryInterpretation:
-    """Map a plain-language problem into a retrieval-friendly Gita framing."""
+    """Map a plain-language problem into a retrieval-friendly Gita framing.
+
+    Result is cached by message content for 10 minutes — the function is
+    deterministic and called up to 3 times per Ask pipeline for the same message.
+    """
+    _iq_key = "iq:" + hashlib.md5(message.encode("utf-8", errors="replace")).hexdigest()
+    _cached = cache.get(_iq_key)
+    if _cached is not None:
+        return _cached
     themes = sorted(infer_themes_from_text(message))
     tokens = sorted(_tokenize(message))
 
@@ -1456,7 +1465,7 @@ def interpret_query(message: str) -> QueryInterpretation:
 
     search_terms = list(dict.fromkeys([*themes, *tokens[:8], *likely_principles[:2]]))
     confidence = min(0.45 + (0.12 * len(themes)), 0.9) if themes else 0.38
-    return QueryInterpretation(
+    result = QueryInterpretation(
         emotional_state=emotional_state,
         life_domain=life_domain,
         likely_principles=likely_principles,
@@ -1464,6 +1473,8 @@ def interpret_query(message: str) -> QueryInterpretation:
         match_strictness=match_strictness,
         confidence=confidence,
     )
+    cache.set(_iq_key, result, 600)  # 10 min — deterministic so safe to cache
+    return result
 
 
 def infer_themes_from_text(text: str) -> set[str]:
@@ -1947,19 +1958,37 @@ def _cosine_similarity(vector_a: list[float], vector_b: list[float]) -> float:
     return dot / (norm_a * norm_b)
 
 
+# Module-level singleton so each gevent worker reuses one HTTP connection pool
+# instead of opening a new pool on every request.  Protected by a lock so
+# concurrent greenlets from the same worker do not race during first init.
+_openai_client_lock = threading.Lock()
+_openai_client_singleton: OpenAI | None = None
+_openai_client_key: tuple | None = None  # (api_key, timeout) — recreate on change
+
+
 def _openai_client() -> OpenAI:
-    """Create an OpenAI client with bounded timeouts to avoid gunicorn worker aborts."""
-    # Keep below gunicorn timeout so we can still fall back gracefully.
+    """Return a cached OpenAI client; recreate only when key/timeout changes."""
+    global _openai_client_singleton, _openai_client_key
     timeout_seconds = float(getattr(settings, "OPENAI_REQUEST_TIMEOUT_SECONDS", 60))
-    try:
-        return OpenAI(
-            api_key=settings.OPENAI_API_KEY,
-            timeout=timeout_seconds,
-            max_retries=1,
-        )
-    except TypeError:
-        # Older client versions may not accept timeout/max_retries.
-        return OpenAI(api_key=settings.OPENAI_API_KEY)
+    api_key = settings.OPENAI_API_KEY
+    cache_key = (api_key, timeout_seconds)
+    if _openai_client_singleton is not None and _openai_client_key == cache_key:
+        return _openai_client_singleton
+    with _openai_client_lock:
+        # Double-check after acquiring lock.
+        if _openai_client_singleton is not None and _openai_client_key == cache_key:
+            return _openai_client_singleton
+        try:
+            client = OpenAI(
+                api_key=api_key,
+                timeout=timeout_seconds,
+                max_retries=1,
+            )
+        except TypeError:
+            client = OpenAI(api_key=api_key)
+        _openai_client_singleton = client
+        _openai_client_key = cache_key
+    return _openai_client_singleton
 
 
 def _use_local_llm() -> bool:
@@ -2462,7 +2491,14 @@ def _dual_corpus_rerank(
 
 
 def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
-    """Preferred retrieval strategy: semantic first, hybrid fallback."""
+    """Preferred retrieval strategy: semantic first, hybrid fallback.
+
+    Semantic (embedding API) and hybrid (keyword, in-memory) retrieval run in
+    parallel threads so the embedding round-trip does not block the cheaper
+    heuristic pass.  Sparse retrieval is also launched in parallel.
+    """
+    import concurrent.futures
+
     interpretation = interpret_query(message)
     if _is_greeting_like(message):
         return RetrievalResult(
@@ -2474,36 +2510,36 @@ def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
             query_interpretation=interpretation.as_dict(),
         )
     candidate_limit = _candidate_pool_limit(limit)
-    semantic = retrieve_semantic_verses_with_trace(
-        message=message,
-        limit=candidate_limit,
-    )
+
+    # Fire all three retrieval strategies in parallel.
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        f_semantic = executor.submit(
+            retrieve_semantic_verses_with_trace,
+            message=message,
+            limit=candidate_limit,
+        )
+        f_hybrid = executor.submit(
+            retrieve_hybrid_verses_with_trace,
+            message=message,
+            limit=candidate_limit,
+        )
+        f_sparse = executor.submit(
+            _retrieve_sparse_verses_with_trace,
+            message=message,
+            limit=candidate_limit,
+        )
+        semantic = f_semantic.result()
+        hybrid = f_hybrid.result()
+        sparse = f_sparse.result()
+
     if semantic.retrieval_mode != "semantic":
-        retrieval = retrieve_hybrid_verses_with_trace(
-            message=message,
-            limit=candidate_limit,
-        )
+        retrieval = hybrid
     else:
-        # Cost-safe blending: compare semantic and hybrid retrieval locally and
-        # keep whichever has stronger deterministic relevance for this query.
-        hybrid = retrieve_hybrid_verses_with_trace(
-            message=message,
-            limit=candidate_limit,
-        )
-        semantic_strength = _retrieval_strength(
-            message=message,
-            verses=semantic.verses,
-        )
-        hybrid_strength = _retrieval_strength(
-            message=message,
-            verses=hybrid.verses,
-        )
+        # Keep whichever of semantic / hybrid has stronger local relevance.
+        semantic_strength = _retrieval_strength(message=message, verses=semantic.verses)
+        hybrid_strength = _retrieval_strength(message=message, verses=hybrid.verses)
         retrieval = hybrid if hybrid_strength > semantic_strength else semantic
 
-    sparse = _retrieve_sparse_verses_with_trace(
-        message=message,
-        limit=candidate_limit,
-    )
     retrieval = _merge_candidate_retrievals(
         retrievals=[retrieval, sparse],
         message=message,

@@ -25,7 +25,7 @@ from django.db.models import Q
 from django.db import transaction
 from django.db.models import Sum
 from django.core.cache import cache
-from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponsePermanentRedirect, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -3043,7 +3043,7 @@ class ForgotPasswordView(APIView):
 
         if username:
             user = user_model.objects.filter(username=username).first()
-        
+
         if not user and email:
             user = user_model.objects.filter(email__iexact=email).first()
 
@@ -3222,7 +3222,7 @@ class UserInsightsSummaryView(APIView):
     def get(self, request):
         user = request.user
         now = timezone.now()
-        
+
         # Cache key unique to user and day (or short window)
         cache_key = f"user_insights_{user.id}_{now.strftime('%Y%m%d_%H')}"
         cached_data = cache.get(cache_key)
@@ -3231,7 +3231,7 @@ class UserInsightsSummaryView(APIView):
 
         engagement = _serialize_engagement_profile(_get_engagement_profile(user))
         insights = build_user_insights_summary(user, now=now, engagement=engagement)
-        
+
         # Cache for 1 hour to handle peak traffic
         cache.set(cache_key, insights, 3600)
         return Response(insights)
@@ -3375,6 +3375,197 @@ class AskView(APIView):
             response_data["query_themes"] = retrieval.query_themes
             response_data["query_interpretation"] = retrieval.query_interpretation
         return Response(response_data)
+
+
+class AskStreamView(APIView):
+    """Streaming SSE variant of AskView.
+
+    Yields two Server-Sent Events so the client shows verse cards immediately
+    while the LLM generates the guidance text:
+
+      event: retrieval   — verse data ready (~200-500 ms)
+      event: complete    — full guidance response (after LLM finishes)
+      event: error       — serialized error payload
+
+    The mobile app connects with ``Accept: text/event-stream``.  Regular JSON
+    clients can hit ``/ask/`` instead.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """SSE stream: parse query params for the GET-flavoured EventSource variant."""
+        # Build a mutable data dict from GET params so we can reuse the same
+        # pipeline as the POST path.
+        data = request.query_params.dict()
+        return self._stream(request, data)
+
+    def post(self, request):
+        data = request.data
+        return self._stream(request, data)
+
+    def _stream(self, request, raw_data):  # noqa: PLR0912, PLR0915
+        serializer = AskRequestSerializer(data=raw_data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        data = serializer.validated_data
+
+        if is_risky_prompt(data["message"]):
+            return Response(
+                {"error": "safety_blocked", "message": (
+                    "This app cannot provide crisis or self-harm guidance. "
+                    "Please contact local emergency or professional support immediately."
+                )},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        subscription, usage = _get_user_plan_and_usage(request.user)
+        quota_violation = _quota_violation_for_request(
+            subscription=subscription,
+            usage=usage,
+            user=request.user,
+            mode=data["mode"],
+        )
+        if quota_violation is not None:
+            violation_code, violation_message, snapshot = quota_violation
+            return Response(
+                {"error": violation_code, "message": violation_message, **snapshot},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        # Capture all variables in closure for the generator below.
+        user = request.user
+        message = data["message"]
+        mode = data["mode"]
+        language = data["language"]
+        conversation_id = data.get("conversation_id")
+        plan = subscription.plan
+        anchor_verse_ref = (data.get("verse_ref") or "").strip() or None
+        anchor_note = (data.get("verse_note_excerpt") or "").strip() or None
+
+        def _event_generator():
+            import json as _json
+
+            raw_msg = normalize_chat_user_message(str(message or "").strip())
+            effective_msg = _apply_verse_anchor_to_message(
+                raw_msg,
+                anchor_verse_ref=anchor_verse_ref,
+                anchor_note=anchor_note,
+            )
+            lang = resolve_guidance_language(language, raw_msg)
+
+            # ── Retrieval phase (fast) ────────────────────────────────────────
+            intent = classify_user_intent(effective_msg, mode=mode)
+            retrieval = retrieve_verses_with_trace(
+                message=effective_msg,
+                limit=_plan_max_context_verses(plan, mode),
+            )
+            verses = refine_verses_for_guidance(effective_msg, retrieval.verses)
+
+            verse_payload = VerseSerializer(verses, many=True).data
+            retrieval_event = {
+                "verses": verse_payload,
+                "verse_references": [
+                    f"{v.chapter}.{v.verse}" for v in verses
+                ],
+                "intent_type": intent.intent_type,
+                "retrieval_mode": retrieval.retrieval_mode,
+            }
+            yield f"event: retrieval\ndata: {_json.dumps(retrieval_event, ensure_ascii=False)}\n\n"
+
+            # ── Conversation load / create ────────────────────────────────────
+            if conversation_id:
+                conversation = Conversation.objects.filter(
+                    id=conversation_id, user_id=user.get_username(),
+                ).first()
+            else:
+                conversation = None
+            if conversation is None:
+                conversation = Conversation.objects.create(user_id=user.get_username())
+            Message.objects.create(
+                conversation=conversation,
+                role=Message.ROLE_USER,
+                content=raw_msg,
+            )
+            conversation_messages = list(conversation.messages.order_by("created_at"))
+
+            # ── Guidance phase (slow LLM call) ────────────────────────────────
+            guidance = build_guidance(
+                effective_msg,
+                verses,
+                conversation_messages=conversation_messages,
+                language=language,
+                query_interpretation=retrieval.query_interpretation,
+                mode=mode,
+                max_output_tokens=_plan_max_output_tokens(plan),
+                intent_analysis=intent.as_dict(),
+            )
+
+            Message.objects.create(
+                conversation=conversation,
+                role=Message.ROLE_ASSISTANT,
+                content=guidance.guidance,
+            )
+            conversation.save()
+
+            usage.ask_count += 1
+            usage.save(update_fields=["ask_count"])
+            engagement = _update_streak_for_today(user)
+            quota_snapshot = _quota_snapshot_for_user(subscription, usage, user)
+
+            _log_ask_event(
+                user_id=user.get_username(),
+                source=AskEvent.SOURCE_API,
+                mode=mode,
+                outcome=AskEvent.OUTCOME_SERVED,
+                response_mode=guidance.response_mode,
+                retrieval_mode=retrieval.retrieval_mode,
+                plan=plan,
+            )
+
+            follow_ups = []
+            if guidance.show_actions:
+                follow_ups = _build_contextual_follow_ups(
+                    message=message,
+                    mode=mode,
+                    language=lang,
+                    query_themes=retrieval.query_themes,
+                )
+
+            complete_event = {
+                "conversation_id": conversation.id,
+                "guidance": guidance.guidance,
+                "verses": verse_payload,
+                "meaning": guidance.meaning,
+                "actions": guidance.actions,
+                "reflection": guidance.reflection,
+                "intent_type": guidance.intent_type,
+                "show_meaning": guidance.show_meaning and bool(guidance.meaning),
+                "show_actions": guidance.show_actions and bool(guidance.actions),
+                "show_reflection": guidance.show_reflection and bool(guidance.reflection),
+                "show_related_verses": guidance.show_related_verses,
+                "verse_references": [f"{v.chapter}.{v.verse}" for v in verses],
+                "related_verses": _related_verses_payload_for_response(
+                    guidance=guidance,
+                    message=message,
+                    verses=verses,
+                ),
+                "language": language,
+                "response_language": lang,
+                "follow_ups": follow_ups,
+                "engagement": _serialize_engagement_profile(engagement),
+                **quota_snapshot,
+            }
+            yield f"event: complete\ndata: {_json.dumps(complete_event, ensure_ascii=False)}\n\n"
+            yield "event: done\ndata: {}\n\n"
+
+        response = StreamingHttpResponse(
+            _event_generator(),
+            content_type="text/event-stream",
+        )
+        response["Cache-Control"] = "no-cache"
+        response["X-Accel-Buffering"] = "no"  # disable Nginx buffering
+        return response
 
 
 class GuestAskView(APIView):

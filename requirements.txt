@@ -8,6 +8,7 @@ pgvector
 openai
 openpyxl
 gunicorn
+gevent
 dj-database-url
 whitenoise
 razorpay

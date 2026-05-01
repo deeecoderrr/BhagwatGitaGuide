@@ -37,6 +37,7 @@ from guide_api.views import (
     AnalyticsEventIngestView,
     AnalyticsSummaryView,
     AskView,
+    AskStreamView,
     ChatUIView,
     CommunityPostDetailView,
     CommunityPostListCreateView,
@@ -156,6 +157,7 @@ urlpatterns = [
         name="devices-list",
     ),
     path("ask/", AskView.as_view(), name="ask"),
+    path("ask/stream/", AskStreamView.as_view(), name="ask-stream"),
     path("guest/ask/", GuestAskView.as_view(), name="guest-ask"),
     path("guest/history/", GuestHistoryView.as_view(), name="guest-history"),
     path(

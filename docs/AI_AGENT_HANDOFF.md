@@ -31,8 +31,13 @@ missing **`libgobject`** at runtime means the image was built without those pack
 - OpenAI: chat (`OPENAI_MODEL`, default `gpt-4.1-mini`), embeddings (`OPENAI_EMBEDDING_MODEL`, default `text-embedding-3-small`)
 - **Intent routing** (`guide_api/services.py`): `classify_user_intent` uses **heuristics first** (life/knowledge/casual). An optional **second** small LLM call (`DISABLE_INTENT_LLM_REFINEMENT`, **default true** = disabled) can disambiguate only when heuristics return `casual_chat` and the message passes length checks; set `DISABLE_INTENT_LLM_REFINEMENT=false` in `.env` when edge-case routing quality outweighs cost.
 - Auth: session + basic + `Authorization: Token <token>` (DRF authtoken)
+- **Performance & Scalability:**
+  - **Caching:** Global in-memory `_get_all_verses_cached` in `services.py` for high-speed retrieval. Redis-based response caching for the Insights API (`views.py`).
+  - **Optimization:** `GZipMiddleware` enabled for response compression. `CONN_MAX_AGE=600` for DB connection pooling.
 
-### Production runtime (current)
+---
+
+## Production runtime (current)
 
 - Hosting: Fly.io
 - Primary app slug: `askbhagavadgita`
@@ -228,7 +233,7 @@ Deployment/ops snapshot:
 
 ---
 
-*Last aligned with repo state: 2026-04-15. Edit this file when architecture, permissions, or major endpoints change.*
+*Last aligned with repo state: 2026-05-01. Edit this file when architecture, permissions, or major endpoints change.*
 
 Current operational note:
 - the app supports `DISABLE_ALL_QUOTAS=true` as a temporary operator switch to

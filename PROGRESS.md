@@ -1,8 +1,21 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-04-29
+Last updated: 2026-05-01
 
 ## Completed
+
+- **Backend Performance & Scalability (2026-05-01):**
+  - **Caching:** Implemented in-memory verse list caching in `services.py` to eliminate redundant DB scans. Added Redis-based response caching for the Insights summary view.
+  - **Database:** Enabled `CONN_MAX_AGE` for persistent connection pooling in production.
+  - **Network:** Enabled `GZipMiddleware` for high-speed API response compression.
+  - **Auth:** Hardened password reset flow to use Username-based lookup; implemented a custom web-based reset landing page to fix mobile deep-link 404s.
+
+- **Mobile UI & Insights Rejuvenation (2026-05-01):**
+  - **Live Pulse:** Replaced static Insights link on Home with a "Live Journey Pulse" featuring real-time streak/verse counts and sacred pulse animations.
+  - **Japa Visualization:** Added a 7-day daily breakdown (activity map) for Japa commitments with backend history support.
+  - **Discovery Grids:** Refactored verse and chapter discovery lists into interactive, premium grid layouts.
+  - **Animations:** Integrated pulsing `SacredMandala` animations across the dashboard for better immersion.
+
 
 - **Mobile docs + daily verse API (2026-04-29):** Documented **`meaning_plain`**
   on `GET /api/daily-verse/` and `GET /api/daily-verse/history/` in

@@ -22,32 +22,39 @@ and give feedback on whether the answer was useful.
    - enter your message
    - guest chat stays temporary in the current browser session only
 3. If you want saved history, register or log in first.
-4. Optional: click any starter prompt chip to begin quickly.
-5. Submit and review:
-   - guidance
-   - meaning
-   - actions
-   - reflection
-   - verses used
-   - continue directly from the in-chat message box above the transcript
-6. Optional: continue with follow-up chips or recent-question chips.
-7. When logged in, mark answer as `Helpful` or `Not Helpful`.
-8. When logged in, use the `Conversations` sidebar to reopen an older thread, or click
-   `Start New Conversation` to begin a separate thread.
-9. Each saved thread card shows message count and last-updated time. Use
-   `Delete` on a card to remove that conversation.
-10. The sidebar `Mode` and `Language` selectors are global for the whole chat
+   - **Note:** Email is now **mandatory** during signup to support secure password recovery.
+4. **Password Reset:** If you forget your password, the reset link will now lead you to a secure **web-based reset page** where you can safely enter your new password.
+5. **Mobile Today Screen:**
+   - **Live Journey Pulse:** Your Home screen now features a real-time "Pulse" that tracks your daily streak and total verses read. Watch for the pulsing mandala—it signifies your active spiritual journey.
+6. **Mobile Insights Tab:**
+   - **Active Sadhana & Japa Breakdown:** Tap your active programs to see a **7-day activity map**. Brighter dots represent days with higher japa counts.
+   - **Interactive Discovery Grids:** Explore verses and chapters in the "Read" tab through a clean grid layout. Tap any item to jump straight into the Gita.
+7. Optional: click any starter prompt chip to begin quickly.
+8. Submit and review:
+    - guidance
+    - meaning
+    - actions
+    - reflection
+    - verses used
+    - continue directly from the in-chat message box above the transcript
+9. Optional: continue with follow-up chips or recent-question chips.
+10. When logged in, mark answer as `Helpful` or `Not Helpful`.
+11. When logged in, use the `Conversations` sidebar to reopen an older thread, or click
+    `Start New Conversation` to begin a separate thread.
+12. Each saved thread card shows message count and last-updated time. Use
+    `Delete` on a card to remove that conversation.
+13. The sidebar `Mode` and `Language` selectors are global for the whole chat
     UI. Whatever you select there will be used for the next message in any
     conversation.
-11. A language selector is always available in the top navigation (including
+14. A language selector is always available in the top navigation (including
   guest pages before login), so you can switch between English and Hindi
   from anywhere.
-12. The chat UI uses smooth animations and transitions; if a CDN is blocked,
+15. The chat UI uses smooth animations and transitions; if a CDN is blocked,
     core chat functionality still works without the visual effects.
-13. Before upgrading to Plus or Pro, fill the billing section in the membership
+16. Before upgrading to Plus or Pro, fill the billing section in the membership
     panel. Those details are stored against the Razorpay order so you can later
     export invoice-ready rows for accounting/Tally.
-14. After a checkout attempt, the membership panel now shows your latest payment
+17. After a checkout attempt, the membership panel now shows your latest payment
     status snapshot so you can quickly see whether the last order is created,
     verified, captured, or failed.
 

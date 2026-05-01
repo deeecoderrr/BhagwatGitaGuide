@@ -55,8 +55,9 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 | Module | Responsibility |
 |--------|----------------|
-| `user_insights_summary.py` | **`GET …/insights/me/`** — journey snapshot + **`gita`** (chapters/verses opened, notes, saves with verses, read min 7d, asks served 30d, top chapters). |
-| `japa_views.py` | Japa commitments CRUD, sessions (start/pause/resume/finish-day/abandon), fulfill; **`japa_insights_for_user`**. |
+| `user_insights_summary.py` | **`GET …/insights/me/`** — journey snapshot + **`gita`** (chapters/verses opened, notes, saves with verses, read min 7d, asks served 30d, top chapters). Optimized with **Redis response caching** (1h TTL). |
+| `japa_views.py` | Japa commitments CRUD, sessions; **`japa_insights_for_user`** (includes **`daily_history`** activity map for last 30 days). |
+| `services.py` | Core retrieval (semantic/hybrid). Optimized with **in-memory verse caching** to avoid redundant table scans. |
 | `sadhana_views.py` | Sadhana program list/detail/day, day completion, enrollments; web **PracticeHubView**. |
 | `practice_workflow_views.py` | Practice tags, workflow list/detail, **`/practice/workflows/me/`**. |
 | `push_reminders.py` + `management/commands/send_push_reminders.py` | Expo push for reminder due users (cron). |
@@ -163,11 +164,11 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 | Route file | Screen purpose |
 |------------|----------------|
-| `app/(tabs)/index.tsx` | **Today** — daily verse (`meaning_plain` when API sends it), `TodaySignalFlipCard` (long-press synthesis), shortcuts, naam japa, community preview, saved-reflections entry |
+| `app/(tabs)/index.tsx` | **Today** — daily verse, `TodaySignalFlipCard`, **Live Journey Pulse** (real-time streak/verses with pulse animation), naam japa, community preview, saved-reflections entry |
 | `app/(tabs)/ask.tsx` | **Ask** — guest or authed ask, conversations, save reflection, feedback |
 | `app/(tabs)/read.tsx` | **Read** — chapter list, verse search |
 | `app/(tabs)/history.tsx` | Conversation list / delete |
-| `app/(tabs)/insights.tsx` | Journey insights (`GET /api/v1/insights/me/`) |
+| `app/(tabs)/insights.tsx` | Journey insights (`GET /api/v1/insights/me/`) — Dashboard with segmented tabs. **Overview** includes Japa activity map + pulsing last-active; **Read** includes interactive **Discovery Grids**. |
 | `app/(tabs)/meditate.tsx` | Workflow catalog + guided meditate logging (`meditation-sessions`, `practice/log`) |
 | `app/(tabs)/profile.tsx` | Saved reflections list, note edits, reminder language PATCH |
 | `app/auth.tsx` | Login / register / guest |
@@ -233,6 +234,11 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 ## 4. Cross-cutting behavior
 
 - **Quotas:** `POST /api/ask/` enforces plan limits; `429` when exhausted; operator flag `DISABLE_ALL_QUOTAS` in backend docs.
+- **Performance:** 
+    - **In-memory cache** for static verse corpus in `services.py`.
+    - **Redis cache** for expensive API responses (Insights).
+    - **DB Pooling:** `CONN_MAX_AGE=600` for persistent Postgres connections.
+    - **Gzip Compression:** Enabled via `GZipMiddleware` for all API responses.
 - **Language:** `language` / `lang` query or body fields (`en` | `hi`) on ask and reader endpoints as documented in `DEVELOPER_GUIDE.md`.
 - **Payments:** Native Razorpay return → mobile **`/payments/callback`** → `POST /api/v1/payments/verify/`. Web uses checkout bridge URL. See `PAYMENT_INTEGRATION_ANALYSIS.md` and `docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`.
 - **Browse API policy:** Mobile uses token on verse/chapter calls; **Free** users may get **403** on token-authenticated Gita JSON routes—browser without `Authorization` remains allowed for web reader parity.
@@ -261,4 +267,4 @@ When adding a feature:
 
 ---
 
-*Generated for agent continuity; last structured pass: 2026-04-27.*
+*Generated for agent continuity; last structured pass: 2026-05-01.*

@@ -1,1 +1,1 @@
-web: gunicorn --bind :8000 --workers 2 --timeout 120 --graceful-timeout 30 --keep-alive 5 config.wsgi
+web: gunicorn --bind :8000 --worker-class gevent --workers 4 --worker-connections 1000 --timeout 120 --graceful-timeout 30 --keep-alive 75 config.wsgi
