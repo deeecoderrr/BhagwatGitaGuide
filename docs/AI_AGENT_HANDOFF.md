@@ -6,7 +6,7 @@
 
 **Project:** Django + DRF backend for a Bhagavad Gita–based life guidance app (RAG + OpenAI generation, safety guardrails, auth, quota, mobile-friendly JSON APIs).
 
-**Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).  
+**Repo root:** `BhagwatGitaGuide/` (Django project `config/`, app `guide_api/`).
 **Payments:** see root **`PAYMENT_INTEGRATION_ANALYSIS.md`** (Razorpay products, verify, webhooks, bridge URL) and **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** (end-to-end sequences).
 
 **Optional:** **ITR Summary Generator** — income-tax computation PDF workflow mounted at
@@ -200,7 +200,18 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, dedicated mobile thread APIs (`/api/conversations/...`), guest session APIs (`/api/guest/*`), account profile/password APIs, payment/subscription APIs, device registration APIs, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI).
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, dedicated mobile thread APIs (`/api/conversations/...`), guest session APIs (`/api/guest/*`), account profile/password APIs, payment/subscription APIs, device registration APIs, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI), in-memory verse-list cache + Redis Insights response cache, `GZipMiddleware` + `CONN_MAX_AGE` production optimizations, practice workflows (models, enrollment, per-currency pricing, checkout via Razorpay), `generate_verse_syntheses` management command, japa timer bell audio, weekly digest command, admin rate-throttle on auth endpoints, Insights API with Redis caching.
+
+**Mobile companion app (2026-05-01 quality pass in `bhagavadgitaguide_mobile-main`):**
+- 401 auto-logout via `setUnauthorizedHandler` / `AuthGate` integration
+- `textDim` WCAG AA contrast fix, shared `dateUtils.ts`, `SacredMandala` on auth screens
+- `SudarshanChakraLoader` replaces all `ActivityIndicator` usages
+- `OfflineBanner` rewritten to use `@react-native-community/netinfo`
+- `Background.tsx` pauses animations off-screen (battery saving)
+- `SkeletonPulse` + `ask.tsx` streaming text accessibility props
+- `ScreenHeader` standardized; `sadhana` cards with `FadeInView`/`PressScale`
+- `Insights` tab fully built (4-tab segmented control, computed signals, interactive grids)
+- TypeScript 0 errors, ESLint 0 warnings baseline enforced
 
 Deployment/ops snapshot:
 - live deployment on Fly is active
@@ -233,7 +244,7 @@ Deployment/ops snapshot:
 
 ---
 
-*Last aligned with repo state: 2026-05-01. Edit this file when architecture, permissions, or major endpoints change.*
+*Last aligned with repo state: 2026-05-01. Edit this file when architecture, permissions, or major endpoints change. Mobile companion app state reflects `bhagavadgitaguide_mobile-main` quality pass from the same date.*
 
 Current operational note:
 - the app supports `DISABLE_ALL_QUOTAS=true` as a temporary operator switch to

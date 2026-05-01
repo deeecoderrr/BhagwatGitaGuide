@@ -4,6 +4,30 @@ Last updated: 2026-05-01
 
 ## Completed
 
+- **Mobile app code quality pass (2026-05-01):** Complete quality sweep across
+  the mobile Expo app (`bhagavadgitaguide_mobile-main`):
+  - **401 auto-logout:** `expo/lib/api.ts` now has `setUnauthorizedHandler`;
+    `AuthGate` registers it to redirect to `/auth` on any 401 — no screens
+    need manual token expiry handling.
+  - **textDim WCAG AA fix:** `#8A8AA8` → `#A3A0BE` (~4.6:1 on dark bg).
+  - **`dateUtils.ts`:** new `localDateYmd()` utility; `meditate.tsx` and
+    `japa/[id].tsx` use it instead of local duplicates.
+  - **SacredMandala on auth screens:** `auth.tsx` and `reset-password.tsx`
+    now use `SacredMandala` SVG instead of the CSS lotus orb.
+  - **ScreenHeader standardized** across `japa/[id].tsx`, `sadhana/index.tsx`,
+    `practice/index.tsx`.
+  - **SudarshanChakraLoader everywhere:** replaced every `ActivityIndicator`
+    usage in all screens.
+  - **OfflineBanner rewritten:** now uses `@react-native-community/netinfo`
+    (was HTTP ping + AppState polling). Installed via `npx expo install`.
+  - **Background animation battery fix:** `Background.tsx` pauses Reanimated
+    animation via `useFocusEffect` when screen blurs, resumes on focus.
+  - **Accessibility:** `SkeletonPulse` has `accessibilityLabel`/`accessibilityRole`;
+    `ask.tsx` streaming container has `accessibilityLiveRegion="polite"`.
+  - **Sadhana cards:** wrapped in `FadeInView + PressScale` for entrance + press.
+  - **`__DEV__` guards:** all `console.log` calls gated.
+  - TypeScript: `0 errors`. ESLint: `0 errors, 0 warnings`.
+
 - **Backend Performance & Scalability (2026-05-01):**
   - **Caching:** Implemented in-memory verse list caching in `services.py` to eliminate redundant DB scans. Added Redis-based response caching for the Insights summary view.
   - **Database:** Enabled `CONN_MAX_AGE` for persistent connection pooling in production.
