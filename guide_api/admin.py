@@ -13,6 +13,8 @@ from guide_api.models import (
     CommunityPost,
     Conversation,
     DailyAskUsage,
+    GratitudeEntry,
+    MoodCheckIn,
     EngagementEvent,
     FollowUpEvent,
     GrowthEvent,
@@ -504,6 +506,25 @@ class SavedReflectionAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "conversation", "created_at")
     search_fields = ("user__username", "message", "guidance", "note")
     list_filter = ("created_at",)
+
+
+@admin.register(MoodCheckIn)
+class MoodCheckInAdmin(admin.ModelAdmin):
+    """Browse and filter daily mood check-ins."""
+
+    list_display = ("id", "user", "mood", "date", "created_at")
+    list_filter = ("mood", "date")
+    search_fields = ("user__username",)
+    date_hierarchy = "date"
+
+
+@admin.register(GratitudeEntry)
+class GratitudeEntryAdmin(admin.ModelAdmin):
+    """Browse daily gratitude journal entries."""
+
+    list_display = ("id", "user", "date", "item_1", "created_at")
+    search_fields = ("user__username", "item_1", "item_2", "item_3")
+    date_hierarchy = "date"
 
 
 @admin.register(SharedAnswer)

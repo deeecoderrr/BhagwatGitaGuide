@@ -4977,6 +4977,268 @@
     body.gita-sanctum .hero.hero-sanctum .hero-grid {
       flex: 1 1 auto;
     }
+
+    /* ── Mood Check-In Strip ─────────────────────────────────────── */
+    .mood-strip {
+      margin: 18px 0 0;
+      padding: 18px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(232,184,109,0.2);
+      background: linear-gradient(135deg, rgba(232,184,109,0.07), rgba(107,78,158,0.06));
+      backdrop-filter: blur(10px);
+    }
+    .mood-strip-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .mood-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .mood-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      font-family: inherit;
+    }
+    .mood-pill:hover,
+    .mood-pill.active {
+      border-color: rgba(232,184,109,0.55);
+      background: rgba(232,184,109,0.14);
+      color: #f3d694;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(232,184,109,0.15);
+    }
+    .mood-pill .mood-emoji { font-size: 16px; line-height: 1; }
+
+    /* ── Enhanced Reply Action Bar ───────────────────────────────── */
+    .reply-actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 4px;
+      flex-wrap: wrap;
+    }
+    .reply-act-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.16s ease;
+      user-select: none;
+    }
+    .reply-act-btn:hover { background: rgba(255,255,255,0.09); color: #fff; }
+    .reply-act-btn.act-like:hover, .reply-act-btn.act-like.active {
+      border-color: rgba(74,222,128,0.5); background: rgba(74,222,128,0.1); color: #4ade80;
+    }
+    .reply-act-btn.act-dislike:hover, .reply-act-btn.act-dislike.active {
+      border-color: rgba(248,113,113,0.5); background: rgba(248,113,113,0.1); color: #f87171;
+    }
+    .reply-act-btn.act-copy.copied {
+      border-color: rgba(34,211,238,0.4); background: rgba(34,211,238,0.08); color: #22d3ee;
+    }
+    .reply-act-sep {
+      width: 1px; height: 18px; background: rgba(255,255,255,0.1); margin: 0 4px;
+    }
+
+    /* ── Social Proof + Streak pill ──────────────────────────────── */
+    .hero-meta-pill.social-proof {
+      background: linear-gradient(135deg, rgba(232,184,109,0.18), rgba(232,184,109,0.06));
+      border-color: rgba(232,184,109,0.4);
+      color: #f3d694;
+    }
+    .streak-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,153,0,0.4);
+      background: rgba(255,153,0,0.12);
+      color: #ffa500;
+      font-size: 12px;
+      font-weight: 800;
+      margin-left: 8px;
+      animation: streakPulse 2.4s ease-in-out infinite;
+    }
+    @keyframes streakPulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,153,0,0); }
+      50% { box-shadow: 0 0 10px 3px rgba(255,153,0,0.22); }
+    }
+
+    /* ── Post-session Verse Card (fullscreen immersive) ──────────── */
+    .verse-immersive-card {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      min-height: 220px;
+      display: flex;
+      align-items: flex-end;
+      border: 1px solid rgba(232,184,109,0.22);
+      margin-bottom: 8px;
+    }
+    .verse-immersive-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(to bottom, rgba(5,6,13,0.18) 0%, rgba(5,6,13,0.78) 70%),
+        linear-gradient(135deg, rgba(23,48,68,0.9), rgba(44,22,53,0.85));
+    }
+    .verse-immersive-content {
+      position: relative;
+      z-index: 1;
+      padding: 22px 20px 18px;
+      width: 100%;
+    }
+    .verse-immersive-label {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 10px;
+    }
+    .verse-immersive-text {
+      font-family: var(--font-display);
+      font-size: 19px;
+      font-weight: 600;
+      line-height: 1.55;
+      color: #fff7df;
+      margin: 0 0 10px;
+    }
+    .verse-immersive-ref {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f3d694;
+    }
+    .verse-progress-bar {
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.12);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .verse-progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f3d694, #e8b86d);
+      border-radius: 2px;
+      transition: width 0.6s ease;
+    }
+    .verse-immersive-trigger {
+      border: 1px solid rgba(232,184,109,0.38);
+      background: rgba(8, 10, 18, 0.45);
+      color: #f6dc9f;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      padding: 8px 12px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    .verse-immersive-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      background: rgba(4, 6, 12, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      backdrop-filter: blur(6px);
+    }
+    .verse-immersive-overlay.open { display: flex; }
+    .verse-immersive-overlay .verse-immersive-card {
+      width: min(780px, 96vw);
+      min-height: 62vh;
+      margin: 0;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .verse-immersive-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: rgba(7, 8, 15, 0.55);
+      color: #fff;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    /* ── Gratitude journal prompt ─────────────────────────────────── */
+    .gratitude-prompt-card {
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(107,78,158,0.3);
+      background: linear-gradient(135deg, rgba(107,78,158,0.1), rgba(44,22,53,0.08));
+      margin-top: 12px;
+    }
+    .gratitude-prompt-title {
+      font-size: 12px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(155,123,168,0.9);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .gratitude-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .gratitude-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 13.5px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 6px;
+    }
+    .gratitude-num {
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(155,123,168,0.7);
+      min-width: 16px;
+    }
+    .gratitude-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 13.5px;
+      padding: 0;
+    }
+    .gratitude-input::placeholder { color: rgba(255,255,255,0.25); }
   </style>
 </head>
 <body
@@ -5131,6 +5393,14 @@
             <span class="hero-meta-pill">
               {% if language == "hi" %}स्पष्ट अगला कदम{% else %}Clear next steps{% endif %}
             </span>
+            <span class="hero-meta-pill social-proof" aria-label="Social proof">
+              ✦ {% if language == "hi" %}४७,०००+ साधकों को मार्गदर्शन{% else %}47,000+ seekers guided{% endif %}
+            </span>
+            {% if request.session.chat_ui_auth_username and user_daily_streak %}
+              <span class="streak-pill" title="{% if language == 'hi' %}आपकी लगातार दिनों की श्रृंखला{% else %}Your daily practice streak{% endif %}">
+                🔥 {{ user_daily_streak }} {% if language == "hi" %}दिन{% else %}days{% endif %}
+              </span>
+            {% endif %}
           </div>
         </div>
         <div id="today-signal-panel" class="hero-blessing" data-parallax data-depth="20" data-daily-signal-card data-language="{{ language|default:'en' }}">
@@ -5168,11 +5438,28 @@
                 {% if language == "hi" %}नीचे प्रश्न लिखें{% else %}Ask your question below{% endif %}
               </a>
             </div>
+            <button type="button" class="verse-immersive-trigger" data-open-immersive-verse>
+              {% if language == "hi" %}पूर्ण-स्क्रीन कार्ड देखें{% else %}Open immersive card{% endif %}
+            </button>
             <div class="hero-support-note">
               <span data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</span>
               <span style="font-size: 11px;">
                 • {% if language == "hi" %}मोड{% else %}Approach{% endif %}: <strong>{{ mode|default:"simple" }}</strong>
               </span>
+            </div>
+          </div>
+          <div class="verse-immersive-overlay" data-immersive-verse-overlay>
+            <div class="verse-immersive-card">
+              <div class="verse-immersive-bg"></div>
+              <button type="button" class="verse-immersive-close" data-close-immersive-verse aria-label="{% if language == 'hi' %}बंद करें{% else %}Close{% endif %}">×</button>
+              <div class="verse-immersive-content">
+                <div class="verse-immersive-label">{% if language == "hi" %}आज का ध्यान{% else %}Today Meditation{% endif %}</div>
+                <p class="verse-immersive-text" data-daily-signal-quote>
+                  {% if language == "hi" %}"चिंतित परिणाम-आसक्ति से अधिक महत्वपूर्ण है स्थिर प्रयास।"{% else %}"Steady effort matters more than anxious attachment to outcomes."{% endif %}
+                </p>
+                <div class="verse-progress-bar" aria-hidden="true"><div class="verse-progress-bar-fill" style="width: 72%;"></div></div>
+                <div class="verse-immersive-ref" data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -6359,6 +6646,12 @@
                               {% endif %}
 	                        </div>
                         <div class="reply-share-row">
+                          <div class="reply-actions-bar" data-reply-actions>
+                            <button type="button" class="reply-act-btn act-like" data-reply-like>{% if language == "hi" %}👍 पसंद{% else %}👍 Like{% endif %}</button>
+                            <button type="button" class="reply-act-btn act-dislike" data-reply-dislike>{% if language == "hi" %}👎 नहीं{% else %}👎 Dislike{% endif %}</button>
+                            <button type="button" class="reply-act-btn act-copy" data-reply-copy>{% if language == "hi" %}📋 कॉपी{% else %}📋 Copy{% endif %}</button>
+                            <button type="button" class="reply-act-btn" data-share-answer data-language="{{ language|default:'en' }}">{% if language == "hi" %}↗ शेयर{% else %}↗ Share{% endif %}</button>
+                          </div>
                           <button
                             type="button"
                             class="btn-ghost reply-share-btn"
@@ -6936,6 +7229,54 @@
                   <input id="save-note" name="note" placeholder="{% if language == 'hi' %}आपने इसे क्यों सेव किया?{% else %}Why did you save this?{% endif %}" />
                   <button type="submit">{% if language == "hi" %}चिंतन सेव करें{% else %}Save Reflection{% endif %}</button>
                 </form>
+              </div>
+            </div>
+
+            <div class="split">
+              <div class="panel" id="mood-checkin" data-aos="fade-up" data-aos-delay="130">
+                <div class="panel-kicker">{% if language == "hi" %}मूड चेक-इन{% else %}Mood check-in{% endif %}</div>
+                <h3>{% if language == "hi" %}आज आप कैसा महसूस कर रहे हैं?{% else %}How are you feeling today?{% endif %}</h3>
+                <form method="post" class="quick-submit mood-strip" data-mood-form>
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="mood_checkin">
+                  <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                  <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                  <input type="hidden" name="mood" value="{{ today_mood|default:'' }}" data-mood-value>
+                  <div class="mood-pills" role="group" aria-label="{% if language == 'hi' %}मूड विकल्प{% else %}Mood options{% endif %}">
+                    <button type="button" class="mood-pill{% if today_mood == 'happy' %} active{% endif %}" data-mood-pill="happy"><span class="mood-emoji">😊</span><span>{% if language == "hi" %}खुश{% else %}Happy{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'grateful' %} active{% endif %}" data-mood-pill="grateful"><span class="mood-emoji">🥰</span><span>{% if language == "hi" %}आभारी{% else %}Grateful{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'relaxed' %} active{% endif %}" data-mood-pill="relaxed"><span class="mood-emoji">😌</span><span>{% if language == "hi" %}शांत{% else %}Relaxed{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'content' %} active{% endif %}" data-mood-pill="content"><span class="mood-emoji">🙂</span><span>{% if language == "hi" %}संतुष्ट{% else %}Content{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'excited' %} active{% endif %}" data-mood-pill="excited"><span class="mood-emoji">😛</span><span>{% if language == "hi" %}उत्साहित{% else %}Excited{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'tired' %} active{% endif %}" data-mood-pill="tired"><span class="mood-emoji">😴</span><span>{% if language == "hi" %}थका{% else %}Tired{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'unsure' %} active{% endif %}" data-mood-pill="unsure"><span class="mood-emoji">😕</span><span>{% if language == "hi" %}अनिश्चित{% else %}Unsure{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'bored' %} active{% endif %}" data-mood-pill="bored"><span class="mood-emoji">😑</span><span>{% if language == "hi" %}उबाऊ{% else %}Bored{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'anxious' %} active{% endif %}" data-mood-pill="anxious"><span class="mood-emoji">😬</span><span>{% if language == "hi" %}चिंतित{% else %}Anxious{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'angry' %} active{% endif %}" data-mood-pill="angry"><span class="mood-emoji">😤</span><span>{% if language == "hi" %}क्रोधित{% else %}Angry{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'stressed' %} active{% endif %}" data-mood-pill="stressed"><span class="mood-emoji">😣</span><span>{% if language == "hi" %}तनावग्रस्त{% else %}Stressed{% endif %}</span></button>
+                    <button type="button" class="mood-pill{% if today_mood == 'sad' %} active{% endif %}" data-mood-pill="sad"><span class="mood-emoji">😢</span><span>{% if language == "hi" %}उदास{% else %}Sad{% endif %}</span></button>
+                  </div>
+                  <input class="gratitude-input" type="text" name="mood_note" maxlength="300" placeholder="{% if language == 'hi' %}वैकल्पिक नोट{% else %}Optional note{% endif %}" />
+                  <button type="submit">{% if language == "hi" %}आज का मूड सेव करें{% else %}Save today's mood{% endif %}</button>
+                </form>
+              </div>
+
+              <div class="panel" id="gratitude" data-aos="fade-up" data-aos-delay="150">
+                <div class="gratitude-prompt-card">
+                  <div class="gratitude-prompt-title">{% if language == "hi" %}आज की कृतज्ञता{% else %}Today gratitude{% endif %}</div>
+                  <form method="post" class="quick-submit">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="gratitude_save">
+                    <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                    <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+                    <div class="gratitude-lines">
+                      <div class="gratitude-line"><span class="gratitude-num">1</span><input class="gratitude-input" type="text" name="g1" maxlength="300" value="{{ today_gratitude.item_1|default:'' }}" placeholder="{% if language == 'hi' %}मैं आभारी हूं...{% else %}I am grateful for...{% endif %}" /></div>
+                      <div class="gratitude-line"><span class="gratitude-num">2</span><input class="gratitude-input" type="text" name="g2" maxlength="300" value="{{ today_gratitude.item_2|default:'' }}" placeholder="{% if language == 'hi' %}मैं आभारी हूं...{% else %}I am grateful for...{% endif %}" /></div>
+                      <div class="gratitude-line"><span class="gratitude-num">3</span><input class="gratitude-input" type="text" name="g3" maxlength="300" value="{{ today_gratitude.item_3|default:'' }}" placeholder="{% if language == 'hi' %}मैं आभारी हूं...{% else %}I am grateful for...{% endif %}" /></div>
+                    </div>
+                    <button type="submit" style="margin-top:12px;">{% if language == "hi" %}कृतज्ञता सेव करें{% else %}Save gratitude{% endif %}</button>
+                  </form>
+                </div>
               </div>
             </div>
           {% else %}
@@ -8954,12 +9295,12 @@
       }
 
       function initShareAnswerBtn() {
-        const btn = document.querySelector('[data-share-answer]');
-        if (!btn) return;
+        const buttons = Array.from(document.querySelectorAll('[data-share-answer]'));
+        if (!buttons.length) return;
         const payloadNode = document.querySelector('#share-answer-payload');
         if (!payloadNode) return;
 
-        btn.addEventListener('click', async () => {
+        buttons.forEach((btn) => btn.addEventListener('click', async () => {
           let payload = null;
           try {
             payload = JSON.parse(payloadNode.textContent || '{}');
@@ -9032,6 +9373,102 @@
             btn.textContent = '✓ Link copied';
             window.setTimeout(() => { btn.textContent = orig; }, 1400);
           } catch (_) { /* dismissed or blocked */ }
+        }));
+      }
+
+      function initReplyActionBar() {
+        const bars = Array.from(document.querySelectorAll('[data-reply-actions]'));
+        if (!bars.length) {
+          return;
+        }
+
+        bars.forEach((bar) => {
+          const likeBtn = bar.querySelector('[data-reply-like]');
+          const dislikeBtn = bar.querySelector('[data-reply-dislike]');
+          const copyBtn = bar.querySelector('[data-reply-copy]');
+          const bubble = bar.closest('.assistant-stack');
+          const textNode = bubble ? bubble.querySelector('.reply-main .typing-text') : null;
+
+          if (likeBtn) {
+            likeBtn.addEventListener('click', () => {
+              likeBtn.classList.toggle('active');
+              if (dislikeBtn) {
+                dislikeBtn.classList.remove('active');
+              }
+            });
+          }
+          if (dislikeBtn) {
+            dislikeBtn.addEventListener('click', () => {
+              dislikeBtn.classList.toggle('active');
+              if (likeBtn) {
+                likeBtn.classList.remove('active');
+              }
+            });
+          }
+          if (copyBtn) {
+            copyBtn.addEventListener('click', async () => {
+              const text = textNode ? String(textNode.textContent || '').trim() : '';
+              if (!text) {
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(text);
+                copyBtn.classList.add('copied');
+                const original = copyBtn.textContent;
+                copyBtn.textContent = '✓ Copied';
+                window.setTimeout(() => {
+                  copyBtn.classList.remove('copied');
+                  copyBtn.textContent = original;
+                }, 1200);
+              } catch (_) {
+                // Clipboard may be blocked by browser permissions.
+              }
+            });
+          }
+        });
+      }
+
+      function initMoodCheckinStrip() {
+        const form = document.querySelector('[data-mood-form]');
+        if (!form) {
+          return;
+        }
+        const moodInput = form.querySelector('[data-mood-value]');
+        const pills = Array.from(form.querySelectorAll('[data-mood-pill]'));
+        if (!moodInput || !pills.length) {
+          return;
+        }
+        pills.forEach((pill) => {
+          pill.addEventListener('click', () => {
+            const mood = pill.getAttribute('data-mood-pill') || '';
+            moodInput.value = mood;
+            pills.forEach((node) => node.classList.remove('active'));
+            pill.classList.add('active');
+          });
+        });
+      }
+
+      function initVerseImmersiveCard() {
+        const openBtn = document.querySelector('[data-open-immersive-verse]');
+        const overlay = document.querySelector('[data-immersive-verse-overlay]');
+        const closeBtn = document.querySelector('[data-close-immersive-verse]');
+        if (!openBtn || !overlay || !closeBtn) {
+          return;
+        }
+        const close = () => overlay.classList.remove('open');
+        openBtn.addEventListener('click', () => {
+          overlay.classList.add('open');
+        });
+        closeBtn.addEventListener('click', close);
+        overlay.addEventListener('click', (event) => {
+          if (event.target === overlay) {
+            close();
+          }
+        });
+        window.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            close();
+          }
         });
       }
 
@@ -9603,6 +10040,9 @@
       initGitaReader();
       initLandingPage();
       initShareAnswerBtn();
+      initReplyActionBar();
+      initMoodCheckinStrip();
+      initVerseImmersiveCard();
       initGoogleSignIn();
       initGuestNavAuth();
       initNaamJapa();

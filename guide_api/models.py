@@ -1536,3 +1536,104 @@ class JapaDailyCompletion(models.Model):
 
     def __str__(self) -> str:
         return f"JapaDaily {self.commitment_id} {self.date} m={self.malas_completed}"
+
+
+class MoodCheckIn(models.Model):
+    """Daily mood check-in entry logged by the user."""
+
+    MOOD_HAPPY = "happy"
+    MOOD_GRATEFUL = "grateful"
+    MOOD_RELAXED = "relaxed"
+    MOOD_CONTENT = "content"
+    MOOD_EXCITED = "excited"
+    MOOD_TIRED = "tired"
+    MOOD_UNSURE = "unsure"
+    MOOD_BORED = "bored"
+    MOOD_ANXIOUS = "anxious"
+    MOOD_ANGRY = "angry"
+    MOOD_STRESSED = "stressed"
+    MOOD_SAD = "sad"
+
+    MOOD_CHOICES = [
+        (MOOD_HAPPY, "Happy 😊"),
+        (MOOD_GRATEFUL, "Grateful 🥰"),
+        (MOOD_RELAXED, "Relaxed 😌"),
+        (MOOD_CONTENT, "Content 🙂"),
+        (MOOD_EXCITED, "Excited 😛"),
+        (MOOD_TIRED, "Tired 😴"),
+        (MOOD_UNSURE, "Unsure 😕"),
+        (MOOD_BORED, "Bored 😑"),
+        (MOOD_ANXIOUS, "Anxious 😬"),
+        (MOOD_ANGRY, "Angry 😤"),
+        (MOOD_STRESSED, "Stressed 😣"),
+        (MOOD_SAD, "Sad 😢"),
+    ]
+
+    MOOD_EMOJI = {
+        MOOD_HAPPY: "😊",
+        MOOD_GRATEFUL: "🥰",
+        MOOD_RELAXED: "😌",
+        MOOD_CONTENT: "🙂",
+        MOOD_EXCITED: "😛",
+        MOOD_TIRED: "😴",
+        MOOD_UNSURE: "😕",
+        MOOD_BORED: "😑",
+        MOOD_ANXIOUS: "😬",
+        MOOD_ANGRY: "😤",
+        MOOD_STRESSED: "😣",
+        MOOD_SAD: "😢",
+    }
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="mood_checkins",
+    )
+    mood = models.CharField(max_length=16, choices=MOOD_CHOICES, db_index=True)
+    note = models.TextField(blank=True)
+    date = models.DateField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["user", "date"], name="mood_user_date_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Mood {self.user_id} {self.date}: {self.mood}"
+
+    @property
+    def emoji(self) -> str:
+        return self.MOOD_EMOJI.get(self.mood, "")
+
+
+class GratitudeEntry(models.Model):
+    """Three-things-grateful journal entry logged by the user."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="gratitude_entries",
+    )
+    item_1 = models.CharField(max_length=300, blank=True)
+    item_2 = models.CharField(max_length=300, blank=True)
+    item_3 = models.CharField(max_length=300, blank=True)
+    date = models.DateField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date"]
+        indexes = [
+            models.Index(fields=["user", "date"], name="gratitude_user_date_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "date"], name="unique_gratitude_user_date"),
+        ]
+
+    def __str__(self) -> str:
+        return f"Gratitude {self.user_id} {self.date}"
+
+    def items(self) -> list[str]:
+        return [i for i in [self.item_1, self.item_2, self.item_3] if i.strip()]

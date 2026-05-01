@@ -54,6 +54,8 @@ from guide_api.models import (
     GrowthEvent,
     GuestChatIdentity,
     Message,
+    MoodCheckIn,
+    GratitudeEntry,
     NotificationDevice,
     RequestQuotaSettings,
     ResponseFeedback,
@@ -5777,6 +5779,118 @@ class CommunityWallView(TemplateView):
         return context
 
 
+class MoodCheckInView(APIView):
+    """Create today's mood check-in or read this week's entries for the user."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return the last 30 mood entries for the authenticated user."""
+        entries = MoodCheckIn.objects.filter(user=request.user).order_by("-date")[:30]
+        today = timezone.localdate()
+        today_entry = next((e for e in entries if e.date == today), None)
+        return Response({
+            "today": {
+                "mood": today_entry.mood if today_entry else None,
+                "emoji": today_entry.emoji if today_entry else None,
+                "note": today_entry.note if today_entry else "",
+            },
+            "history": [
+                {
+                    "date": str(e.date),
+                    "mood": e.mood,
+                    "emoji": e.emoji,
+                    "note": e.note,
+                }
+                for e in entries
+            ],
+        })
+
+    def post(self, request):
+        """Log or update today's mood check-in."""
+        mood = str(request.data.get("mood", "")).strip()
+        valid_moods = {c[0] for c in MoodCheckIn.MOOD_CHOICES}
+        if mood not in valid_moods:
+            return _error_response(
+                message=f"mood must be one of: {', '.join(sorted(valid_moods))}",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="invalid_mood",
+            )
+        note = str(request.data.get("note", "")).strip()[:300]
+        today = timezone.localdate()
+        entry, created = MoodCheckIn.objects.update_or_create(
+            user=request.user,
+            date=today,
+            defaults={"mood": mood, "note": note},
+        )
+        return Response(
+            {
+                "date": str(entry.date),
+                "mood": entry.mood,
+                "emoji": entry.emoji,
+                "note": entry.note,
+                "created": created,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class GratitudeEntryView(APIView):
+    """Create or retrieve daily gratitude entries (three things grateful)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """Return today's gratitude entry and last 7 days history."""
+        entries = GratitudeEntry.objects.filter(user=request.user).order_by("-date")[:7]
+        today = timezone.localdate()
+        today_entry = next((e for e in entries if e.date == today), None)
+        return Response({
+            "today": {
+                "items": today_entry.items() if today_entry else [],
+                "item_1": today_entry.item_1 if today_entry else "",
+                "item_2": today_entry.item_2 if today_entry else "",
+                "item_3": today_entry.item_3 if today_entry else "",
+            },
+            "history": [
+                {
+                    "date": str(e.date),
+                    "items": e.items(),
+                }
+                for e in entries
+            ],
+        })
+
+    def post(self, request):
+        """Save or update today's three-item gratitude journal."""
+        item_1 = str(request.data.get("item_1", "")).strip()[:300]
+        item_2 = str(request.data.get("item_2", "")).strip()[:300]
+        item_3 = str(request.data.get("item_3", "")).strip()[:300]
+        if not any([item_1, item_2, item_3]):
+            return _error_response(
+                message="At least one gratitude item is required.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="empty_gratitude",
+            )
+        today = timezone.localdate()
+        entry, created = GratitudeEntry.objects.update_or_create(
+            user=request.user,
+            date=today,
+            defaults={"item_1": item_1, "item_2": item_2, "item_3": item_3},
+        )
+        return Response(
+            {
+                "date": str(entry.date),
+                "items": entry.items(),
+                "item_1": entry.item_1,
+                "item_2": entry.item_2,
+                "item_3": entry.item_3,
+                "created": created,
+            },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
 class ChatUIView(View):
     """Simple server-rendered page for manual API testing."""
 
@@ -5923,6 +6037,9 @@ class ChatUIView(View):
                 .first()
             )
         context.setdefault("latest_billing_record", latest_billing_record)
+        context.setdefault("user_daily_streak", self._get_user_daily_streak(request))
+        context.setdefault("today_mood", self._get_today_mood(request))
+        context.setdefault("today_gratitude", self._get_today_gratitude(request))
         response = render(request, self.template_name, context)
         _attach_web_audience_cookie(request, response)
         return response
@@ -6005,6 +6122,86 @@ class ChatUIView(View):
             "allowed": True,
             "snapshot": self._guest_quota_snapshot(request),
         }
+
+    # ── Mood / Gratitude helpers ──────────────────────────────────────────────
+
+    def _get_user_daily_streak(self, request) -> int:
+        """Return the authenticated user's current daily streak (0 for guests)."""
+        user = self._chat_ui_authenticated_user(request)
+        if user is None:
+            return 0
+        try:
+            return user.engagement_profile.daily_streak
+        except UserEngagementProfile.DoesNotExist:
+            return 0
+
+    def _get_today_mood(self, request) -> str:
+        """Return today's mood slug for the authenticated user, or empty string."""
+        user = self._chat_ui_authenticated_user(request)
+        if user is None:
+            return ""
+        today = timezone.localdate()
+        entry = MoodCheckIn.objects.filter(user=user, date=today).order_by("-created_at").first()
+        return entry.mood if entry else ""
+
+    def _get_today_gratitude(self, request) -> "GratitudeEntry | None":
+        """Return today's gratitude entry for the authenticated user, or None."""
+        user = self._chat_ui_authenticated_user(request)
+        if user is None:
+            return None
+        today = timezone.localdate()
+        return GratitudeEntry.objects.filter(user=user, date=today).first()
+
+    def _handle_mood_checkin(self, request):
+        """Save a mood check-in for today and re-render the chat page."""
+        authenticated_username = self._chat_ui_authenticated_username(request)
+        language = self._chat_ui_language(request.POST.get("language", "en"))
+        mode = request.POST.get("mode", "simple")
+        if not authenticated_username:
+            return self._render_chat_ui(request, {
+                "response_data": None, "error": "", "feedback_message": "",
+                "mode": mode, "language": language,
+                "user_id": "guest", "is_guest_chat": True,
+                "starter_prompts": self._starter_prompts(),
+                "recent_questions": self._recent_questions(request),
+                "follow_up_prompts": [], "conversations": [],
+            })
+        user = self._chat_ui_authenticated_user(request)
+        mood = request.POST.get("mood", "").strip()
+        valid_moods = {c[0] for c in MoodCheckIn.MOOD_CHOICES}
+        if mood in valid_moods:
+            today = timezone.localdate()
+            MoodCheckIn.objects.update_or_create(
+                user=user, date=today,
+                defaults={"mood": mood, "note": request.POST.get("mood_note", "").strip()[:300]},
+            )
+        return self.get(request)
+
+    def _handle_gratitude_save(self, request):
+        """Save today's gratitude journal and re-render."""
+        authenticated_username = self._chat_ui_authenticated_username(request)
+        language = self._chat_ui_language(request.POST.get("language", "en"))
+        mode = request.POST.get("mode", "simple")
+        if not authenticated_username:
+            return self._render_chat_ui(request, {
+                "response_data": None, "error": "", "feedback_message": "",
+                "mode": mode, "language": language,
+                "user_id": "guest", "is_guest_chat": True,
+                "starter_prompts": self._starter_prompts(),
+                "recent_questions": self._recent_questions(request),
+                "follow_up_prompts": [], "conversations": [],
+            })
+        user = self._chat_ui_authenticated_user(request)
+        today = timezone.localdate()
+        GratitudeEntry.objects.update_or_create(
+            user=user, date=today,
+            defaults={
+                "item_1": request.POST.get("g1", "").strip()[:300],
+                "item_2": request.POST.get("g2", "").strip()[:300],
+                "item_3": request.POST.get("g3", "").strip()[:300],
+            },
+        )
+        return self.get(request)
 
     def get(self, request):
         """Render empty chat form."""
@@ -6116,6 +6313,9 @@ class ChatUIView(View):
                 "mode": mode,
                 "language": language,
                 "message": prefill_message,
+                "user_daily_streak": self._get_user_daily_streak(request),
+                "today_mood": self._get_today_mood(request),
+                "today_gratitude": self._get_today_gratitude(request),
             },
         )
 
@@ -6143,6 +6343,10 @@ class ChatUIView(View):
             return self._handle_save_reflection(request)
         if action == "delete_conversation":
             return self._handle_delete_conversation(request)
+        if action == "mood_checkin":
+            return self._handle_mood_checkin(request)
+        if action == "gratitude_save":
+            return self._handle_gratitude_save(request)
 
         starter_prompts = self._starter_prompts()
         recent_questions = self._recent_questions(request)
