@@ -168,7 +168,13 @@ def _postgres_db_from_url(url: str) -> dict:
         "PASSWORD": unquote(parsed.password or ""),
         "HOST": parsed.hostname or "localhost",
         "PORT": str(parsed.port or "5432"),
-        "CONN_MAX_AGE": 600,
+        # Keep persistent connections but cap lifetime so Neon's pooler
+        # can reclaim idle sockets between requests.
+        "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "60")),
+        "CONN_HEALTH_CHECKS": True,
+        "OPTIONS": {
+            "sslmode": "require",
+        },
     }
 
 
@@ -191,14 +197,11 @@ _redis_url = os.getenv("REDIS_URL", "").strip()
 if _redis_url:
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "BACKEND": "django_redis.cache.RedisCache",
             "LOCATION": _redis_url,
             "OPTIONS": {
                 "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                # Connection pool: one socket per gevent greenlet is fine; keep
-                # the pool small so we do not exhaust Redis connection limit.
                 "CONNECTION_POOL_KWARGS": {"max_connections": 50},
-                # Fail silently on Redis errors so a cache miss never crashes a request.
                 "IGNORE_EXCEPTIONS": True,
             },
         }
