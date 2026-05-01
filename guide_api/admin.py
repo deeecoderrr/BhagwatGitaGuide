@@ -91,9 +91,21 @@ class ConversationAdmin(admin.ModelAdmin):
 class ResponseFeedbackAdmin(admin.ModelAdmin):
     """Feedback dashboard for response quality signals."""
 
-    list_display = ("id", "user_id", "helpful", "response_mode", "created_at")
-    list_filter = ("helpful", "response_mode", "mode")
-    search_fields = ("user_id", "message", "note")
+    list_display = (
+        "id",
+        "user_id",
+        "helpful",
+        "issue_bucket",
+        "primary_verse_ref",
+        "surface",
+        "review_status",
+        "response_mode",
+        "created_at",
+    )
+    list_filter = ("helpful", "issue_bucket", "surface", "review_status", "response_mode", "mode")
+    search_fields = ("user_id", "message", "note", "response_preview", "primary_verse_ref")
+    readonly_fields = ("created_at", "response_context")
+    actions = ("mark_feedback_reviewed", "mark_feedback_actioned", "mark_feedback_ignored")
 
 
 @admin.register(UserSubscription)

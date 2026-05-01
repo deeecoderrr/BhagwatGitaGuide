@@ -4968,6 +4968,10 @@ class FeedbackView(APIView):
                 "helpful": entry.helpful,
                 "mode": entry.mode,
                 "response_mode": entry.response_mode,
+                "surface": entry.surface,
+                "primary_verse_ref": entry.primary_verse_ref,
+                "issue_bucket": entry.issue_bucket,
+                "review_status": entry.review_status,
                 "note": entry.note,
                 "created_at": entry.created_at.isoformat(),
             }
@@ -4993,9 +4997,14 @@ class FeedbackView(APIView):
         response_mode = (
             str(request.data.get("response_mode", "fallback")).strip()
         )
+        surface = str(request.data.get("surface", "api")).strip()
         helpful = request.data.get("helpful")
         note = str(request.data.get("note", "")).strip()
+        response_preview = str(request.data.get("response_preview", "")).strip()
+        issue_bucket = str(request.data.get("issue_bucket", "")).strip().lower()
         conversation_id = request.data.get("conversation_id")
+        raw_verse_refs = request.data.get("verse_references", [])
+        raw_response_context = request.data.get("response_context", {})
 
         if helpful in [True, False]:
             parsed_helpful = helpful
@@ -5014,6 +5023,51 @@ class FeedbackView(APIView):
             mode = "simple"
         if response_mode not in {"llm", "fallback"}:
             response_mode = "fallback"
+        if surface not in {"api", "mobile_ask", "web_chat_ui"}:
+            surface = "api"
+
+        if isinstance(raw_verse_refs, str):
+            try:
+                parsed_candidate = json.loads(raw_verse_refs)
+            except json.JSONDecodeError:
+                parsed_candidate = [raw_verse_refs]
+        else:
+            parsed_candidate = raw_verse_refs
+        verse_references = []
+        if isinstance(parsed_candidate, list):
+            seen_refs = set()
+            for ref in parsed_candidate:
+                normalized = str(ref or "").strip()[:16]
+                if not normalized or normalized in seen_refs:
+                    continue
+                verse_references.append(normalized)
+                seen_refs.add(normalized)
+                if len(verse_references) >= 12:
+                    break
+
+        if isinstance(raw_response_context, dict):
+            response_context = raw_response_context
+        else:
+            response_context = {}
+
+        valid_issue_buckets = {
+            "positive",
+            "ungrounded",
+            "thin_answer",
+            "generic_answer",
+            "wrong_verse",
+            "unclear",
+            "other",
+        }
+        if issue_bucket not in valid_issue_buckets:
+            if parsed_helpful:
+                issue_bucket = "positive"
+            elif not verse_references:
+                issue_bucket = "ungrounded"
+            elif len(response_preview) < 220:
+                issue_bucket = "thin_answer"
+            else:
+                issue_bucket = "unclear"
 
         conversation = None
         if conversation_id:
@@ -5028,11 +5082,24 @@ class FeedbackView(APIView):
             message=message,
             mode=mode,
             response_mode=response_mode,
+            surface=surface,
             helpful=parsed_helpful,
             note=note,
+            response_preview=response_preview,
+            primary_verse_ref=(verse_references[0] if verse_references else ""),
+            issue_bucket=issue_bucket,
+            response_context={
+                **response_context,
+                "verse_references": verse_references,
+            },
         )
         return Response(
-            {"id": entry.id, "status": "saved"},
+            {
+                "id": entry.id,
+                "status": "saved",
+                "issue_bucket": entry.issue_bucket,
+                "primary_verse_ref": entry.primary_verse_ref,
+            },
             status=status.HTTP_201_CREATED,
         )
 
