@@ -259,7 +259,7 @@ class BadAnswerReviewQueueView(StaffRequiredMixin, View):
     ignored directly from the table using HTMX-friendly inline forms.
     """
 
-    template_name = "staff/feedback_review_queue.html"
+    template_name = "guide_api/staff_feedback_review_queue.html"
     PAGE_SIZE = 50
 
     # ------------------------------------------------------------------ #

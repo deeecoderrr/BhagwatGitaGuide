@@ -5428,3 +5428,278 @@ class GitaPathApiTests(APITestCase):
         self.assertEqual(ab.status_code, status.HTTP_200_OK)
         self.assertTrue(ab.data["deleted"])
         self.assertFalse(UserGitaSequenceJourney.objects.filter(user=self.user).exists())
+
+
+# ---------------------------------------------------------------------------
+# Staff Feedback Review Queue — API + Web
+# ---------------------------------------------------------------------------
+
+
+class StaffFeedbackReviewAPITests(APITestCase):
+    """Tests for the staff-only /api/v1/staff/feedback/review-queue/ endpoint."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.staff_user = user_model.objects.create_user(
+            "rf-staff-api",
+            "rf-staff@test.example",
+            "test-pass-rfapi",
+            is_staff=True,
+        )
+        self.normal_user = user_model.objects.create_user(
+            "rf-normal-api",
+            "rf-normal@test.example",
+            "test-pass-rfapi",
+            is_staff=False,
+        )
+        # Create a mix of positive and negative feedback rows
+        self.neg1 = ResponseFeedback.objects.create(
+            user_id=str(self.normal_user.pk),
+            helpful=False,
+            message="What is dharma?",
+            response_preview="Dharma means duty.",
+            issue_bucket="thin_answer",
+            primary_verse_ref="2.47",
+            surface=ResponseFeedback.SURFACE_MOBILE_ASK,
+            review_status=ResponseFeedback.REVIEW_NEW,
+        )
+        self.neg2 = ResponseFeedback.objects.create(
+            user_id=str(self.normal_user.pk),
+            helpful=False,
+            message="Explain karma",
+            response_preview="Karma is action.",
+            issue_bucket="ungrounded",
+            primary_verse_ref="3.5",
+            surface=ResponseFeedback.SURFACE_MOBILE_ASK,
+            review_status=ResponseFeedback.REVIEW_NEW,
+        )
+        self.pos1 = ResponseFeedback.objects.create(
+            user_id=str(self.normal_user.pk),
+            helpful=True,
+            message="Great answer",
+            issue_bucket="positive",
+            review_status=ResponseFeedback.REVIEW_REVIEWED,
+        )
+
+    # -- Access control --
+
+    def test_anonymous_rejected(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.get("/api/v1/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_non_staff_rejected(self):
+        self.client.force_authenticate(user=self.normal_user)
+        response = self.client.get("/api/v1/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_staff_gets_list(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get("/api/v1/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertIn("stats", response.data)
+        self.assertIn("count", response.data)
+
+    # -- Filtering --
+
+    def test_filter_helpful_false(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get(
+            "/api/v1/staff/feedback/review-queue/?helpful=false"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [r["id"] for r in response.data["results"]]
+        self.assertIn(self.neg1.id, ids)
+        self.assertIn(self.neg2.id, ids)
+        self.assertNotIn(self.pos1.id, ids)
+
+    def test_filter_issue_bucket(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get(
+            "/api/v1/staff/feedback/review-queue/?issue_bucket=thin_answer"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [r["id"] for r in response.data["results"]]
+        self.assertIn(self.neg1.id, ids)
+        self.assertNotIn(self.neg2.id, ids)
+
+    def test_filter_review_status(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get(
+            "/api/v1/staff/feedback/review-queue/?review_status=reviewed"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [r["id"] for r in response.data["results"]]
+        self.assertIn(self.pos1.id, ids)
+        self.assertNotIn(self.neg1.id, ids)
+
+    def test_filter_verse(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get(
+            "/api/v1/staff/feedback/review-queue/?verse=2.47"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [r["id"] for r in response.data["results"]]
+        self.assertIn(self.neg1.id, ids)
+        self.assertNotIn(self.neg2.id, ids)
+
+    def test_stats_includes_bucket_counts(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get("/api/v1/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        stats = response.data["stats"]
+        self.assertIn("bucket_counts", stats)
+        self.assertIn("pending_review", stats)
+        self.assertGreaterEqual(stats["pending_review"], 2)
+
+    # -- Pagination --
+
+    def test_pagination_limit_offset(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get(
+            "/api/v1/staff/feedback/review-queue/?limit=1&offset=0"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertIsNotNone(response.data["next_offset"])
+
+    def test_pagination_invalid_params(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.get(
+            "/api/v1/staff/feedback/review-queue/?limit=abc&offset=xyz"
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # -- PATCH --
+
+    def test_patch_updates_review_status(self):
+        self.client.force_authenticate(user=self.staff_user)
+        url = f"/api/v1/staff/feedback/review-queue/{self.neg1.id}/"
+        response = self.client.patch(url, {"review_status": "reviewed"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["review_status"], "reviewed")
+        self.neg1.refresh_from_db()
+        self.assertEqual(self.neg1.review_status, ResponseFeedback.REVIEW_REVIEWED)
+
+    def test_patch_also_updates_note(self):
+        self.client.force_authenticate(user=self.staff_user)
+        url = f"/api/v1/staff/feedback/review-queue/{self.neg2.id}/"
+        response = self.client.patch(
+            url,
+            {"review_status": "actioned", "note": "Fixed prompt for dharma questions."},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.neg2.refresh_from_db()
+        self.assertEqual(self.neg2.review_status, ResponseFeedback.REVIEW_ACTIONED)
+        self.assertIn("Fixed prompt", self.neg2.note)
+
+    def test_patch_invalid_status_rejected(self):
+        self.client.force_authenticate(user=self.staff_user)
+        url = f"/api/v1/staff/feedback/review-queue/{self.neg1.id}/"
+        response = self.client.patch(url, {"review_status": "bogus"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_patch_missing_entry_returns_404(self):
+        self.client.force_authenticate(user=self.staff_user)
+        response = self.client.patch(
+            "/api/v1/staff/feedback/review-queue/999999/",
+            {"review_status": "ignored"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_non_staff_patch_rejected(self):
+        self.client.force_authenticate(user=self.normal_user)
+        url = f"/api/v1/staff/feedback/review-queue/{self.neg1.id}/"
+        response = self.client.patch(url, {"review_status": "reviewed"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class StaffFeedbackReviewWebTests(TestCase):
+    """Tests for the staff web dashboard at /staff/feedback/review-queue/."""
+
+    def setUp(self):
+        user_model = get_user_model()
+        self.staff_user = user_model.objects.create_user(
+            "rf-staff-web",
+            "rf-staff-web@test.example",
+            "test-pass-rfweb",
+            is_staff=True,
+        )
+        self.normal_user = user_model.objects.create_user(
+            "rf-normal-web",
+            "rf-normal-web@test.example",
+            "test-pass-rfweb",
+            is_staff=False,
+        )
+        self.entry = ResponseFeedback.objects.create(
+            user_id=str(self.normal_user.pk),
+            helpful=False,
+            message="Who is Arjuna?",
+            response_preview="Arjuna is the warrior.",
+            issue_bucket="thin_answer",
+            primary_verse_ref="1.1",
+            surface=ResponseFeedback.SURFACE_MOBILE_ASK,
+            review_status=ResponseFeedback.REVIEW_NEW,
+        )
+
+    def test_anonymous_redirects_to_login(self):
+        client = Client()
+        response = client.get("/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/admin/login/", response.url)
+
+    def test_non_staff_forbidden(self):
+        client = Client()
+        client.force_login(self.normal_user)
+        response = client.get("/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_staff_gets_200(self):
+        client = Client()
+        client.force_login(self.staff_user)
+        response = client.get("/staff/feedback/review-queue/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Review Queue")
+
+    def test_filter_by_bucket(self):
+        client = Client()
+        client.force_login(self.staff_user)
+        response = client.get(
+            "/staff/feedback/review-queue/?issue_bucket=thin_answer&helpful=false&review_status="
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "thin_answer")
+
+    def test_post_updates_status(self):
+        client = Client()
+        client.force_login(self.staff_user)
+        response = client.post(
+            "/staff/feedback/review-queue/",
+            {"entry_id": self.entry.id, "review_status": "actioned"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.review_status, ResponseFeedback.REVIEW_ACTIONED)
+
+    def test_post_invalid_status_does_not_update(self):
+        client = Client()
+        client.force_login(self.staff_user)
+        response = client.post(
+            "/staff/feedback/review-queue/",
+            {"entry_id": self.entry.id, "review_status": "invalid_xyz"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.entry.refresh_from_db()
+        self.assertEqual(self.entry.review_status, ResponseFeedback.REVIEW_NEW)
+
+    def test_post_missing_entry_id_does_not_crash(self):
+        client = Client()
+        client.force_login(self.staff_user)
+        response = client.post(
+            "/staff/feedback/review-queue/",
+            {"review_status": "reviewed"},  # no entry_id
+        )
+        self.assertEqual(response.status_code, 302)

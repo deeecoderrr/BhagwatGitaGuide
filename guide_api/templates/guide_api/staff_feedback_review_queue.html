@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback Review Queue · Staff</title>
+  <style>
+    :root {
+      --void: #050a12;
+      --panel: rgba(10, 16, 32, 0.96);
+      --line: rgba(121, 217, 239, 0.16);
+      --gold: #e8c872;
+      --ice: #c5e8f3;
+      --muted: rgba(220, 230, 255, 0.7);
+      --text: #f6f2e8;
+      --ok: #7ddea0;
+      --warn: #e8d8a0;
+      --err: #e8a8a0;
+      --radius: 12px;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(60, 100, 180, 0.12), transparent 50%),
+        radial-gradient(ellipse 60% 40% at 100% 20%, rgba(200, 150, 80, 0.08), transparent 45%),
+        var(--void);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    a { color: var(--ice); text-decoration: none; }
+    a:hover { color: #fff; text-decoration: underline; }
+    .wrap { max-width: 1400px; margin: 0 auto; padding: 20px clamp(12px, 3vw, 28px) 72px; }
+
+    /* Masthead */
+    .masthead {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+      margin-bottom: 22px;
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .masthead h1 {
+      margin: 0;
+      font-size: clamp(20px, 2.8vw, 26px);
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      flex: 1 0 auto;
+    }
+    .masthead-links { display: flex; gap: 14px; font-size: 13px; }
+
+    /* Stats strip */
+    .stats-strip {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .stat-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 9999px;
+      padding: 6px 14px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stat-pill strong { color: var(--gold); font-size: 15px; }
+
+    /* Bucket breakdown */
+    .buckets {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .bucket-badge {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(200,150,80,0.25);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      text-decoration: none;
+      color: var(--warn);
+    }
+    .bucket-badge:hover, .bucket-badge.active { background: rgba(200,150,80,0.18); color: #fff; border-color: var(--gold); }
+
+    /* Filter bar */
+    .filter-bar {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 18px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+    .filter-bar label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+    .filter-bar select,
+    .filter-bar input[type="text"] {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(121,217,239,0.2);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 13px;
+      padding: 6px 10px;
+      min-width: 140px;
+    }
+    .filter-bar select option { background: #0a1020; }
+    .btn {
+      background: linear-gradient(135deg, rgba(60,100,180,0.35), rgba(40,70,130,0.35));
+      border: 1px solid rgba(121,217,239,0.3);
+      border-radius: 8px;
+      color: var(--ice);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 7px 16px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn:hover { border-color: var(--ice); background: rgba(121,217,239,0.12); }
+    .btn-reset { background: transparent; border-color: rgba(255,255,255,0.12); color: var(--muted); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 6px; }
+
+    /* Flash messages */
+    .messages { list-style: none; margin: 0 0 16px; padding: 0; }
+    .messages li {
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .messages .success { background: rgba(125,222,160,0.15); border: 1px solid rgba(125,222,160,0.3); color: var(--ok); }
+    .messages .error { background: rgba(232,168,160,0.15); border: 1px solid rgba(232,168,160,0.3); color: var(--err); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      text-align: left;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--line);
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(121,217,239,0.06);
+      vertical-align: top;
+      font-size: 13px;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Badge helpers */
+    .badge {
+      display: inline-block;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-new { background: rgba(232,200,114,0.18); color: var(--gold); }
+    .badge-reviewed { background: rgba(121,217,239,0.15); color: var(--ice); }
+    .badge-actioned { background: rgba(125,222,160,0.15); color: var(--ok); }
+    .badge-ignored { background: rgba(255,255,255,0.06); color: var(--muted); }
+    .badge-ungrounded { background: rgba(232,168,160,0.18); color: var(--err); }
+    .badge-thin_answer { background: rgba(200,150,80,0.18); color: var(--warn); }
+    .badge-generic_answer { background: rgba(200,150,80,0.14); color: var(--warn); }
+    .badge-wrong_verse { background: rgba(220,100,100,0.18); color: #f0b0b0; }
+    .badge-unclear { background: rgba(121,150,217,0.18); color: #b0c0f0; }
+    .badge-positive { background: rgba(125,222,160,0.18); color: var(--ok); }
+    .badge-other { background: rgba(255,255,255,0.07); color: var(--muted); }
+
+    /* Preview text */
+    .preview-text {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      max-width: 320px;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+    .msg-text {
+      font-size: 12px;
+      max-width: 220px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .verse-chip {
+      display: inline-block;
+      background: rgba(232,200,114,0.12);
+      border: 1px solid rgba(232,200,114,0.2);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      color: var(--gold);
+    }
+    .surface-chip {
+      display: inline-block;
+      background: rgba(121,217,239,0.08);
+      border: 1px solid rgba(121,217,239,0.15);
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 11px;
+      color: var(--ice);
+    }
+
+    /* Status update form */
+    .status-form { display: flex; gap: 6px; align-items: center; }
+    .status-form select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(121,217,239,0.2);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+    .status-form select option { background: #0a1020; }
+    .btn-triage {
+      background: rgba(121,217,239,0.1);
+      border: 1px solid rgba(121,217,239,0.25);
+      border-radius: 6px;
+      color: var(--ice);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 4px 10px;
+    }
+    .btn-triage:hover { background: rgba(121,217,239,0.2); }
+
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 56px 24px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* Pagination */
+    .pager {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+    .pager a, .pager span {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 32px;
+      height: 32px;
+      padding: 0 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      border: 1px solid var(--line);
+      text-decoration: none;
+    }
+    .pager a { color: var(--ice); }
+    .pager a:hover { background: rgba(121,217,239,0.1); }
+    .pager span.current { background: rgba(121,217,239,0.15); color: #fff; border-color: rgba(121,217,239,0.3); }
+    .pager span.dots { border: none; color: var(--muted); }
+
+    .ts { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .conv-link { font-size: 11px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Masthead -->
+  <div class="masthead">
+    <h1>⚠️ Bad Answer Review Queue</h1>
+    <div class="masthead-links">
+      <a href="/staff/analytics/">Analytics</a>
+      <a href="/staff/course-studio/">Course Studio</a>
+      <a href="/admin/guide_api/responsefeedback/">Admin</a>
+    </div>
+  </div>
+
+  <!-- Flash messages -->
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+    <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <!-- Stats strip -->
+  <div class="stats-strip">
+    <div class="stat-pill">Pending review <strong>{{ pending_new }}</strong></div>
+    {% for bs in bucket_stats %}
+    {% if bs.count %}
+    <div class="stat-pill" title="{{ bs.bucket }}">
+      <span class="badge badge-{{ bs.bucket }}">{{ bs.bucket }}</span>
+      <strong>{{ bs.count }}</strong>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- Filter bar -->
+  <form class="filter-bar" method="get" action="">
+    <label>
+      Helpful?
+      <select name="helpful">
+        <option value="false" {% if filter_helpful == "false" %}selected{% endif %}>Negative only</option>
+        <option value="true" {% if filter_helpful == "true" %}selected{% endif %}>Positive only</option>
+        <option value="all" {% if filter_helpful == "all" %}selected{% endif %}>All</option>
+      </select>
+    </label>
+    <label>
+      Status
+      <select name="review_status">
+        <option value="">All</option>
+        {% for s in review_statuses %}
+        <option value="{{ s }}" {% if filter_status == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Issue bucket
+      <select name="issue_bucket">
+        <option value="">All</option>
+        {% for b in buckets %}
+        <option value="{{ b }}" {% if filter_bucket == b %}selected{% endif %}>{{ b }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Surface
+      <select name="surface">
+        <option value="">All</option>
+        {% for s in surfaces %}
+        <option value="{{ s }}" {% if filter_surface == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>
+      Verse
+      <input type="text" name="verse" value="{{ filter_verse }}" placeholder="e.g. 2.47" maxlength="16">
+    </label>
+    <button type="submit" class="btn">Filter</button>
+    <a href="?" class="btn btn-reset">Reset</a>
+  </form>
+
+  <!-- Results info -->
+  <p style="color:var(--muted);font-size:12px;margin:0 0 12px;">
+    {{ total }} row{{ total|pluralize }} &nbsp;·&nbsp;
+    Page {{ page }} of {{ total_pages }}
+  </p>
+
+  <!-- Table -->
+  {% if rows %}
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Bucket</th>
+          <th>Verse</th>
+          <th>Surface</th>
+          <th>User query</th>
+          <th>Response preview</th>
+          <th>Created</th>
+          <th>Conv</th>
+          <th>Status</th>
+          <th>Update</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td style="white-space:nowrap">
+            <a href="/admin/guide_api/responsefeedback/{{ row.id }}/change/" class="ts">#{{ row.id }}</a>
+          </td>
+          <td>
+            {% if row.issue_bucket %}
+            <span class="badge badge-{{ row.issue_bucket }}">{{ row.issue_bucket }}</span>
+            {% else %}
+            <span class="badge badge-other">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if row.primary_verse_ref %}
+            <span class="verse-chip">{{ row.primary_verse_ref }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if row.surface %}
+            <span class="surface-chip">{{ row.surface }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if row.message %}
+            <div class="msg-text" title="{{ row.message }}">{{ row.message }}</div>
+            {% else %}<span style="color:var(--muted)">—</span>{% endif %}
+          </td>
+          <td>
+            {% if row.response_preview %}
+            <div class="preview-text">{{ row.response_preview }}</div>
+            {% else %}<span style="color:var(--muted)">—</span>{% endif %}
+          </td>
+          <td class="ts">{{ row.created_at|date:"M d, H:i" }}</td>
+          <td>
+            {% if row.conversation_id %}
+            <a href="/admin/guide_api/conversation/{{ row.conversation_id }}/change/" class="conv-link" title="Open conversation">conv →</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-{{ row.review_status }}">{{ row.review_status }}</span>
+          </td>
+          <td>
+            <form class="status-form" method="post"
+                  action="?{{ request.GET.urlencode }}">
+              {% csrf_token %}
+              <input type="hidden" name="entry_id" value="{{ row.id }}">
+              <select name="review_status">
+                <option value="new" {% if row.review_status == "new" %}selected{% endif %}>new</option>
+                <option value="reviewed" {% if row.review_status == "reviewed" %}selected{% endif %}>reviewed</option>
+                <option value="actioned" {% if row.review_status == "actioned" %}selected{% endif %}>actioned</option>
+                <option value="ignored" {% if row.review_status == "ignored" %}selected{% endif %}>ignored</option>
+              </select>
+              <button type="submit" class="btn-triage">Save</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty">
+    <div class="empty-icon">✅</div>
+    <p>No rows match the current filters.</p>
+    <a href="?" class="btn">Clear filters</a>
+  </div>
+  {% endif %}
+
+  <!-- Pagination -->
+  {% if total_pages > 1 %}
+  <div class="pager">
+    {% if page > 1 %}
+    <a href="?{% if filter_helpful %}helpful={{ filter_helpful }}&{% endif %}{% if filter_status %}review_status={{ filter_status }}&{% endif %}{% if filter_bucket %}issue_bucket={{ filter_bucket }}&{% endif %}{% if filter_surface %}surface={{ filter_surface }}&{% endif %}{% if filter_verse %}verse={{ filter_verse }}&{% endif %}page={{ page|add:"-1" }}">&lsaquo; Prev</a>
+    {% endif %}
+    {% for p in page_range %}
+    {% if p == page %}
+    <span class="current">{{ p }}</span>
+    {% elif p == 1 or p == total_pages or p >= page|add:"-2" and p <= page|add:"2" %}
+    <a href="?{% if filter_helpful %}helpful={{ filter_helpful }}&{% endif %}{% if filter_status %}review_status={{ filter_status }}&{% endif %}{% if filter_bucket %}issue_bucket={{ filter_bucket }}&{% endif %}{% if filter_surface %}surface={{ filter_surface }}&{% endif %}{% if filter_verse %}verse={{ filter_verse }}&{% endif %}page={{ p }}">{{ p }}</a>
+    {% endif %}
+    {% endfor %}
+    {% if page < total_pages %}
+    <a href="?{% if filter_helpful %}helpful={{ filter_helpful }}&{% endif %}{% if filter_status %}review_status={{ filter_status }}&{% endif %}{% if filter_bucket %}issue_bucket={{ filter_bucket }}&{% endif %}{% if filter_surface %}surface={{ filter_surface }}&{% endif %}{% if filter_verse %}verse={{ filter_verse }}&{% endif %}page={{ page|add:"1" }}">Next &rsaquo;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+</body>
+</html>
