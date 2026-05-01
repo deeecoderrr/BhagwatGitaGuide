@@ -5191,10 +5191,21 @@ class StaffFeedbackReviewView(APIView):
             "created_at": entry.created_at.isoformat(),
         }
 
-    def get(self, request):
+    def get(self, request, pk: int | None = None):
         denied = self._check_staff(request)
         if denied:
             return denied
+
+        qs = ResponseFeedback.objects.select_related("conversation").order_by("-created_at")
+        if pk is not None:
+            entry = qs.filter(pk=pk).first()
+            if entry is None:
+                return _error_response(
+                    message="Feedback entry not found.",
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    code="not_found",
+                )
+            return Response(self._row_dict(entry))
 
         try:
             limit, offset = _pagination_params(request)
@@ -5205,8 +5216,6 @@ class StaffFeedbackReviewView(APIView):
                 code="invalid_pagination",
             )
         limit = min(limit, 100)
-
-        qs = ResponseFeedback.objects.select_related("conversation").order_by("-created_at")
 
         # Filters
         helpful_param = request.query_params.get("helpful")
