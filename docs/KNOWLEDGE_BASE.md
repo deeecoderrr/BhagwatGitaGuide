@@ -109,39 +109,39 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 ### 2.7 API route inventory (`/api/` = `/api/v1/`)
 
-**System & auth:** `health/`, `starter-prompts/`, `plans/catalog/`, `auth/register|login|logout|me|profile|change-password|forgot-password|reset-password/confirm|plan/`, `auth/google/`  
+**System & auth:** `health/`, `starter-prompts/`, `plans/catalog/`, `auth/register|login|logout|me|profile|change-password|forgot-password|reset-password/confirm|plan/`, `auth/google/`
 
-**Engagement & insights:** `engagement/me/`, `insights/me/`  
+**Engagement & insights:** `engagement/me/`, `insights/me/`
 
-**Notifications:** `notifications/preferences/`, `devices/`, `devices/register/`, `devices/<id>/`  
+**Notifications:** `notifications/preferences/`, `devices/`, `devices/register/`, `devices/<id>/`
 
-**Core Q&A:** `ask/`, `guest/ask/`, `guest/history/`, `guest/history/reset/`, `guest/recent-questions/`, `follow-ups/`, `mantra/`  
+**Core Q&A:** `ask/`, `guest/ask/`, `guest/history/`, `guest/history/reset/`, `guest/recent-questions/`, `follow-ups/`, `mantra/`
 
-**Analytics:** `analytics/events/`, `analytics/summary/`  
+**Analytics:** `analytics/events/`, `analytics/summary/`
 
-**Quote art:** `quote-art/styles/`, `quote-art/generate/`, `quote-art/featured/`  
+**Quote art:** `quote-art/styles/`, `quote-art/generate/`, `quote-art/featured/`
 
-**Reader:** `daily-verse/`, `daily-verse/history/`, `chapters/`, `chapters/<n>/`, `verses/<ch>.<v>/`, `verses/<ch>.<v>/note/`, `verses/search/`, `reading/state/`, `reading/verse-open/`  
+**Reader:** `daily-verse/`, `daily-verse/history/`, `chapters/`, `chapters/<n>/`, `verses/<ch>.<v>/`, `verses/<ch>.<v>/note/`, `verses/search/`, `reading/state/`, `reading/verse-open/`
 
-**Practice:** `practice/log/` — `meditation_minutes`/`japa_rounds` **award streak**; `practice/meditation-sessions/` — **awards streak**, response includes `engagement`; `practice/tags/`, `practice/workflows/`, `practice/workflows/me/`, `practice/workflows/<slug>/`  
+**Practice:** `practice/log/` — `meditation_minutes`/`japa_rounds` **award streak**; `practice/meditation-sessions/` — **awards streak**, response includes `engagement`; `practice/tags/`, `practice/workflows/`, `practice/workflows/me/`, `practice/workflows/<slug>/`
 
-**Japa:** `japa/commitments/`, `japa/commitments/<id>/`, `japa/commitments/<id>/fulfill/`, `japa/commitments/<id>/sessions/start/`, `japa/sessions/<id>/pause|resume|finish-day|abandon/` — `finish-day` **awards streak**, response includes `engagement`  
+**Japa:** `japa/commitments/`, `japa/commitments/<id>/`, `japa/commitments/<id>/fulfill/`, `japa/commitments/<id>/sessions/start/`, `japa/sessions/<id>/pause|resume|finish-day|abandon/` — `finish-day` **awards streak**, response includes `engagement`
 
-**History & threads:** `history/me/`, `history/<user_id>/`, `conversations/`, `conversations/<id>/`, `conversations/<id>/messages/`  
+**History & threads:** `history/me/`, `history/<user_id>/`, `conversations/`, `conversations/<id>/`, `conversations/<id>/messages/`
 
-**Community:** `community/posts/`, `community/posts/<id>/`  
+**Community:** `community/posts/`, `community/posts/<id>/`
 
-**Feedback & support:** `feedback/`, `support/`, `support/tickets/`  
+**Feedback & support:** `feedback/`, `support/`, `support/tickets/`
 
-**Saved content:** `saved-reflections/`, `saved-reflections/<id>/`, `answers/share/`  
+**Saved content:** `saved-reflections/`, `saved-reflections/<id>/`, `answers/share/`
 
-**Eval:** `eval/retrieval/` (auth required)  
+**Eval:** `eval/retrieval/` (auth required)
 
-**Payments:** `payments/create-order/`, `payments/verify/`, `payments/history/`, `payments/status/`, `payments/checkout/bridge/`, `payments/webhook/`, `subscription/status/`  
+**Payments:** `payments/create-order/`, `payments/verify/`, `payments/history/`, `payments/status/`, `payments/checkout/bridge/`, `payments/webhook/`, `subscription/status/`
 
-**Sadhana:** `sadhana/programs/`, `sadhana/programs/<slug>/`, `sadhana/programs/<slug>/days/<n>/`, `sadhana/programs/<slug>/days/<n>/complete/` — first completion **awards streak**, response includes `engagement`; `sadhana/me/`  
+**Sadhana:** `sadhana/programs/`, `sadhana/programs/<slug>/`, `sadhana/programs/<slug>/days/<n>/`, `sadhana/programs/<slug>/days/<n>/complete/` — first completion **awards streak**, response includes `engagement`; `sadhana/me/`
 
-**Chat UI:** `chat-ui/`  
+**Chat UI:** `chat-ui/`
 
 ---
 
@@ -234,7 +234,7 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 ## 4. Cross-cutting behavior
 
 - **Quotas:** `POST /api/ask/` enforces plan limits; `429` when exhausted; operator flag `DISABLE_ALL_QUOTAS` in backend docs.
-- **Performance:** 
+- **Performance:**
     - **In-memory cache** for static verse corpus in `services.py`.
     - **Redis cache** for expensive API responses (Insights).
     - **DB Pooling:** `CONN_MAX_AGE=600` for persistent Postgres connections.
