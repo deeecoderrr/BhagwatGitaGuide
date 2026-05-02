@@ -24,6 +24,10 @@ from guide_api.serializers import (
     JapaCommitmentPatchSerializer,
     JapaFinishDaySerializer,
 )
+from guide_api.streak_service import (
+    update_streak_for_today as _update_streak_for_today,
+    serialize_engagement_profile as _serialize_engagement_profile,
+)
 
 
 def _err(*, message: str, status_code: int, code: str) -> Response:
@@ -469,11 +473,13 @@ class JapaSessionFinishDayView(APIView):
                     note="",
                     japa_commitment=c,
                 )
+        engagement = _update_streak_for_today(request.user)
         return Response(
             {
                 "session": _session_dict(s_locked),
                 "daily_total_malas": completion.malas_completed,
                 "date": local_date.isoformat(),
+                "engagement": _serialize_engagement_profile(engagement),
             },
             status=status.HTTP_200_OK,
         )

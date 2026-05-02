@@ -78,6 +78,7 @@ from guide_api.models import (
 )
 from guide_api.user_insights_summary import build_user_insights_summary
 from guide_api.subscription_helpers import normalize_subscription_state as _normalize_subscription_state
+from guide_api.streak_service import update_streak_for_today as _streak_update
 from guide_api.practice_workflow_views import (
     activate_workflow_enrollment,
     workflow_purchase_amount_minor,
@@ -2721,29 +2722,7 @@ def _log_engagement_event(*, user, event_type: str, metadata: dict) -> None:
 
 def _update_streak_for_today(user):
     """Update daily streak based on user's previous active date."""
-    profile = _get_engagement_profile(user)
-    today = timezone.localdate()
-    previous = profile.last_active_date
-    if previous == today:
-        return profile
-    if previous == (today - timedelta(days=1)):
-        profile.daily_streak = max(1, profile.daily_streak + 1)
-    else:
-        profile.daily_streak = 1
-    profile.last_active_date = today
-    profile.save(
-        update_fields=["daily_streak", "last_active_date", "updated_at"]
-    )
-    cache.delete(f"eng_profile:{user.pk}")  # invalidate after write
-    _log_engagement_event(
-        user=user,
-        event_type=EngagementEvent.EVENT_STREAK_UPDATED,
-        metadata={
-            "daily_streak": profile.daily_streak,
-            "last_active_date": today.isoformat(),
-        },
-    )
-    return profile
+    return _streak_update(user)
 
 
 class HealthView(APIView):
@@ -4682,6 +4661,13 @@ class PracticeLogListCreateView(APIView):
             mantra_label=(d.get("mantra_label") or "").strip()[:120],
             note=(d.get("note") or "").strip()[:500],
         )
+        # Japa rounds and meditation minutes both count as a streak day.
+        # (read_minutes does not — reading is tracked separately via UserReadingState.)
+        if row.entry_type in (
+            PracticeLogEntry.TYPE_JAPA_ROUNDS,
+            PracticeLogEntry.TYPE_MEDITATION_MINUTES,
+        ):
+            _update_streak_for_today(request.user)
         return Response(
             {
                 "id": row.id,
@@ -4716,10 +4702,13 @@ class MeditationSessionLogCreateView(APIView):
             duration_seconds=d.get("duration_seconds"),
             program_slug=(d.get("program_slug") or "").strip()[:96],
         )
+        # Any completed meditation sit earns a streak day.
+        engagement = _update_streak_for_today(request.user)
         return Response(
             {
                 "id": row.id,
                 "created_at": row.created_at.isoformat(),
+                "engagement": _serialize_engagement_profile(engagement),
             },
             status=status.HTTP_201_CREATED,
         )

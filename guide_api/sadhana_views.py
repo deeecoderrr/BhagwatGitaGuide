@@ -27,6 +27,10 @@ from guide_api.models import (
     SadhanaProgram,
     SadhanaStep,
 )
+from guide_api.streak_service import (
+    update_streak_for_today as _update_streak_for_today,
+    serialize_engagement_profile as _serialize_engagement_profile,
+)
 
 
 def _resolve_request_user(request):
@@ -475,13 +479,15 @@ class SadhanaDayCompleteView(APIView):
                 defaults={},
             )
 
-        return Response(
-            {
-                "success": True,
-                "day_number": day_number,
-                "already_completed": not created,
-            },
-        )
+        engagement = _update_streak_for_today(user) if created else None
+        response_data: dict = {
+            "success": True,
+            "day_number": day_number,
+            "already_completed": not created,
+        }
+        if engagement is not None:
+            response_data["engagement"] = _serialize_engagement_profile(engagement)
+        return Response(response_data)
 
 
 def _browser_billing_currency(request) -> str:
