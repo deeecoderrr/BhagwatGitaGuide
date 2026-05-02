@@ -636,6 +636,8 @@ class UserEngagementProfile(models.Model):
     )
     # User-local calendar date (in their reminder timezone) when we last sent a push reminder.
     last_reminder_push_date = models.DateField(null=True, blank=True)
+    # Onboarding goal chosen during first-run flow (e.g. "peace", "purpose", "wisdom").
+    onboarding_goal = models.CharField(max_length=64, blank=True, default="")
     reminder_language = models.CharField(
         max_length=4,
         default="en",

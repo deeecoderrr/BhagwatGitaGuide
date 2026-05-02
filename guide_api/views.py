@@ -3013,6 +3013,14 @@ class ProfileUpdateView(APIView):
         if changed_fields:
             user.save(update_fields=changed_fields)
 
+        # Handle engagement profile fields (onboarding_goal)
+        onboarding_goal = serializer.validated_data.get("onboarding_goal")
+        if onboarding_goal is not None:
+            profile, _ = UserEngagementProfile.objects.get_or_create(user=user)
+            if profile.onboarding_goal != onboarding_goal:
+                profile.onboarding_goal = onboarding_goal
+                profile.save(update_fields=["onboarding_goal", "updated_at"])
+
         return Response(
             {
                 "username": user.username,

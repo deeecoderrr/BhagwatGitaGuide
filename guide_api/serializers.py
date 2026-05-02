@@ -488,6 +488,7 @@ class ProfileUpdateSerializer(serializers.Serializer):
         allow_blank=True,
     )
     email = serializers.EmailField(required=False, allow_blank=True)
+    onboarding_goal = serializers.CharField(max_length=64, required=False, allow_blank=True)
 
 
 class ChangePasswordSerializer(serializers.Serializer):
