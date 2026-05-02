@@ -64,6 +64,9 @@ with product and technical context already loaded. It complements
 - `guide_api/services.py`: language detection, safety, intent routing,
   retrieval, verse/context enrichment, OpenAI guidance, fallback guidance,
   chapter/verse detail helpers.
+- `guide_api/streak_service.py`: `update_streak_for_today(user)` and
+  `serialize_engagement_profile(profile)` — shared streak logic imported by
+  views, japa_views, and sadhana_views. Extracted to avoid circular imports.
 - `guide_api/serializers.py`: DRF validation/response contracts.
 - `guide_api/urls.py`: mirrored API route table for `/api/` and `/api/v1/`.
 - `guide_api/permissions.py`: custom browse permission, notably
@@ -133,6 +136,8 @@ Flow:
 9. Build response using `build_guidance`.
 10. Validate grounding / references and fall back safely when malformed.
 11. Persist assistant message, ask telemetry, streak updates, quota counters.
+    (Streak is also updated by meditation/japa/sadhana completion — see
+    `guide_api/streak_service.py`.)
 12. Return structured JSON: guidance, meaning, actions, reflection, verses,
     related verses, follow-ups, intent flags, quota, engagement, debug trace
     in `DEBUG`.
@@ -195,6 +200,11 @@ Sadhana:
 - Paid access via `product=sadhana_cycle` payment flow.
 - Endpoints: `sadhana/programs/`, detail, day detail, day complete,
   `sadhana/me/`.
+- `POST …/sadhana/programs/<slug>/days/<n>/complete/` **awards a streak day**
+  on first completion (`already_completed: false`); response includes
+  `engagement` snapshot when streak is awarded.
+- **Note:** Mobile app does not yet call the complete endpoint (step player
+  is pure media playback); the backend is ready when the mobile call is added.
 
 Practice workflows:
 
@@ -209,15 +219,19 @@ Practice workflows:
 
 Meditation logs:
 
-- `POST /api/v1/practice/meditation-sessions/` stores mood/stress/duration.
+- `POST /api/v1/practice/meditation-sessions/` stores mood/stress/duration;
+  **awards a streak day** and returns `engagement` snapshot in response.
 - `POST /api/v1/practice/log/` stores meditation minutes, read minutes,
-  japa rounds.
+  japa rounds; **awards a streak day** for `meditation_minutes` and
+  `japa_rounds` entry types (not `read_minutes`).
 
 Japa:
 
 - Personal japa commitments are distinct from curated sadhana programs.
 - Endpoints create/list commitments, start/pause/resume/abandon sessions,
   finish day, fulfill commitment.
+- `POST /api/v1/japa/sessions/<id>/finish-day/` **awards a streak day**;
+  response now includes `engagement` snapshot.
 - `japa_insights_for_user` feeds the insights summary.
 
 ## Insights

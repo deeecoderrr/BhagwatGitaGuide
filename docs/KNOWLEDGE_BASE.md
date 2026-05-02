@@ -123,9 +123,9 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 **Reader:** `daily-verse/`, `daily-verse/history/`, `chapters/`, `chapters/<n>/`, `verses/<ch>.<v>/`, `verses/<ch>.<v>/note/`, `verses/search/`, `reading/state/`, `reading/verse-open/`  
 
-**Practice:** `practice/log/`, `practice/meditation-sessions/`, `practice/tags/`, `practice/workflows/`, `practice/workflows/me/`, `practice/workflows/<slug>/`  
+**Practice:** `practice/log/` — `meditation_minutes`/`japa_rounds` **award streak**; `practice/meditation-sessions/` — **awards streak**, response includes `engagement`; `practice/tags/`, `practice/workflows/`, `practice/workflows/me/`, `practice/workflows/<slug>/`  
 
-**Japa:** `japa/commitments/`, `japa/commitments/<id>/`, `japa/commitments/<id>/fulfill/`, `japa/commitments/<id>/sessions/start/`, `japa/sessions/<id>/pause|resume|finish-day|abandon/`  
+**Japa:** `japa/commitments/`, `japa/commitments/<id>/`, `japa/commitments/<id>/fulfill/`, `japa/commitments/<id>/sessions/start/`, `japa/sessions/<id>/pause|resume|finish-day|abandon/` — `finish-day` **awards streak**, response includes `engagement`  
 
 **History & threads:** `history/me/`, `history/<user_id>/`, `conversations/`, `conversations/<id>/`, `conversations/<id>/messages/`  
 
@@ -139,7 +139,7 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 **Payments:** `payments/create-order/`, `payments/verify/`, `payments/history/`, `payments/status/`, `payments/checkout/bridge/`, `payments/webhook/`, `subscription/status/`  
 
-**Sadhana:** `sadhana/programs/`, `sadhana/programs/<slug>/`, `sadhana/programs/<slug>/days/<n>/`, `sadhana/programs/<slug>/days/<n>/complete/`, `sadhana/me/`  
+**Sadhana:** `sadhana/programs/`, `sadhana/programs/<slug>/`, `sadhana/programs/<slug>/days/<n>/`, `sadhana/programs/<slug>/days/<n>/complete/` — first completion **awards streak**, response includes `engagement`; `sadhana/me/`  
 
 **Chat UI:** `chat-ui/`  
 
@@ -247,8 +247,9 @@ repo also has `CODEBASE_KNOWLEDGE_BASE.md` for the Expo app screen/API map.
 
 ## 5. Gaps / backend features not obvious in mobile grep
 
-- **`POST …/sadhana/.../complete/`** — exists on API for marking day complete; mobile day screen may show playback without calling complete (verify product intent before relying).
+- **`POST …/sadhana/.../complete/`** — backend **awards streak on first completion** and returns `engagement` snapshot. Mobile step player (`SadhanaStepPlayer`) is pure media playback and does not yet call this endpoint; adding the call is the next step.
 - **`GET engagement/me/`** — full engagement profile beyond insights snapshot; mobile may use insights + notifications prefs instead.
+- **Streak source of truth:** `guide_api/streak_service.py` — `update_streak_for_today` is idempotent (no-ops if already updated today). Activated by ask, meditation sits, japa rounds/minutes log, japa finish-day, and sadhana day complete.
 - **`POST follow-ups/`**, **`POST mantra/`**, **`GET daily-verse/history/`**, **`GET reading/state/`** — may be web-only or future mobile.
 - **`POST eval/retrieval/`** — dev/eval tool, auth required.
 - **Starter prompts** — mobile may not call `starter-prompts/` if not in current tabs.

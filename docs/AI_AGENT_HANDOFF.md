@@ -109,6 +109,13 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 - `PATCH auth/profile/`, `POST auth/change-password/`,
   `POST auth/forgot-password/`, `POST auth/reset-password/confirm/`
 - `GET|PATCH engagement/me/` — streak, reminder prefs (delivery not implemented yet)
+- **Streak is now earned by:** ask questions (`POST ask/`), meditation sits
+  (`POST practice/meditation-sessions/`), practice log entries with
+  `meditation_minutes` or `japa_rounds` (`POST practice/log/`), finish a japa
+  day (`POST japa/sessions/<id>/finish-day/`), first sadhana day completion
+  (`POST sadhana/programs/<slug>/days/<n>/complete/`).
+  Implementation lives in `guide_api/streak_service.py` — shared across all
+  view modules without circular imports.
 - `GET starter-prompts/`, `GET plans/catalog/` — mobile onboarding/paywall metadata
 - `POST ask/` — main Q&A (structured JSON: guidance, meaning, actions, reflection, verse_references, follow_ups, engagement snapshot, quota fields)
 - `POST guest/ask/`, `GET guest/history/`, `POST guest/history/reset/`,
@@ -200,18 +207,11 @@ Production command checklist lives in `docs/PRODUCTION_RUNBOOK.md`.
 
 ## Current status (snapshot)
 
-**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences** (storage only), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, dedicated mobile thread APIs (`/api/conversations/...`), guest session APIs (`/api/guest/*`), account profile/password APIs, payment/subscription APIs, device registration APIs, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI), in-memory verse-list cache + Redis Insights response cache, `GZipMiddleware` + `CONN_MAX_AGE` production optimizations, practice workflows (models, enrollment, per-currency pricing, checkout via Razorpay), `generate_verse_syntheses` management command, japa timer bell audio, weekly digest command, admin rate-throttle on auth endpoints, Insights API with Redis caching.
+**Implemented:** Auth + token, ask with quota, structured responses, follow-ups, saved reflections, support ticket intake (`/api/support/` + chat-ui support panel), engagement/streak/reminder **preferences**, streak earned by ask + meditation + japa + sadhana completion (via `streak_service.py`), chat-ui UX with guest-temporary chat plus account-owned conversation threads/sidebar metadata/delete controls, dedicated mobile thread APIs (`/api/conversations/...`), guest session APIs (`/api/guest/*`), account profile/password APIs, payment/subscription APIs, device registration APIs, admin ask analytics, retrieval eval pipeline, `/api/v1/` alias, standardized errors, pagination on relevant lists, bilingual guidance selection (`en`/`hi`) across API + chat-ui, viral landing (starter journey cards, share bar, trust blocks), unique visitor + query tracking (`WebAudienceProfile`), full growth analytics stack (`GrowthEvent`, UTM attribution, `analytics/events/`, `analytics/summary/`, admin funnel dashboard, `growth_report` CLI), in-memory verse-list cache + Redis Insights response cache, `GZipMiddleware` + `CONN_MAX_AGE` production optimizations, practice workflows (models, enrollment, per-currency pricing, checkout via Razorpay), `generate_verse_syntheses` management command, japa timer bell audio, weekly digest command, admin rate-throttle on auth endpoints, Insights API with Redis caching.
 
-**Mobile companion app (2026-05-01 quality pass in `bhagavadgitaguide_mobile-main`):**
-- 401 auto-logout via `setUnauthorizedHandler` / `AuthGate` integration
-- `textDim` WCAG AA contrast fix, shared `dateUtils.ts`, `SacredMandala` on auth screens
-- `SudarshanChakraLoader` replaces all `ActivityIndicator` usages
-- `OfflineBanner` rewritten to use `@react-native-community/netinfo`
-- `Background.tsx` pauses animations off-screen (battery saving)
-- `SkeletonPulse` + `ask.tsx` streaming text accessibility props
-- `ScreenHeader` standardized; `sadhana` cards with `FadeInView`/`PressScale`
-- `Insights` tab fully built (4-tab segmented control, computed signals, interactive grids)
-- TypeScript 0 errors, ESLint 0 warnings baseline enforced
+**Mobile companion app (2026-05-02 streak pass in `bhagavadgitaguide_mobile-main`):**
+- `japa/[id].tsx` `finishDay.onSuccess` now invalidates `["insights-me"]` so streak badge refreshes immediately after japa day finish.
+- `StreakRevealModal` guard moved to module-level `_streakModalShownForDate` + `lastActiveDate === today` check; modal shows at most once per calendar day regardless of tab navigation.
 
 Deployment/ops snapshot:
 - live deployment on Fly is active

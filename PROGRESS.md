@@ -1,8 +1,47 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-05-01
+Last updated: 2026-05-02
 
 ## Completed
+
+- **Streak system expanded to all meditation/japa/sadhana activities (2026-05-02):**
+  - Extracted `_update_streak_for_today` into a standalone `guide_api/streak_service.py`
+    module (`update_streak_for_today`, `serialize_engagement_profile`) so it can be
+    imported by any view module without circular-import issues.
+  - **New streak-earning events** (in addition to existing `POST /api/ask/`):
+    - `POST /api/v1/practice/meditation-sessions/` — any completed meditation sit;
+      response now includes `engagement` snapshot.
+    - `POST /api/v1/practice/log/` — entries of type `meditation_minutes` or
+      `japa_rounds` (not `read_minutes`); streak is incremented silently.
+    - `POST /api/v1/japa/sessions/<id>/finish-day/` — finishing a japa day;
+      response now includes `engagement` snapshot.
+    - `POST /api/v1/sadhana/programs/<slug>/days/<n>/complete/` — first completion
+      of a sadhana day (`created=True`); response includes `engagement` snapshot
+      when streak is awarded.
+  - `views.py` `_update_streak_for_today` now delegates to `streak_service`;
+    no logic duplication.
+  - Mobile `japa/[id].tsx` `finishDay.onSuccess` now invalidates
+    `["insights-me"]` so the streak badge on the Today tab refreshes immediately.
+  - Backend: `streak_service.update_streak_for_today` is idempotent — multiple
+    activities on the same day only count once.
+  - All 296 backend tests pass; mobile 0 TS errors, 0 ESLint warnings.
+
+- **Test suite cross-test contamination fixes + backend test stability (2026-05-02):**
+  - `setUp()` in `guide_api/tests.py` now calls `cache.clear()` first to prevent
+    Django cache (`eng_profile:{pk}`) contamination across tests.
+  - `guide_api.services._verse_list_cache` is reset in `setUp()` and before
+    `eval_retrieval` command test to prevent stale module-level cache.
+  - `services.py` uses double-checked locking for seed and sequential (no threads)
+    retrieval path under SQLite to prevent lock conflicts in tests.
+  - 296/296 tests pass (`OK`).
+
+- **`StreakRevealModal` timing fix (2026-05-02):**
+  - Replaced component-level `useRef` (reset on tab unmount) with a module-level
+    `_streakModalShownForDate` string in `index.tsx`.
+  - Additional "earned today" guard: modal only shows when
+    `last_active_date === today` (i.e. streak was actually updated today).
+  - Result: modal appears at most once per calendar day, even when the user
+    navigates into workflows and back.
 
 - **Feedback quality pipeline upgrade (2026-05-01):**
   - `ResponseFeedback` now stores structured quality-review context:
