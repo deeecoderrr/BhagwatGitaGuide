@@ -75,6 +75,7 @@ from guide_api.services import (
     query_embedding_input_text,
     resolve_guidance_language,
 )
+import guide_api.services as _guide_api_services
 
 
 @override_settings(
@@ -84,6 +85,8 @@ from guide_api.services import (
 )
 class GuideApiTests(APITestCase):
     def setUp(self):
+        cache.clear()
+        _guide_api_services._verse_list_cache = None
         guide_views._quota_settings_cache["value"] = (
             guide_views._QUOTA_SETTINGS_UNSET
         )
@@ -435,6 +438,7 @@ class GuideApiTests(APITestCase):
         payload = {
             "username": "new-user",
             "password": "new-pass-123",
+            "email": "new-user@example.com",
         }
         response = self.client.post(
             "/api/auth/register/",
@@ -2412,6 +2416,7 @@ class GuideApiTests(APITestCase):
             call_command("embed_gita_verses")
 
     def test_eval_retrieval_command_reports_summary(self):
+        import guide_api.services as _svc
         from guide_api.models import Verse
 
         Verse.objects.create(
@@ -2421,6 +2426,9 @@ class GuideApiTests(APITestCase):
             commentary="",
             themes=["purpose"],
         )
+        # Clear the in-memory verse cache so the retrieval pipeline sees the
+        # newly created verse instead of using a stale pre-test snapshot.
+        _svc._verse_list_cache = None
         dataset = [
             {
                 "prompt": "xyzzylife token for eval hit",

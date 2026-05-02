@@ -23,6 +23,7 @@ from guide_api.models import Verse, VerseSynthesis
 
 logger = logging.getLogger(__name__)
 _seed_synced = False
+_seed_lock = threading.Lock()
 SUPPORTED_LANGUAGE_CODES = {"en", "hi", "hinglish"}
 
 # Roman Hindi tokens often mixed with English (Hinglish). Used when UI language
@@ -1334,18 +1335,22 @@ def ensure_seed_verses() -> None:
         _seed_synced = False
     if _seed_synced:
         return
-
-    for verse in DEFAULT_VERSES:
-        Verse.objects.update_or_create(
-            chapter=verse["chapter"],
-            verse=verse["verse"],
-            defaults={
-                "translation": verse["translation"],
-                "commentary": verse["commentary"],
-                "themes": verse["themes"],
-            },
-        )
-    _seed_synced = True
+    with _seed_lock:
+        # Double-check after acquiring the lock to avoid redundant writes when
+        # multiple threads reach here simultaneously (common in test parallelism).
+        if _seed_synced:
+            return
+        for verse in DEFAULT_VERSES:
+            Verse.objects.update_or_create(
+                chapter=verse["chapter"],
+                verse=verse["verse"],
+                defaults={
+                    "translation": verse["translation"],
+                    "commentary": verse["commentary"],
+                    "themes": verse["themes"],
+                },
+            )
+        _seed_synced = True
 
 
 def detect_themes(message: str) -> set[str]:
@@ -2528,6 +2533,12 @@ def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
     """
     import concurrent.futures
 
+    # Seed verses in the calling (main) thread before spawning sub-threads so
+    # the worker threads never need to write to the database.  Avoids SQLite
+    # "table is locked" errors in test environments where the test framework
+    # wraps the test in a transaction that holds a write lock.
+    ensure_seed_verses()
+
     interpretation = interpret_query(message)
     if _is_greeting_like(message):
         return RetrievalResult(
@@ -2540,26 +2551,43 @@ def retrieve_verses_with_trace(message: str, limit: int = 3) -> RetrievalResult:
         )
     candidate_limit = _candidate_pool_limit(limit)
 
-    # Fire all three retrieval strategies in parallel.
-    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        f_semantic = executor.submit(
-            retrieve_semantic_verses_with_trace,
+    # SQLite (used in development and tests) does not support concurrent
+    # write-capable connections inside a transaction.  Run the three retrieval
+    # strategies sequentially to avoid "database table is locked" errors.
+    if connection.vendor == "sqlite":
+        semantic = retrieve_semantic_verses_with_trace(
             message=message,
             limit=candidate_limit,
         )
-        f_hybrid = executor.submit(
-            retrieve_hybrid_verses_with_trace,
+        hybrid = retrieve_hybrid_verses_with_trace(
             message=message,
             limit=candidate_limit,
         )
-        f_sparse = executor.submit(
-            _retrieve_sparse_verses_with_trace,
+        sparse = _retrieve_sparse_verses_with_trace(
             message=message,
             limit=candidate_limit,
         )
-        semantic = f_semantic.result()
-        hybrid = f_hybrid.result()
-        sparse = f_sparse.result()
+    else:
+        # Fire all three retrieval strategies in parallel.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+            f_semantic = executor.submit(
+                retrieve_semantic_verses_with_trace,
+                message=message,
+                limit=candidate_limit,
+            )
+            f_hybrid = executor.submit(
+                retrieve_hybrid_verses_with_trace,
+                message=message,
+                limit=candidate_limit,
+            )
+            f_sparse = executor.submit(
+                _retrieve_sparse_verses_with_trace,
+                message=message,
+                limit=candidate_limit,
+            )
+            semantic = f_semantic.result()
+            hybrid = f_hybrid.result()
+            sparse = f_sparse.result()
 
     if semantic.retrieval_mode != "semantic":
         retrieval = hybrid
