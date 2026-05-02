@@ -108,7 +108,18 @@ def _build_gita_insights(
         and any(str(x).strip() for x in row.verse_references)
     )
 
-    verse_notes = VerseUserNote.objects.filter(user=user).count()
+    verse_notes_qs = VerseUserNote.objects.filter(user=user).order_by("-updated_at")[:20]
+    verse_notes = verse_notes_qs.count()
+    verse_notes_list = [
+        {
+            "reference": f"{n.chapter}.{n.verse}",
+            "chapter": n.chapter,
+            "verse": n.verse,
+            "body_excerpt": (n.body[:120].strip() + ("…" if len(n.body) > 120 else "")) if n.body else "",
+            "updated_at": n.updated_at.isoformat() if n.updated_at else None,
+        }
+        for n in verse_notes_qs
+    ]
     asks_served_30d = AskEvent.objects.filter(
         user_id=username,
         outcome=AskEvent.OUTCOME_SERVED,
@@ -119,6 +130,7 @@ def _build_gita_insights(
         "chapters_explored": len(seen_chapters),
         "verses_opened": len(unique_verse_keys),
         "verse_notes": verse_notes,
+        "verse_notes_list": verse_notes_list,
         "saved_reflections_with_verses": saved_with_verses,
         "read_minutes_7d": int(read_minutes_7d),
         "read_minutes_total": int(read_minutes_total),
