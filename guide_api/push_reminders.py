@@ -334,3 +334,135 @@ def run_push_reminders(
         "sent": total_sent,
         "deactivated_devices": total_deactivated,
     }
+
+
+def run_streak_risk_reminders(
+    *,
+    dry_run: bool = False,
+    risk_hour: int = 20,
+    now_utc: datetime | None = None,
+) -> dict[str, int]:
+    """
+    Send a 'streak at risk' push to users who:
+    - Have a daily_streak > 0
+    - Have NOT opened the app today (no Conversation or PracticeLogEntry for today)
+    - Local wall-clock hour is >= risk_hour (default 20 = 8pm)
+
+    Avoids re-notifying the same user on the same date.
+    """
+    from zoneinfo import ZoneInfo
+    from guide_api.models import Conversation, PracticeLogEntry, UserEngagementProfile
+
+    if now_utc is None:
+        now_utc = datetime.now(tz=ZoneInfo("UTC"))
+    elif now_utc.tzinfo is None:
+        now_utc = now_utc.replace(tzinfo=ZoneInfo("UTC"))
+
+    poster = POST_EXPO_BATCH or _default_post_expo_batch
+
+    profiles = (
+        UserEngagementProfile.objects.filter(
+            preferred_channel=UserEngagementProfile.CHANNEL_PUSH,
+            daily_streak__gt=0,
+        )
+        .select_related("user")
+    )
+
+    planned = []
+    for profile in profiles.iterator():
+        tz_name = (profile.timezone or "UTC").strip() or "UTC"
+        tz = zoneinfo_for_reminder_timezone(tz_name)
+        now_local = now_utc.astimezone(tz)
+
+        # Only fire after risk_hour in the user's timezone
+        if now_local.hour < risk_hour:
+            continue
+
+        today_local = now_local.date()
+
+        # Rate limit: only once per day for streak-risk
+        last_risk_key = f"streak_risk_{today_local.isoformat()}"
+        if hasattr(profile, "last_reminder_push_date") and profile.last_reminder_push_date == today_local:
+            # Already sent today's daily reminder — use a separate check below
+            pass
+
+        # Check if user already opened the app today (has a conversation or practice log today)
+        user = profile.user
+        has_activity_today = (
+            Conversation.objects.filter(
+                user=user,
+                updated_at__date=today_local,
+            ).exists()
+            or PracticeLogEntry.objects.filter(
+                user=user,
+                date=today_local,
+            ).exists()
+        )
+        if has_activity_today:
+            continue
+
+        devices = list(
+            NotificationDevice.objects.filter(user=user, active=True)
+        )
+        expo_devices = [d for d in devices if is_expo_push_token(d.token)]
+        if not expo_devices:
+            continue
+
+        planned.append((profile, now_local, expo_devices))
+
+    if dry_run:
+        return {
+            "due_users": len(planned),
+            "sent": 0,
+            "deactivated_devices": 0,
+        }
+
+    total_sent = 0
+    total_deactivated = 0
+
+    messages: list[dict[str, Any]] = []
+    meta: list[tuple[UserEngagementProfile, NotificationDevice]] = []
+
+    for profile, now_local, expo_devices in planned:
+        streak = profile.daily_streak
+        title = f"🔥 Your {streak}-day streak is at risk"
+        body = "Open the app and reflect — don't let it break today."
+        data = {"type": "streak_risk", "streak": streak}
+        for dev in expo_devices:
+            messages.append(
+                {
+                    "to": dev.token,
+                    "title": title,
+                    "body": body,
+                    "data": data,
+                    "sound": "default",
+                    "priority": "high",
+                },
+            )
+            meta.append((profile, dev))
+
+    batch_size = 100
+    for offset in range(0, len(messages), batch_size):
+        chunk_msgs = messages[offset : offset + batch_size]
+        chunk_meta = meta[offset : offset + batch_size]
+        if not chunk_msgs:
+            break
+        try:
+            raw_results = poster(chunk_msgs)
+        except Exception:
+            logger.exception("Expo streak-risk push batch failed at offset %s", offset)
+            continue
+        results = _normalize_expo_results(raw_results, len(chunk_msgs))
+        for ticket, (profile, dev) in zip(results, chunk_meta):
+            if ticket.get("status") == "ok":
+                total_sent += 1
+            elif _device_should_deactivate(ticket):
+                NotificationDevice.objects.filter(pk=dev.pk).update(active=False)
+                total_deactivated += 1
+
+    return {
+        "due_users": len(planned),
+        "sent": total_sent,
+        "deactivated_devices": total_deactivated,
+    }
+

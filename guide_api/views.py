@@ -56,6 +56,7 @@ from guide_api.models import (
     Message,
     MoodCheckIn,
     GratitudeEntry,
+    StreakFreeze,
     NotificationDevice,
     RequestQuotaSettings,
     ResponseFeedback,
@@ -5887,6 +5888,59 @@ class GratitudeEntryView(APIView):
                 "item_3": entry.item_3,
                 "created": created,
             },
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
+        )
+
+
+class StreakFreezeView(APIView):
+    """Use a streak freeze for today.
+
+    GET  /api/v1/streak/freeze/  → {used_today, freezes_this_week, can_freeze}
+    POST /api/v1/streak/freeze/  → consumes a freeze for today (max 1 per week)
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from datetime import date
+        today = timezone.localdate()
+        iso_year, iso_week, _ = today.isocalendar()
+        used_today = StreakFreeze.objects.filter(user=request.user, used_on_date=today).exists()
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        freezes_this_week = StreakFreeze.objects.filter(
+            user=request.user,
+            used_on_date__gte=week_start,
+            used_on_date__lte=week_end,
+        ).count()
+        can_freeze = not used_today and freezes_this_week < 1
+        return Response({
+            "used_today": used_today,
+            "freezes_this_week": freezes_this_week,
+            "can_freeze": can_freeze,
+        })
+
+    def post(self, request):
+        today = timezone.localdate()
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        freezes_this_week = StreakFreeze.objects.filter(
+            user=request.user,
+            used_on_date__gte=week_start,
+            used_on_date__lte=week_end,
+        ).count()
+        if freezes_this_week >= 1:
+            return _error_response(
+                message="You have already used a streak freeze this week.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="freeze_limit_reached",
+            )
+        freeze, created = StreakFreeze.objects.get_or_create(
+            user=request.user,
+            used_on_date=today,
+        )
+        return Response(
+            {"used_on_date": str(freeze.used_on_date), "created": created},
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 

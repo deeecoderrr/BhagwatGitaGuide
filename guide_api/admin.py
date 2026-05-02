@@ -14,6 +14,7 @@ from guide_api.models import (
     Conversation,
     DailyAskUsage,
     GratitudeEntry,
+    StreakFreeze,
     MoodCheckIn,
     EngagementEvent,
     FollowUpEvent,
@@ -525,6 +526,15 @@ class GratitudeEntryAdmin(admin.ModelAdmin):
     list_display = ("id", "user", "date", "item_1", "created_at")
     search_fields = ("user__username", "item_1", "item_2", "item_3")
     date_hierarchy = "date"
+
+
+@admin.register(StreakFreeze)
+class StreakFreezeAdmin(admin.ModelAdmin):
+    """View streak freeze records."""
+
+    list_display = ("id", "user", "used_on_date", "created_at")
+    search_fields = ("user__username",)
+    date_hierarchy = "used_on_date"
 
 
 @admin.register(SharedAnswer)

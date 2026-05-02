@@ -91,6 +91,7 @@ from guide_api.views import (
     SavedReflectionListCreateView,
     GratitudeEntryView,
     MoodCheckInView,
+    StreakFreezeView,
     SharedAnswerCreateView,
     SupportRequestView,
     StarterPromptsView,
@@ -316,6 +317,7 @@ urlpatterns = [
     ),
         path("mood/", MoodCheckInView.as_view(), name="mood-checkin"),
         path("gratitude/", GratitudeEntryView.as_view(), name="gratitude-entry"),
+        path("streak/freeze/", StreakFreezeView.as_view(), name="streak-freeze"),
     path("chat-ui/", ChatUIView.as_view(), name="chat-ui"),
     # Shareable answer cards
     path(

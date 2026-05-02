@@ -1637,3 +1637,34 @@ class GratitudeEntry(models.Model):
 
     def items(self) -> list[str]:
         return [i for i in [self.item_1, self.item_2, self.item_3] if i.strip()]
+
+
+class StreakFreeze(models.Model):
+    """A streak-freeze token consumed by the user to protect their streak for one day.
+
+    Rules:
+    - At most one freeze can be consumed per calendar week (ISO week).
+    - The used_on_date is set to the date the freeze was applied.
+    - The backend streak calculation checks this table before resetting a streak.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="streak_freezes",
+    )
+    used_on_date = models.DateField(db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-used_on_date"]
+        indexes = [
+            models.Index(fields=["user", "used_on_date"], name="sf_user_date_idx"),
+        ]
+        constraints = [
+            models.UniqueConstraint(fields=["user", "used_on_date"], name="unique_sf_user_date"),
+        ]
+
+    def __str__(self) -> str:
+        return f"StreakFreeze {self.user_id} on {self.used_on_date}"
+
