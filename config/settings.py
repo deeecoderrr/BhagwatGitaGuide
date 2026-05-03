@@ -171,7 +171,7 @@ def _postgres_db_from_url(url: str) -> dict:
         # Keep persistent connections but cap lifetime so Neon's pooler
         # can reclaim idle sockets between requests.
         "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "60")),
-        "CONN_HEALTH_CHECKS": True,
+        "CONN_HEALTH_CHECKS": False,  # Skips SELECT 1 round-trip; Neon's pooler handles health.
         "OPTIONS": {
             "sslmode": "require",
         },
@@ -477,7 +477,10 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.BasicAuthentication",
+    ],
+    # Return JSON only — removes BrowsableAPIRenderer template overhead on every response.
+    "DEFAULT_RENDERER_CLASSES": [
+        "rest_framework.renderers.JSONRenderer",
     ],
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.ScopedRateThrottle",
