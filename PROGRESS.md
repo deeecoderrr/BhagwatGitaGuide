@@ -1,6 +1,18 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-05-02
+Last updated: 2026-05-04
+
+## Deferred / To Do Later
+
+- **Cloudflare R2 CDN setup for audio/media files (2026-05-04):**
+  - Bucket `askmeditateheal` already created on Cloudflare R2 with files uploaded
+    (e.g. `Audio/Naam Japa/shreeradhanaamjap.mp4`).
+  - Public access is currently **disabled**.
+  - **Task:** Connect a custom domain (e.g. `cdn.askbhagavadgita.co.in`) via:
+    R2 bucket → Settings → Custom Domains → Connect Domain.
+    Cloudflare will auto-create the DNS CNAME. No extra cost — R2 egress is free.
+  - Once done, update backend `MEDIA_BASE_URL` / any japa audio URL env var to point
+    to the new CDN domain so the mobile app can stream files.
 
 ## Completed
 
