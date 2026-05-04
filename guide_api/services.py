@@ -2105,7 +2105,7 @@ def _responses_output_stream(
     """Stream text tokens from OpenAI chat completions."""
     effective_model = _effective_llm_model(model)
     client = _openai_client()
-    
+
     # We use chat.completions for standard streaming as it's more robust in SDKs
     kwargs = {
         "model": effective_model,
@@ -4989,26 +4989,10 @@ def build_guidance_stream(
             max_output_tokens=max_output_tokens,
         ):
             yield f"data: {json.dumps({'chunk': chunk})}\n\n"
-            
+
     except Exception as exc:
         logger.warning("Streaming failed: %s", exc)
         yield f"data: {json.dumps({'error': str(exc)})}\n\n"
-            "the part of them that already wants peace.\n"
-            + verse_use_line
-            + "- Bridge to today only where it clarifies—no forced allegory.\n"
-            "- guidance: mirror their situation first; then unfold Krishna's reply in "
-            "warm, plain language—long enough that diverse readers feel understood "
-            "(often several sentences or short paragraphs); never vague virtue-signaling.\n"
-            "- meaning: deepen the verse or principle in still-simple words—length "
-            "flexible when it helps.\n"
-            f"- actions: {actions_instruction}\n"
-            f"- reflection: {reflection_instruction}\n"
-            "- verse_references: best-fit chapter.verse list (may extend beyond "
-            "provided context if clearly more apt); use [] if no verse should be named.\n"
-            "- related_verse_references: optional; only verses that deepen exploration.\n"
-            "- write in language_code.\n"
-            + deep_append
-        )
 
     guidance_timeout = float(
         getattr(
