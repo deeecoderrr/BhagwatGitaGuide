@@ -11,6 +11,7 @@ from guide_api.meditation_practice_views import (
     MeditationSessionInterruptView,
     MeditationSessionRecentView,
     MeditationSessionStartView,
+    MeditationTypeInsightsView,
 )
 from guide_api.practice_workflow_views import (
     PracticeTagListView,
@@ -385,4 +386,5 @@ urlpatterns = [
     path("meditation/sessions/<int:pk>/complete/", MeditationSessionCompleteView.as_view(), name="meditation-session-complete"),
     path("meditation/sessions/<int:pk>/interrupt/", MeditationSessionInterruptView.as_view(), name="meditation-session-interrupt"),
     path("meditation/insights/", MeditationInsightsView.as_view(), name="meditation-insights"),
+    path("meditation/insights/<slug:slug>/", MeditationTypeInsightsView.as_view(), name="meditation-type-insights"),
 ]

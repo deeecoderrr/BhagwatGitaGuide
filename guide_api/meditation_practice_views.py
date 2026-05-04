@@ -583,6 +583,7 @@ class MeditationInsightsView(APIView):
             ).annotate(
                 sessions=Count("id"),
                 tracked_seconds=Sum("tracked_seconds"),
+                total_malas=Sum("actual_count"),
             ).order_by("-sessions")
         )
 
@@ -594,4 +595,95 @@ class MeditationInsightsView(APIView):
             "top_mantra": top_mantra["chosen_mantra"] if top_mantra else None,
             "avg_mood_improvement": mood_delta,
             "by_practice_type": by_type,
+        })
+
+
+class MeditationTypeInsightsView(APIView):
+    """GET /api/v1/meditation/insights/<slug>/ — per-practice-type drill-down."""
+    authentication_classes = [TokenAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, slug):
+        from django.db.models import Avg, Count, Sum
+
+        try:
+            practice_type = MeditationPracticeType.objects.get(slug=slug, is_active=True)
+        except MeditationPracticeType.DoesNotExist:
+            return Response(
+                {"error": "NOT_FOUND", "message": "Practice type not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        completed = MeditationPracticeSession.objects.filter(
+            user=request.user,
+            practice_type=practice_type,
+            mode=MeditationPracticeSession.MODE_PRACTICE,
+            status=MeditationPracticeSession.STATUS_COMPLETED,
+        )
+
+        agg = completed.aggregate(
+            total_sessions=Count("id"),
+            total_tracked_seconds=Sum("tracked_seconds"),
+            avg_presence=Avg("presence_rating"),
+            total_malas=Sum("actual_count"),
+        )
+
+        # Mood delta
+        mood_sessions = completed.filter(
+            mood_before__gt="", mood_after__gt=""
+        ).values_list("mood_before", "mood_after")
+        mood_delta = None
+        if mood_sessions.exists():
+            deltas = [int(b) - int(a) for a, b in mood_sessions]
+            mood_delta = round(sum(deltas) / len(deltas), 2)
+
+        # Per-content breakdown
+        by_content = [
+            {
+                "content_id": row["content__id"],
+                "content_title": row["content__title"] or "Free practice",
+                "sessions": row["sessions"],
+                "tracked_minutes": round((row["tracked_seconds"] or 0) / 60, 1),
+                "total_malas": row["total_malas"] or 0,
+            }
+            for row in (
+                completed
+                .values("content__id", "content__title")
+                .annotate(
+                    sessions=Count("id"),
+                    tracked_seconds=Sum("tracked_seconds"),
+                    total_malas=Sum("actual_count"),
+                )
+                .order_by("-sessions")
+            )
+        ]
+
+        # Chanting mode distribution
+        chanting_dist = list(
+            completed.filter(chanting_mode__gt="")
+            .values("chanting_mode")
+            .annotate(sessions=Count("id"))
+            .order_by("-sessions")
+        )
+        top_chanting_mode = chanting_dist[0]["chanting_mode"] if chanting_dist else None
+
+        # Recent sessions (last 10)
+        recent_qs = (
+            completed.select_related("content", "practice_type")
+            .order_by("-started_at")[:10]
+        )
+        recent_data = MeditationSessionSummarySerializer(recent_qs, many=True).data
+
+        return Response({
+            "practice_type_slug": practice_type.slug,
+            "practice_type_title": practice_type.title,
+            "sessions": agg["total_sessions"] or 0,
+            "total_tracked_minutes": round((agg["total_tracked_seconds"] or 0) / 60, 1),
+            "avg_presence_rating": round(agg["avg_presence"], 2) if agg["avg_presence"] else None,
+            "total_malas": agg["total_malas"] or 0,
+            "avg_mood_improvement": mood_delta,
+            "top_chanting_mode": top_chanting_mode,
+            "by_content": by_content,
+            "chanting_mode_distribution": chanting_dist,
+            "recent_sessions": recent_data,
         })
