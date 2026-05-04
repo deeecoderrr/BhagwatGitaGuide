@@ -30,6 +30,7 @@ from django.http import (
     JsonResponse,
     HttpResponseForbidden,
     HttpResponseBadRequest,
+    HttpResponsePermanentRedirect,
     StreamingHttpResponse,
 )
 from django.shortcuts import render
@@ -738,7 +739,7 @@ def _run_guidance_flow_stream(
         anchor_note=anchor_note,
     )
     language = resolve_guidance_language(language, raw_message)
-    
+
     if conversation_id:
         conversation = Conversation.objects.filter(id=conversation_id, user_id=user_id).first()
     else:
@@ -755,14 +756,14 @@ def _run_guidance_flow_stream(
 
     conversation_messages = list(conversation.messages.order_by("created_at"))
     intent = classify_user_intent(effective_message, mode=mode)
-    
+
     # We always retrieve verses first (synchronously) to provide context
     retrieval = retrieve_verses_with_trace(
         message=effective_message,
         limit=_plan_max_context_verses(plan, mode),
     )
     verses = refine_verses_for_guidance(effective_message, retrieval.verses)
-    
+
     # Yield initial metadata
     yield f"data: {json.dumps({'conversation_id': conversation.id, 'verses': VerseSerializer(verses, many=True).data})}\n\n"
 
@@ -780,7 +781,7 @@ def _run_guidance_flow_stream(
     ):
         # The build_guidance_stream already yields "data: {...}\n\n"
         yield chunk_packet
-        
+
         # Accumulate for persistence at the end
         try:
             data = json.loads(chunk_packet.replace("data: ", "").strip())
@@ -796,7 +797,7 @@ def _run_guidance_flow_stream(
             role=Message.ROLE_ASSISTANT,
             content=full_guidance_text,
         )
-    
+
     conversation.save()
     yield "event: end\ndata: {}\n\n"
 
@@ -3488,7 +3489,7 @@ class AskStreamView(APIView):
             )
 
         subscription, usage = _get_user_plan_and_usage(request.user)
-        
+
         response = StreamingHttpResponse(
             _run_guidance_flow_stream(
                 user_id=request.user.get_username(),
