@@ -2,6 +2,16 @@
 
 from django.urls import path
 
+from guide_api.meditation_practice_views import (
+    MeditationInsightsView,
+    MeditationPracticeContentsView,
+    MeditationPracticeTypeDetailView,
+    MeditationPracticeTypeListView,
+    MeditationSessionCompleteView,
+    MeditationSessionInterruptView,
+    MeditationSessionRecentView,
+    MeditationSessionStartView,
+)
 from guide_api.practice_workflow_views import (
     PracticeTagListView,
     PracticeWorkflowDetailView,
@@ -366,4 +376,13 @@ urlpatterns = [
         PracticeWorkflowDetailView.as_view(),
         name="practice-workflow-detail",
     ),
+    # ── Meditation / Sadhana Practice Library ──────────────────────────────
+    path("meditation/types/", MeditationPracticeTypeListView.as_view(), name="meditation-types"),
+    path("meditation/types/<slug:slug>/", MeditationPracticeTypeDetailView.as_view(), name="meditation-type-detail"),
+    path("meditation/types/<slug:slug>/contents/", MeditationPracticeContentsView.as_view(), name="meditation-type-contents"),
+    path("meditation/sessions/start/", MeditationSessionStartView.as_view(), name="meditation-session-start"),
+    path("meditation/sessions/recent/", MeditationSessionRecentView.as_view(), name="meditation-sessions-recent"),
+    path("meditation/sessions/<int:pk>/complete/", MeditationSessionCompleteView.as_view(), name="meditation-session-complete"),
+    path("meditation/sessions/<int:pk>/interrupt/", MeditationSessionInterruptView.as_view(), name="meditation-session-interrupt"),
+    path("meditation/insights/", MeditationInsightsView.as_view(), name="meditation-insights"),
 ]

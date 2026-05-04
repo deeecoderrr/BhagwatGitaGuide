@@ -1670,3 +1670,319 @@ class StreakFreeze(models.Model):
     def __str__(self) -> str:
         return f"StreakFreeze {self.user_id} on {self.used_on_date}"
 
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Meditation / Sadhana Practice Library
+# Extensible system: add new PracticeType rows without code changes.
+# Access is free / plus / pro / purchase per content item.
+# Sessions track learn-only vs practice-together; only practice mode is sadhana.
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+class MeditationPracticeType(models.Model):
+    """A category of devotional/meditation practice (e.g. Naam Japa, Pranayama, Dhyana).
+
+    New practice types are added as DB rows — no code change required.
+    """
+
+    CATEGORY_JAPA = "japa"
+    CATEGORY_MEDITATION = "meditation"
+    CATEGORY_BREATH = "breath"
+    CATEGORY_MANTRA = "mantra"
+    CATEGORY_SADHANA = "sadhana"
+    CATEGORY_OTHER = "other"
+    CATEGORY_CHOICES = (
+        (CATEGORY_JAPA, "Naam Japa"),
+        (CATEGORY_MEDITATION, "Meditation"),
+        (CATEGORY_BREATH, "Breathwork / Pranayama"),
+        (CATEGORY_MANTRA, "Mantra"),
+        (CATEGORY_SADHANA, "Sadhana"),
+        (CATEGORY_OTHER, "Other"),
+    )
+
+    ACCESS_FREE = "free"
+    ACCESS_PLUS = "plus"
+    ACCESS_PRO = "pro"
+    ACCESS_CHOICES = (
+        (ACCESS_FREE, "Free — all signed-in users"),
+        (ACCESS_PLUS, "Plus+ required"),
+        (ACCESS_PRO, "Pro required"),
+    )
+
+    slug = models.SlugField(max_length=96, unique=True, db_index=True)
+    title = models.CharField(max_length=160)
+    subtitle = models.CharField(max_length=240, blank=True)
+    description = models.TextField(
+        blank=True,
+        help_text="Full devotional description shown to users.",
+    )
+    category = models.CharField(max_length=24, choices=CATEGORY_CHOICES, default=CATEGORY_OTHER, db_index=True)
+    icon_url = models.URLField(blank=True, help_text="Optional square icon/artwork URL.")
+    cover_url = models.URLField(blank=True, help_text="Banner/cover image for detail screen.")
+    default_access_level = models.CharField(
+        max_length=16,
+        choices=ACCESS_CHOICES,
+        default=ACCESS_FREE,
+        help_text="Minimum plan required to access this practice type.",
+    )
+    # Whether sessions of this type are counted as sadhana in insights
+    counts_as_sadhana = models.BooleanField(
+        default=True,
+        help_text="Practice-mode sessions are counted in sadhana streak and insights.",
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+
+    def __str__(self) -> str:
+        return self.title
+
+
+class MeditationPracticeContent(models.Model):
+    """A single audio/video/text item within a practice type.
+
+    Content can be learn-only, practice-together, or both.
+    Access is per-item: free, plus, pro, or one-time purchase.
+    """
+
+    CONTENT_AUDIO = "audio"
+    CONTENT_VIDEO = "video"
+    CONTENT_TEXT = "text"
+    CONTENT_GUIDED = "guided"
+    CONTENT_TYPE_CHOICES = (
+        (CONTENT_AUDIO, "Audio"),
+        (CONTENT_VIDEO, "Video"),
+        (CONTENT_TEXT, "Text / Reading"),
+        (CONTENT_GUIDED, "Guided session"),
+    )
+
+    MODE_LEARN = "learn"
+    MODE_PRACTICE = "practice"
+    MODE_BOTH = "both"
+    MODE_CHOICES = (
+        (MODE_LEARN, "Learn only"),
+        (MODE_PRACTICE, "Practice together"),
+        (MODE_BOTH, "Learn or practice"),
+    )
+
+    ACCESS_FREE = "free"
+    ACCESS_PLUS = "plus"
+    ACCESS_PRO = "pro"
+    ACCESS_PURCHASE = "purchase"
+    ACCESS_CHOICES = (
+        (ACCESS_FREE, "Free — all signed-in users"),
+        (ACCESS_PLUS, "Plus+ required"),
+        (ACCESS_PRO, "Pro required"),
+        (ACCESS_PURCHASE, "One-time purchase"),
+    )
+
+    practice_type = models.ForeignKey(
+        MeditationPracticeType,
+        on_delete=models.CASCADE,
+        related_name="contents",
+    )
+    title = models.CharField(max_length=200)
+    subtitle = models.CharField(max_length=300, blank=True)
+    description = models.TextField(blank=True)
+    content_type = models.CharField(max_length=16, choices=CONTENT_TYPE_CHOICES, default=CONTENT_AUDIO)
+    media_url = models.URLField(blank=True, help_text="Direct audio/video URL.")
+    thumbnail_url = models.URLField(blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    language = models.CharField(max_length=8, default="en")
+    teacher = models.CharField(max_length=120, blank=True, help_text="Voice / teacher / source attribution.")
+    mantra_name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Primary mantra or divine name featured in this content.",
+    )
+    supports_loop = models.BooleanField(
+        default=False,
+        help_text="Can be looped during practice-together mode.",
+    )
+    mode = models.CharField(max_length=12, choices=MODE_CHOICES, default=MODE_BOTH)
+    access_level = models.CharField(max_length=16, choices=ACCESS_CHOICES, default=ACCESS_FREE, db_index=True)
+    # One-time purchase pricing (used when access_level == purchase)
+    purchase_price_minor_inr = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Price in paise (INR × 100) for one-time purchase.",
+    )
+    purchase_price_minor_usd = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Price in cents (USD × 100) for one-time purchase.",
+    )
+    is_active = models.BooleanField(default=True, db_index=True)
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "title"]
+        indexes = [
+            models.Index(fields=["practice_type", "is_active", "sort_order"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.practice_type.slug} / {self.title}"
+
+
+class MeditationContentUnlock(models.Model):
+    """Records a per-user one-time purchase unlock for a specific content item."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="meditation_content_unlocks",
+    )
+    content = models.ForeignKey(
+        MeditationPracticeContent,
+        on_delete=models.CASCADE,
+        related_name="unlocks",
+    )
+    purchased_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Null = lifetime access.",
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["user", "content"], name="unique_meditation_unlock"),
+        ]
+        ordering = ["-purchased_at"]
+
+    def __str__(self) -> str:
+        return f"Unlock {self.user_id} → {self.content_id}"
+
+    def is_valid(self) -> bool:
+        from django.utils import timezone
+        if self.expires_at is None:
+            return True
+        return self.expires_at > timezone.now()
+
+
+class MeditationPracticeSession(models.Model):
+    """Records a single meditation/sadhana sit.
+
+    mode='learn'    → user only listened/watched; NOT counted as sadhana.
+    mode='practice' → user practiced together; counted as sadhana when status='completed'.
+    """
+
+    MODE_LEARN = "learn"
+    MODE_PRACTICE = "practice"
+    MODE_CHOICES = (
+        (MODE_LEARN, "Learn only"),
+        (MODE_PRACTICE, "Practice together"),
+    )
+
+    STATUS_STARTED = "started"
+    STATUS_COMPLETED = "completed"
+    STATUS_INTERRUPTED = "interrupted"
+    STATUS_ABANDONED = "abandoned"
+    STATUS_CHOICES = (
+        (STATUS_STARTED, "In progress"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_INTERRUPTED, "Interrupted (app backgrounded)"),
+        (STATUS_ABANDONED, "Abandoned"),
+    )
+
+    CHANTING_ALOUD = "aloud"
+    CHANTING_WHISPER = "whisper"
+    CHANTING_MENTAL = "mental"
+    CHANTING_LISTEN = "listen_along"
+    CHANTING_MIXED = "mixed"
+    CHANTING_CHOICES = (
+        (CHANTING_ALOUD, "Aloud"),
+        (CHANTING_WHISPER, "Whisper"),
+        (CHANTING_MENTAL, "Mentally"),
+        (CHANTING_LISTEN, "Listened along"),
+        (CHANTING_MIXED, "Mixed"),
+    )
+
+    MOOD_CHOICES = (
+        ("1", "Very low / troubled"),
+        ("2", "Low / distracted"),
+        ("3", "Neutral"),
+        ("4", "Calm / centred"),
+        ("5", "Very peaceful / elevated"),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="meditation_practice_sessions",
+    )
+    practice_type = models.ForeignKey(
+        MeditationPracticeType,
+        on_delete=models.CASCADE,
+        related_name="sessions",
+    )
+    content = models.ForeignKey(
+        MeditationPracticeContent,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sessions",
+    )
+    mode = models.CharField(max_length=12, choices=MODE_CHOICES, default=MODE_PRACTICE, db_index=True)
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_STARTED, db_index=True)
+
+    # Timing
+    started_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    duration_seconds = models.PositiveIntegerField(
+        default=0,
+        help_text="Wall-clock elapsed seconds (may include idle time).",
+    )
+    tracked_seconds = models.PositiveIntegerField(
+        default=0,
+        help_text="Actively-tracked foreground seconds (app was in use).",
+    )
+
+    # Pre-session intention (all optional — user can start without filling)
+    intention = models.CharField(max_length=500, blank=True, help_text="Sankalpa / intention for this sit.")
+    chosen_mantra = models.CharField(max_length=200, blank=True)
+    target_duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    target_count = models.PositiveSmallIntegerField(null=True, blank=True, help_text="Target rounds/malas.")
+    used_mala = models.BooleanField(null=True, blank=True)
+    mood_before = models.CharField(max_length=2, choices=MOOD_CHOICES, blank=True)
+
+    # Post-session reflection (filled on completion)
+    mood_after = models.CharField(max_length=2, choices=MOOD_CHOICES, blank=True)
+    presence_rating = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="1–5 self-rating of how present/focused the user felt.",
+    )
+    chanting_mode = models.CharField(max_length=16, choices=CHANTING_CHOICES, blank=True)
+    actual_count = models.PositiveSmallIntegerField(
+        null=True, blank=True,
+        help_text="Actual rounds/malas completed.",
+    )
+    helpful = models.BooleanField(null=True, blank=True)
+    internal_observation = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="One thing noticed internally during the practice.",
+    )
+    reflection_note = models.TextField(max_length=2000, blank=True)
+
+    # Flexible extra data for future use
+    metadata = models.JSONField(default=dict, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        indexes = [
+            models.Index(fields=["user", "-started_at"], name="mps_user_started_idx"),
+            models.Index(fields=["user", "mode", "status"], name="mps_user_mode_status_idx"),
+            models.Index(fields=["practice_type", "status"], name="mps_type_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"MeditationSession {self.user_id} {self.practice_type_id} {self.status}"
+

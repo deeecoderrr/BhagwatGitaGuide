@@ -14,6 +14,10 @@ from guide_api.models import (
     Conversation,
     DailyAskUsage,
     GratitudeEntry,
+    MeditationContentUnlock,
+    MeditationPracticeContent,
+    MeditationPracticeSession,
+    MeditationPracticeType,
     StreakFreeze,
     MoodCheckIn,
     EngagementEvent,
@@ -774,3 +778,43 @@ class UserGitaSequenceJourneyAdmin(admin.ModelAdmin):
     list_filter = ("status",)
     search_fields = ("user__username", "intention_text")
     raw_id_fields = ("user",)
+
+
+# ── Meditation Practice Library ────────────────────────────────────────────────
+
+class MeditationPracticeContentInline(admin.TabularInline):
+    model = MeditationPracticeContent
+    extra = 0
+    fields = ("title", "content_type", "mode", "access_level", "duration_seconds", "supports_loop", "is_active", "sort_order")
+
+
+@admin.register(MeditationPracticeType)
+class MeditationPracticeTypeAdmin(admin.ModelAdmin):
+    list_display = ("slug", "title", "category", "default_access_level", "counts_as_sadhana", "is_active", "sort_order")
+    list_filter = ("category", "default_access_level", "is_active")
+    search_fields = ("slug", "title")
+    prepopulated_fields = {"slug": ("title",)}
+    inlines = [MeditationPracticeContentInline]
+
+
+@admin.register(MeditationPracticeContent)
+class MeditationPracticeContentAdmin(admin.ModelAdmin):
+    list_display = ("title", "practice_type", "content_type", "mode", "access_level", "language", "is_active", "sort_order")
+    list_filter = ("practice_type", "content_type", "mode", "access_level", "is_active")
+    search_fields = ("title", "mantra_name", "teacher")
+    raw_id_fields = ("practice_type",)
+
+
+@admin.register(MeditationPracticeSession)
+class MeditationPracticeSessionAdmin(admin.ModelAdmin):
+    list_display = ("user", "practice_type", "mode", "status", "started_at", "tracked_seconds", "presence_rating")
+    list_filter = ("mode", "status", "practice_type")
+    search_fields = ("user__username", "chosen_mantra", "intention")
+    raw_id_fields = ("user", "practice_type", "content")
+    readonly_fields = ("created_at", "updated_at")
+
+
+@admin.register(MeditationContentUnlock)
+class MeditationContentUnlockAdmin(admin.ModelAdmin):
+    list_display = ("user", "content", "purchased_at", "expires_at")
+    raw_id_fields = ("user", "content")
