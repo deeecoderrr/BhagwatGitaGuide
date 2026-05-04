@@ -1718,7 +1718,12 @@ class MeditationPracticeType(models.Model):
     )
     category = models.CharField(max_length=24, choices=CATEGORY_CHOICES, default=CATEGORY_OTHER, db_index=True)
     icon_url = models.URLField(blank=True, help_text="Optional square icon/artwork URL.")
-    cover_url = models.URLField(blank=True, help_text="Banner/cover image for detail screen.")
+    cover_url = models.URLField(blank=True, help_text="Banner/cover image URL (external CDN). Takes priority over cover_image.")
+    cover_image = models.ImageField(
+        upload_to="practice_covers/",
+        blank=True,
+        help_text="Upload a cover image directly. Used when cover_url is empty.",
+    )
     default_access_level = models.CharField(
         max_length=16,
         choices=ACCESS_CHOICES,

@@ -143,6 +143,7 @@ class MeditationPracticeTypeListSerializer(serializers.ModelSerializer):
     locked_reason = serializers.SerializerMethodField()
     required_plan = serializers.SerializerMethodField()
     content_count = serializers.SerializerMethodField()
+    cover_url = serializers.SerializerMethodField()
 
     class Meta:
         model = MeditationPracticeType
@@ -165,6 +166,17 @@ class MeditationPracticeTypeListSerializer(serializers.ModelSerializer):
 
     def get_content_count(self, obj):
         return obj.contents.filter(is_active=True).count()
+
+    def get_cover_url(self, obj):
+        """Return cover_url (external CDN) if set, else build absolute URL from uploaded cover_image."""
+        if obj.cover_url:
+            return obj.cover_url
+        if obj.cover_image:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.cover_image.url)
+            return obj.cover_image.url
+        return None
 
 
 class MeditationPracticeTypeDetailSerializer(MeditationPracticeTypeListSerializer):
