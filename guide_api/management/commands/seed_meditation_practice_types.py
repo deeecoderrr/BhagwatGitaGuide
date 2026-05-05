@@ -22,6 +22,7 @@ PRACTICE_TYPES = [
         "default_access_level": MeditationPracticeType.ACCESS_FREE,
         "counts_as_sadhana": True,
         "sort_order": 10,
+        "cover_url": "",
         "description": (
             "Naam Japa — the devotional practice of repeating a sacred Name.\n\n"
             "\"Naam\" means Divine Name. \"Japa\" means quiet, steady repetition or "
@@ -56,6 +57,52 @@ PRACTICE_TYPES = [
             "on loop while you do your own repetition alongside."
         ),
     },
+    {
+        "slug": "mantra-chanting",
+        "title": "Mantra Chanting",
+        "subtitle": "Sacred Sound Invocation",
+        "category": MeditationPracticeType.CATEGORY_MANTRA,
+        "default_access_level": MeditationPracticeType.ACCESS_FREE,
+        "counts_as_sadhana": True,
+        "sort_order": 20,
+        "cover_url": "https://res.cloudinary.com/dqjnojvit/image/upload/v1778006459/mantrachanting_rxklvq.png",
+        "description": (
+            "Mantra Chanting — the practice of vocalising sacred Sanskrit sound formulas with "
+            "precise syllabic power.\n\n"
+            "\"Mantra\" comes from two Sanskrit roots: \"manas\" (mind) and \"trayate\" (that which "
+            "liberates). A mantra is therefore a sacred sound that liberates the mind — not through "
+            "meaning alone, but through the vibratory quality of its syllables.\n\n"
+            "Unlike Naam Japa, which centres on the devotional repetition of a divine name, Mantra "
+            "Chanting works through precise Sanskrit formulations — often called \"beej mantras\" "
+            "(seed syllables) — that carry encoded vibratory frequencies. When chanted correctly "
+            "and consistently, these sounds are said to restructure the subtle body, clear energetic "
+            "blockages, and invoke the specific quality or deity embedded in the mantra.\n\n"
+            "The Vedic tradition holds that the universe itself arose from sound (Nada Brahman — "
+            "Brahman as cosmic vibration). The 'Om' that begins most mantras is the primordial sound "
+            "from which all creation emerged. Every mantra is an echo of that origination.\n\n"
+            "How to practice:\n"
+            "\u2022 Sit with the spine upright, body relaxed, eyes gently closed.\n"
+            "\u2022 Take three slow breaths to settle the mind before beginning.\n"
+            "\u2022 Chant aloud first — let the sound fill the space around you and return to you.\n"
+            "\u2022 As the session progresses, move to a whisper, then to silent mental repetition.\n"
+            "\u2022 Moving from outer sound inward to silence is the classical three-stage approach.\n"
+            "\u2022 Pronunciation matters — learn it carefully from the audio tracks here.\n"
+            "\u2022 108 repetitions (one mala) is the traditional complete round.\n\n"
+            "What happens as you practice:\n"
+            "\u2022 Initially, the mantra occupies the mind and crowds out distracting thoughts.\n"
+            "\u2022 With regular practice, the mantra begins to arise spontaneously during the day.\n"
+            "\u2022 Eventually, the practitioner does not chant the mantra — the mantra chants itself.\n"
+            "\u2022 This state — called \"Ajapa Japa\" (the unchanted chant) — is the fruit of practice.\n\n"
+            "Benefits (as recorded in tradition and growing research):\n"
+            "\u2022 Activates the relaxation response; reduces cortisol and anxiety.\n"
+            "\u2022 Invokes the specific quality of the presiding deity — protection, courage, clarity.\n"
+            "\u2022 Creates a stable energetic atmosphere in the home or space of chanting.\n"
+            "\u2022 Trains the faculty of one-pointed attention (dharana).\n"
+            "\u2022 Builds a direct, living relationship with the divine form in the mantra.\n\n"
+            "Use the audio tracks here to learn correct pronunciation and rhythm, or to practice "
+            "alongside an established chant while you develop your own."
+        ),
+    },
     # Future types can be added here as rows — no code change needed.
     # {
     #     "slug": "pranayama",
@@ -69,6 +116,25 @@ PRACTICE_TYPES = [
 # Content entries keyed by practice_type slug → list of audio tracks.
 # Identified by (practice_type, title) — safe to re-run (update_or_create).
 PRACTICE_CONTENT: dict[str, list[dict]] = {
+    "mantra-chanting": [
+        {
+            "title": "Om Shri Kaal Bhairavaaye Namah",
+            "subtitle": "",
+            "description": "",
+            "content_type": "audio",
+            "media_url": "https://pub-c6209ba8767b49ecbd104de0ccd380ab.r2.dev/Audio/mantrachanting/omshrikaalbhairavaayenamh.mp4",
+            "thumbnail_url": "https://res.cloudinary.com/dqjnojvit/image/upload/v1778007521/ChatGPT_Image_May_6_2026_12_28_22_AM_glugcw.png",
+            "duration_seconds": None,
+            "language": "hi",
+            "teacher": "",
+            "mantra_name": "Kaal Bhairava",
+            "supports_loop": True,
+            "mode": "practice",
+            "access_level": "free",
+            "is_active": True,
+            "sort_order": 1,
+        },
+    ],
     "naam-japa": [
         {
             "title": "Shree Radha Naam Jap",
