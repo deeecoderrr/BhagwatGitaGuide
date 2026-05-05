@@ -3,14 +3,14 @@
 Run once (or repeatedly — it is idempotent):
     python manage.py seed_meditation_practice_types
 
-The command only creates/updates MeditationPracticeType rows.
-Audio content items are added via Django admin once the audio files are ready.
+The command creates/updates MeditationPracticeType rows AND their audio content
+items. Safe to re-run after adding new content entries.
 """
 from __future__ import annotations
 
 from django.core.management.base import BaseCommand
 
-from guide_api.models import MeditationPracticeType
+from guide_api.models import MeditationPracticeContent, MeditationPracticeType
 
 
 PRACTICE_TYPES = [
@@ -66,9 +66,50 @@ PRACTICE_TYPES = [
     # },
 ]
 
+# Content entries keyed by practice_type slug → list of audio tracks.
+# Identified by (practice_type, title) — safe to re-run (update_or_create).
+PRACTICE_CONTENT: dict[str, list[dict]] = {
+    "naam-japa": [
+        {
+            "title": "Shree Radha Naam Jap",
+            "subtitle": "",
+            "description": "",
+            "content_type": "audio",
+            "media_url": "https://pub-c6209ba8767b49ecbd104de0ccd380ab.r2.dev/Audio/Naam%20Japa/shreeradhanaamjap.mp4",
+            "thumbnail_url": "",
+            "duration_seconds": None,
+            "language": "hi",
+            "teacher": "",
+            "mantra_name": "Radha",
+            "supports_loop": True,
+            "mode": "practice",
+            "access_level": "free",
+            "is_active": True,
+            "sort_order": 1,
+        },
+        {
+            "title": "Samb Sadashiv Naam Jap",
+            "subtitle": "",
+            "description": "",
+            "content_type": "audio",
+            "media_url": "https://pub-c6209ba8767b49ecbd104de0ccd380ab.r2.dev/Audio/Naam%20Japa/ShambhSadaShiv.mp4",
+            "thumbnail_url": "https://res.cloudinary.com/dqjnojvit/image/upload/v1778004649/ace9388b-6353-497f-8c21-a8c2770bcc6f_otbvrk.png",
+            "duration_seconds": None,
+            "language": "hi",
+            "teacher": "",
+            "mantra_name": "Samb Sadashiv",
+            "supports_loop": True,
+            "mode": "practice",
+            "access_level": "free",
+            "is_active": True,
+            "sort_order": 2,
+        },
+    ],
+}
+
 
 class Command(BaseCommand):
-    help = "Seed Meditation Practice Types (idempotent)."
+    help = "Seed Meditation Practice Types and their content (idempotent)."
 
     def handle(self, *args, **options):
         created = updated = 0
@@ -85,8 +126,22 @@ class Command(BaseCommand):
             self.stdout.write(
                 f"  {'CREATED' if was_created else 'UPDATED'}: {slug} — {obj.title}"
             )
+
+            # Seed content items for this practice type
+            for item in PRACTICE_CONTENT.get(slug, []):
+                title = item["title"]
+                defaults = {k: v for k, v in item.items() if k != "title"}
+                _, c_created = MeditationPracticeContent.objects.update_or_create(
+                    practice_type=obj,
+                    title=title,
+                    defaults=defaults,
+                )
+                self.stdout.write(
+                    f"    content {'CREATED' if c_created else 'UPDATED'}: {title}"
+                )
+
         self.stdout.write(
             self.style.SUCCESS(
-                f"Done. created={created} updated={updated}"
+                f"Done. practice_types created={created} updated={updated}"
             )
         )
