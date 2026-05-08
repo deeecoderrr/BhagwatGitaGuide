@@ -1,0 +1,270 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}कृतज्ञता पत्रिका{% else %}Gratitude Journal{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(76,185,130,0.07), transparent 50%),
+        radial-gradient(circle at 15% 80%, rgba(107,78,158,0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(76,185,130,0.2);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em; color: rgba(140,215,175,0.95);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 720px; margin: 0 auto; }
+
+    /* Intro */
+    .intro-text {
+      font-size: 14px; line-height: 1.7; color: rgba(240,230,210,0.75);
+      text-align: center; margin-bottom: 28px;
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(76,185,130,0.2);
+      border-radius: 20px; padding: 28px; margin-bottom: 22px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.45);
+      position: relative; overflow: hidden;
+    }
+    .panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(76,185,130,0.45), transparent);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif; font-size: 19px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0 0 20px;
+    }
+
+    /* Gratitude items */
+    .item-wrap { margin-bottom: 16px; }
+    .item-label {
+      font-size: 12px; font-weight: 600; color: rgba(140,215,175,0.8);
+      margin-bottom: 8px; letter-spacing: 0.02em;
+    }
+    .item-input {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(76,185,130,0.2);
+      border-radius: 12px; padding: 12px 14px;
+      color: rgba(240,230,210,0.9); font-family: "Manrope",sans-serif; font-size: 14px;
+      resize: none; outline: none; transition: border-color 0.2s; line-height: 1.5;
+    }
+    .item-input:focus { border-color: rgba(76,185,130,0.45); }
+    .item-input::placeholder { color: var(--muted); }
+
+    /* Save button */
+    .btn-save {
+      width: 100%; padding: 14px; border-radius: 14px;
+      background: linear-gradient(135deg,rgba(76,185,130,0.22),rgba(76,185,130,0.1));
+      border: 1px solid rgba(76,185,130,0.38); color: rgba(140,215,175,0.95);
+      font-size: 14px; font-weight: 700; cursor: pointer; font-family: "Manrope",sans-serif;
+      transition: all 0.2s; margin-top: 8px;
+    }
+    .btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-save:not(:disabled):hover { background: rgba(76,185,130,0.2); }
+
+    /* Success state */
+    .success-badge {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(76,185,130,0.08); border: 1px solid rgba(76,185,130,0.25);
+      border-radius: 12px; padding: 12px 16px; margin-bottom: 18px;
+      font-size: 13px; color: rgba(140,215,175,0.9);
+    }
+    .success-badge .icon { font-size: 20px; }
+
+    /* History */
+    .history-item {
+      padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-date { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+    .history-entry { font-size: 13px; color: rgba(240,230,210,0.8); display: flex; align-items: flex-start; gap: 8px; margin-bottom: 4px; }
+    .history-entry:last-child { margin-bottom: 0; }
+    .leaf { font-size: 13px; }
+
+    .sign-in-hint { text-align:center; padding:32px 20px; color:var(--muted); font-size:14px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 22px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; margin-top: 12px;
+    }
+    .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>🌿 {% if language == "hi" %}कृतज्ञता पत्रिका{% else %}Gratitude Journal{% endif %}</h1>
+    <p>{% if language == "hi" %}तीन कृतज्ञताएं{% else %}Three things to be grateful for{% endif %}</p>
+  </div>
+  <a href="/today/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
+</header>
+
+<main>
+  <div class="intro-text">
+    {% if language == "hi" %}
+    "कृतज्ञता हर छोटी चीज को पर्याप्त बनाती है।"<br><span style="color:var(--muted)">— भगवद गीता की भावना</span>
+    {% else %}
+    "Gratitude turns what we have into enough."<br><span style="color:var(--muted)">— In the spirit of the Gita</span>
+    {% endif %}
+  </div>
+
+  <div class="panel" id="main-panel">
+    <div class="loading-state" id="loader">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</div>
+  </div>
+
+  <!-- History -->
+  <div class="panel" id="history-panel" style="display:none">
+    <div class="section-title">📜 {% if language == "hi" %}पिछली प्रविष्टियां{% else %}Recent Entries{% endif %}</div>
+    <div id="history-list"></div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+const PROMPTS_EN = [
+  "Something that made you smile today…",
+  "Someone you are grateful for…",
+  "A small blessing you noticed…",
+];
+const PROMPTS_HI = [
+  "आज जो बात आपको खुशी दे गई…",
+  "एक व्यक्ति जिनके लिए आप आभारी हैं…",
+  "एक छोटी सी कृपा जो आपने महसूस की…",
+];
+
+let items = ["", "", ""];
+let savedToday = false;
+
+async function init() {
+  if (!API_TOKEN) {
+    document.getElementById("main-panel").innerHTML = `
+      <div class="sign-in-hint">
+        <p>${LANG==="hi"?"अपनी कृतज्ञता पत्रिका के लिए साइन इन करें":"Sign in to keep your gratitude journal"}</p>
+        <a href="/auth/" class="btn-primary">🙏 ${LANG==="hi"?"साइन इन करें":"Sign In"}</a>
+      </div>`;
+    return;
+  }
+  try {
+    const res = await fetch("/api/v1/gratitude/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    if (d.today) {
+      const { item_1, item_2, item_3 } = d.today;
+      if (item_1 || item_2 || item_3) {
+        items = [item_1||"", item_2||"", item_3||""];
+        savedToday = true;
+      }
+    }
+    renderForm();
+    if (d.history?.length) renderHistory(d.history);
+  } catch {
+    renderForm();
+  }
+}
+
+function renderForm() {
+  const prompts = LANG === "hi" ? PROMPTS_HI : PROMPTS_EN;
+  const panel = document.getElementById("main-panel");
+  const savedBadge = savedToday ? `
+    <div class="success-badge">
+      <span class="icon">✅</span>
+      <span>${LANG==="hi"?"आज की कृतज्ञता सहेजी गई":"Today's gratitude saved"}</span>
+    </div>
+  ` : "";
+  panel.innerHTML = `
+    ${savedBadge}
+    <div class="section-title">${LANG==="hi"?"आज की तीन कृतज्ञताएं":"Three Gratitudes for Today"}</div>
+    ${[0,1,2].map(i => `
+      <div class="item-wrap">
+        <div class="item-label">🌿 ${i+1}. ${prompts[i]}</div>
+        <textarea id="item-${i}" class="item-input" rows="2"
+          placeholder="${prompts[i]}">${escHtml(items[i])}</textarea>
+      </div>
+    `).join("")}
+    <button class="btn-save" id="save-btn" onclick="save()">
+      ${savedToday ? (LANG==="hi"?"अपडेट करें":"Update Entry") : (LANG==="hi"?"आज की कृतज्ञता सहेजें":"Save Today's Gratitude")}
+    </button>
+  `;
+}
+
+async function save() {
+  const btn = document.getElementById("save-btn");
+  const newItems = [0,1,2].map(i => (document.getElementById(`item-${i}`)?.value?.trim()||""));
+  if (!newItems.some(x => x)) {
+    alert(LANG==="hi"?"कम से कम एक कृतज्ञता लिखें":"Please write at least one gratitude");
+    return;
+  }
+  btn.disabled = true; btn.textContent = LANG==="hi"?"सहेज रहा है…":"Saving…";
+  try {
+    await fetch("/api/v1/gratitude/", {
+      method: "POST",
+      headers: { Authorization: `Token ${API_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ item_1: newItems[0], item_2: newItems[1], item_3: newItems[2] }),
+    });
+    items = newItems; savedToday = true; renderForm();
+    // Refresh history
+    const hRes = await fetch("/api/v1/gratitude/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    if (hRes.ok) { const hd = await hRes.json(); if (hd.history) renderHistory(hd.history); }
+  } catch {
+    btn.disabled = false; btn.textContent = LANG==="hi"?"सहेजें":"Save";
+    alert(LANG==="hi"?"सहेज नहीं सका":"Could not save");
+  }
+}
+
+function renderHistory(history) {
+  const panel = document.getElementById("history-panel");
+  panel.style.display = "block";
+  document.getElementById("history-list").innerHTML = history.slice(0,14).map(entry => {
+    const its = entry.items?.filter(x=>x) || [];
+    if (!its.length) return "";
+    return `
+      <div class="history-item">
+        <div class="history-date">${entry.date}</div>
+        ${its.map(it => `<div class="history-entry"><span class="leaf">🌿</span><span>${escHtml(it)}</span></div>`).join("")}
+      </div>
+    `;
+  }).join("");
+}
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+init();
+</script>
+</body>
+</html>

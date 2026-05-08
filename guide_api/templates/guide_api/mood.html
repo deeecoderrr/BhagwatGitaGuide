@@ -1,0 +1,328 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}मनोदशा जांच{% else %}Mood Check-In{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 40% 0%, rgba(107,78,158,0.12), transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(121,217,239,0.06), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(107,78,158,0.25);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em; color: rgba(200,160,240,0.9);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 780px; margin: 0 auto; }
+
+    /* Greeting */
+    .greeting {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(24px,4vw,32px); font-weight: 600;
+      color: rgba(245,217,160,0.95); margin-bottom: 24px;
+      text-align: center;
+    }
+
+    /* Mood panel */
+    .panel {
+      background: var(--panel); border: 1px solid rgba(107,78,158,0.25);
+      border-radius: 20px; padding: 28px; margin-bottom: 22px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.45);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif; font-size: 19px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0 0 18px;
+    }
+
+    /* Mood grid */
+    .mood-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap: 10px;
+      margin-bottom: 22px;
+    }
+    .mood-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 5px;
+      padding: 14px 8px; border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03);
+      cursor: pointer; transition: all 0.15s; font-family: "Manrope", sans-serif;
+    }
+    .mood-btn:hover { border-color: rgba(200,160,240,0.3); background: rgba(200,160,240,0.06); }
+    .mood-btn.selected { border-color: rgba(200,160,240,0.55); background: rgba(200,160,240,0.12); }
+    .mood-btn .emoji { font-size: 26px; }
+    .mood-btn .label { font-size: 11px; font-weight: 600; color: var(--muted); }
+    .mood-btn.selected .label { color: rgba(200,160,240,0.9); }
+
+    /* Note input */
+    .note-wrap { margin-bottom: 20px; }
+    .note-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .note-input {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(107,78,158,0.25);
+      border-radius: 12px; padding: 12px 14px;
+      color: rgba(240,230,210,0.9); font-family: "Manrope",sans-serif; font-size: 14px;
+      resize: none; outline: none; transition: border-color 0.2s;
+    }
+    .note-input:focus { border-color: rgba(200,160,240,0.4); }
+
+    /* Save button */
+    .btn-save {
+      width: 100%; padding: 14px; border-radius: 14px;
+      background: linear-gradient(135deg,rgba(200,160,240,0.22),rgba(107,78,158,0.22));
+      border: 1px solid rgba(200,160,240,0.35); color: rgba(200,160,240,0.95);
+      font-size: 14px; font-weight: 700; cursor: pointer; font-family: "Manrope",sans-serif;
+      transition: all 0.2s;
+    }
+    .btn-save:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-save:not(:disabled):hover { background: rgba(200,160,240,0.2); }
+
+    /* Success state */
+    .success-card {
+      text-align: center; padding: 28px 20px;
+    }
+    .success-emoji { font-size: 48px; margin-bottom: 12px; }
+    .success-title {
+      font-family: "Cormorant Garamond", serif; font-size: 22px; color: rgba(200,160,240,0.9); margin-bottom: 8px;
+    }
+    .success-text { font-size: 13px; color: var(--muted); }
+
+    /* Calendar grid */
+    .calendar-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 4px;
+    }
+    .cal-day-label { font-size: 10px; color: var(--muted); text-align: center; padding: 4px 0; font-weight: 600; }
+    .cal-cell {
+      aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px; background: rgba(255,255,255,0.03); border: 1px solid transparent;
+    }
+    .cal-cell.today { border-color: rgba(200,160,240,0.4); }
+    .cal-cell.has-entry { background: rgba(200,160,240,0.1); }
+
+    .sign-in-hint { text-align:center; padding:32px 20px; color:var(--muted); font-size:14px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 22px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; margin-top: 12px;
+    }
+    .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>💭 {% if language == "hi" %}मनोदशा जांच{% else %}Mood Check-In{% endif %}</h1>
+    <p>{% if language == "hi" %}आज आप कैसा महसूस कर रहे हैं?{% else %}How are you feeling today?{% endif %}</p>
+  </div>
+  <a href="/today/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
+</header>
+
+<main>
+  <div class="greeting" id="greeting">…</div>
+
+  <div class="panel" id="main-panel">
+    <div class="loading-state" id="loader">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</div>
+  </div>
+
+  <!-- Calendar history panel -->
+  <div class="panel" id="history-panel" style="display:none">
+    <div class="section-title">📅 {% if language == "hi" %}पिछले 35 दिन{% else %}Last 35 Days{% endif %}</div>
+    <div class="calendar-grid" id="cal-day-labels">
+      <div class="cal-day-label">Su</div>
+      <div class="cal-day-label">Mo</div>
+      <div class="cal-day-label">Tu</div>
+      <div class="cal-day-label">We</div>
+      <div class="cal-day-label">Th</div>
+      <div class="cal-day-label">Fr</div>
+      <div class="cal-day-label">Sa</div>
+    </div>
+    <div class="calendar-grid" id="calendar-cells" style="margin-top:4px"></div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+const MOODS = [
+  { key:"happy",    emoji:"😊", label:"Happy",    labelHi:"खुश" },
+  { key:"grateful", emoji:"🥰", label:"Grateful",  labelHi:"आभारी" },
+  { key:"relaxed",  emoji:"😌", label:"Relaxed",   labelHi:"शांत" },
+  { key:"content",  emoji:"🙂", label:"Content",   labelHi:"संतुष्ट" },
+  { key:"excited",  emoji:"😛", label:"Excited",   labelHi:"उत्साहित" },
+  { key:"tired",    emoji:"😴", label:"Tired",     labelHi:"थका" },
+  { key:"unsure",   emoji:"😕", label:"Unsure",    labelHi:"अनिश्चित" },
+  { key:"bored",    emoji:"😑", label:"Bored",     labelHi:"ऊबा" },
+  { key:"anxious",  emoji:"😬", label:"Anxious",   labelHi:"चिंतित" },
+  { key:"angry",    emoji:"😤", label:"Angry",     labelHi:"क्रोधित" },
+  { key:"stressed", emoji:"😣", label:"Stressed",  labelHi:"तनावग्रस्त" },
+  { key:"sad",      emoji:"😢", label:"Sad",       labelHi:"उदास" },
+];
+
+let selectedMood = null;
+
+// Greeting
+const h = new Date().getHours();
+const greetings = LANG === "hi"
+  ? (h < 12 ? "सुप्रभात 🌅" : h < 17 ? "शुभ दोपहर ☀️" : "शुभ संध्या 🌙")
+  : (h < 12 ? "Good morning 🌅" : h < 17 ? "Good afternoon ☀️" : "Good evening 🌙");
+document.getElementById("greeting").textContent = greetings;
+
+async function init() {
+  if (!API_TOKEN) {
+    document.getElementById("main-panel").innerHTML = `
+      <div class="sign-in-hint">
+        <p>${LANG==="hi"?"अपनी मनोदशा ट्रैक करने के लिए साइन इन करें":"Sign in to track your daily mood"}</p>
+        <a href="/auth/" class="btn-primary">🙏 ${LANG==="hi"?"साइन इन करें":"Sign In"}</a>
+      </div>`;
+    return;
+  }
+  try {
+    const res = await fetch("/api/v1/mood/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    renderMoodPanel(d);
+  } catch {
+    renderMoodForm(null, null);
+  }
+}
+
+function renderMoodPanel(d) {
+  const today = d.today;
+  if (today?.mood) {
+    renderSuccess(today);
+  } else {
+    renderMoodForm(null, null);
+  }
+  if (d.history?.length) renderCalendar(d.history);
+}
+
+function renderMoodForm(existingMood, existingNote) {
+  selectedMood = existingMood;
+  const panel = document.getElementById("main-panel");
+  panel.innerHTML = `
+    <div class="section-title">${LANG==="hi"?"आज आप कैसा महसूस कर रहे हैं?":"How are you feeling today?"}</div>
+    <div class="mood-grid" id="mood-grid">
+      ${MOODS.map(m => `
+        <button class="mood-btn${selectedMood===m.key?" selected":""}" onclick="selectMood('${m.key}')" id="mood-${m.key}">
+          <span class="emoji">${m.emoji}</span>
+          <span class="label">${LANG==="hi"?m.labelHi:m.label}</span>
+        </button>
+      `).join("")}
+    </div>
+    <div class="note-wrap">
+      <div class="note-label">${LANG==="hi"?"नोट (वैकल्पिक)":"Note (optional)"}</div>
+      <textarea id="mood-note" class="note-input" rows="3"
+        placeholder="${LANG==="hi"?"आज के बारे में कुछ लिखें…":"Write something about your day…"}">${existingNote||""}</textarea>
+    </div>
+    <button class="btn-save" id="save-btn" onclick="saveMood()" ${!selectedMood?"disabled":""}>
+      ${LANG==="hi"?"आज की मनोदशा सहेजें":"Save Today's Mood"}
+    </button>
+  `;
+}
+
+function renderSuccess(today) {
+  const moodData = MOODS.find(m => m.key === today.mood);
+  document.getElementById("main-panel").innerHTML = `
+    <div class="success-card">
+      <div class="success-emoji">${moodData?.emoji||"💭"}</div>
+      <div class="success-title">${LANG==="hi"?"आज की मनोदशा":"Today's Mood"}: ${LANG==="hi"?(moodData?.labelHi||today.mood):(moodData?.label||today.mood)}</div>
+      ${today.note ? `<div class="success-text">"${today.note}"</div>` : ""}
+      <div style="margin-top:18px">
+        <button onclick="renderMoodForm('${today.mood}','${(today.note||"").replace(/'/g,"\'")}')"
+          style="background:none;border:1px solid rgba(200,160,240,0.25);color:rgba(200,160,240,0.7);padding:9px 18px;border-radius:999px;font-size:12px;cursor:pointer;font-family:'Manrope',sans-serif">
+          ${LANG==="hi"?"बदलें":"Update"}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function selectMood(key) {
+  selectedMood = key;
+  document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("selected"));
+  document.getElementById(`mood-${key}`)?.classList.add("selected");
+  document.getElementById("save-btn").disabled = false;
+}
+
+async function saveMood() {
+  if (!selectedMood) return;
+  const note = document.getElementById("mood-note")?.value?.trim() || "";
+  const btn = document.getElementById("save-btn");
+  btn.disabled = true; btn.textContent = LANG==="hi"?"सहेज रहा है…":"Saving…";
+  try {
+    const res = await fetch("/api/v1/mood/", {
+      method: "POST",
+      headers: { Authorization: `Token ${API_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ mood: selectedMood, note }),
+    });
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    renderSuccess(d.today || { mood: selectedMood, note });
+    // Refresh history
+    const histRes = await fetch("/api/v1/mood/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    if (histRes.ok) { const hd = await histRes.json(); if (hd.history) renderCalendar(hd.history); }
+  } catch {
+    btn.disabled = false; btn.textContent = LANG==="hi"?"सहेजें":"Save";
+    alert(LANG==="hi"?"सहेज नहीं सका, फिर कोशिश करें":"Could not save, please try again");
+  }
+}
+
+function renderCalendar(history) {
+  const panel = document.getElementById("history-panel");
+  panel.style.display = "block";
+  const byDate = {};
+  history.forEach(e => { byDate[e.date] = e; });
+  const EMOJI_MAP = {};
+  MOODS.forEach(m => { EMOJI_MAP[m.key] = m.emoji; });
+
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + (6 - dayOfWeek));
+  const todayStr = today.toISOString().slice(0,10);
+  const cells = [];
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date(endDate);
+    d.setDate(endDate.getDate() - i);
+    const key = d.toISOString().slice(0,10);
+    cells.push({ date: key, entry: byDate[key] || null });
+  }
+  document.getElementById("calendar-cells").innerHTML = cells.map(c => {
+    const isToday = c.date === todayStr;
+    const emoji = c.entry?.mood ? (EMOJI_MAP[c.entry.mood] || "·") : "";
+    const title = c.entry?.mood ? `${c.date}: ${c.entry.mood}${c.entry.note?` — ${c.entry.note}`:""}` : c.date;
+    return `<div class="cal-cell${isToday?" today":""}${c.entry?" has-entry":""}" title="${title}">${emoji}</div>`;
+  }).join("");
+}
+
+init();
+</script>
+</body>
+</html>

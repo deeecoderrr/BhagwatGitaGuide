@@ -1,0 +1,300 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}ध्यान अभ्यास{% else %}Meditation Practice{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(121,217,239,0.09), transparent 55%),
+        radial-gradient(circle at 20% 85%, rgba(107,78,158,0.12), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(121,217,239,0.14);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em; color: rgba(121,217,239,0.9);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 960px; margin: 0 auto; }
+
+    /* Stats row */
+    .stats-row {
+      display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 24px;
+    }
+    .stat-card {
+      flex: 1 1 140px;
+      background: var(--panel); border: 1px solid rgba(121,217,239,0.15);
+      border-radius: 14px; padding: 18px 18px 16px; text-align: center;
+    }
+    .stat-value {
+      font-family: "Cormorant Garamond", serif; font-size: 28px; font-weight: 600;
+      color: rgba(121,217,239,0.9); margin-bottom: 4px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+
+    /* Practice type cards */
+    .section-title {
+      font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0 0 16px; letter-spacing: -0.01em;
+    }
+    .panel {
+      background: var(--panel); border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 16px; padding: 24px; margin-bottom: 22px;
+    }
+    .practice-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+    }
+    .practice-card {
+      border-radius: 16px; padding: 20px 18px;
+      border: 1px solid rgba(232,184,109,0.18);
+      background: linear-gradient(135deg,rgba(232,184,109,0.1),rgba(18,22,38,0.5));
+      cursor: pointer; text-decoration: none; color: inherit; transition: all 0.2s;
+      display: block; position: relative; overflow: hidden;
+    }
+    .practice-card:hover { border-color: rgba(232,184,109,0.38); transform: translateY(-2px); }
+    .practice-card.locked { opacity: 0.6; cursor: default; }
+    .practice-card.locked:hover { transform: none; }
+    .card-badges { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .badge-cat {
+      font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+      background: rgba(121,217,239,0.12); color: rgba(121,217,239,0.9);
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+    .badge-sadhana {
+      font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+      background: rgba(232,184,109,0.12); color: var(--gold); letter-spacing: 0.05em;
+    }
+    .badge-lock { font-size: 13px; color: var(--muted); margin-left: auto; }
+    .card-title {
+      font-family: "Cormorant Garamond", serif; font-size: 18px;
+      color: rgba(245,217,160,0.95); margin-bottom: 4px;
+    }
+    .card-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+    .card-meta { display: flex; gap: 10px; }
+    .card-meta-item { font-size: 11px; color: rgba(121,217,239,0.6); }
+
+    /* Filter tabs */
+    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+    .filter-btn {
+      font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08); background: transparent; color: var(--muted);
+      cursor: pointer; transition: all 0.15s; font-family: "Manrope",sans-serif;
+    }
+    .filter-btn.active {
+      border-color: rgba(121,217,239,0.35); color: rgba(121,217,239,0.9); background: rgba(121,217,239,0.08);
+    }
+
+    /* Recent sessions */
+    .session-row {
+      display: flex; align-items: center; gap: 14px;
+      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .session-row:last-child { border-bottom: none; }
+    .session-icon { font-size: 22px; }
+    .session-info { flex: 1; }
+    .session-title { font-size: 13px; font-weight: 600; color: rgba(240,230,210,0.9); margin-bottom: 2px; }
+    .session-meta { font-size: 11px; color: var(--muted); }
+    .session-dur { font-size: 13px; font-weight: 600; color: rgba(121,217,239,0.8); }
+
+    .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
+    .sign-in-hint { text-align:center; padding:20px; color:var(--muted); font-size:13px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 22px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>🧘 {% if language == "hi" %}ध्यान अभ्यास{% else %}Meditation Practice{% endif %}</h1>
+    <p>{% if language == "hi" %}मन की शांति के लिए पवित्र अभ्यास{% else %}Sacred practices for inner stillness{% endif %}</p>
+  </div>
+  <a href="/today/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
+</header>
+
+<main>
+  <!-- Stats (logged-in) -->
+  <div id="stats-row" class="stats-row" style="display:none">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-sessions">—</div>
+      <div class="stat-label">{% if language == "hi" %}कुल सत्र{% else %}TOTAL SESSIONS{% endif %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-minutes">—</div>
+      <div class="stat-label">{% if language == "hi" %}कुल मिनट{% else %}TOTAL MINUTES{% endif %}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-streak">—</div>
+      <div class="stat-label">{% if language == "hi" %}लय{% else %}STREAK{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- Practice types library -->
+  <div class="panel">
+    <div class="section-title">🕉️ {% if language == "hi" %}अभ्यास पुस्तकालय{% else %}Practice Library{% endif %}</div>
+    <div class="filter-tabs" id="filter-tabs"></div>
+    <div class="practice-grid" id="practice-grid">
+      <div class="loading-state">{% if language == "hi" %}अभ्यास लोड हो रहे हैं…{% else %}Loading practices…{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- Recent sessions -->
+  <div class="panel" id="sessions-panel" style="display:none">
+    <div class="section-title">⏱️ {% if language == "hi" %}हाल के सत्र{% else %}Recent Sessions{% endif %}</div>
+    <div id="sessions-list"></div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+const CATEGORY_LABELS = {
+  japa: "Japa", meditation: "Meditation", breath: "Breathwork",
+  mantra: "Mantra", sadhana: "Sadhana", other: "Practice",
+};
+const CATEGORY_LABELS_HI = {
+  japa: "जप", meditation: "ध्यान", breath: "प्राणायाम",
+  mantra: "मंत्र", sadhana: "साधना", other: "अभ्यास",
+};
+
+let allPractices = [];
+let activeFilter = "all";
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function loadPractices() {
+  try {
+    const res = await fetch(`/api/v1/meditation/types/?language=${LANG}`);
+    if (!res.ok) throw new Error();
+    const d = await res.json();
+    allPractices = d.results || d;
+    buildFilterTabs();
+    renderPractices();
+  } catch {
+    document.getElementById("practice-grid").innerHTML =
+      `<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load practices"}</div>`;
+  }
+}
+
+function buildFilterTabs() {
+  const cats = ["all", ...new Set(allPractices.map(p => p.category).filter(Boolean))];
+  const tabsEl = document.getElementById("filter-tabs");
+  tabsEl.innerHTML = cats.map(c => `
+    <button class="filter-btn${c===activeFilter?" active":""}" onclick="setFilter('${c}')">
+      ${c==="all" ? (LANG==="hi"?"सभी":"All") : (LANG==="hi"?(CATEGORY_LABELS_HI[c]||c):(CATEGORY_LABELS[c]||c))}
+    </button>
+  `).join("");
+}
+
+function setFilter(cat) {
+  activeFilter = cat;
+  buildFilterTabs();
+  renderPractices();
+}
+
+function renderPractices() {
+  const list = activeFilter === "all" ? allPractices : allPractices.filter(p => p.category === activeFilter);
+  const grid = document.getElementById("practice-grid");
+  if (!list.length) { grid.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px">${LANG==="hi"?"कोई अभ्यास नहीं":"None found"}</div>`; return; }
+  grid.innerHTML = list.map(p => {
+    const catLabel = LANG==="hi"?(CATEGORY_LABELS_HI[p.category]||p.category):(CATEGORY_LABELS[p.category]||p.category);
+    const href = p.locked ? "#" : `/meditation/${p.slug}/`;
+    const durationStr = p.default_duration_seconds ? Math.round(p.default_duration_seconds/60) + (LANG==="hi"?" मिनट":" min") : "";
+    return `
+      <a href="${href}" class="practice-card${p.locked?" locked":""}">
+        <div class="card-badges">
+          <span class="badge-cat">${catLabel}</span>
+          ${p.counts_as_sadhana ? `<span class="badge-sadhana">${LANG==="hi"?"साधना":"Sadhana"}</span>` : ""}
+          ${p.locked ? `<span class="badge-lock">🔒</span>` : ""}
+        </div>
+        <div class="card-title">${escHtml(p.title)}</div>
+        ${p.subtitle ? `<div class="card-subtitle">${escHtml(p.subtitle)}</div>` : ""}
+        <div class="card-meta">
+          ${durationStr ? `<span class="card-meta-item">⏱ ${durationStr}</span>` : ""}
+          ${p.session_count ? `<span class="card-meta-item">📊 ${p.session_count} ${LANG==="hi"?"सत्र":"sessions"}</span>` : ""}
+        </div>
+      </a>
+    `;
+  }).join("");
+}
+
+async function loadStats() {
+  if (!API_TOKEN) return;
+  try {
+    const [sessRes, insRes] = await Promise.all([
+      fetch("/api/v1/meditation/sessions/?page_size=10", { headers: { Authorization: `Token ${API_TOKEN}` } }),
+      fetch("/api/v1/insights/me/", { headers: { Authorization: `Token ${API_TOKEN}` } }),
+    ]);
+    if (sessRes.ok) {
+      const sd = await sessRes.json();
+      const sessions = sd.results || sd;
+      renderRecentSessions(sessions);
+    }
+    if (insRes.ok) {
+      const id = await insRes.json();
+      const med = id.meditation || {};
+      document.getElementById("stat-sessions").textContent = med.total_sessions ?? "—";
+      document.getElementById("stat-minutes").textContent = med.total_minutes ?? "—";
+      document.getElementById("stat-streak").textContent = (med.streak_days ?? "—") + (med.streak_days != null ? (LANG==="hi"?"d":"d") : "");
+      document.getElementById("stats-row").style.display = "flex";
+    }
+  } catch {}
+}
+
+function renderRecentSessions(sessions) {
+  if (!sessions?.length) return;
+  const panel = document.getElementById("sessions-panel");
+  panel.style.display = "block";
+  const ICONS = { japa:"📿", meditation:"🧘", breath:"🌬️", mantra:"🕉️", sadhana:"✨", other:"🌀" };
+  document.getElementById("sessions-list").innerHTML = sessions.slice(0,8).map(s => {
+    const mins = s.duration_seconds ? Math.round(s.duration_seconds/60) : null;
+    return `
+      <div class="session-row">
+        <span class="session-icon">${ICONS[s.category]||"🌀"}</span>
+        <div class="session-info">
+          <div class="session-title">${escHtml(s.practice_title || s.title || "Session")}</div>
+          <div class="session-meta">${s.date || s.created_at?.slice(0,10) || ""}</div>
+        </div>
+        ${mins ? `<span class="session-dur">${mins}m</span>` : ""}
+      </div>
+    `;
+  }).join("");
+}
+
+loadPractices();
+loadStats();
+</script>
+</body>
+</html>

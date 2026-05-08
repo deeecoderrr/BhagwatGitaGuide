@@ -9607,3 +9607,83 @@ class ReadGitaPageView(TemplateView):
         context = super().get_context_data(**kwargs)
         context["language"] = _safe_lang(self.request)
         return context
+
+
+class TodayPageView(TemplateView):
+    """Daily verse / Today hub page."""
+
+    template_name = "guide_api/today.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class ReadJourneyPageView(TemplateView):
+    """Chapter browser + Gita Path progress page."""
+
+    template_name = "guide_api/read_journey.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class ChapterDetailPageView(TemplateView):
+    """Single chapter page with verse list."""
+
+    template_name = "guide_api/chapter_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        context["chapter_number"] = int(kwargs.get("chapter_number", 1))
+        return context
+
+
+class VerseDetailPageView(TemplateView):
+    """Single verse page with commentaries."""
+
+    template_name = "guide_api/verse_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        context["chapter_number"] = int(kwargs.get("chapter_number", 1))
+        context["verse_number"] = int(kwargs.get("verse_number", 1))
+        return context
+
+
+class MoodPageView(TemplateView):
+    """Daily mood check-in page."""
+
+    template_name = "guide_api/mood.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class GratitudePageView(TemplateView):
+    """Gratitude journal page."""
+
+    template_name = "guide_api/gratitude.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class MeditationPageView(TemplateView):
+    """Meditation practice library hub."""
+
+    template_name = "guide_api/meditation.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
