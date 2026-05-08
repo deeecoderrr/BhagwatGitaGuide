@@ -1,0 +1,548 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}योजनाएं{% else %}Plans & Subscription{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 80% 10%, rgba(232, 184, 109, 0.09), transparent 45%),
+        radial-gradient(circle at 20% 70%, rgba(107, 78, 158, 0.08), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(232, 184, 109, 0.14);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.6), rgba(5, 8, 16, 0.2));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px, 3vw, 28px);
+      letter-spacing: -0.01em;
+      color: var(--gold);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid rgba(232,184,109,0.3);
+      color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main {
+      padding: 28px clamp(16px, 4vw, 40px) 56px;
+      max-width: 1020px;
+      margin: 0 auto;
+    }
+
+    /* Current subscription banner */
+    .current-sub {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.22);
+      border-radius: 16px;
+      padding: 20px 24px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 16px 40px rgba(2,6,16,0.45);
+    }
+    .current-sub.pro { border-color: rgba(232,184,109,0.4); }
+    .sub-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .sub-badge.free { background: rgba(255,255,255,0.07); color: var(--muted); border: 1px solid rgba(255,255,255,0.1); }
+    .sub-badge.plus { background: rgba(91,163,196,0.15); color: rgba(121,217,239,0.9); border: 1px solid rgba(121,217,239,0.25); }
+    .sub-badge.pro  { background: rgba(232,184,109,0.15); color: var(--gold); border: 1px solid rgba(232,184,109,0.35); }
+    .sub-info { flex: 1; }
+    .sub-info strong { font-size: 15px; }
+    .sub-info p { margin: 3px 0 0; font-size: 12px; color: var(--muted); }
+
+    /* Plans grid */
+    .plans-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+      margin-bottom: 32px;
+    }
+    .plan-card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.5);
+      position: relative;
+      overflow: hidden;
+    }
+    .plan-card.featured { border-color: rgba(232,184,109,0.35); }
+    .plan-card.featured::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(232,184,109,0.7), transparent);
+    }
+    .plan-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      align-self: flex-start;
+    }
+    .plan-pill.free { background: rgba(255,255,255,0.07); color: var(--muted); }
+    .plan-pill.plus { background: rgba(121,217,239,0.12); color: rgba(121,217,239,0.9); }
+    .plan-pill.pro  { background: rgba(232,184,109,0.12); color: var(--gold); }
+    .plan-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin: 0 0 4px;
+      color: var(--text);
+    }
+    .plan-price {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+    .plan-price strong {
+      font-size: 22px;
+      font-family: "Cormorant Garamond", serif;
+      color: var(--text);
+      margin-right: 2px;
+    }
+    .plan-features {
+      list-style: none;
+      margin: 0 0 24px;
+      padding: 0;
+      flex: 1;
+    }
+    .plan-features li {
+      font-size: 13px;
+      padding: 5px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      color: var(--muted);
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .plan-features li.highlight { color: var(--text); }
+    .feat-check { color: rgba(121,217,239,0.7); flex-shrink: 0; }
+    .feat-gold  { color: var(--gold); flex-shrink: 0; }
+    .feat-dim   { color: rgba(255,255,255,0.25); flex-shrink: 0; }
+    .btn {
+      font-family: "Manrope", sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 20px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+    .btn-gold { background: linear-gradient(135deg, rgba(232,184,109,0.95), rgba(200,155,80,0.95)); color: rgba(5,8,16,0.95); }
+    .btn-gold:hover { opacity: 0.85; }
+    .btn-sky { background: linear-gradient(135deg, rgba(121,217,239,0.9), rgba(91,163,196,0.9)); color: rgba(5,8,16,0.95); }
+    .btn-sky:hover { opacity: 0.85; }
+    .btn-ghost { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: var(--text); }
+    .btn-ghost:hover { background: rgba(255,255,255,0.11); }
+    .btn-disabled { background: rgba(255,255,255,0.05); color: var(--muted); cursor: default; }
+
+    /* Currency toggle */
+    .currency-toggle {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 22px;
+    }
+    .currency-chip {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.2);
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .currency-chip.active, .currency-chip:hover {
+      background: rgba(232,184,109,0.1);
+      border-color: rgba(232,184,109,0.4);
+      color: var(--gold);
+    }
+
+    /* Payment history */
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.18);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.5);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: rgba(245,217,160,0.95);
+      margin: 0 0 18px;
+    }
+    .payment-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .payment-table th {
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      padding: 0 0 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .payment-table td {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+      vertical-align: top;
+    }
+    .payment-table tr:last-child td { border-bottom: none; }
+    .status-pill {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .status-pill.success { background: rgba(80,200,120,0.12); color: rgba(100,220,140,0.9); }
+    .status-pill.pending { background: rgba(232,184,109,0.1); color: var(--gold); }
+    .status-pill.failed  { background: rgba(220,60,60,0.1); color: rgba(240,100,100,0.9); }
+
+    .empty-state { text-align: center; padding: 28px; color: var(--muted); font-size: 13px; }
+    .empty-state .empty-icon { font-size: 28px; margin-bottom: 8px; }
+    .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.08),rgba(255,255,255,0.04)); background-size:200% 100%; animation:shimmer 1.8s infinite; border-radius:8px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    #error-msg { color: rgba(240,100,100,0.9); font-size: 13px; margin-top: 8px; min-height: 20px; }
+  </style>
+</head>
+<body data-lang="{{ language|default:'en' }}" data-currency="{{ currency|default:'INR' }}">
+  <header>
+    <div class="header-left">
+      <h1>{% if language == "hi" %}योजनाएं और सदस्यता{% else %}Plans & Subscription{% endif %}</h1>
+      <p>{% if language == "hi" %}अपनी साधना को गहरा करें{% else %}Deepen your sadhana journey{% endif %}</p>
+    </div>
+    <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
+      ← {% if language == "hi" %}होम{% else %}Home{% endif %}
+    </a>
+  </header>
+
+  <main>
+    <!-- Current sub status -->
+    <div class="current-sub" id="current-sub">
+      <div class="skeleton" style="width:80px;height:26px;border-radius:999px"></div>
+      <div class="sub-info skeleton" style="height:40px"></div>
+    </div>
+
+    <!-- Currency toggle -->
+    <div class="currency-toggle">
+      <span style="font-size:12px;color:var(--muted)">
+        {% if language == "hi" %}मुद्रा:{% else %}Currency:{% endif %}
+      </span>
+      <button class="currency-chip active" id="btn-inr" onclick="setCurrency('INR')">₹ INR</button>
+      <button class="currency-chip" id="btn-usd" onclick="setCurrency('USD')">$ USD</button>
+    </div>
+
+    <!-- Plans grid -->
+    <div class="plans-grid" id="plans-grid">
+      <div class="plan-card skeleton" style="height:420px"></div>
+      <div class="plan-card skeleton" style="height:420px"></div>
+      <div class="plan-card skeleton" style="height:420px"></div>
+    </div>
+
+    <p id="error-msg"></p>
+
+    <!-- Payment history -->
+    <div class="panel">
+      <h2 class="section-title">
+        {% if language == "hi" %}भुगतान इतिहास{% else %}Payment History{% endif %}
+      </h2>
+      <div id="payment-history-wrap">
+        <table class="payment-table">
+          <thead>
+            <tr>
+              <th>{% if language == "hi" %}तारीख{% else %}Date{% endif %}</th>
+              <th>{% if language == "hi" %}योजना{% else %}Plan{% endif %}</th>
+              <th>{% if language == "hi" %}राशि{% else %}Amount{% endif %}</th>
+              <th>{% if language == "hi" %}स्थिति{% else %}Status{% endif %}</th>
+            </tr>
+          </thead>
+          <tbody id="payment-history-body">
+            <tr><td colspan="4"><div class="skeleton" style="height:32px;margin:6px 0"></div></td></tr>
+            <tr><td colspan="4"><div class="skeleton" style="height:32px;margin:6px 0"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <!-- Razorpay -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <script>
+  (function() {
+    const LANG = document.body.dataset.lang || "en";
+    const token = localStorage.getItem("gita_token");
+    const API = "/api/v1";
+    let currentCurrency = document.body.dataset.currency || "INR";
+    let catalogData = null;
+    let currentPlan = "free";
+
+    function apiFetch(path, opts = {}) {
+      const headers = { "Content-Type": "application/json", ...(opts.headers||{}) };
+      if (token) headers["Authorization"] = "Bearer " + token;
+      return fetch(API + path, { ...opts, headers });
+    }
+
+    function setCurrency(c) {
+      currentCurrency = c;
+      document.getElementById("btn-inr").classList.toggle("active", c === "INR");
+      document.getElementById("btn-usd").classList.toggle("active", c === "USD");
+      if (catalogData) renderPlans(catalogData);
+    }
+    window.setCurrency = setCurrency;
+
+    // Load catalog + subscription status in parallel
+    Promise.all([
+      fetch(API + "/plans/catalog/").then(r => r.ok ? r.json() : null),
+      token ? apiFetch("/subscription/status/").then(r => r.ok ? r.json() : null) : Promise.resolve(null)
+    ]).then(([catalog, sub]) => {
+      catalogData = catalog;
+      if (catalog) {
+        // Use recommended currency from API
+        if (catalog.recommended_currency) {
+          currentCurrency = catalog.recommended_currency;
+          document.getElementById("btn-inr").classList.toggle("active", currentCurrency === "INR");
+          document.getElementById("btn-usd").classList.toggle("active", currentCurrency === "USD");
+        }
+        renderPlans(catalog);
+      }
+      if (sub) {
+        currentPlan = sub.plan ?? "free";
+        renderCurrentSub(sub);
+      } else {
+        renderCurrentSub(null);
+        // Re-render plans with current plan known
+        if (catalog) renderPlans(catalog);
+      }
+    }).catch(() => {
+      document.getElementById("plans-grid").innerHTML = `<p style="color:var(--muted);font-size:13px">${LANG === "hi" ? "योजनाएं लोड नहीं हो सकीं" : "Could not load plans"}</p>`;
+      renderCurrentSub(null);
+    });
+
+    function renderCurrentSub(sub) {
+      const el = document.getElementById("current-sub");
+      if (!sub || !token) {
+        el.innerHTML = `
+          <div class="sub-badge free">Free</div>
+          <div class="sub-info">
+            <strong>${LANG === "hi" ? "अतिथि या मुफ़्त खाता" : "Guest / Free account"}</strong>
+            <p>${LANG === "hi" ? "साइन इन करें अधिक सुविधाओं के लिए" : "Sign in to unlock premium features"}</p>
+          </div>`;
+        return;
+      }
+      const plan = sub.plan ?? "free";
+      const badgeClass = plan === "pro" ? "pro" : plan === "plus" ? "plus" : "free";
+      const endDate = sub.subscription_end_date ? new Date(sub.subscription_end_date).toLocaleDateString("en-IN", {year:"numeric",month:"long",day:"numeric"}) : null;
+      el.className = `current-sub ${plan}`;
+      el.innerHTML = `
+        <div class="sub-badge ${badgeClass}">${plan.toUpperCase()}</div>
+        <div class="sub-info">
+          <strong>${LANG === "hi" ? "वर्तमान योजना:" : "Current plan:"} ${plan.charAt(0).toUpperCase()+plan.slice(1)}</strong>
+          <p>${endDate ? (LANG === "hi" ? "समाप्ति:" : "Renews:") + " " + endDate : (LANG === "hi" ? "सक्रिय" : "Active")}</p>
+        </div>`;
+    }
+
+    function renderPlans(catalog) {
+      const plans = catalog.plans ?? {};
+      const currency = currentCurrency;
+      const sym = currency === "INR" ? "₹" : "$";
+      const divisor = 100; // prices in minor units
+
+      function price(plan) {
+        const raw = plan.prices_minor?.[currency];
+        if (!raw) return LANG === "hi" ? "मुफ़्त" : "Free";
+        return sym + (raw / divisor).toLocaleString("en-IN");
+      }
+
+      const isFree = currentPlan === "free";
+      const isPlus = currentPlan === "plus";
+      const isPro  = currentPlan === "pro";
+
+      function planBtn(planKey) {
+        if (planKey === "free") {
+          if (isFree) return `<span class="btn btn-disabled">${LANG === "hi" ? "वर्तमान योजना" : "Current Plan"}</span>`;
+          return "";
+        }
+        if (planKey === "plus" && isPlus) return `<span class="btn btn-disabled">${LANG === "hi" ? "वर्तमान योजना" : "Current Plan"}</span>`;
+        if (planKey === "pro"  && isPro)  return `<span class="btn btn-disabled">${LANG === "hi" ? "वर्तमान योजना" : "Current Plan"}</span>`;
+        if (!token) return `<a href="/api/chat-ui/?language=${LANG}#guest-auth-target" class="btn btn-gold">${LANG === "hi" ? "शुरू करें" : "Get Started"}</a>`;
+        const cls = planKey === "pro" ? "btn-gold" : "btn-sky";
+        return `<button class="btn ${cls}" onclick="startCheckout('${planKey}')">${LANG === "hi" ? "अभी लें" : "Subscribe"}</button>`;
+      }
+
+      const html = [
+        `<div class="plan-card">
+          <span class="plan-pill free">Free</span>
+          <div class="plan-name">Seekhak</div>
+          <div class="plan-price"><strong>${price(plans.free ?? {})}</strong>/mo</div>
+          <ul class="plan-features">
+            <li class="highlight"><span class="feat-check">✓</span>${plans.free?.daily_limit ?? 3} ${LANG==="hi"?"प्रश्न/दिन":"questions/day"}</li>
+            <li><span class="feat-check">✓</span>${LANG==="hi"?"गीता पाठक":"Gita reader"}</li>
+            <li><span class="feat-check">✓</span>${LANG==="hi"?"दैनिक श्लोक":"Daily verse"}</li>
+            <li><span class="feat-dim">✗</span>${LANG==="hi"?"गहरी खोज":"Deep search mode"}</li>
+            <li><span class="feat-dim">✗</span>${LANG==="hi"?"जप ट्रैकर":"Japa tracker"}</li>
+          </ul>
+          ${planBtn("free")}
+        </div>`,
+
+        `<div class="plan-card">
+          <span class="plan-pill plus">Plus</span>
+          <div class="plan-name">Sadhak</div>
+          <div class="plan-price"><strong>${price(plans.plus ?? {})}</strong>/mo</div>
+          <ul class="plan-features">
+            <li class="highlight"><span class="feat-check">✓</span>${plans.plus?.daily_limit ?? 25} ${LANG==="hi"?"प्रश्न/दिन":"questions/day"}</li>
+            <li class="highlight"><span class="feat-check">✓</span>${LANG==="hi"?"गहरी खोज":"Deep search mode"}</li>
+            <li><span class="feat-check">✓</span>${LANG==="hi"?"जप ट्रैकर":"Japa tracker"}</li>
+            <li><span class="feat-check">✓</span>${LANG==="hi"?"साधना कार्यक्रम":"Sadhana programs"}</li>
+            <li><span class="feat-dim">✗</span>${LANG==="hi"?"असीमित गहरी खोज":"Unlimited deep mode"}</li>
+          </ul>
+          ${planBtn("plus")}
+        </div>`,
+
+        `<div class="plan-card featured">
+          <span class="plan-pill pro">Pro</span>
+          <div class="plan-name">Yogi</div>
+          <div class="plan-price"><strong>${price(plans.pro ?? {})}</strong>/mo</div>
+          <ul class="plan-features">
+            <li class="highlight"><span class="feat-gold">✦</span>${LANG==="hi"?"असीमित प्रश्न":"Unlimited questions"}</li>
+            <li class="highlight"><span class="feat-gold">✦</span>${LANG==="hi"?"असीमित गहरी खोज":"Unlimited deep search"}</li>
+            <li><span class="feat-gold">✦</span>${LANG==="hi"?"सभी साधना कार्यक्रम":"All sadhana programs"}</li>
+            <li><span class="feat-gold">✦</span>${LANG==="hi"?"प्राथमिकता समर्थन":"Priority support"}</li>
+            <li><span class="feat-gold">✦</span>${LANG==="hi"?"नई सुविधाएं पहले":"Early access features"}</li>
+          </ul>
+          ${planBtn("pro")}
+        </div>`
+      ].join("");
+
+      document.getElementById("plans-grid").innerHTML = html;
+    }
+
+    window.startCheckout = async function(planKey) {
+      const errEl = document.getElementById("error-msg");
+      errEl.textContent = "";
+      try {
+        const r = await apiFetch("/payments/create-order/", {
+          method: "POST",
+          body: JSON.stringify({ plan: planKey, currency: currentCurrency })
+        });
+        const d = await r.json();
+        if (!r.ok) {
+          errEl.textContent = d.message ?? d.error ?? (LANG === "hi" ? "त्रुटि हुई" : "Error creating order");
+          return;
+        }
+        const options = {
+          key: d.razorpay_key_id ?? d.key_id,
+          order_id: d.order_id ?? d.razorpay_order_id,
+          amount: d.amount,
+          currency: d.currency ?? currentCurrency,
+          name: "Bhagavad Gita Guide",
+          description: `${planKey.charAt(0).toUpperCase()+planKey.slice(1)} Plan`,
+          handler: async function(resp) {
+            const vr = await apiFetch("/payments/verify/", {
+              method: "POST",
+              body: JSON.stringify({
+                razorpay_order_id: resp.razorpay_order_id,
+                razorpay_payment_id: resp.razorpay_payment_id,
+                razorpay_signature: resp.razorpay_signature
+              })
+            });
+            if (vr.ok) {
+              location.reload();
+            } else {
+              const ve = await vr.json();
+              errEl.textContent = ve.message ?? (LANG === "hi" ? "भुगतान सत्यापन विफल" : "Payment verification failed");
+            }
+          },
+          prefill: {},
+          theme: { color: "#e8b86d" }
+        };
+        const rzp = new Razorpay(options);
+        rzp.open();
+      } catch(e) {
+        errEl.textContent = LANG === "hi" ? "भुगतान शुरू करने में त्रुटि" : "Error initiating payment";
+      }
+    };
+
+    // Payment history
+    if (token) {
+      apiFetch("/payments/history/?limit=10").then(r => r.ok ? r.json() : null).then(data => {
+        const tbody = document.getElementById("payment-history-body");
+        if (!data || !data.results?.length) {
+          tbody.innerHTML = `<tr><td colspan="4"><div class="empty-state"><div class="empty-icon">📄</div>${LANG === "hi" ? "अभी तक कोई भुगतान नहीं" : "No payments yet"}</div></td></tr>`;
+          return;
+        }
+        tbody.innerHTML = data.results.map(row => {
+          const date = row.created_at ? new Date(row.created_at).toLocaleDateString("en-IN",{year:"numeric",month:"short",day:"numeric"}) : "—";
+          const amt = row.amount_minor ? (row.currency === "INR" ? "₹" : "$") + (row.amount_minor / 100).toLocaleString("en-IN") : "—";
+          const st = (row.status ?? "").toLowerCase();
+          const stClass = st === "captured" || st === "paid" || st === "success" ? "success" : st === "failed" ? "failed" : "pending";
+          const stLabel = st === "captured" ? "Paid" : st.charAt(0).toUpperCase() + st.slice(1);
+          return `<tr>
+            <td style="color:var(--muted)">${date}</td>
+            <td>${row.plan ?? row.plan_key ?? "—"}</td>
+            <td>${amt}</td>
+            <td><span class="status-pill ${stClass}">${stLabel}</span></td>
+          </tr>`;
+        }).join("");
+      }).catch(() => {});
+    } else {
+      document.getElementById("payment-history-body").innerHTML = `<tr><td colspan="4" style="text-align:center;padding:16px;color:var(--muted);font-size:13px">${LANG === "hi" ? "इतिहास देखने के लिए साइन इन करें" : "Sign in to view payment history"}</td></tr>`;
+    }
+  })();
+  </script>
+</body>
+</html>

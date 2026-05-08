@@ -1,0 +1,361 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}आज का श्लोक{% else %}Today's Verse{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(121,217,239,0.08), transparent 50%),
+        radial-gradient(circle at 18% 80%, rgba(107,78,158,0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(232,184,109,0.14);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px);
+      letter-spacing: -0.01em;
+      color: var(--gold);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid rgba(232,184,109,0.3);
+      color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 800px; margin: 0 auto; }
+
+    /* Hero verse card */
+    .verse-hero {
+      position: relative; overflow: hidden;
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.22);
+      border-radius: 20px;
+      padding: 36px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 32px 72px rgba(2,6,16,0.55);
+    }
+    .verse-hero::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(232,184,109,0.55), transparent);
+    }
+    .verse-date {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 20px;
+    }
+    .verse-ref {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(232,184,109,0.12); color: var(--gold);
+      border: 1px solid rgba(232,184,109,0.25);
+      margin-bottom: 20px;
+    }
+    .verse-sanskrit {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(20px,2.8vw,26px);
+      font-style: italic; line-height: 1.55;
+      color: rgba(121,217,239,0.9); margin-bottom: 20px;
+    }
+    .verse-meaning {
+      font-size: 15px; line-height: 1.75;
+      color: rgba(240,230,210,0.88); margin-bottom: 20px;
+    }
+    .verse-meaning-plain {
+      font-size: 13px; color: var(--muted);
+      border-left: 2px solid rgba(232,184,109,0.3);
+      padding-left: 14px; margin-bottom: 24px; line-height: 1.6;
+    }
+    .verse-reflection {
+      font-size: 13px; color: rgba(121,217,239,0.7);
+      font-style: italic;
+    }
+    .hero-actions {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 20px; border-radius: 999px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.22), rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .btn-primary:hover { background: rgba(232,184,109,0.18); border-color: rgba(232,184,109,0.6); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 20px; border-radius: 999px;
+      border: 1px solid rgba(121,217,239,0.25); color: rgba(121,217,239,0.8);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: rgba(121,217,239,0.06); text-decoration: none; transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(121,217,239,0.12); border-color: rgba(121,217,239,0.45); }
+
+    /* Streak banner */
+    .streak-banner {
+      display: flex; align-items: center; gap: 14px;
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.18);
+      border-radius: 14px; padding: 18px 20px; margin-bottom: 24px;
+    }
+    .streak-flame { font-size: 28px; }
+    .streak-label { font-size: 13px; color: var(--muted); }
+    .streak-count { font-size: 22px; font-weight: 700; color: var(--gold); }
+
+    /* Panels */
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 16px; padding: 24px;
+      margin-bottom: 20px;
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 19px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0 0 16px; letter-spacing: -0.01em;
+    }
+
+    /* Quick nav grid */
+    .quick-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px;
+    }
+    .quick-card {
+      display: flex; flex-direction: column; gap: 8px;
+      padding: 18px 16px; border-radius: 14px;
+      border: 1px solid rgba(232,184,109,0.16);
+      background: rgba(18,22,38,0.6);
+      text-decoration: none; transition: all 0.2s; color: inherit;
+    }
+    .quick-card:hover { border-color: rgba(232,184,109,0.35); background: rgba(232,184,109,0.06); }
+    .quick-card-icon { font-size: 22px; }
+    .quick-card-title { font-size: 13px; font-weight: 600; color: rgba(240,230,210,0.9); }
+    .quick-card-desc { font-size: 11px; color: var(--muted); }
+
+    /* History */
+    .history-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-date { font-size: 11px; color: var(--muted); min-width: 72px; padding-top: 2px; }
+    .history-ref { font-size: 11px; font-weight: 700; color: var(--gold); min-width: 44px; }
+    .history-text { font-size: 13px; color: rgba(240,230,210,0.8); line-height: 1.5; }
+
+    #history-list.hidden { display: none; }
+
+    @media (max-width: 500px) {
+      .verse-hero { padding: 24px 18px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>🌅 {% if language == "hi" %}आज का संकेत{% else %}Today's Signal{% endif %}</h1>
+    <p>{% if language == "hi" %}भगवद गीता से आपका दैनिक श्लोक{% else %}Your daily verse from the Bhagavad Gita{% endif %}</p>
+  </div>
+  <a href="/api/chat-ui/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
+</header>
+
+<main>
+  <div id="verse-hero" class="verse-hero" style="min-height:300px">
+    <div style="text-align:center;padding:48px 0;color:var(--muted)">
+      <div id="hero-loader" style="font-size:13px">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading today's verse…{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- Streak -->
+  <div id="streak-banner" class="streak-banner" style="display:none">
+    <span class="streak-flame">🔥</span>
+    <div>
+      <div class="streak-count" id="streak-num">0</div>
+      <div class="streak-label" id="streak-label">{% if language == "hi" %}दिन की लय{% else %}day streak{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- Quick nav -->
+  <div class="panel">
+    <div class="section-title">{% if language == "hi" %}आज का अभ्यास{% else %}Today's Practice{% endif %}</div>
+    <div class="quick-grid">
+      <a href="/api/chat-ui/" class="quick-card">
+        <span class="quick-card-icon">🙏</span>
+        <span class="quick-card-title">{% if language == "hi" %}मार्गदर्शन लें{% else %}Ask for Guidance{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}कृष्ण से पूछें{% else %}Ask Krishna{% endif %}</span>
+      </a>
+      <a href="/read-journey/" class="quick-card">
+        <span class="quick-card-icon">📖</span>
+        <span class="quick-card-title">{% if language == "hi" %}गीता पढ़ें{% else %}Read Journey{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}श्लोक दर श्लोक{% else %}Verse by verse{% endif %}</span>
+      </a>
+      <a href="/japa/" class="quick-card">
+        <span class="quick-card-icon">📿</span>
+        <span class="quick-card-title">{% if language == "hi" %}नाम जप{% else %}Naam Japa{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}माला गणना{% else %}Mala counter{% endif %}</span>
+      </a>
+      <a href="/meditation/" class="quick-card">
+        <span class="quick-card-icon">🧘</span>
+        <span class="quick-card-title">{% if language == "hi" %}ध्यान{% else %}Meditation{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}ध्यान का अभ्यास{% else %}Guided practice{% endif %}</span>
+      </a>
+      <a href="/mood/" class="quick-card">
+        <span class="quick-card-icon">💭</span>
+        <span class="quick-card-title">{% if language == "hi" %}मनोदशा{% else %}Mood Check-in{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}आज आप कैसा महसूस कर रहे हैं?{% else %}How are you today?{% endif %}</span>
+      </a>
+      <a href="/gratitude/" class="quick-card">
+        <span class="quick-card-icon">🌿</span>
+        <span class="quick-card-title">{% if language == "hi" %}कृतज्ञता{% else %}Gratitude{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}तीन आभार{% else %}Three blessings{% endif %}</span>
+      </a>
+      <a href="/insights/" class="quick-card">
+        <span class="quick-card-icon">✨</span>
+        <span class="quick-card-title">{% if language == "hi" %}मेरी अंतर्दृष्टि{% else %}My Insights{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}आपकी यात्रा{% else %}Your journey{% endif %}</span>
+      </a>
+      <a href="/sadhana/" class="quick-card">
+        <span class="quick-card-icon">🕉️</span>
+        <span class="quick-card-title">{% if language == "hi" %}साधना{% else %}Sadhana{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}21-दिन कार्यक्रम{% else %}21-day programs{% endif %}</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Recent history -->
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="section-title" style="margin:0">{% if language == "hi" %}हाल के श्लोक{% else %}Recent Verses{% endif %}</div>
+      <button id="history-toggle" onclick="toggleHistory()"
+        style="font-size:12px;background:none;border:none;color:var(--muted);cursor:pointer;padding:4px 8px">
+        {% if language == "hi" %}देखें{% else %}Show{% endif %}
+      </button>
+    </div>
+    <div id="history-list" class="hidden"></div>
+    <div id="history-loader" style="display:none;text-align:center;padding:20px;color:var(--muted);font-size:13px">
+      {% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}
+    </div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+let historyLoaded = false;
+let historyVisible = false;
+
+async function loadDailyVerse() {
+  try {
+    const res = await fetch(`/api/daily-verse/?language=${LANG}&lang=${LANG}`);
+    const d = await res.json();
+    renderVerse(d);
+  } catch {
+    document.getElementById("verse-hero").innerHTML =
+      `<div style="text-align:center;padding:48px;color:var(--muted);font-size:13px">${LANG==="hi"?"श्लोक लोड नहीं हो सका":"Could not load today's verse"}</div>`;
+  }
+}
+
+function renderVerse(d) {
+  const ref = d.verse?.chapter && d.verse?.verse ? `${d.verse.chapter}.${d.verse.verse}` : "";
+  const verseUrl = ref ? `/read/${ref}/` : "#";
+  document.getElementById("verse-hero").innerHTML = `
+    <div class="verse-date">${new Date().toLocaleDateString(LANG==="hi"?"hi-IN":"en-IN",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
+    ${ref ? `<a href="${verseUrl}" class="verse-ref">BG ${ref}</a>` : ""}
+    ${d.quote ? `<div class="verse-sanskrit">"${escHtml(d.quote)}"</div>` : ""}
+    ${d.meaning ? `<div class="verse-meaning">${escHtml(d.meaning)}</div>` : ""}
+    ${d.meaning_plain ? `<div class="verse-meaning-plain">${escHtml(d.meaning_plain)}</div>` : ""}
+    ${d.reflection ? `<div class="verse-reflection">🕊️ ${escHtml(d.reflection)}</div>` : ""}
+    <div class="hero-actions">
+      <a href="/api/chat-ui/?prefill=${encodeURIComponent(ref ? (LANG==="hi"?`भगवद गीता ${ref} को सरल भाषा में समझाएं`:`Explain Bhagavad Gita ${ref} in simple language`) : "")}"
+        class="btn-primary">🙏 ${LANG==="hi"?"मार्गदर्शन लें":"Ask for Guidance"}</a>
+      ${ref ? `<a href="${verseUrl}" class="btn-secondary">📖 ${LANG==="hi"?"श्लोक पढ़ें":"Read Verse"}</a>` : ""}
+    </div>
+  `;
+}
+
+async function loadStreak() {
+  if (!API_TOKEN) return;
+  try {
+    const res = await fetch("/api/auth/me/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    if (!res.ok) return;
+    const d = await res.json();
+    const streak = d.engagement?.daily_streak ?? 0;
+    if (streak > 0) {
+      document.getElementById("streak-num").textContent = streak;
+      document.getElementById("streak-label").textContent =
+        LANG === "hi" ? `दिन${streak === 1 ? "" : "ों"} की लय` : `day${streak === 1 ? "" : "s"} streak`;
+      document.getElementById("streak-banner").style.display = "flex";
+    }
+  } catch {}
+}
+
+function toggleHistory() {
+  historyVisible = !historyVisible;
+  const el = document.getElementById("history-list");
+  const btn = document.getElementById("history-toggle");
+  if (historyVisible) {
+    el.classList.remove("hidden");
+    btn.textContent = LANG === "hi" ? "छुपाएं" : "Hide";
+    if (!historyLoaded) loadHistory();
+  } else {
+    el.classList.add("hidden");
+    btn.textContent = LANG === "hi" ? "देखें" : "Show";
+  }
+}
+
+async function loadHistory() {
+  document.getElementById("history-loader").style.display = "block";
+  try {
+    const res = await fetch(`/api/daily-verse/history/?days=7&language=${LANG}`);
+    const d = await res.json();
+    historyLoaded = true;
+    const list = document.getElementById("history-list");
+    if (!d.results?.length) {
+      list.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px 0">${LANG==="hi"?"कोई इतिहास नहीं":"No history yet"}</div>`;
+    } else {
+      list.innerHTML = d.results.map(r => `
+        <div class="history-row">
+          <span class="history-date">${r.date}</span>
+          <span class="history-ref">${r.reference||""}</span>
+          <span class="history-text">${escHtml((r.meaning_plain||r.meaning||"").slice(0,120))}${(r.meaning_plain||r.meaning||"").length>120?"…":""}</span>
+        </div>
+      `).join("");
+    }
+  } catch {
+    document.getElementById("history-list").innerHTML =
+      `<div style="color:var(--muted);font-size:13px;padding:8px 0">${LANG==="hi"?"लोड नहीं हो सका":"Could not load"}</div>`;
+  } finally {
+    document.getElementById("history-loader").style.display = "none";
+  }
+}
+
+function escHtml(s) {
+  return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+loadDailyVerse();
+loadStreak();
+</script>
+</body>
+</html>

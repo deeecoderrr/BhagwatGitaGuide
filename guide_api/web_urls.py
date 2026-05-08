@@ -5,9 +5,17 @@ from django.urls import path
 from guide_api.sadhana_views import PracticeHubView
 from guide_api.staff_views import CourseStudioView, AdminAnalyticsDashboardView, BadAnswerReviewQueueView
 from guide_api.views import (
+    AccountPageView,
     CommunityWallView,
     DeleteAccountPageView,
+    InsightsPageView,
+    JapaPageView,
+    PlansPageView,
     PrivacyPolicyPageView,
+    QuoteArtPageView,
+    ReadGitaPageView,
+    SadhanaPageView,
+    SavedReflectionsPageView,
     SEO_LANDING_PAGES,
     SharedAnswerPageView,
     SeoDailyVerseHubView,
@@ -66,6 +74,14 @@ urlpatterns = [
         DeleteAccountPageView.as_view(),
         name="delete-account",
     ),
+    path("insights/", InsightsPageView.as_view(), name="insights"),
+    path("japa/", JapaPageView.as_view(), name="japa"),
+    path("plans/", PlansPageView.as_view(), name="plans"),
+    path("account/", AccountPageView.as_view(), name="account"),
+    path("saved-reflections/", SavedReflectionsPageView.as_view(), name="saved-reflections"),
+    path("quote-art/", QuoteArtPageView.as_view(), name="quote-art"),
+    path("sadhana/", SadhanaPageView.as_view(), name="sadhana"),
+    path("read-gita/", ReadGitaPageView.as_view(), name="read-gita"),
     path("robots.txt", robots_txt_view, name="robots-txt"),
     path("sitemap.xml", sitemap_xml_view, name="sitemap-xml"),
     path(

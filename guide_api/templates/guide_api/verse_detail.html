@@ -1,0 +1,300 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BG {{ chapter_number }}.{{ verse_number }} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 60% 0%, rgba(121,217,239,0.07), transparent 50%),
+        radial-gradient(circle at 15% 80%, rgba(107,78,158,0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(121,217,239,0.14);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(20px,3vw,26px); letter-spacing: -0.01em; color: rgba(121,217,239,0.9);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .header-nav { display: flex; gap: 8px; }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    .nav-arr {
+      font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 999px;
+      border: 1px solid rgba(121,217,239,0.25); color: rgba(121,217,239,0.8); text-decoration: none;
+      background: rgba(121,217,239,0.06); transition: all 0.2s;
+    }
+    .nav-arr:hover { background: rgba(121,217,239,0.12); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 820px; margin: 0 auto; }
+
+    /* Verse hero */
+    .verse-hero {
+      position: relative; overflow: hidden;
+      background: var(--panel); border: 1px solid rgba(121,217,239,0.2);
+      border-radius: 20px; padding: 32px 28px; margin-bottom: 24px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 28px 60px rgba(2,6,16,0.55);
+    }
+    .verse-hero::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(121,217,239,0.5), transparent);
+    }
+    .verse-ref {
+      display: inline-block; font-size: 12px; font-weight: 700;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(121,217,239,0.1); color: rgba(121,217,239,0.9);
+      border: 1px solid rgba(121,217,239,0.25); margin-bottom: 20px;
+    }
+    .verse-sanskrit {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(20px,2.8vw,26px); font-style: italic; line-height: 1.6;
+      color: rgba(121,217,239,0.9); margin-bottom: 20px;
+    }
+    .verse-transliteration { font-size: 13px; color: var(--muted); margin-bottom: 16px; line-height: 1.5; }
+    .verse-meaning {
+      font-size: 15px; line-height: 1.75; color: rgba(240,230,210,0.88); margin-bottom: 16px;
+    }
+    .verse-meaning-plain {
+      font-size: 13px; color: rgba(200,190,175,0.75);
+      border-left: 2px solid rgba(121,217,239,0.3); padding-left: 14px;
+      line-height: 1.65; margin-bottom: 24px;
+    }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 20px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s;
+    }
+    .btn-primary:hover { background: rgba(232,184,109,0.2); }
+    .btn-secondary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 20px; border-radius: 999px;
+      border: 1px solid rgba(121,217,239,0.25); color: rgba(121,217,239,0.8);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: rgba(121,217,239,0.06); text-decoration: none; transition: all 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(121,217,239,0.12); }
+
+    /* Commentaries */
+    .panel {
+      background: var(--panel); border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 16px; padding: 0; margin-bottom: 20px; overflow: hidden;
+    }
+    .panel-header {
+      padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif; font-size: 19px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0;
+    }
+    .commentary-item {
+      padding: 20px 22px; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .commentary-item:last-child { border-bottom: none; }
+    .commentary-author {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 8px;
+    }
+    .commentary-text { font-size: 14px; line-height: 1.75; color: rgba(240,230,210,0.82); }
+    .tabs { display: flex; gap: 6px; padding: 14px 22px 0; overflow-x: auto; }
+    .tab-btn {
+      font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
+      border: 1px solid transparent; background: transparent; color: var(--muted);
+      cursor: pointer; white-space: nowrap; transition: all 0.15s;
+    }
+    .tab-btn.active {
+      border-color: rgba(232,184,109,0.35); color: var(--gold); background: rgba(232,184,109,0.08);
+    }
+    .tab-panel { display: none; padding: 20px 22px; }
+    .tab-panel.active { display: block; }
+    .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
+
+    @media (max-width:500px) {
+      .verse-hero { padding: 22px 16px; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1 id="page-ref">BG {{ chapter_number }}.{{ verse_number }}</h1>
+    <p id="page-sub">{% if language == "hi" %}भगवद गीता{% else %}Bhagavad Gita{% endif %}</p>
+  </div>
+  <div class="header-nav">
+    <a href="#" id="prev-verse" class="nav-arr" style="display:none">←</a>
+    <a href="/read/chapter/{{ chapter_number }}/" class="nav-back">{% if language == "hi" %}अध्याय {{ chapter_number }}{% else %}Chapter {{ chapter_number }}{% endif %}</a>
+    <a href="#" id="next-verse" class="nav-arr" style="display:none">→</a>
+  </div>
+</header>
+
+<main>
+  <div class="verse-hero" id="verse-hero">
+    <div class="loading-state">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading verse…{% endif %}</div>
+  </div>
+
+  <!-- Commentaries panel -->
+  <div class="panel" id="commentary-panel" style="display:none">
+    <div class="panel-header">
+      <div class="section-title">📚 {% if language == "hi" %}टीकाएं{% else %}Commentaries{% endif %}</div>
+    </div>
+    <div class="tabs" id="commentary-tabs"></div>
+    <div id="commentary-content"></div>
+  </div>
+
+  <!-- AI Synthesis -->
+  <div class="panel" id="synthesis-panel" style="display:none">
+    <div class="panel-header">
+      <div class="section-title">✨ {% if language == "hi" %}सार{% else %}Synthesis{% endif %}</div>
+    </div>
+    <div id="synthesis-content" style="padding:20px 22px">
+      <div class="loading-state">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const CHAPTER = {{ chapter_number }};
+const VERSE = {{ verse_number }};
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function loadVerse() {
+  try {
+    const res = await fetch(`/api/v1/verses/${CHAPTER}/${VERSE}/?language=${LANG}`);
+    if (!res.ok) throw new Error();
+    const v = await res.json();
+    renderVerse(v);
+    renderCommentaries(v);
+    loadSynthesis(v);
+    setupNavArrows(v);
+  } catch {
+    document.getElementById("verse-hero").innerHTML =
+      `<div style="color:var(--muted);text-align:center;padding:40px">${LANG==="hi"?"श्लोक लोड नहीं हो सका":"Could not load verse"}</div>`;
+  }
+}
+
+function renderVerse(v) {
+  const askPrefill = LANG==="hi"
+    ? `भगवद गीता ${CHAPTER}.${VERSE} को सरल भाषा में समझाएं`
+    : `Explain Bhagavad Gita ${CHAPTER}.${VERSE} and how it applies to my life`;
+  document.getElementById("page-ref").textContent = `BG ${CHAPTER}.${VERSE}`;
+  document.getElementById("page-sub").textContent = v.chapter_name || `Chapter ${CHAPTER}`;
+  document.title = `BG ${CHAPTER}.${VERSE} · Bhagavad Gita Guide`;
+  document.getElementById("verse-hero").innerHTML = `
+    <span class="verse-ref">BG ${CHAPTER}.${VERSE}</span>
+    ${v.text ? `<div class="verse-sanskrit">${escHtml(v.text)}</div>` : ""}
+    ${v.transliteration ? `<div class="verse-transliteration">${escHtml(v.transliteration)}</div>` : ""}
+    ${v.word_meanings ? `<div class="verse-meaning">${escHtml(v.word_meanings)}</div>` : ""}
+    ${v.meaning_plain ? `<div class="verse-meaning-plain">${escHtml(v.meaning_plain)}</div>` : ""}
+    <div class="hero-actions">
+      <a href="/api/chat-ui/?prefill=${encodeURIComponent(askPrefill)}" class="btn-primary">
+        🙏 ${LANG==="hi"?"मार्गदर्शन लें":"Ask for Guidance"}
+      </a>
+      <a href="/read/chapter/${CHAPTER}/" class="btn-secondary">
+        📖 ${LANG==="hi"?"सभी श्लोक":"All Verses"}
+      </a>
+    </div>
+  `;
+}
+
+function renderCommentaries(v) {
+  const COMM_FIELDS = [
+    { key: "purport_prabhupada", label: "Prabhupāda" },
+    { key: "purport_swami_sivananda", label: "Sivananda" },
+    { key: "purport_swami_tejomayananda", label: "Tejomayānanda" },
+    { key: "purport_madhavacharya", label: "Mādhvāchārya" },
+    { key: "purport_shankaracharya", label: "Śaṅkarāchārya" },
+    { key: "purport_ramanuja", label: "Rāmānuja" },
+    { key: "description", label: LANG==="hi"?"विवरण":"Description" },
+  ];
+  const available = COMM_FIELDS.filter(f => v[f.key]);
+  if (!available.length) return;
+
+  const panel = document.getElementById("commentary-panel");
+  panel.style.display = "block";
+
+  const tabs = document.getElementById("commentary-tabs");
+  tabs.innerHTML = available.map((f, i) =>
+    `<button class="tab-btn${i===0?" active":""}" onclick="switchTab('${f.key}')" id="tab-${f.key}">${f.label}</button>`
+  ).join("");
+
+  const content = document.getElementById("commentary-content");
+  content.innerHTML = available.map((f, i) =>
+    `<div class="tab-panel${i===0?" active":""}" id="panel-${f.key}">
+      <div class="commentary-text">${escHtml(v[f.key])}</div>
+    </div>`
+  ).join("");
+}
+
+function switchTab(key) {
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+  document.getElementById(`tab-${key}`)?.classList.add("active");
+  document.getElementById(`panel-${key}`)?.classList.add("active");
+}
+
+async function loadSynthesis(v) {
+  if (!v.has_synthesis && !v.synthesis_overview) return;
+  const panel = document.getElementById("synthesis-panel");
+  panel.style.display = "block";
+  const content = document.getElementById("synthesis-content");
+  if (v.synthesis_overview || v.synthesis_consensus || v.synthesis_life) {
+    let html = "";
+    if (v.synthesis_overview) html += `<div style="margin-bottom:14px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px">${LANG==="hi"?"अवलोकन":"Overview"}</div><div style="font-size:14px;line-height:1.75;color:rgba(240,230,210,0.85)">${escHtml(v.synthesis_overview)}</div></div>`;
+    if (v.synthesis_consensus) html += `<div style="margin-bottom:14px"><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px">${LANG==="hi"?"सर्वसम्मति":"Consensus"}</div><div style="font-size:14px;line-height:1.75;color:rgba(240,230,210,0.85)">${escHtml(v.synthesis_consensus)}</div></div>`;
+    if (v.synthesis_life) html += `<div><div style="font-size:11px;text-transform:uppercase;letter-spacing:0.07em;color:var(--muted);margin-bottom:6px">${LANG==="hi"?"जीवन में":"In Life"}</div><div style="font-size:14px;line-height:1.75;color:rgba(240,230,210,0.85)">${escHtml(v.synthesis_life)}</div></div>`;
+    content.innerHTML = html;
+  } else {
+    content.innerHTML = `<div style="color:var(--muted);font-size:13px">${LANG==="hi"?"उपलब्ध नहीं":"Not available"}</div>`;
+  }
+}
+
+function setupNavArrows(v) {
+  const prev = document.getElementById("prev-verse");
+  const next = document.getElementById("next-verse");
+  if (VERSE > 1) {
+    prev.href = `/read/${CHAPTER}.${VERSE-1}/`;
+    prev.style.display = "inline-flex";
+  }
+  // Get chapter verse count from API data or just allow next
+  if (v.chapter_verse_count && VERSE < v.chapter_verse_count) {
+    next.href = `/read/${CHAPTER}.${VERSE+1}/`;
+    next.style.display = "inline-flex";
+  } else if (!v.chapter_verse_count) {
+    // Optimistically show next until we know there isn't one
+    next.href = `/read/${CHAPTER}.${VERSE+1}/`;
+    next.style.display = "inline-flex";
+  }
+}
+
+loadVerse();
+</script>
+</body>
+</html>

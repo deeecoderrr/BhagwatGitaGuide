@@ -1,0 +1,514 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}सहेजी गई चिंतन{% else %}Saved Reflections{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 22% 15%, rgba(107, 78, 158, 0.09), transparent 45%),
+        radial-gradient(circle at 78% 75%, rgba(121, 217, 239, 0.06), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(232, 184, 109, 0.14);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.6), rgba(5, 8, 16, 0.2));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px, 3vw, 28px);
+      color: var(--gold);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid rgba(232,184,109,0.3);
+      color: var(--gold); text-decoration: none; background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main {
+      padding: 28px clamp(16px, 4vw, 40px) 56px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Search + filter bar */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .search-input {
+      flex: 1;
+      min-width: 200px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-family: "Manrope", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      transition: border-color 0.2s;
+    }
+    .search-input:focus { outline: none; border-color: rgba(232,184,109,0.35); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* Reflection cards */
+    .reflections-list { display: grid; gap: 18px; }
+    .reflection-card {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 20px 48px rgba(2,6,16,0.45);
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .reflection-card:hover { border-color: rgba(232,184,109,0.3); }
+    .reflection-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      border-radius: 18px 18px 0 0;
+      background: linear-gradient(90deg, transparent, rgba(232,184,109,0.3), transparent);
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .reflection-card:hover::before { opacity: 1; }
+
+    .reflection-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .reflection-date {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      flex-shrink: 0;
+    }
+    .reflection-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      font-family: "Manrope", sans-serif;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+    .action-btn.delete:hover { color: rgba(240,100,100,0.9); }
+
+    .reflection-question {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 12px;
+      line-height: 1.35;
+      font-style: italic;
+    }
+    .reflection-guidance {
+      font-size: 14px;
+      color: rgba(220, 210, 190, 0.85);
+      line-height: 1.65;
+      margin: 0 0 14px;
+    }
+    .reflection-guidance.collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .verse-refs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+    .verse-chip {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      border: 1px solid rgba(232,184,109,0.22);
+      color: rgba(245,217,160,0.8);
+      background: rgba(232,184,109,0.07);
+    }
+
+    .note-block {
+      background: rgba(107,78,158,0.1);
+      border: 1px solid rgba(107,78,158,0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: rgba(200,185,230,0.85);
+      font-style: italic;
+    }
+
+    .expand-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      color: rgba(232,184,109,0.7);
+      font-family: "Manrope", sans-serif;
+      font-weight: 600;
+      padding: 4px 0;
+      margin-top: 4px;
+    }
+    .expand-btn:hover { color: var(--gold); }
+
+    /* Note edit inline */
+    .note-edit {
+      display: none;
+      margin-top: 10px;
+    }
+    .note-edit.open { display: block; }
+    .note-edit textarea {
+      width: 100%;
+      background: rgba(6,12,22,0.7);
+      border: 1px solid rgba(107,78,158,0.35);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: "Manrope", sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .note-edit textarea:focus { outline: none; border-color: rgba(107,78,158,0.6); }
+    .note-edit-actions { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-sm {
+      font-family: "Manrope", sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-gold { background: linear-gradient(135deg,rgba(232,184,109,0.9),rgba(200,155,80,0.9)); color: rgba(5,8,16,0.95); }
+    .btn-ghost { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: var(--text); }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 28px;
+    }
+    .page-btn {
+      padding: 9px 20px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.25);
+      background: transparent;
+      color: var(--gold);
+      font-size: 13px;
+      font-family: "Manrope", sans-serif;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .page-btn:hover { background: rgba(232,184,109,0.1); }
+    .page-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .empty-state { text-align: center; padding: 48px 16px; color: var(--muted); }
+    .empty-state .empty-icon { font-size: 36px; margin-bottom: 14px; }
+    .empty-state h3 { font-family:"Cormorant Garamond",serif; color:var(--gold); margin:0 0 8px; font-size:22px; }
+    .empty-state p { font-size:13px; margin:0; }
+
+    .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.08),rgba(255,255,255,0.04)); background-size:200% 100%; animation:shimmer 1.8s infinite; border-radius:8px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .count-chip {
+      background: rgba(232,184,109,0.12);
+      border: 1px solid rgba(232,184,109,0.2);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(245,217,160,0.8);
+      margin-left: 8px;
+    }
+  </style>
+</head>
+<body data-lang="{{ language|default:'en' }}">
+  <header>
+    <div class="header-left">
+      <h1>
+        {% if language == "hi" %}सहेजी गई चिंतन{% else %}Saved Reflections{% endif %}
+        <span class="count-chip" id="total-count" style="display:none"></span>
+      </h1>
+      <p>{% if language == "hi" %}आपकी आध्यात्मिक अंतर्दृष्टि{% else %}Your spiritual insights{% endif %}</p>
+    </div>
+    <div class="header-right">
+      <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
+        ← {% if language == "hi" %}होम{% else %}Home{% endif %}
+      </a>
+    </div>
+  </header>
+
+  <main>
+    <!-- Auth gate -->
+    <div id="auth-gate" style="display:none">
+      <div style="background:var(--panel);border:1px solid rgba(232,184,109,0.18);border-radius:16px;padding:40px;text-align:center">
+        <div style="font-size:36px;margin-bottom:14px">📿</div>
+        <h2 style="font-family:'Cormorant Garamond',serif;color:var(--gold);margin:0 0 8px">
+          {% if language == "hi" %}साइन इन करें{% else %}Sign in to view saved reflections{% endif %}
+        </h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 20px">
+          {% if language == "hi" %}आपकी आध्यात्मिक अंतर्दृष्टि सुरक्षित रखें{% else %}Keep your spiritual insights safely stored{% endif %}
+        </p>
+        <a href="/api/chat-ui/?language={{ language|default:'en' }}#guest-auth-target" class="nav-back" style="display:inline-block">
+          {% if language == "hi" %}साइन इन{% else %}Sign In{% endif %}
+        </a>
+      </div>
+    </div>
+
+    <div id="reflections-content" style="display:none">
+      <!-- Search bar -->
+      <div class="filter-bar">
+        <input
+          type="search"
+          class="search-input"
+          id="search-input"
+          placeholder="{% if language == 'hi' %}चिंतन खोजें…{% else %}Search reflections…{% endif %}"
+        >
+      </div>
+
+      <!-- List -->
+      <div class="reflections-list" id="reflections-list">
+        <!-- skeleton -->
+        <div class="reflection-card"><div class="skeleton" style="height:18px;width:60%;margin-bottom:12px"></div><div class="skeleton" style="height:14px;width:90%;margin-bottom:6px"></div><div class="skeleton" style="height:14px;width:80%"></div></div>
+        <div class="reflection-card"><div class="skeleton" style="height:18px;width:55%;margin-bottom:12px"></div><div class="skeleton" style="height:14px;width:85%;margin-bottom:6px"></div><div class="skeleton" style="height:14px;width:70%"></div></div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pagination" style="display:none">
+        <button class="page-btn" id="btn-prev" onclick="changePage(-1)">
+          ← {% if language == "hi" %}पिछला{% else %}Previous{% endif %}
+        </button>
+        <span style="font-size:13px;color:var(--muted);display:flex;align-items:center" id="page-info"></span>
+        <button class="page-btn" id="btn-next" onclick="changePage(1)">
+          {% if language == "hi" %}अगला{% else %}Next{% endif %} →
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function() {
+    const LANG = document.body.dataset.lang || "en";
+    const token = localStorage.getItem("gita_token");
+    const API = "/api/v1";
+    const LIMIT = 12;
+    let currentOffset = 0;
+    let totalCount = 0;
+    let allData = [];
+    let searchQuery = "";
+
+    if (!token) {
+      document.getElementById("auth-gate").style.display = "";
+      return;
+    }
+    document.getElementById("reflections-content").style.display = "";
+
+    function apiFetch(path, opts = {}) {
+      return fetch(API + path, {
+        ...opts,
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+      });
+    }
+
+    async function loadReflections(offset = 0) {
+      currentOffset = offset;
+      const r = await apiFetch(`/saved-reflections/?limit=${LIMIT}&offset=${offset}`).catch(() => null);
+      const list = document.getElementById("reflections-list");
+      if (!r || !r.ok) {
+        list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">${LANG === "hi" ? "लोड नहीं हो सका" : "Could not load reflections"}</div>`;
+        return;
+      }
+      const data = await r.json();
+      totalCount = data.count ?? 0;
+      allData = data.results ?? [];
+      renderReflections(allData);
+      updatePagination(data);
+      const countEl = document.getElementById("total-count");
+      if (totalCount > 0) {
+        countEl.textContent = totalCount;
+        countEl.style.display = "";
+      }
+    }
+
+    function renderReflections(items) {
+      const list = document.getElementById("reflections-list");
+      const filtered = searchQuery
+        ? items.filter(r => {
+            const q = searchQuery.toLowerCase();
+            return (r.message ?? "").toLowerCase().includes(q) ||
+                   (r.guidance ?? "").toLowerCase().includes(q) ||
+                   (r.note ?? "").toLowerCase().includes(q);
+          })
+        : items;
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state">
+          <div class="empty-icon">🪷</div>
+          <h3>${LANG === "hi" ? "कोई चिंतन नहीं मिला" : "No reflections found"}</h3>
+          <p>${searchQuery ? (LANG === "hi" ? "अन्य शब्दों से खोजें" : "Try a different search") : (LANG === "hi" ? "गीता से प्रश्न पूछें और चिंतन सहेजें" : "Ask the Gita a question and save reflections")}</p>
+          ${!searchQuery ? `<a href="/api/chat-ui/?language=${LANG}" class="nav-back" style="display:inline-block;margin-top:16px">${LANG === "hi" ? "प्रश्न पूछें" : "Ask a Question"}</a>` : ""}
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(r => {
+        const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-IN",{year:"numeric",month:"short",day:"numeric"}) : "";
+        const guidance = r.guidance ?? "";
+        const isLong = guidance.length > 280;
+        const verseRefs = r.verse_references ?? [];
+        const noteHtml = r.note
+          ? `<div class="note-block">"${escHtml(r.note)}"</div>`
+          : "";
+        return `<div class="reflection-card" data-id="${r.id}">
+          <div class="reflection-header">
+            <span class="reflection-date">${date}</span>
+            <div class="reflection-actions">
+              <button class="action-btn" onclick="toggleNoteEdit(${r.id})" title="${LANG==='hi'?'नोट जोड़ें':'Edit note'}">✎</button>
+              <button class="action-btn delete" onclick="deleteReflection(${r.id})" title="${LANG==='hi'?'हटाएं':'Delete'}">✕</button>
+            </div>
+          </div>
+          <div class="reflection-question">"${escHtml((r.message ?? "").slice(0, 120))}"</div>
+          <div class="reflection-guidance${isLong ? " collapsed" : ""}" id="guidance-${r.id}">${escHtml(guidance)}</div>
+          ${isLong ? `<button class="expand-btn" id="expand-${r.id}" onclick="toggleExpand(${r.id})">${LANG==="hi"?"और पढ़ें…":"Read more…"}</button>` : ""}
+          ${verseRefs.length ? `<div class="verse-refs">${verseRefs.slice(0,5).map(v => `<span class="verse-chip">${escHtml(String(v))}</span>`).join("")}</div>` : ""}
+          ${noteHtml}
+          <div class="note-edit" id="note-edit-${r.id}">
+            <textarea rows="3" placeholder="${LANG==="hi"?"अपना नोट यहाँ लिखें…":"Add a personal note…"}" id="note-ta-${r.id}">${escHtml(r.note ?? "")}</textarea>
+            <div class="note-edit-actions">
+              <button class="btn-sm btn-gold" onclick="saveNote(${r.id})">
+                ${LANG==="hi"?"सहेजें":"Save"}
+              </button>
+              <button class="btn-sm btn-ghost" onclick="toggleNoteEdit(${r.id})">
+                ${LANG==="hi"?"रद्द करें":"Cancel"}
+              </button>
+            </div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function updatePagination(data) {
+      const pagEl = document.getElementById("pagination");
+      if (data.count <= LIMIT) { pagEl.style.display = "none"; return; }
+      pagEl.style.display = "";
+      const page = Math.floor(currentOffset / LIMIT) + 1;
+      const totalPages = Math.ceil(data.count / LIMIT);
+      document.getElementById("page-info").textContent = `${page} / ${totalPages}`;
+      document.getElementById("btn-prev").disabled = currentOffset === 0;
+      document.getElementById("btn-next").disabled = !data.next_offset && data.next_offset !== 0;
+    }
+
+    window.changePage = function(dir) {
+      const newOffset = currentOffset + dir * LIMIT;
+      if (newOffset < 0 || newOffset >= totalCount) return;
+      loadReflections(newOffset);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.deleteReflection = async function(id) {
+      if (!confirm(LANG === "hi" ? "इस चिंतन को हटाएं?" : "Delete this reflection?")) return;
+      const r = await apiFetch(`/saved-reflections/${id}/`, { method: "DELETE" }).catch(() => null);
+      if (r && (r.ok || r.status === 204)) {
+        allData = allData.filter(x => x.id !== id);
+        totalCount = Math.max(0, totalCount - 1);
+        const countEl = document.getElementById("total-count");
+        countEl.textContent = totalCount;
+        if (totalCount === 0) countEl.style.display = "none";
+        renderReflections(allData);
+      }
+    };
+
+    window.toggleExpand = function(id) {
+      const g = document.getElementById(`guidance-${id}`);
+      const b = document.getElementById(`expand-${id}`);
+      const collapsed = g.classList.toggle("collapsed");
+      b.textContent = collapsed ? (LANG==="hi"?"और पढ़ें…":"Read more…") : (LANG==="hi"?"कम करें":"Show less");
+    };
+
+    window.toggleNoteEdit = function(id) {
+      document.getElementById(`note-edit-${id}`).classList.toggle("open");
+    };
+
+    window.saveNote = async function(id) {
+      const note = document.getElementById(`note-ta-${id}`).value.trim();
+      // PATCH the saved reflection with updated note
+      const r = await apiFetch(`/saved-reflections/${id}/`, {
+        method: "PATCH",
+        body: JSON.stringify({ note })
+      }).catch(() => null);
+      if (r && r.ok) {
+        const item = allData.find(x => x.id === id);
+        if (item) item.note = note;
+        toggleNoteEdit(id);
+        renderReflections(allData);
+      }
+    };
+
+    // Search
+    let searchTimer;
+    document.getElementById("search-input").addEventListener("input", e => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => {
+        searchQuery = e.target.value.trim();
+        renderReflections(allData);
+      }, 300);
+    });
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    loadReflections(0);
+  })();
+  </script>
+</body>
+</html>

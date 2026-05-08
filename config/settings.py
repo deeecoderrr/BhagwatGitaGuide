@@ -168,12 +168,14 @@ def _postgres_db_from_url(url: str) -> dict:
         "PASSWORD": unquote(parsed.password or ""),
         "HOST": parsed.hostname or "localhost",
         "PORT": str(parsed.port or "5432"),
-        # Keep persistent connections but cap lifetime so Neon's pooler
-        # can reclaim idle sockets between requests.
-        "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "60")),
+        # Keep persistent connections for 10 minutes — drastically reduces the number
+        # of expensive cold reconnects to Neon (each new TCP+TLS+PG handshake is
+        # ~200-300ms even at low latency; worse across regions).
+        "CONN_MAX_AGE": int(os.getenv("CONN_MAX_AGE", "600")),
         "CONN_HEALTH_CHECKS": False,  # Skips SELECT 1 round-trip; Neon's pooler handles health.
         "OPTIONS": {
             "sslmode": "require",
+            "connect_timeout": 10,  # Fail fast on unreachable host instead of hanging.
         },
     }
 

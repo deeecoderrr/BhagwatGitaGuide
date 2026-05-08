@@ -1,0 +1,609 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}मेरी अंतर्दृष्टि{% else %}My Insights{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(91, 163, 196, 0.08), transparent 42%),
+        radial-gradient(circle at 88% 20%, rgba(232, 184, 109, 0.07), transparent 45%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(232, 184, 109, 0.14);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.6), rgba(5, 8, 16, 0.2));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px, 3vw, 28px);
+      letter-spacing: -0.01em;
+      color: var(--gold);
+    }
+    .header-left p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .nav-back {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(232, 184, 109, 0.3);
+      color: var(--gold);
+      text-decoration: none;
+      background: rgba(232, 184, 109, 0.06);
+      transition: all 0.2s;
+    }
+    .nav-back:hover {
+      border-color: rgba(232, 184, 109, 0.5);
+      background: rgba(232, 184, 109, 0.1);
+    }
+    main {
+      padding: 28px clamp(16px, 4vw, 40px) 56px;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid rgba(232, 184, 109, 0.16);
+      border-radius: 16px;
+      padding: 20px 18px;
+      text-align: center;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 16px 40px rgba(2,6,16,0.45);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(232,184,109,0.5), transparent);
+    }
+    .stat-value {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 42px;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+    .stat-label {
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stat-icon {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+
+    /* Streak */
+    .streak-section {
+      background: var(--panel);
+      border: 1px solid rgba(232, 184, 109, 0.18);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.5);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: rgba(245, 217, 160, 0.95);
+      margin: 0 0 16px;
+      letter-spacing: -0.01em;
+    }
+    .streak-display {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .streak-flame {
+      font-size: 48px;
+      line-height: 1;
+    }
+    .streak-count {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 56px;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .streak-meta {
+      flex: 1;
+      min-width: 120px;
+    }
+    .streak-meta strong {
+      display: block;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .streak-meta span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .streak-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      border: 1px solid rgba(232,184,109,0.25);
+      color: rgba(245,217,160,0.9);
+      background: rgba(232,184,109,0.08);
+    }
+
+    /* Activity heatmap */
+    .heatmap-section {
+      background: var(--panel);
+      border: 1px solid rgba(232, 184, 109, 0.18);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.5);
+    }
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(53, 1fr);
+      gap: 3px;
+      margin-top: 12px;
+    }
+    .heatmap-cell {
+      aspect-ratio: 1;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.05);
+      transition: opacity 0.2s;
+    }
+    .heatmap-cell[data-level="1"] { background: rgba(232,184,109,0.2); }
+    .heatmap-cell[data-level="2"] { background: rgba(232,184,109,0.45); }
+    .heatmap-cell[data-level="3"] { background: rgba(232,184,109,0.7); }
+    .heatmap-cell[data-level="4"] { background: rgba(232,184,109,0.95); }
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .heatmap-legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+    }
+
+    /* Chapter progress */
+    .chapter-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .chapter-tile {
+      background: rgba(6,12,22,0.55);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 14px 12px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .chapter-tile.read {
+      border-color: rgba(232,184,109,0.28);
+    }
+    .chapter-tile-num {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--muted);
+      line-height: 1;
+    }
+    .chapter-tile.read .chapter-tile-num {
+      color: var(--gold);
+    }
+    .chapter-tile-name {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.03em;
+    }
+    .chapter-tile-bar {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 3px;
+      background: rgba(232,184,109,0.5);
+      transition: width 0.6s ease;
+    }
+
+    /* Two-col layout */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 640px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* Japa summary mini */
+    .japa-mini {
+      background: var(--panel);
+      border: 1px solid rgba(121,217,239,0.16);
+      border-radius: 16px;
+      padding: 20px 22px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 16px 40px rgba(2,6,16,0.4);
+    }
+    .japa-mini .stat-value { font-size: 36px; color: rgba(121,217,239,0.9); }
+
+    /* Recent conversations */
+    .conv-list { list-style: none; margin: 0; padding: 0; }
+    .conv-item {
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .conv-item:last-child { border-bottom: none; }
+    .conv-date {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      margin-top: 2px;
+      min-width: 60px;
+    }
+    .conv-question {
+      font-size: 13px;
+      color: var(--text);
+      line-height: 1.4;
+    }
+    .conv-question a {
+      color: rgba(232,184,109,0.85);
+      text-decoration: none;
+    }
+    .conv-question a:hover { color: var(--gold); text-decoration: underline; }
+
+    /* Loading / empty states */
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0% {background-position:200% 0} 100% {background-position:-200% 0} }
+
+    .empty-state {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+    .section-header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .view-all-link {
+      font-size: 12px;
+      color: rgba(232,184,109,0.7);
+      text-decoration: none;
+    }
+    .view-all-link:hover { color: var(--gold); text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>{% if language == "hi" %}मेरी यात्रा{% else %}My Journey{% endif %}</h1>
+      <p>{% if language == "hi" %}अंतर्दृष्टि और प्रगति{% else %}Insights and progress{% endif %}</p>
+    </div>
+    <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
+      ← {% if language == "hi" %}होम{% else %}Home{% endif %}
+    </a>
+  </header>
+
+  <main>
+    <!-- Auth gate -->
+    <div id="auth-gate" style="display:none">
+      <div class="streak-section" style="text-align:center;padding:40px;">
+        <div style="font-size:32px;margin-bottom:12px;">🪷</div>
+        <h2 style="font-family:'Cormorant Garamond',serif;color:var(--gold);margin:0 0 8px">
+          {% if language == "hi" %}साइन इन करें{% else %}Sign in to view your insights{% endif %}
+        </h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 20px">
+          {% if language == "hi" %}अपनी साधना यात्रा ट्रैक करें{% else %}Track your sadhana journey{% endif %}
+        </p>
+        <a href="/api/chat-ui/?language={{ language|default:'en' }}#guest-auth-target" class="nav-back">
+          {% if language == "hi" %}साइन इन{% else %}Sign In{% endif %}
+        </a>
+      </div>
+    </div>
+
+    <!-- Main content (shown when authed) -->
+    <div id="insights-content" style="display:none">
+
+      <!-- Stats row -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">🔥</div>
+          <div class="stat-value" id="streak-val">—</div>
+          <div class="stat-label">{% if language == "hi" %}दिन की लकीर{% else %}Day Streak{% endif %}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">💬</div>
+          <div class="stat-value" id="conversations-val">—</div>
+          <div class="stat-label">{% if language == "hi" %}बातचीत{% else %}Conversations{% endif %}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📖</div>
+          <div class="stat-value" id="verses-read-val">—</div>
+          <div class="stat-label">{% if language == "hi" %}श्लोक पढ़े{% else %}Verses Read{% endif %}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🫀</div>
+          <div class="stat-value" id="japa-sessions-val">—</div>
+          <div class="stat-label">{% if language == "hi" %}जप सत्र{% else %}Japa Sessions{% endif %}</div>
+        </div>
+      </div>
+
+      <!-- Streak section -->
+      <div class="streak-section">
+        <div class="section-header-row">
+          <h2 class="section-title" style="margin:0">
+            {% if language == "hi" %}साधना लकीर{% else %}Sadhana Streak{% endif %}
+          </h2>
+        </div>
+        <div class="streak-display">
+          <div class="streak-flame">🔥</div>
+          <div class="streak-count" id="streak-count-big">—</div>
+          <div class="streak-meta">
+            <strong id="streak-label-main">{% if language == "hi" %}दिन{% else %}days{% endif %}</strong>
+            <span id="streak-sub">{% if language == "hi" %}लगातार{% else %}current streak{% endif %}</span>
+          </div>
+        </div>
+        <div class="streak-badges" id="streak-badges"></div>
+      </div>
+
+      <!-- Activity heatmap -->
+      <div class="heatmap-section">
+        <div class="section-header-row">
+          <h2 class="section-title" style="margin:0">
+            {% if language == "hi" %}गतिविधि{% else %}Activity{% endif %}
+          </h2>
+        </div>
+        <div class="heatmap-grid" id="heatmap-grid"></div>
+        <div class="heatmap-legend">
+          <span>{% if language == "hi" %}कम{% else %}Less{% endif %}</span>
+          <div class="heatmap-legend-swatch" style="background:rgba(255,255,255,0.05)"></div>
+          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.2)"></div>
+          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.45)"></div>
+          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.7)"></div>
+          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.95)"></div>
+          <span>{% if language == "hi" %}ज़्यादा{% else %}More{% endif %}</span>
+        </div>
+      </div>
+
+      <!-- Two-col: Chapter progress + Japa summary -->
+      <div class="two-col">
+        <div class="streak-section" style="margin-bottom:0">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">
+              {% if language == "hi" %}अध्याय खोज{% else %}Chapter Discovery{% endif %}
+            </h2>
+          </div>
+          <div class="chapter-grid" id="chapter-grid">
+            <!-- populated by JS -->
+          </div>
+        </div>
+        <div class="japa-mini">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0;color:rgba(121,217,239,0.9)">
+              {% if language == "hi" %}जप सारांश{% else %}Japa Summary{% endif %}
+            </h2>
+            <a href="/japa/?language={{ language|default:'en' }}" class="view-all-link">
+              {% if language == "hi" %}विस्तार{% else %}Details →{% endif %}
+            </a>
+          </div>
+          <div class="stat-value" id="japa-total-count" style="font-size:36px;color:rgba(121,217,239,0.9)">—</div>
+          <div class="stat-label" style="margin-bottom:16px">
+            {% if language == "hi" %}कुल जप{% else %}Total Japa{% endif %}
+          </div>
+          <div id="japa-commitment-info" style="font-size:13px;color:var(--muted)"></div>
+        </div>
+      </div>
+
+      <!-- Recent conversations -->
+      <div class="streak-section">
+        <div class="section-header-row">
+          <h2 class="section-title" style="margin:0">
+            {% if language == "hi" %}हाल की बातचीत{% else %}Recent Conversations{% endif %}
+          </h2>
+          <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="view-all-link">
+            {% if language == "hi" %}सभी{% else %}All →{% endif %}
+          </a>
+        </div>
+        <ul class="conv-list" id="conv-list">
+          <li class="conv-item"><div class="conv-date skeleton" style="width:60px;height:14px"></div><div class="conv-question skeleton" style="width:80%;height:14px;margin-top:2px"></div></li>
+          <li class="conv-item"><div class="conv-date skeleton" style="width:60px;height:14px"></div><div class="conv-question skeleton" style="width:65%;height:14px;margin-top:2px"></div></li>
+          <li class="conv-item"><div class="conv-date skeleton" style="width:60px;height:14px"></div><div class="conv-question skeleton" style="width:72%;height:14px;margin-top:2px"></div></li>
+        </ul>
+      </div>
+
+    </div><!-- /insights-content -->
+  </main>
+
+  <script>
+  (function () {
+    const LANG = "{{ language|default:'en' }}";
+    const token = localStorage.getItem("gita_token");
+    const API = "/api/v1";
+
+    if (!token) {
+      document.getElementById("auth-gate").style.display = "";
+      return;
+    }
+    document.getElementById("insights-content").style.display = "";
+
+    function apiFetch(path, opts = {}) {
+      return fetch(API + path, {
+        ...opts,
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+      });
+    }
+
+    // --- Insights summary ---
+    apiFetch("/insights/me/").then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      const streak = data.streak_current ?? data.current_streak ?? 0;
+      const longest = data.streak_longest ?? data.longest_streak ?? 0;
+      document.getElementById("streak-val").textContent = streak;
+      document.getElementById("streak-count-big").textContent = streak;
+      document.getElementById("conversations-val").textContent = data.total_conversations ?? data.conversations_count ?? "—";
+      document.getElementById("verses-read-val").textContent = data.verses_read ?? data.total_verses_read ?? "—";
+
+      // Badges
+      const badges = [];
+      if (streak >= 7) badges.push("🌟 7-day");
+      if (streak >= 30) badges.push("⚡ 30-day");
+      if (streak >= 100) badges.push("💎 100-day");
+      if (longest > streak) badges.push("🏆 Best: " + longest);
+      const badgeEl = document.getElementById("streak-badges");
+      badgeEl.innerHTML = badges.map(b => `<span class="badge">${b}</span>`).join("");
+
+      // Chapter grid
+      buildChapterGrid(data.chapters_explored ?? []);
+    }).catch(() => {});
+
+    // --- Japa sessions count ---
+    apiFetch("/japa/commitments/").then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      const commitments = Array.isArray(data) ? data : (data.results ?? []);
+      document.getElementById("japa-sessions-val").textContent = commitments.length;
+      const active = commitments.find(c => c.is_active);
+      if (active) {
+        document.getElementById("japa-total-count").textContent = active.total_count ?? "—";
+        document.getElementById("japa-commitment-info").innerHTML =
+          `<strong style="color:var(--text)">${active.mantra_name ?? "Mantra"}</strong><br>` +
+          `${LANG === "hi" ? "दैनिक लक्ष्य:" : "Daily goal:"} ${active.daily_target ?? "—"}`;
+      }
+    }).catch(() => {});
+
+    // --- Activity heatmap (last 53 weeks from reading/sessions) ---
+    buildHeatmap();
+
+    // --- Recent conversations ---
+    apiFetch("/history/me/?limit=6").then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      const items = Array.isArray(data) ? data : (data.results ?? data.conversations ?? []);
+      const list = document.getElementById("conv-list");
+      if (!items.length) {
+        list.innerHTML = `<li class="empty-state"><div class="empty-icon">💬</div>${LANG === "hi" ? "अभी तक कोई बातचीत नहीं" : "No conversations yet"}</li>`;
+        return;
+      }
+      list.innerHTML = items.slice(0, 6).map(item => {
+        const date = item.created_at ? new Date(item.created_at).toLocaleDateString("en-IN", {month:"short",day:"numeric"}) : "";
+        const q = item.first_message ?? item.title ?? item.question ?? "Conversation";
+        const link = `/api/chat-ui/?conversation_id=${encodeURIComponent(item.id)}&language=${encodeURIComponent(LANG)}`;
+        return `<li class="conv-item">
+          <span class="conv-date">${date}</span>
+          <div class="conv-question"><a href="${link}">${escHtml(q.slice(0, 80))}</a></div>
+        </li>`;
+      }).join("");
+    }).catch(() => {});
+
+    function buildChapterGrid(exploredChapters) {
+      const CHAPTER_NAMES = [
+        "Arjuna Vishada","Sankhya","Karma","Jnana-Vibhaga","Karma-Vairagya",
+        "Dhyana","Jnana-Vijnana","Akshara-Brahma","Raja-Vidya","Vibhuti",
+        "Vishwarupa","Bhakti","Kshetra","Gunatraya","Purushottama","Daivāsura",
+        "Shraddhatraya","Moksha-Sannyasa"
+      ];
+      const exploredSet = new Set((exploredChapters || []).map(Number));
+      const grid = document.getElementById("chapter-grid");
+      grid.innerHTML = CHAPTER_NAMES.map((name, i) => {
+        const num = i + 1;
+        const read = exploredSet.has(num);
+        return `<div class="chapter-tile ${read ? 'read' : ''}">
+          <div class="chapter-tile-num">${num}</div>
+          <div class="chapter-tile-name">${name}</div>
+          ${read ? '<div class="chapter-tile-bar" style="width:100%"></div>' : ''}
+        </div>`;
+      }).join("");
+    }
+
+    function buildHeatmap() {
+      const grid = document.getElementById("heatmap-grid");
+      // Build 53 weeks × 7 days = 371 cells
+      const today = new Date();
+      const cells = [];
+      for (let w = 52; w >= 0; w--) {
+        for (let d = 0; d <= 6; d++) {
+          cells.push({ level: 0 });
+        }
+      }
+      // Try to populate from reading state
+      apiFetch("/reading/state/").then(r => r.ok ? r.json() : null).then(data => {
+        // Reading state may have activity data; if not, just render empty grid
+        renderHeatmap(grid, cells);
+      }).catch(() => renderHeatmap(grid, cells));
+    }
+
+    function renderHeatmap(grid, cells) {
+      grid.innerHTML = cells.map(c =>
+        `<div class="heatmap-cell" data-level="${c.level}"></div>`
+      ).join("");
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+  })();
+  </script>
+</body>
+</html>

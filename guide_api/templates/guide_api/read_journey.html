@@ -1,0 +1,345 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}पठन यात्रा{% else %}Read Journey{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(121,217,239,0.07), transparent 50%),
+        radial-gradient(circle at 85% 70%, rgba(107,78,158,0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(121,217,239,0.14);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em;
+      color: rgba(121,217,239,0.9);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 960px; margin: 0 auto; }
+
+    /* Gita Path panel */
+    .path-panel {
+      position: relative; overflow: hidden;
+      background: var(--panel);
+      border: 1px solid rgba(121,217,239,0.2);
+      border-radius: 20px; padding: 28px 28px 24px;
+      margin-bottom: 28px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 24px 56px rgba(2,6,16,0.5);
+    }
+    .path-panel::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(121,217,239,0.5), transparent);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0 0 16px; letter-spacing: -0.01em;
+    }
+    .progress-bar-wrap {
+      background: rgba(255,255,255,0.06); border-radius: 6px;
+      height: 8px; overflow: hidden; margin: 12px 0 6px;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 6px;
+      background: linear-gradient(90deg, rgba(121,217,239,0.5), rgba(121,217,239,0.8));
+      transition: width 0.4s ease;
+    }
+    .progress-text { font-size: 12px; color: var(--muted); }
+
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 22px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: none; transition: all 0.2s; margin-top: 16px;
+    }
+    .btn-primary:hover { background: rgba(232,184,109,0.2); border-color: rgba(232,184,109,0.6); }
+    .btn-danger {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 18px; border-radius: 999px;
+      border: 1px solid rgba(220,80,80,0.3); color: rgba(240,120,120,0.8);
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      background: rgba(220,80,80,0.06); transition: all 0.2s; margin-top: 12px; margin-left: 10px;
+    }
+    .btn-danger:hover { background: rgba(220,80,80,0.12); }
+    .btn-teal {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 11px 22px; border-radius: 999px;
+      border: 1px solid rgba(121,217,239,0.35); color: rgba(121,217,239,0.9);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      background: rgba(121,217,239,0.08); text-decoration: none; transition: all 0.2s; margin-top: 16px;
+    }
+    .btn-teal:hover { background: rgba(121,217,239,0.14); }
+
+    /* Intention textarea */
+    .intention-wrap { margin: 12px 0; }
+    .intention-label { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .intention-input {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(232,184,109,0.2);
+      border-radius: 10px; padding: 12px 14px;
+      color: rgba(240,230,210,0.9); font-family: "Manrope",sans-serif; font-size: 14px;
+      resize: none; transition: border-color 0.2s; outline: none;
+    }
+    .intention-input:focus { border-color: rgba(232,184,109,0.4); }
+
+    /* Chapter grid */
+    .panel {
+      background: var(--panel); border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 16px; padding: 24px; margin-bottom: 20px;
+    }
+    .chapters-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+    }
+    .chapter-card {
+      display: block; padding: 18px 18px 16px; border-radius: 14px;
+      border: 1px solid rgba(232,184,109,0.16);
+      background: rgba(18,22,38,0.55); text-decoration: none;
+      transition: all 0.2s;
+    }
+    .chapter-card:hover { border-color: rgba(232,184,109,0.35); background: rgba(232,184,109,0.06); transform: translateY(-2px); }
+    .chapter-card.active { border-color: rgba(121,217,239,0.35); background: rgba(121,217,239,0.05); }
+    .ch-num {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+    .ch-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 17px; color: rgba(245,217,160,0.95); margin-bottom: 4px;
+    }
+    .ch-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+    .ch-bar-wrap {
+      background: rgba(255,255,255,0.06); border-radius: 4px; height: 4px; overflow: hidden;
+    }
+    .ch-bar {
+      height: 100%; border-radius: 4px;
+      background: linear-gradient(90deg, rgba(121,217,239,0.4), rgba(121,217,239,0.7));
+      transition: width 0.3s;
+    }
+    .ch-count { font-size: 10px; color: var(--muted); margin-top: 5px; }
+
+    .loading-state { text-align:center; padding:56px 0; color:var(--muted); font-size:14px; }
+    .sign-in-hint {
+      text-align:center; padding:28px 20px; color:var(--muted); font-size:14px;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>📖 {% if language == "hi" %}पठन यात्रा{% else %}Read Journey{% endif %}</h1>
+    <p>{% if language == "hi" %}श्लोक दर श्लोक भगवद गीता पढ़ें{% else %}Read the Bhagavad Gita, verse by verse{% endif %}</p>
+  </div>
+  <a href="/today/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
+</header>
+
+<main>
+  <!-- Gita Path Panel (logged-in users) -->
+  <div class="path-panel" id="path-section">
+    <div class="section-title">📜 {% if language == "hi" %}मेरी गीता यात्रा{% else %}My Gita Path{% endif %}</div>
+    <div id="path-content">
+      <div class="loading-state" id="path-loader">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- All Chapters -->
+  <div class="panel">
+    <div class="section-title">🕉️ {% if language == "hi" %}सभी अध्याय{% else %}All 18 Chapters{% endif %}</div>
+    <div id="chapters-grid" class="chapters-grid">
+      <div class="loading-state">{% if language == "hi" %}अध्याय लोड हो रहे हैं…{% else %}Loading chapters…{% endif %}</div>
+    </div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+// Load chapters list
+async function loadChapters() {
+  try {
+    const res = await fetch(`/api/v1/chapters/?language=${LANG}`);
+    const d = await res.json();
+    const chapters = d.results || d;
+    renderChapters(chapters);
+  } catch {
+    document.getElementById("chapters-grid").innerHTML =
+      `<div style="color:var(--muted);font-size:13px;padding:16px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load chapters"}</div>`;
+  }
+}
+
+function renderChapters(chapters, progress = {}) {
+  const grid = document.getElementById("chapters-grid");
+  if (!chapters?.length) { grid.innerHTML = `<div style="color:var(--muted);font-size:13px">${LANG==="hi"?"कोई अध्याय नहीं":"No chapters found"}</div>`; return; }
+  grid.innerHTML = chapters.map(c => {
+    const pct = progress[c.chapter_number] || 0;
+    const active = pct > 0 ? " active" : "";
+    return `
+      <a href="/read/chapter/${c.chapter_number}/" class="chapter-card${active}">
+        <div class="ch-num">${LANG==="hi"?"अध्याय":"Chapter"} ${c.chapter_number}</div>
+        <div class="ch-title">${escHtml(c.name_translated || c.name)}</div>
+        <div class="ch-subtitle">${escHtml(c.name_meaning || "")}</div>
+        <div class="ch-bar-wrap"><div class="ch-bar" style="width:${pct}%"></div></div>
+        <div class="ch-count">${c.verses_count || ""} ${LANG==="hi"?"श्लोक":"verses"}</div>
+      </a>
+    `;
+  }).join("");
+}
+
+// Load reading state / gita path
+async function loadPath() {
+  const el = document.getElementById("path-content");
+  if (!API_TOKEN) {
+    el.innerHTML = `
+      <div class="sign-in-hint">
+        <p>${LANG==="hi"?"अपनी पठन यात्रा ट्रैक करने के लिए साइन इन करें":"Sign in to track your reading journey"}</p>
+        <a href="/auth/" class="btn-primary">🙏 ${LANG==="hi"?"साइन इन करें":"Sign In"}</a>
+      </div>`;
+    return;
+  }
+  try {
+    const [pathRes, stateRes] = await Promise.all([
+      fetch("/api/v1/reading/gita-path/", { headers: { Authorization: `Token ${API_TOKEN}` } }),
+      fetch("/api/v1/reading/state/", { headers: { Authorization: `Token ${API_TOKEN}` } }).catch(() => null),
+    ]);
+    const pathData = pathRes.ok ? await pathRes.json() : null;
+    const stateData = stateRes?.ok ? await stateRes.json() : null;
+
+    // Build chapter progress map
+    const progress = {};
+    if (stateData?.chapters_progress) {
+      stateData.chapters_progress.forEach(cp => {
+        if (cp.total_verses > 0) {
+          progress[cp.chapter_number] = Math.round((cp.read_count / cp.total_verses) * 100);
+        }
+      });
+    }
+
+    renderChapters(null, progress); // re-render with progress after chapters load
+
+    // Override chapters render once loaded
+    window._chapterProgress = progress;
+
+    if (!pathData?.enrolled || !pathData?.journey) {
+      el.innerHTML = `
+        <p style="font-size:14px;color:rgba(240,230,210,0.75);margin-bottom:4px">
+          ${LANG==="hi"?"भगवद गीता को क्रमबद्ध रूप से पढ़ने की यात्रा शुरू करें।":"Start a guided journey through all 700 verses of the Bhagavad Gita."}
+        </p>
+        <div class="intention-wrap">
+          <div class="intention-label">${LANG==="hi"?"आपका संकल्प (वैकल्पिक)":"Your intention (optional)"}</div>
+          <textarea id="intention-input" class="intention-input" rows="2"
+            placeholder="${LANG==="hi"?"इस यात्रा पर आपका उद्देश्य…":"What brings you to this journey…"}"></textarea>
+        </div>
+        <button class="btn-primary" onclick="startPath()">🌱 ${LANG==="hi"?"यात्रा शुरू करें":"Start the Journey"}</button>
+      `;
+    } else {
+      const j = pathData.journey;
+      const total = j.total_verses || 700;
+      const done = j.completed_verses || 0;
+      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+      const nextRef = j.next_verse;
+      el.innerHTML = `
+        <div style="font-size:14px;color:rgba(240,230,210,0.8);margin-bottom:4px">
+          ${LANG==="hi"?`${done} / ${total} श्लोक पूरे किए`:`${done} of ${total} verses completed`}
+        </div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+        <div class="progress-text">${pct}% ${LANG==="hi"?"पूर्ण":"complete"}</div>
+        ${j.intention ? `<div style="font-size:12px;color:var(--muted);margin-top:10px;font-style:italic">🕊️ ${escHtml(j.intention)}</div>` : ""}
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:0">
+          ${nextRef ? `<a href="/read/${nextRef}/?gitaPath=1" class="btn-teal">▶ ${LANG==="hi"?"अगला श्लोक":"Continue Reading"}</a>` : `<div class="btn-teal" style="pointer-events:none;opacity:0.5">✅ ${LANG==="hi"?"पूर्ण":"Completed!"}</div>`}
+          <button class="btn-danger" onclick="abandonPath()">✕ ${LANG==="hi"?"छोड़ें":"Abandon"}</button>
+        </div>
+      `;
+    }
+  } catch {
+    el.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load your path"}</div>`;
+  }
+}
+
+async function startPath() {
+  const btn = event.target; btn.disabled = true;
+  const intention = document.getElementById("intention-input")?.value?.trim() || "";
+  try {
+    const res = await fetch("/api/v1/reading/gita-path/start/", {
+      method: "POST",
+      headers: { Authorization: `Token ${API_TOKEN}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ intention }),
+    });
+    if (res.ok) { await loadPath(); }
+    else { btn.disabled = false; alert(LANG==="hi"?"शुरू नहीं हो सका":"Could not start journey"); }
+  } catch { btn.disabled = false; }
+}
+
+async function abandonPath() {
+  if (!confirm(LANG==="hi"?"क्या आप सच में यात्रा छोड़ना चाहते हैं?":"Are you sure you want to abandon your journey?")) return;
+  await fetch("/api/v1/reading/gita-path/abandon/", {
+    method: "POST",
+    headers: { Authorization: `Token ${API_TOKEN}`, "Content-Type": "application/json" },
+    body: "{}",
+  });
+  await loadPath();
+}
+
+async function init() {
+  // Load chapters and path in parallel
+  const [chaptersPromise] = [loadChapters()];
+  await loadPath();
+  await chaptersPromise;
+  // Re-render chapters with progress if we have it
+  if (window._chapterProgress && window._chaptersData) {
+    renderChapters(window._chaptersData, window._chapterProgress);
+  }
+}
+
+// Intercept loadChapters to store data for re-render
+const _origLoadChapters = loadChapters;
+window.loadChapters = async function() {
+  try {
+    const res = await fetch(`/api/v1/chapters/?language=${LANG}`);
+    const d = await res.json();
+    const chapters = d.results || d;
+    window._chaptersData = chapters;
+    renderChapters(chapters, window._chapterProgress || {});
+  } catch {
+    document.getElementById("chapters-grid").innerHTML =
+      `<div style="color:var(--muted);font-size:13px;padding:16px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load chapters"}</div>`;
+  }
+};
+
+window.loadChapters();
+loadPath();
+</script>
+</body>
+</html>

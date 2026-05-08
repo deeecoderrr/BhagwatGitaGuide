@@ -1,6 +1,6 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-05-04
+Last updated: 2026-05-07
 
 ## Deferred / To Do Later
 
@@ -11,10 +11,30 @@ Last updated: 2026-05-04
   - **Task:** Connect a custom domain (e.g. `cdn.askbhagavadgita.co.in`) via:
     R2 bucket → Settings → Custom Domains → Connect Domain.
     Cloudflare will auto-create the DNS CNAME. No extra cost — R2 egress is free.
-  - Once done, update backend `MEDIA_BASE_URL` / any japa audio URL env var to point
-    to the new CDN domain so the mobile app can stream files.
+  - Once done, run: `python manage.py update_media_cdn_url --old-base <old> --new-base https://cdn.askbhagavadgita.co.in`
+    to bulk-update all `audio_url` / `video_url` fields across SadhanaStep,
+    PracticeWorkflowStep, JapaCommitment, MeditationPracticeType.
 
 ## Completed
+
+- **Web app parity — 8 new standalone pages deployed (2026-05-07):**
+  - `/insights/` — Journey dashboard: streak, heatmap, verse stats, chapter progress.
+  - `/japa/` — Circular japa timer, commitment list, start/pause/finish; Razorpay for japa plan upgrade.
+  - `/plans/` — Subscription plan cards, Razorpay inline checkout, payment history.
+  - `/account/` — Profile hero, edit profile, change password, subscription card, danger zone.
+  - `/saved-reflections/` — Paginated list (12/page), search, inline note edit, delete.
+  - `/quote-art/` — Style picker (divine/minimal/nature/cosmic), verse reference input, featured gallery, generate + share.
+  - `/sadhana/` — Program grid with enrollment status, modal detail panel with day list (free/locked/completed badges), Razorpay enrollment for `sadhana_cycle` product.
+  - `/read-gita/` — Two-pane Gita reader: sidebar chapter list with progress bar, verse cards with Sanskrit/translation/commentary, reading state tracking (`POST /reading/verse-open/`), resume banner from last verse, URL routing via `?chapter=N`.
+  - All pages: sacred/celestial dark theme, auth-gated features, mobile-responsive, inline CSS + vanilla JS.
+  - Navigation in `chat_ui.html` updated with links for all new pages (Sadhana, Read Gita added this session).
+
+- **R2 CDN bulk URL migration management command (2026-05-07):**
+  - `guide_api/management/commands/update_media_cdn_url.py`
+  - Bulk-replaces `audio_url` / `video_url` URL prefixes across SadhanaStep,
+    PracticeWorkflowStep, JapaCommitment, MeditationPracticeType using ORM `Replace()`.
+  - Usage: `python manage.py update_media_cdn_url --old-base <old> --new-base <new> [--dry-run]`
+  - Runs in atomic transaction; dry-run prints counts without writing.
 
 - **Streak system expanded to all meditation/japa/sadhana activities (2026-05-02):**
   - Extracted `_update_streak_for_today` into a standalone `guide_api/streak_service.py`

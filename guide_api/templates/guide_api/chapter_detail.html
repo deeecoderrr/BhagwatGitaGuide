@@ -1,0 +1,200 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}अध्याय{% else %}Chapter{% endif %} {{ chapter_number }} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(232,184,109,0.06), transparent 50%),
+        radial-gradient(circle at 18% 80%, rgba(107,78,158,0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(232,184,109,0.14);
+      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em; color: var(--gold);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .header-nav { display: flex; gap: 8px; align-items: center; }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    .nav-arr {
+      font-size: 13px; font-weight: 600; padding: 9px 14px; border-radius: 999px;
+      border: 1px solid rgba(121,217,239,0.25); color: rgba(121,217,239,0.8); text-decoration: none;
+      background: rgba(121,217,239,0.06); transition: all 0.2s;
+    }
+    .nav-arr:hover { background: rgba(121,217,239,0.12); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 860px; margin: 0 auto; }
+
+    /* Chapter hero */
+    .chapter-hero {
+      position: relative; overflow: hidden;
+      background: var(--panel); border: 1px solid rgba(232,184,109,0.2);
+      border-radius: 20px; padding: 32px 28px; margin-bottom: 24px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 28px 60px rgba(2,6,16,0.5);
+    }
+    .chapter-hero::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(232,184,109,0.5), transparent);
+    }
+    .chapter-num {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 10px;
+    }
+    .chapter-title {
+      font-family: "Cormorant Garamond", serif; font-size: clamp(26px,4vw,36px);
+      font-weight: 600; color: rgba(245,217,160,0.98); margin-bottom: 6px;
+    }
+    .chapter-subtitle { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+    .chapter-summary { font-size: 14px; line-height: 1.75; color: rgba(240,230,210,0.82); }
+
+    /* Verses list */
+    .panel {
+      background: var(--panel); border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 16px; padding: 0; margin-bottom: 20px; overflow: hidden;
+    }
+    .panel-header {
+      padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif; font-size: 19px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0;
+    }
+    .verse-count { font-size: 12px; color: var(--muted); }
+    .verse-row {
+      display: flex; align-items: flex-start; gap: 16px; padding: 16px 22px;
+      border-bottom: 1px solid rgba(255,255,255,0.04); text-decoration: none;
+      color: inherit; transition: background 0.15s;
+    }
+    .verse-row:last-child { border-bottom: none; }
+    .verse-row:hover { background: rgba(232,184,109,0.04); }
+    .verse-row.read { opacity: 0.6; }
+    .verse-num {
+      font-size: 12px; font-weight: 700; color: var(--gold);
+      min-width: 36px; padding-top: 2px;
+    }
+    .verse-text { flex: 1; }
+    .verse-sanskrit { font-family: "Cormorant Garamond", serif; font-size: 15px; color: rgba(121,217,239,0.85); line-height: 1.4; margin-bottom: 4px; }
+    .verse-trans { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .verse-read-tag {
+      font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 999px;
+      background: rgba(121,217,239,0.1); color: rgba(121,217,239,0.6);
+      white-space: nowrap; margin-top: 2px;
+    }
+    .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1 id="page-title">{% if language == "hi" %}अध्याय{% else %}Chapter{% endif %} {{ chapter_number }}</h1>
+    <p id="page-subtitle">{% if language == "hi" %}भगवद गीता{% else %}Bhagavad Gita{% endif %}</p>
+  </div>
+  <div class="header-nav">
+    {% if chapter_number > 1 %}
+    <a href="/read/chapter/{{ chapter_number|add:"-1" }}/" class="nav-arr" title="Previous chapter">←</a>
+    {% endif %}
+    <a href="/read-journey/" class="nav-back">📖 {% if language == "hi" %}सभी अध्याय{% else %}All Chapters{% endif %}</a>
+    {% if chapter_number < 18 %}
+    <a href="/read/chapter/{{ chapter_number|add:"1" }}/" class="nav-arr" title="Next chapter">→</a>
+    {% endif %}
+  </div>
+</header>
+
+<main>
+  <div class="chapter-hero" id="chapter-hero">
+    <div class="loading-state">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</div>
+  </div>
+
+  <div class="panel" id="verses-panel">
+    <div class="panel-header">
+      <div class="section-title">{% if language == "hi" %}श्लोक{% else %}Verses{% endif %}</div>
+      <span class="verse-count" id="verse-count"></span>
+    </div>
+    <div id="verses-list"><div class="loading-state">{% if language == "hi" %}श्लोक लोड हो रहे हैं…{% else %}Loading verses…{% endif %}</div></div>
+  </div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+const CHAPTER = {{ chapter_number }};
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+})();
+
+function escHtml(s) {
+  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
+async function loadChapter() {
+  try {
+    const [chapRes, versesRes] = await Promise.all([
+      fetch(`/api/v1/chapters/${CHAPTER}/?language=${LANG}`),
+      fetch(`/api/v1/verses/chapter/${CHAPTER}/?language=${LANG}&page_size=100`),
+    ]);
+    const chap = chapRes.ok ? await chapRes.json() : null;
+    const versesData = versesRes.ok ? await versesRes.json() : null;
+
+    if (chap) renderChapterHero(chap);
+    if (versesData) renderVerses(versesData.results || versesData);
+  } catch {
+    document.getElementById("chapter-hero").innerHTML =
+      `<div style="color:var(--muted);text-align:center;padding:40px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load"}</div>`;
+  }
+}
+
+function renderChapterHero(c) {
+  document.title = `${c.name_translated || c.name} · Bhagavad Gita Guide`;
+  document.getElementById("page-title").textContent = c.name_translated || c.name;
+  document.getElementById("page-subtitle").textContent = c.name_meaning || (LANG==="hi"?"भगवद गीता":"Bhagavad Gita");
+  document.getElementById("chapter-hero").innerHTML = `
+    <div class="chapter-num">${LANG==="hi"?"अध्याय":"CHAPTER"} ${c.chapter_number}</div>
+    <div class="chapter-title">${escHtml(c.name_translated || c.name)}</div>
+    <div class="chapter-subtitle">${escHtml(c.name_meaning || "")}</div>
+    ${c.chapter_summary ? `<div class="chapter-summary">${escHtml(c.chapter_summary)}</div>` : ""}
+  `;
+}
+
+function renderVerses(verses) {
+  if (!verses?.length) {
+    document.getElementById("verses-list").innerHTML = `<div class="loading-state">${LANG==="hi"?"कोई श्लोक नहीं":"No verses found"}</div>`;
+    return;
+  }
+  document.getElementById("verse-count").textContent = `${verses.length} ${LANG==="hi"?"श्लोक":"verses"}`;
+  document.getElementById("verses-list").innerHTML = verses.map(v => `
+    <a href="/read/${v.chapter_number || CHAPTER}.${v.verse_number}/" class="verse-row">
+      <span class="verse-num">${v.verse_number || v.verse}</span>
+      <div class="verse-text">
+        ${v.text ? `<div class="verse-sanskrit">${escHtml(v.text.slice(0,100))}${v.text.length>100?"…":""}</div>` : ""}
+        ${v.transliteration || v.meaning_plain ? `<div class="verse-trans">${escHtml((v.meaning_plain || v.transliteration || "").slice(0,120))}…</div>` : ""}
+      </div>
+    </a>
+  `).join("");
+}
+
+loadChapter();
+</script>
+</body>
+</html>

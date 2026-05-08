@@ -2315,8 +2315,21 @@ class DeleteAccountPageView(TemplateView):
 
 def _get_user_plan_and_usage(user):
     """Return user subscription record and today's usage counter."""
-    subscription, _ = UserSubscription.objects.get_or_create(user=user)
-    subscription = _normalize_subscription_state(subscription)
+    # Cache the subscription record for 5 minutes — it rarely changes and saves
+    # a 300ms+ cross-region DB round-trip on every authenticated request.
+    _sub_cache_key = f"user_sub_obj:{user.pk}"
+    subscription = cache.get(_sub_cache_key)
+    if subscription is None:
+        subscription, _ = UserSubscription.objects.get_or_create(user=user)
+        subscription = _normalize_subscription_state(subscription)
+        cache.set(_sub_cache_key, subscription, 300)  # 5 min TTL
+    else:
+        # Still run normalize on the cached copy so expiry is handled correctly;
+        # if it saves a plan-downgrade the cache is immediately busted below.
+        before_plan = subscription.plan
+        subscription = _normalize_subscription_state(subscription)
+        if subscription.plan != before_plan:
+            cache.delete(_sub_cache_key)  # bust stale copy
     usage, _ = DailyAskUsage.objects.get_or_create(
         user=user,
         date=timezone.localdate(),
@@ -2328,7 +2341,7 @@ def _get_user_plan_and_usage(user):
 def _invalidate_subscription_cache(user) -> None:
     """Clear all per-user subscription caches when plan/state changes."""
     uid = user.pk if hasattr(user, "pk") else user
-    cache.delete(f"sub_status:{uid}")
+    cache.delete_many([f"sub_status:{uid}", f"user_sub_obj:{uid}", f"me_response:{uid}"])
 
 
 def _request_quota_settings() -> RequestQuotaSettings | None:
@@ -3023,6 +3036,15 @@ class MeView(APIView):
 
     def get(self, request):
         """Serve minimal identity payload for client checks."""
+        # Cache the full Me response for 30 seconds per user. This endpoint is
+        # hit on every app open and contains 4-5 DB queries at ~300ms each
+        # (cross-region Neon). 30s staleness in usage counts is acceptable since
+        # quota enforcement in AskView always uses a fresh DB read.
+        _me_cache_key = f"me_response:{request.user.pk}"
+        cached = cache.get(_me_cache_key)
+        if cached is not None:
+            return Response(cached)
+
         subscription, usage = _get_user_plan_and_usage(request.user)
         engagement = _get_engagement_profile(request.user)
         quota_snapshot = _quota_snapshot_for_user(
@@ -3030,13 +3052,13 @@ class MeView(APIView):
             usage,
             request.user,
         )
-        return Response(
-            {
-                "username": request.user.get_username(),
-                **quota_snapshot,
-                "engagement": _serialize_engagement_profile(engagement),
-            }
-        )
+        payload = {
+            "username": request.user.get_username(),
+            **quota_snapshot,
+            "engagement": _serialize_engagement_profile(engagement),
+        }
+        cache.set(_me_cache_key, payload, 30)  # 30s TTL
+        return Response(payload)
 
 
 class ProfileUpdateView(APIView):
@@ -3090,6 +3112,8 @@ class ProfileUpdateView(APIView):
                 profile.onboarding_goal = onboarding_goal
                 profile.save(update_fields=["onboarding_goal", "updated_at"])
 
+        # Bust the MeView cache so username/profile changes reflect immediately.
+        cache.delete(f"me_response:{user.pk}")
         return Response(
             {
                 "username": user.username,
@@ -3401,6 +3425,8 @@ class AskView(APIView):
         )
         usage.ask_count += 1
         usage.save(update_fields=["ask_count"])
+        # Bust the MeView cache so the updated count is visible immediately.
+        cache.delete(f"me_response:{request.user.pk}")
         engagement = _update_streak_for_today(request.user)
         quota_snapshot = _quota_snapshot_for_user(
             subscription,
@@ -9487,3 +9513,97 @@ class PaymentHistoryView(APIView):
                 "results": serializer.data,
             }
         )
+
+
+def _safe_lang(request) -> str:
+    """Validate and return language code from query params, defaulting to 'en'."""
+    lang = str(request.GET.get("language") or "en").strip().lower()
+    return lang if lang in {"en", "hi"} else "en"
+
+
+class InsightsPageView(TemplateView):
+    """Browser page for the user's journey insights and activity dashboard."""
+
+    template_name = "guide_api/insights.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class JapaPageView(TemplateView):
+    """Browser page for Naam Japa practice timer and commitments."""
+
+    template_name = "guide_api/japa.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class PlansPageView(TemplateView):
+    """Browser page for subscription plans and Razorpay checkout."""
+
+    template_name = "guide_api/plans.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class AccountPageView(TemplateView):
+    """Browser page for profile management, password change, and account settings."""
+
+    template_name = "guide_api/account.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class SavedReflectionsPageView(TemplateView):
+    """Browser page for listing and managing saved reflections."""
+
+    template_name = "guide_api/saved_reflections.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class QuoteArtPageView(TemplateView):
+    """Browser page for generating and sharing Gita verse art."""
+
+    template_name = "guide_api/quote_art.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class SadhanaPageView(TemplateView):
+    """Browser page for browsing and enrolling in Sadhana programs."""
+
+    template_name = "guide_api/sadhana.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
+
+
+class ReadGitaPageView(TemplateView):
+    """Browser page for reading the Bhagavad Gita with chapter/verse navigation."""
+
+    template_name = "guide_api/read_gita.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context

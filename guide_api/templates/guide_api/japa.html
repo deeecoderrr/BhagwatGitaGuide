@@ -1,0 +1,696 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}नाम जप{% else %}Naam Japa{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(121, 217, 239, 0.07), transparent 50%),
+        radial-gradient(circle at 18% 80%, rgba(107, 78, 158, 0.1), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(121, 217, 239, 0.14);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.6), rgba(5, 8, 16, 0.2));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px, 3vw, 28px);
+      letter-spacing: -0.01em;
+      color: rgba(121, 217, 239, 0.9);
+    }
+    .header-left p {
+      margin: 4px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .nav-back {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 9px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(232, 184, 109, 0.3);
+      color: var(--gold);
+      text-decoration: none;
+      background: rgba(232, 184, 109, 0.06);
+      transition: all 0.2s;
+    }
+    .nav-back:hover {
+      border-color: rgba(232, 184, 109, 0.5);
+      background: rgba(232, 184, 109, 0.1);
+    }
+    main {
+      padding: 28px clamp(16px, 4vw, 40px) 56px;
+      max-width: 920px;
+      margin: 0 auto;
+    }
+
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(232, 184, 109, 0.18);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.5);
+    }
+    .section-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: rgba(245, 217, 160, 0.95);
+      margin: 0 0 18px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Sacred timer */
+    .timer-panel {
+      background: var(--panel);
+      border: 1px solid rgba(121, 217, 239, 0.18);
+      border-radius: 20px;
+      padding: 32px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 32px 64px rgba(2,6,16,0.6);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .timer-panel::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(121,217,239,0.5), transparent);
+    }
+    .timer-mantra-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 22px;
+      color: rgba(121,217,239,0.9);
+      margin-bottom: 8px;
+      font-style: italic;
+    }
+    .timer-circle {
+      position: relative;
+      width: 200px;
+      height: 200px;
+      margin: 20px auto;
+    }
+    .timer-circle svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .timer-circle-bg {
+      fill: none;
+      stroke: rgba(255,255,255,0.06);
+      stroke-width: 6;
+    }
+    .timer-circle-progress {
+      fill: none;
+      stroke: rgba(121,217,239,0.7);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 565;
+      stroke-dashoffset: 565;
+      transition: stroke-dashoffset 1s linear;
+    }
+    .timer-display {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+      text-align: center;
+    }
+    .timer-time {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 48px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+    .timer-mala-count {
+      font-size: 12px;
+      color: rgba(121,217,239,0.7);
+      margin-top: 4px;
+      letter-spacing: 0.06em;
+    }
+    .timer-controls {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .btn {
+      font-family: "Manrope", sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, rgba(121,217,239,0.9), rgba(91,163,196,0.9));
+      color: rgba(5,8,16,0.95);
+    }
+    .btn-primary:hover { opacity: 0.85; }
+    .btn-secondary {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.14);
+      color: var(--text);
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+    .btn-gold {
+      background: linear-gradient(135deg, rgba(232,184,109,0.9), rgba(200,155,80,0.9));
+      color: rgba(5,8,16,0.95);
+    }
+    .btn-gold:hover { opacity: 0.85; }
+    .btn-danger {
+      background: rgba(220,60,60,0.2);
+      border: 1px solid rgba(220,60,60,0.3);
+      color: rgba(240,120,120,0.9);
+    }
+    .btn-danger:hover { background: rgba(220,60,60,0.3); }
+
+    /* Duration selector */
+    .duration-options {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: 16px 0;
+    }
+    .duration-chip {
+      padding: 6px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(121,217,239,0.2);
+      color: rgba(121,217,239,0.7);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      background: transparent;
+      transition: all 0.2s;
+    }
+    .duration-chip.selected,
+    .duration-chip:hover {
+      background: rgba(121,217,239,0.12);
+      border-color: rgba(121,217,239,0.5);
+      color: rgba(121,217,239,0.95);
+    }
+
+    /* Commitments list */
+    .commitment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+    .commitment-card {
+      background: rgba(6,12,22,0.55);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 16px 18px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .commitment-card.active {
+      border-color: rgba(121,217,239,0.3);
+    }
+    .commitment-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .commitment-body { flex: 1; min-width: 0; }
+    .commitment-name {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 4px;
+    }
+    .commitment-meta {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+    .commitment-progress {
+      height: 4px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 999px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .commitment-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(121,217,239,0.7), rgba(91,163,196,0.9));
+      border-radius: 999px;
+      transition: width 0.8s ease;
+    }
+    .commitment-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+      margin-top: 4px;
+    }
+    .commitment-actions .btn { font-size: 12px; padding: 7px 14px; }
+
+    /* Add commitment form */
+    .add-form { display: grid; gap: 14px; }
+    .form-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      width: 100%;
+      background: rgba(6,12,22,0.7);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-family: "Manrope", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus {
+      outline: none;
+      border-color: rgba(121,217,239,0.4);
+    }
+    .form-field select option { background: #0a0e18; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+
+    .error-msg { color: rgba(240,120,120,0.9); font-size: 13px; margin-top: 8px; }
+    .success-msg { color: rgba(121,217,239,0.9); font-size: 13px; margin-top: 8px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 28px 16px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .empty-state .empty-icon { font-size: 28px; margin-bottom: 10px; }
+
+    .skeleton {
+      background: linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+      background-size: 200% 100%;
+      animation: shimmer 1.8s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .accordion-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: rgba(232,184,109,0.8);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .accordion-toggle:hover { color: var(--gold); }
+    .accordion-body { display: none; margin-top: 20px; }
+    .accordion-body.open { display: block; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-left">
+      <h1>🪷 {% if language == "hi" %}नाम जप{% else %}Naam Japa{% endif %}</h1>
+      <p>{% if language == "hi" %}पवित्र मंत्र अभ्यास{% else %}Sacred mantra practice{% endif %}</p>
+    </div>
+    <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
+      ← {% if language == "hi" %}होम{% else %}Home{% endif %}
+    </a>
+  </header>
+
+  <main>
+    <!-- Auth gate -->
+    <div id="auth-gate" style="display:none">
+      <div class="panel" style="text-align:center;padding:40px">
+        <div style="font-size:32px;margin-bottom:12px">🪷</div>
+        <h2 style="font-family:'Cormorant Garamond',serif;color:rgba(121,217,239,0.9);margin:0 0 8px">
+          {% if language == "hi" %}साइन इन करें{% else %}Sign in to practice Japa{% endif %}
+        </h2>
+        <p style="color:var(--muted);font-size:13px;margin:0 0 20px">
+          {% if language == "hi" %}अपनी जप साधना ट्रैक करें{% else %}Track your mantra practice{% endif %}
+        </p>
+        <a href="/api/chat-ui/?language={{ language|default:'en' }}#guest-auth-target" class="nav-back">
+          {% if language == "hi" %}साइन इन{% else %}Sign In{% endif %}
+        </a>
+      </div>
+    </div>
+
+    <div id="japa-content" style="display:none">
+      <!-- Timer panel -->
+      <div class="timer-panel" id="timer-panel">
+        <div class="timer-mantra-name" id="timer-mantra-display">
+          {% if language == "hi" %}॥ ॐ नमो भगवते वासुदेवाय ॥{% else %}॥ Hare Krishna Hare Rama ॥{% endif %}
+        </div>
+        <div class="timer-circle">
+          <svg viewBox="0 0 200 200">
+            <circle class="timer-circle-bg" cx="100" cy="100" r="90"/>
+            <circle class="timer-circle-progress" id="timer-progress-ring" cx="100" cy="100" r="90"/>
+          </svg>
+          <div class="timer-display">
+            <div class="timer-time" id="timer-display-time">00:00</div>
+            <div class="timer-mala-count" id="timer-mala-info">— mala</div>
+          </div>
+        </div>
+        <div class="duration-options" id="duration-options">
+          <button class="duration-chip" data-mins="5">5 min</button>
+          <button class="duration-chip selected" data-mins="10">10 min</button>
+          <button class="duration-chip" data-mins="15">15 min</button>
+          <button class="duration-chip" data-mins="20">20 min</button>
+          <button class="duration-chip" data-mins="30">30 min</button>
+        </div>
+        <div class="timer-controls">
+          <button class="btn btn-primary" id="btn-start">
+            ▶ {% if language == "hi" %}शुरू करें{% else %}Start{% endif %}
+          </button>
+          <button class="btn btn-secondary" id="btn-pause" style="display:none">
+            ⏸ {% if language == "hi" %}रुकें{% else %}Pause{% endif %}
+          </button>
+          <button class="btn btn-secondary" id="btn-resume" style="display:none">
+            ▶ {% if language == "hi" %}जारी रखें{% else %}Resume{% endif %}
+          </button>
+          <button class="btn btn-danger" id="btn-stop" style="display:none">
+            ■ {% if language == "hi" %}समाप्त{% else %}Finish{% endif %}
+          </button>
+        </div>
+        <p id="timer-msg" style="font-size:12px;color:var(--muted);margin-top:12px;min-height:16px"></p>
+      </div>
+
+      <!-- Commitments -->
+      <div class="panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+          <h2 class="section-title" style="margin:0">
+            {% if language == "hi" %}मेरी प्रतिज्ञाएं{% else %}My Commitments{% endif %}
+          </h2>
+          <button class="accordion-toggle" id="add-commitment-toggle">
+            + {% if language == "hi" %}नई{% else %}New{% endif %}
+          </button>
+        </div>
+
+        <!-- Add form (collapsed by default) -->
+        <div class="accordion-body" id="add-commitment-form">
+          <div class="add-form" id="commitment-form">
+            <div class="form-row">
+              <div class="form-field">
+                <label>{% if language == "hi" %}मंत्र{% else %}Mantra Name{% endif %}</label>
+                <input type="text" id="f-mantra" placeholder="{% if language == 'hi' %}ॐ नमः शिवाय{% else %}Hare Krishna{% endif %}">
+              </div>
+              <div class="form-field">
+                <label>{% if language == "hi" %}दैनिक लक्ष्य{% else %}Daily Target{% endif %}</label>
+                <select id="f-target">
+                  <option value="108">108 times</option>
+                  <option value="216">216 times</option>
+                  <option value="324">324 times</option>
+                  <option value="1000">1000 times</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>{% if language == "hi" %}उद्देश्य{% else %}Intention (optional){% endif %}</label>
+              <textarea id="f-intention" rows="2" placeholder="{% if language == 'hi' %}मेरी जप की भावना...{% else %}My intention for this practice...{% endif %}"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn btn-gold" id="btn-add-commitment">
+                {% if language == "hi" %}जोड़ें{% else %}Add Commitment{% endif %}
+              </button>
+              <span id="commitment-form-msg"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- List -->
+        <ul class="commitment-list" id="commitment-list">
+          <li class="commitment-card">
+            <div class="commitment-icon skeleton" style="width:24px;height:24px;border-radius:50%"></div>
+            <div class="commitment-body">
+              <div class="skeleton" style="width:60%;height:16px;margin-bottom:8px"></div>
+              <div class="skeleton" style="width:80%;height:12px"></div>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div><!-- /japa-content -->
+  </main>
+
+  <script>
+  (function() {
+    const LANG = "{{ language|default:'en' }}";
+    const token = localStorage.getItem("gita_token");
+    const API = "/api/v1";
+
+    if (!token) {
+      document.getElementById("auth-gate").style.display = "";
+      return;
+    }
+    document.getElementById("japa-content").style.display = "";
+
+    function apiFetch(path, opts = {}) {
+      return fetch(API + path, {
+        ...opts,
+        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+      });
+    }
+
+    // ---- Timer ----
+    let sessionId = null;
+    let timerInterval = null;
+    let totalSecs = 10 * 60;
+    let elapsed = 0;
+    let running = false;
+    let selectedMins = 10;
+
+    const ring = document.getElementById("timer-progress-ring");
+    const circumference = 2 * Math.PI * 90; // r=90 → ~565.5
+    ring.style.strokeDasharray = circumference;
+    ring.style.strokeDashoffset = circumference;
+
+    document.querySelectorAll(".duration-chip").forEach(chip => {
+      chip.addEventListener("click", () => {
+        if (running) return;
+        document.querySelectorAll(".duration-chip").forEach(c => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        selectedMins = parseInt(chip.dataset.mins);
+        totalSecs = selectedMins * 60;
+        elapsed = 0;
+        updateTimerDisplay();
+      });
+    });
+
+    function updateTimerDisplay() {
+      const remaining = Math.max(0, totalSecs - elapsed);
+      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const s = String(remaining % 60).padStart(2, "0");
+      document.getElementById("timer-display-time").textContent = m + ":" + s;
+      const progress = elapsed / totalSecs;
+      ring.style.strokeDashoffset = circumference * (1 - progress);
+    }
+
+    document.getElementById("btn-start").addEventListener("click", async () => {
+      totalSecs = selectedMins * 60;
+      elapsed = 0;
+      // Start API session
+      try {
+        const activeCommitment = getActiveCommitmentId();
+        const body = { duration_minutes: selectedMins };
+        if (activeCommitment) body.commitment_id = activeCommitment;
+        const r = await apiFetch("/japa/sessions/start/", { method: "POST", body: JSON.stringify(body) });
+        if (r.ok) {
+          const d = await r.json();
+          sessionId = d.id ?? d.session_id ?? null;
+        }
+      } catch(e) {}
+      startTimer();
+    });
+
+    document.getElementById("btn-pause").addEventListener("click", async () => {
+      clearInterval(timerInterval);
+      running = false;
+      document.getElementById("btn-pause").style.display = "none";
+      document.getElementById("btn-resume").style.display = "";
+      if (sessionId) {
+        await apiFetch(`/japa/sessions/${sessionId}/pause/`, { method: "POST", body: "{}" }).catch(() => {});
+      }
+    });
+
+    document.getElementById("btn-resume").addEventListener("click", async () => {
+      document.getElementById("btn-resume").style.display = "none";
+      document.getElementById("btn-pause").style.display = "";
+      if (sessionId) {
+        await apiFetch(`/japa/sessions/${sessionId}/resume/`, { method: "POST", body: "{}" }).catch(() => {});
+      }
+      startTimerLoop();
+    });
+
+    document.getElementById("btn-stop").addEventListener("click", async () => {
+      clearInterval(timerInterval);
+      running = false;
+      document.getElementById("btn-start").style.display = "";
+      document.getElementById("btn-pause").style.display = "none";
+      document.getElementById("btn-resume").style.display = "none";
+      document.getElementById("btn-stop").style.display = "none";
+      if (sessionId) {
+        const body = { elapsed_seconds: elapsed, status: "completed" };
+        await apiFetch(`/japa/sessions/${sessionId}/finish-day/`, { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+        sessionId = null;
+      }
+      const msg = document.getElementById("timer-msg");
+      msg.textContent = LANG === "hi" ? "🙏 जप पूर्ण हुआ। धन्यवाद।" : "🙏 Session complete. Blessings.";
+      elapsed = 0;
+      updateTimerDisplay();
+      loadCommitments();
+    });
+
+    function startTimer() {
+      document.getElementById("btn-start").style.display = "none";
+      document.getElementById("btn-stop").style.display = "";
+      document.getElementById("btn-pause").style.display = "";
+      running = true;
+      startTimerLoop();
+    }
+
+    function startTimerLoop() {
+      running = true;
+      timerInterval = setInterval(() => {
+        if (!running) return;
+        elapsed++;
+        updateTimerDisplay();
+        if (elapsed >= totalSecs) {
+          clearInterval(timerInterval);
+          document.getElementById("btn-stop").click();
+        }
+      }, 1000);
+    }
+
+    function getActiveCommitmentId() {
+      const el = document.querySelector(".commitment-card.active");
+      return el ? el.dataset.commitmentId : null;
+    }
+
+    updateTimerDisplay();
+
+    // ---- Commitments ----
+    async function loadCommitments() {
+      const r = await apiFetch("/japa/commitments/").catch(() => null);
+      const list = document.getElementById("commitment-list");
+      if (!r || !r.ok) {
+        list.innerHTML = `<li class="empty-state"><div class="empty-icon">🪷</div>${LANG === "hi" ? "कोई प्रतिज्ञा नहीं मिली" : "No commitments found"}</li>`;
+        return;
+      }
+      const data = await r.json();
+      const items = Array.isArray(data) ? data : (data.results ?? []);
+      if (!items.length) {
+        list.innerHTML = `<li class="empty-state"><div class="empty-icon">🪷</div>${LANG === "hi" ? "अभी तक कोई प्रतिज्ञा नहीं — ऊपर नई प्रतिज्ञा जोड़ें" : "No commitments yet — add one above"}</li>`;
+        return;
+      }
+      list.innerHTML = items.map(c => {
+        const pct = c.daily_target ? Math.min(100, Math.round((c.today_count ?? 0) / c.daily_target * 100)) : 0;
+        return `<li class="commitment-card ${c.is_active ? 'active' : ''}" data-commitment-id="${c.id}">
+          <div class="commitment-icon">📿</div>
+          <div class="commitment-body">
+            <div class="commitment-name">${escHtml(c.mantra_name ?? c.name ?? "Mantra")}</div>
+            <div class="commitment-meta">
+              ${LANG === "hi" ? "दैनिक लक्ष्य:" : "Daily target:"} ${c.daily_target ?? "—"}
+              &nbsp;·&nbsp; ${LANG === "hi" ? "कुल:" : "Total:"} ${c.total_count ?? 0}
+              ${c.intention ? "<br>" + escHtml(c.intention.slice(0, 80)) : ""}
+            </div>
+            <div class="commitment-progress">
+              <div class="commitment-progress-fill" style="width:${pct}%"></div>
+            </div>
+          </div>
+          <div class="commitment-actions">
+            <button class="btn btn-danger" onclick="deleteCommitment(${c.id})">✕</button>
+          </div>
+        </li>`;
+      }).join("");
+
+      // Update timer mantra display
+      const active = items.find(c => c.is_active) ?? items[0];
+      if (active) {
+        const mantraEl = document.getElementById("timer-mantra-display");
+        mantraEl.textContent = "॥ " + (active.mantra_name ?? "Mantra") + " ॥";
+      }
+    }
+
+    window.deleteCommitment = async function(id) {
+      if (!confirm(LANG === "hi" ? "इस प्रतिज्ञा को हटाएं?" : "Delete this commitment?")) return;
+      await apiFetch(`/japa/commitments/${id}/`, { method: "DELETE" }).catch(() => {});
+      loadCommitments();
+    };
+
+    // Add commitment
+    document.getElementById("add-commitment-toggle").addEventListener("click", () => {
+      const body = document.getElementById("add-commitment-form");
+      body.classList.toggle("open");
+    });
+
+    document.getElementById("btn-add-commitment").addEventListener("click", async () => {
+      const mantra = document.getElementById("f-mantra").value.trim();
+      const target = parseInt(document.getElementById("f-target").value);
+      const intention = document.getElementById("f-intention").value.trim();
+      const msg = document.getElementById("commitment-form-msg");
+      if (!mantra) { msg.className = "error-msg"; msg.textContent = LANG === "hi" ? "मंत्र दर्ज करें" : "Enter a mantra name"; return; }
+      msg.textContent = "…";
+      const body = { mantra_name: mantra, daily_target: target };
+      if (intention) body.intention = intention;
+      const r = await apiFetch("/japa/commitments/", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+      if (r && r.ok) {
+        msg.className = "success-msg";
+        msg.textContent = LANG === "hi" ? "✓ जोड़ा गया" : "✓ Added";
+        document.getElementById("f-mantra").value = "";
+        document.getElementById("f-intention").value = "";
+        document.getElementById("add-commitment-form").classList.remove("open");
+        loadCommitments();
+      } else {
+        msg.className = "error-msg";
+        msg.textContent = LANG === "hi" ? "त्रुटि हुई" : "Error adding commitment";
+      }
+    });
+
+    function escHtml(str) {
+      return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    loadCommitments();
+  })();
+  </script>
+</body>
+</html>

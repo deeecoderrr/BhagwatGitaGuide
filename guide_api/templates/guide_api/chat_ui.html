@@ -5309,13 +5309,62 @@
             {% if language == "hi" %}साधना{% else %}Practice{% endif %}
           </a>
           <a
+            href="/sadhana/?language={{ language|default:'en' }}"
+            class="nav-btn nav-btn-secondary"
+            title="{% if language == 'hi' %}साधना कार्यक्रम — गीता-प्रेरित यात्रा{% else %}Sadhana programs — Gita-inspired journeys{% endif %}"
+          >
+            {% if language == "hi" %}साधना{% else %}Sadhana{% endif %}
+          </a>
+          <a
+            href="/read-gita/?language={{ language|default:'en' }}"
+            class="nav-btn nav-btn-secondary"
+            title="{% if language == 'hi' %}गीता पढ़ें — सभी अध्याय और श्लोक{% else %}Read the Gita — all chapters and verses{% endif %}"
+          >
+            {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
+          </a>
+          <a
+            href="/japa/?language={{ language|default:'en' }}"
+            class="nav-btn nav-btn-secondary"
+            title="{% if language == 'hi' %}नाम जप — मंत्र साधना{% else %}Naam Japa — mantra practice{% endif %}"
+          >
+            {% if language == "hi" %}जप{% else %}Japa{% endif %}
+          </a>
+          <a
+            href="/quote-art/?language={{ language|default:'en' }}"
+            class="nav-btn nav-btn-secondary"
+            title="{% if language == 'hi' %}दिव्य उद्धरण कला{% else %}Divine verse art{% endif %}"
+          >
+            {% if language == "hi" %}उद्धरण{% else %}Art{% endif %}
+          </a>
+          <a
             href="#community-preview-discussion"
             class="nav-btn nav-btn-secondary nav-comments"
             title="{% if language == 'hi' %}टिप्पणियाँ और उत्तर — समुदाय की चर्चा{% else %}Comments and replies — community discussion{% endif %}"
           >
             {% if language == "hi" %}टिप्पणियाँ{% else %}Comments{% endif %}
           </a>
+          <a
+            href="/plans/?language={{ language|default:'en' }}"
+            class="nav-btn nav-btn-secondary"
+            title="{% if language == 'hi' %}योजनाएं और सदस्यता{% else %}Plans and subscription{% endif %}"
+          >
+            {% if language == "hi" %}योजनाएं{% else %}Plans{% endif %}
+          </a>
           {% if request.session.chat_ui_auth_username %}
+            <a
+              href="/insights/?language={{ language|default:'en' }}"
+              class="nav-btn nav-btn-secondary"
+              title="{% if language == 'hi' %}मेरी यात्रा और अंतर्दृष्टि{% else %}My journey and insights{% endif %}"
+            >
+              {% if language == "hi" %}अंतर्दृष्टि{% else %}Insights{% endif %}
+            </a>
+            <a
+              href="/account/?language={{ language|default:'en' }}"
+              class="nav-btn nav-btn-secondary"
+              title="{% if language == 'hi' %}मेरा खाता{% else %}My account{% endif %}"
+            >
+              {% if language == "hi" %}खाता{% else %}Account{% endif %}
+            </a>
             <form method="post" class="nav-inline-form">
               {% csrf_token %}
               <input type="hidden" name="action" value="logout">

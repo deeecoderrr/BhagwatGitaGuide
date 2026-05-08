@@ -1,0 +1,648 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}गीता पढ़ें{% else %}Read the Gita{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 6% 8%, rgba(107, 78, 158, 0.1), transparent 42%),
+        radial-gradient(circle at 94% 85%, rgba(232, 184, 109, 0.07), transparent 40%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(232, 184, 109, 0.14);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.65), rgba(5, 8, 16, 0.2));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(20px, 2.8vw, 26px);
+      color: var(--gold);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid rgba(232,184,109,0.3);
+      color: var(--gold); text-decoration: none; background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+
+    /* Layout */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: calc(100vh - 73px);
+    }
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+      .sidebar.mobile-open { display: block; position: fixed; inset: 73px 0 0 0; z-index: 40; overflow-y: auto; }
+    }
+
+    /* Sidebar */
+    .sidebar {
+      border-right: 1px solid rgba(232,184,109,0.12);
+      background: rgba(6,10,20,0.5);
+      overflow-y: auto;
+      max-height: calc(100vh - 73px);
+      position: sticky;
+      top: 73px;
+    }
+    .sidebar-inner { padding: 16px 12px 40px; }
+    .sidebar-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      padding: 6px 10px;
+      margin-bottom: 4px;
+    }
+    .chapter-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+    .chapter-item:hover { background: rgba(232,184,109,0.07); }
+    .chapter-item.active { background: rgba(232,184,109,0.1); border-color: rgba(232,184,109,0.22); }
+    .chapter-num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.06);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .chapter-item.active .chapter-num, .chapter-item.completed .chapter-num {
+      background: rgba(232,184,109,0.15);
+      color: var(--gold);
+    }
+    .chapter-name {
+      font-size: 13px;
+      font-weight: 500;
+      flex: 1;
+      line-height: 1.3;
+    }
+    .chapter-verses { font-size: 11px; color: var(--muted); }
+
+    /* Progress strip */
+    .reading-progress-bar {
+      height: 3px;
+      background: rgba(232,184,109,0.12);
+      border-radius: 999px;
+      margin: 4px 10px 12px;
+      overflow: hidden;
+    }
+    .reading-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, rgba(232,184,109,0.7), rgba(121,217,239,0.6));
+      border-radius: 999px;
+      transition: width 0.5s ease;
+    }
+    .reading-stats {
+      display: flex;
+      gap: 16px;
+      padding: 10px 12px 14px;
+      border-bottom: 1px solid rgba(232,184,109,0.1);
+      margin-bottom: 10px;
+    }
+    .stat-mini { text-align: center; flex: 1; }
+    .stat-mini .val { font-size: 18px; font-weight: 700; color: var(--gold); font-family:"Cormorant Garamond",serif; }
+    .stat-mini .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* Main reading area */
+    .reading-area {
+      padding: 24px clamp(16px, 4vw, 48px) 56px;
+      max-width: 780px;
+    }
+    .chapter-view { display: none; }
+    .chapter-view.visible { display: block; }
+    .home-view { display: block; }
+    .home-view.hidden { display: none; }
+
+    /* Chapter header */
+    .ch-header {
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(232,184,109,0.14);
+    }
+    .ch-number {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .ch-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(24px, 4vw, 34px);
+      font-weight: 600;
+      color: var(--gold);
+      margin: 0 0 8px;
+    }
+    .ch-subtitle { font-size: 15px; color: var(--muted); margin: 0 0 14px; }
+    .ch-summary {
+      font-size: 14px;
+      line-height: 1.75;
+      color: rgba(220,210,190,0.85);
+      padding: 14px 16px;
+      background: rgba(107,78,158,0.07);
+      border: 1px solid rgba(107,78,158,0.16);
+      border-radius: 12px;
+      font-style: italic;
+    }
+
+    /* Verse list */
+    .verse-list { display: grid; gap: 16px; }
+    .verse-card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 18px 20px;
+      transition: border-color 0.2s;
+      cursor: pointer;
+    }
+    .verse-card:hover { border-color: rgba(232,184,109,0.24); }
+    .verse-card.opened { border-color: rgba(121,217,239,0.2); }
+    .verse-ref-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .verse-card.opened .verse-ref-tag { color: rgba(121,217,239,0.7); }
+    .verse-sanskrit {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 17px;
+      font-style: italic;
+      color: rgba(232,184,109,0.7);
+      margin: 0 0 10px;
+      line-height: 1.5;
+    }
+    .verse-translation {
+      font-size: 14px;
+      line-height: 1.7;
+      color: rgba(220,210,190,0.85);
+      margin: 0 0 12px;
+    }
+    .verse-expanded { display: none; }
+    .verse-expanded.open { display: block; }
+    .verse-commentary-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin: 10px 0 6px;
+    }
+    .verse-commentary {
+      font-size: 13.5px;
+      line-height: 1.72;
+      color: rgba(200,192,178,0.8);
+    }
+    .verse-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .verse-btn {
+      font-family: "Manrope", sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.22);
+      background: rgba(232,184,109,0.07);
+      color: rgba(245,217,160,0.8);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .verse-btn:hover { background: rgba(232,184,109,0.14); border-color: rgba(232,184,109,0.4); }
+
+    /* Home view: chapter grid */
+    .home-hero {
+      text-align: center;
+      padding: 28px 16px 32px;
+    }
+    .home-hero h2 {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(24px, 3.5vw, 32px);
+      color: var(--gold);
+      margin: 0 0 10px;
+    }
+    .home-hero p { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
+    .resume-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 18px;
+      border: 1px solid rgba(232,184,109,0.3);
+      border-radius: 999px;
+      background: rgba(232,184,109,0.08);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .resume-banner:hover { background: rgba(232,184,109,0.13); }
+    .chapters-home-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .ch-home-card {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.14);
+      border-radius: 14px;
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .ch-home-card:hover { border-color: rgba(232,184,109,0.3); transform: translateY(-1px); }
+    .ch-home-num { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 4px; }
+    .ch-home-name { font-family:"Cormorant Garamond",serif; font-size: 17px; color: rgba(245,217,160,0.9); margin: 0 0 4px; }
+    .ch-home-verses { font-size: 11px; color: var(--muted); }
+
+    /* Mobile toggle */
+    .mobile-sidebar-btn {
+      display: none;
+      font-size: 13px; font-weight: 600;
+      padding: 7px 14px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--text); cursor: pointer; font-family: "Manrope", sans-serif;
+    }
+    @media (max-width: 700px) { .mobile-sidebar-btn { display: block; } }
+
+    .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.08),rgba(255,255,255,0.04)); background-size:200% 100%; animation:shimmer 1.8s infinite; border-radius:10px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    .note-area {
+      width: 100%;
+      background: rgba(6,12,22,0.7);
+      border: 1px solid rgba(107,78,158,0.3);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-family: "Manrope", sans-serif;
+      font-size: 13px;
+      color: var(--text);
+      resize: vertical;
+      box-sizing: border-box;
+      margin-top: 10px;
+      min-height: 72px;
+    }
+    .note-area:focus { outline: none; border-color: rgba(107,78,158,0.55); }
+    .note-save-btn {
+      font-family: "Manrope", sans-serif;
+      font-size: 12px; font-weight: 600;
+      padding: 7px 16px; border-radius: 999px;
+      border: none;
+      background: rgba(107,78,158,0.5);
+      color: rgba(200,185,230,0.9);
+      cursor: pointer; margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+    .note-save-btn:hover { opacity: 0.8; }
+  </style>
+</head>
+<body data-lang="{{ language|default:'en' }}">
+  <header>
+    <div class="header-left">
+      <h1>{% if language == "hi" %}भगवद् गीता पढ़ें{% else %}Read the Bhagavad Gita{% endif %}</h1>
+      <p id="header-sub">{% if language == "hi" %}18 अध्याय · 700 श्लोक{% else %}18 chapters · 700 verses{% endif %}</p>
+    </div>
+    <div class="header-right">
+      <button class="mobile-sidebar-btn" onclick="toggleSidebar()">☰ {% if language == "hi" %}अध्याय{% else %}Chapters{% endif %}</button>
+      <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
+        ← {% if language == "hi" %}होम{% else %}Home{% endif %}
+      </a>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Sidebar: chapter list -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-inner">
+        <div class="reading-stats" id="reading-stats" style="display:none">
+          <div class="stat-mini"><div class="val" id="stat-verses">0</div><div class="lbl">{% if language == "hi" %}श्लोक{% else %}Verses{% endif %}</div></div>
+          <div class="stat-mini"><div class="val" id="stat-streak">0</div><div class="lbl">{% if language == "hi" %}स्ट्रीक{% else %}Streak{% endif %}</div></div>
+        </div>
+        <div class="reading-progress-bar"><div class="reading-progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="sidebar-title">{% if language == "hi" %}अध्याय{% else %}Chapters{% endif %}</div>
+        <div id="chapter-list">
+          {% for i in "123456789" %}
+          <div class="chapter-item"><div class="chapter-num skeleton" style="width:26px;height:26px"></div><div style="flex:1"><div class="skeleton" style="height:12px;width:80%;margin-bottom:4px"></div><div class="skeleton" style="height:10px;width:50%"></div></div></div>
+          {% endfor %}
+        </div>
+      </div>
+    </aside>
+
+    <!-- Reading area -->
+    <div class="reading-area" id="reading-area">
+      <!-- Home view -->
+      <div class="home-view" id="home-view">
+        <div class="home-hero">
+          <h2>{% if language == "hi" %}गीता का पथ{% else %}The Path of the Gita{% endif %}</h2>
+          <p>{% if language == "hi" %}किसी भी अध्याय से शुरू करें, या जहाँ आपने छोड़ा था वहाँ से जारी रखें।{% else %}Start any chapter, or continue from where you left off.{% endif %}</p>
+          <div id="resume-section" style="display:none;margin-bottom:20px">
+            <div class="resume-banner" id="resume-banner" onclick="resumeReading()">
+              ▶ {% if language == "hi" %}जारी रखें{% else %}Resume Reading{% endif %} — <span id="resume-ref"></span>
+            </div>
+          </div>
+        </div>
+        <div class="chapters-home-grid" id="chapters-home-grid">
+          {% for i in "123456789012345678" %}
+          <div class="ch-home-card"><div class="skeleton" style="height:10px;width:40%;margin-bottom:6px"></div><div class="skeleton" style="height:17px;width:80%;margin-bottom:4px"></div><div class="skeleton" style="height:11px;width:50%"></div></div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Chapter verse view -->
+      <div class="chapter-view" id="chapter-view">
+        <div class="ch-header">
+          <button onclick="goHome()" style="background:none;border:none;cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);padding:0;margin-bottom:10px;font-family:'Manrope',sans-serif">
+            ← {% if language == "hi" %}सभी अध्याय{% else %}All Chapters{% endif %}
+          </button>
+          <div class="ch-number" id="ch-num-label"></div>
+          <h2 class="ch-title" id="ch-title"></h2>
+          <div class="ch-subtitle" id="ch-subtitle"></div>
+          <div class="ch-summary" id="ch-summary" style="display:none"></div>
+        </div>
+        <div class="verse-list" id="verse-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    const LANG = document.body.dataset.lang || "en";
+    const API = "/api/v1";
+    const token = localStorage.getItem("gita_token");
+    let allChapters = [];
+    let readingState = { verses_opened_count: 0, read_streak: 0, last_verse: null };
+    let openedVerseRefs = new Set();
+    let currentChapter = null;
+
+    function apiFetch(path, opts = {}) {
+      const hdrs = { "Content-Type": "application/json", ...(opts.headers||{}) };
+      if (token) hdrs["Authorization"] = "Bearer " + token;
+      return fetch(API + path, { ...opts, headers: hdrs });
+    }
+
+    // Load chapters + reading state concurrently
+    async function init() {
+      const [chapR, stateR] = await Promise.all([
+        apiFetch("/chapters/"),
+        token ? apiFetch("/reading/state/") : Promise.resolve(null)
+      ]);
+
+      if (chapR && chapR.ok) {
+        const d = await chapR.json();
+        allChapters = d.chapters ?? [];
+        renderSidebar();
+        renderHomeGrid();
+      }
+
+      if (stateR && stateR.ok) {
+        readingState = await stateR.json();
+        renderReadingStats();
+        if (readingState.last_verse) {
+          const [ch, v] = readingState.last_verse.split(".").map(Number);
+          document.getElementById("resume-ref").textContent = `${LANG==="hi"?"अध्याय":"Ch."} ${ch}.${v}`;
+          document.getElementById("resume-section").style.display = "";
+          // Save last verse for resume
+          window._lastChapter = ch;
+        }
+      }
+    }
+
+    function renderReadingStats() {
+      const statsEl = document.getElementById("reading-stats");
+      if (!token) return;
+      statsEl.style.display = "";
+      document.getElementById("stat-verses").textContent = readingState.verses_opened_count ?? 0;
+      document.getElementById("stat-streak").textContent = readingState.read_streak ?? 0;
+      const pct = Math.min(100, ((readingState.verses_opened_count ?? 0) / 700) * 100);
+      document.getElementById("progress-fill").style.width = pct + "%";
+      document.getElementById("header-sub").textContent =
+        LANG==="hi" ? `${readingState.verses_opened_count ?? 0} श्लोक खुले` : `${readingState.verses_opened_count ?? 0} / 700 verses opened`;
+    }
+
+    function renderSidebar() {
+      const list = document.getElementById("chapter-list");
+      list.innerHTML = allChapters.map(ch => {
+        const active = currentChapter === ch.chapter_number;
+        return `<div class="chapter-item${active?" active":""}" onclick="loadChapter(${ch.chapter_number})">
+          <div class="chapter-num">${ch.chapter_number}</div>
+          <div class="chapter-content">
+            <div class="chapter-name">${escHtml(ch.name_transliterated ?? ch.name ?? "Chapter "+ch.chapter_number)}</div>
+            <div class="chapter-verses">${ch.verses_count ?? ""} ${LANG==="hi"?"श्लोक":"verses"}</div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderHomeGrid() {
+      const grid = document.getElementById("chapters-home-grid");
+      grid.innerHTML = allChapters.map(ch => {
+        return `<div class="ch-home-card" onclick="loadChapter(${ch.chapter_number})">
+          <div class="ch-home-num">${LANG==="hi"?"अध्याय":"Chapter"} ${ch.chapter_number}</div>
+          <div class="ch-home-name">${escHtml(ch.name_transliterated ?? ch.name ?? "")}</div>
+          <div class="ch-home-verses">${ch.verses_count ?? ""} ${LANG==="hi"?"श्लोक":"verses"}</div>
+        </div>`;
+      }).join("");
+    }
+
+    window.loadChapter = async function(num) {
+      currentChapter = num;
+      document.getElementById("home-view").classList.add("hidden");
+      document.getElementById("chapter-view").classList.add("visible");
+      // Close mobile sidebar
+      document.getElementById("sidebar").classList.remove("mobile-open");
+
+      // Highlight sidebar
+      document.querySelectorAll(".chapter-item").forEach(el => el.classList.remove("active"));
+      const sideItems = document.querySelectorAll(".chapter-item");
+      if (sideItems[num-1]) sideItems[num-1].classList.add("active");
+
+      const vl = document.getElementById("verse-list");
+      vl.innerHTML = `<div class="skeleton" style="height:80px;margin-bottom:12px"></div><div class="skeleton" style="height:80px;margin-bottom:12px"></div><div class="skeleton" style="height:80px"></div>`;
+
+      const r = await apiFetch(`/chapters/${num}/`).catch(() => null);
+      if (!r || !r.ok) {
+        vl.innerHTML = `<p style="color:var(--muted)">${LANG==="hi"?"लोड नहीं हो सका":"Could not load chapter"}</p>`;
+        return;
+      }
+      const d = await r.json();
+      const ch = d.chapter ?? {};
+      const verses = d.verses ?? [];
+
+      document.getElementById("ch-num-label").textContent = (LANG==="hi"?"अध्याय ":"Chapter ") + num;
+      document.getElementById("ch-title").textContent = ch.name_transliterated ?? ch.name ?? "";
+      document.getElementById("ch-subtitle").textContent = ch.name_meaning ?? ch.name_translated ?? "";
+      const summaryEl = document.getElementById("ch-summary");
+      if (ch.chapter_summary) {
+        summaryEl.textContent = ch.chapter_summary;
+        summaryEl.style.display = "";
+      } else {
+        summaryEl.style.display = "none";
+      }
+
+      vl.innerHTML = verses.map(v => {
+        const ref = `${num}.${v.verse_number ?? v.verse}`;
+        const isOpened = openedVerseRefs.has(ref);
+        return `<div class="verse-card${isOpened?" opened":""}" id="vc-${ref}" data-ref="${ref}" onclick="toggleVerse(this, ${num}, ${v.verse_number ?? v.verse})">
+          <div class="verse-ref-tag">${LANG==="hi"?"श्लोक":"Verse"} ${ref}</div>
+          <div class="verse-sanskrit">${escHtml((v.verse_text ?? v.text ?? "").slice(0,140))}</div>
+          <div class="verse-translation">${escHtml(getTranslation(v))}</div>
+          <div class="verse-expanded" id="ve-${ref}">
+            ${getCommentary(v) ? `<div class="verse-commentary-label">${LANG==="hi"?"भाष्य":"Commentary"}</div><div class="verse-commentary">${escHtml(getCommentary(v))}</div>` : ""}
+            <div class="verse-actions">
+              <a class="verse-btn" href="/api/chat-ui/?language=${LANG}&verse=${encodeURIComponent(ref)}" onclick="event.stopPropagation()">
+                💬 ${LANG==="hi"?"गीता से पूछें":"Ask the Gita"}
+              </a>
+              ${token ? `<button class="verse-btn" onclick="event.stopPropagation();toggleNote('${ref}')">✎ ${LANG==="hi"?"नोट":"Note"}</button>` : ""}
+            </div>
+            ${token ? `<div id="note-section-${ref}" style="display:none">
+              <textarea class="note-area" id="note-ta-${ref}" placeholder="${LANG==="hi"?"अपना नोट यहाँ लिखें…":"Your personal note…"}" rows="3"></textarea>
+              <button class="note-save-btn" onclick="event.stopPropagation();saveNote('${ref}', ${num}, ${v.verse_number ?? v.verse})">
+                ${LANG==="hi"?"नोट सहेजें":"Save Note"}
+              </button>
+            </div>` : ""}
+          </div>
+        </div>`;
+      }).join("");
+
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    function getTranslation(v) {
+      // Try language-specific or fallback
+      if (LANG === "hi" && v.meaning_hi) return v.meaning_hi;
+      if (v.meaning) return v.meaning;
+      if (v.meaning_en) return v.meaning_en;
+      if (v.translation) return v.translation;
+      return "";
+    }
+
+    function getCommentary(v) {
+      if (LANG === "hi" && v.commentary_hi) return v.commentary_hi;
+      if (v.commentary) return v.commentary;
+      return "";
+    }
+
+    window.toggleVerse = async function(el, chapter, verse) {
+      const ref = `${chapter}.${verse}`;
+      const expanded = document.getElementById(`ve-${ref}`);
+      const isOpen = expanded.classList.toggle("open");
+
+      if (isOpen && !openedVerseRefs.has(ref)) {
+        openedVerseRefs.add(ref);
+        el.classList.add("opened");
+        if (token) {
+          // Record verse open for reading progress
+          apiFetch("/reading/verse-open/", {
+            method: "POST",
+            body: JSON.stringify({ chapter, verse })
+          }).then(r => r.ok ? r.json() : null).then(d => {
+            if (d) {
+              readingState.verses_opened_count = d.verses_opened_count;
+              readingState.read_streak = d.read_streak;
+              renderReadingStats();
+            }
+          }).catch(() => {});
+          // Load note if any
+          apiFetch(`/reading/verse/${chapter}/${verse}/note/`).then(r => r.ok ? r.json() : null).then(d => {
+            if (d?.body) {
+              const ta = document.getElementById(`note-ta-${ref}`);
+              if (ta) ta.value = d.body;
+            }
+          }).catch(() => {});
+        }
+      }
+    };
+
+    window.toggleNote = function(ref) {
+      const ns = document.getElementById(`note-section-${ref}`);
+      if (ns) ns.style.display = ns.style.display === "none" ? "" : "none";
+    };
+
+    window.saveNote = async function(ref, chapter, verse) {
+      const ta = document.getElementById(`note-ta-${ref}`);
+      const body = ta?.value?.trim() ?? "";
+      if (!token) return;
+      await apiFetch(`/reading/verse/${chapter}/${verse}/note/`, {
+        method: "PUT",
+        body: JSON.stringify({ body })
+      }).catch(() => {});
+      const ns = document.getElementById(`note-section-${ref}`);
+      if (ns) ns.style.display = "none";
+    };
+
+    window.goHome = function() {
+      currentChapter = null;
+      document.getElementById("chapter-view").classList.remove("visible");
+      document.getElementById("home-view").classList.remove("hidden");
+      document.querySelectorAll(".chapter-item").forEach(el => el.classList.remove("active"));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.resumeReading = function() {
+      if (window._lastChapter) loadChapter(window._lastChapter);
+    };
+
+    window.toggleSidebar = function() {
+      document.getElementById("sidebar").classList.toggle("mobile-open");
+    };
+
+    function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+    // URL routing: ?chapter=N
+    const params = new URLSearchParams(window.location.search);
+    const chapParam = parseInt(params.get("chapter") ?? "0");
+
+    init().then(() => {
+      if (chapParam >= 1 && chapParam <= 18) loadChapter(chapParam);
+    });
+  })();
+  </script>
+</body>
+</html>

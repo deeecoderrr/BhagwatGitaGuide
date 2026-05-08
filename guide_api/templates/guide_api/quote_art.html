@@ -1,0 +1,653 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}श्लोक कला{% else %}Verse Art{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 10% 5%, rgba(107, 78, 158, 0.12), transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(232, 184, 109, 0.08), transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(121, 217, 239, 0.04), transparent 60%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px, 4vw, 40px);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(232, 184, 109, 0.14);
+      background: linear-gradient(180deg, rgba(10, 14, 24, 0.6), rgba(5, 8, 16, 0.2));
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px, 3vw, 28px);
+      color: var(--gold);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px;
+      border-radius: 999px; border: 1px solid rgba(232,184,109,0.3);
+      color: var(--gold); text-decoration: none; background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main {
+      padding: 28px clamp(16px, 4vw, 40px) 56px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    /* Section heading */
+    .section-heading {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: rgba(245,217,160,0.95);
+      margin: 0 0 18px;
+    }
+
+    /* Two-col layout for desktop */
+    .art-layout {
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 860px) { .art-layout { grid-template-columns: 1fr; } }
+
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.18);
+      border-radius: 18px;
+      padding: 22px 24px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 20px 48px rgba(2,6,16,0.45);
+    }
+
+    /* Generator form */
+    .form-field { margin-bottom: 16px; }
+    .form-field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.07em;
+      text-transform: uppercase;
+    }
+    .form-field input, .form-field textarea, .form-field select {
+      width: 100%;
+      background: rgba(6,12,22,0.7);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      padding: 11px 14px;
+      font-family: "Manrope", sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-field input:focus, .form-field textarea:focus, .form-field select:focus {
+      outline: none;
+      border-color: rgba(232,184,109,0.4);
+    }
+    .form-field select option { background: #0a0e18; }
+    .form-field textarea { resize: vertical; min-height: 80px; }
+
+    /* Style picker grid */
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(2,1fr);
+      gap: 10px;
+    }
+    .style-card {
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .style-card:hover { border-color: rgba(232,184,109,0.3); }
+    .style-card.selected { border-color: var(--gold); }
+    .style-card .style-preview {
+      height: 56px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Cormorant Garamond", serif;
+      font-size: 15px;
+      font-style: italic;
+      color: rgba(255,255,255,0.85);
+    }
+    .style-card .style-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .style-card.selected .style-name { color: var(--gold); }
+
+    /* Suggested verse chips */
+    .verse-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 10px;
+    }
+    .verse-sug-chip {
+      padding: 5px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.22);
+      background: rgba(232,184,109,0.07);
+      color: rgba(245,217,160,0.8);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .verse-sug-chip:hover { background: rgba(232,184,109,0.14); border-color: rgba(232,184,109,0.4); }
+
+    /* Generate button */
+    .btn-generate {
+      width: 100%;
+      padding: 13px 20px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.9), rgba(200,155,80,0.9));
+      border: none;
+      border-radius: 999px;
+      font-family: "Manrope", sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      color: rgba(5,8,16,0.95);
+      cursor: pointer;
+      transition: opacity 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .btn-generate:hover { opacity: 0.85; }
+    .btn-generate:disabled { opacity: 0.45; cursor: default; }
+
+    /* Art canvas / preview */
+    .art-canvas-wrap {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.4s;
+    }
+    .art-canvas {
+      position: absolute;
+      inset: 0;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .art-canvas-placeholder {
+      position: relative;
+      aspect-ratio: 1;
+      border-radius: 20px;
+      border: 1.5px dashed rgba(232,184,109,0.2);
+      background: rgba(6,10,20,0.6);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      color: var(--muted);
+    }
+    .art-canvas-placeholder .lotus { font-size: 42px; }
+    .art-canvas-placeholder p { font-size: 13px; margin: 0; text-align: center; padding: 0 24px; line-height: 1.6; }
+
+    .art-verse-ref {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      opacity: 0.7;
+    }
+    .art-sanskrit {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(14px, 2.4vw, 17px);
+      font-style: italic;
+      opacity: 0.7;
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+    .art-quote {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(18px, 3vw, 24px);
+      font-weight: 500;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+    .art-attribution {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      opacity: 0.6;
+    }
+
+    /* Actions under canvas */
+    .art-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .btn-action {
+      flex: 1;
+      min-width: 120px;
+      font-family: "Manrope", sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3);
+      background: rgba(232,184,109,0.08);
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .btn-action:hover { background: rgba(232,184,109,0.14); border-color: rgba(232,184,109,0.5); }
+
+    /* Error msg */
+    .error-msg { color: rgba(240,100,100,0.9); font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+    /* Featured gallery */
+    .gallery-section { margin-top: 36px; }
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .gallery-card {
+      border-radius: 14px;
+      aspect-ratio: 1;
+      cursor: pointer;
+      transition: all 0.2s;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      position: relative;
+    }
+    .gallery-card:hover { transform: scale(1.02); border-color: rgba(232,184,109,0.3); }
+    .gallery-card-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      text-align: center;
+    }
+    .gallery-card .gc-ref {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.65;
+      margin-bottom: 6px;
+    }
+    .gallery-card .gc-quote {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 13px;
+      font-style: italic;
+      line-height: 1.5;
+      opacity: 0.9;
+    }
+    .gallery-loading { display: flex; gap: 14px; }
+    .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.08),rgba(255,255,255,0.04)); background-size:200% 100%; animation:shimmer 1.8s infinite; border-radius:14px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .skel-card { aspect-ratio:1; flex: 1; min-width: 160px; }
+
+    /* Spinner */
+    .spinner-ring {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(232,184,109,0.2);
+      border-top-color: rgba(232,184,109,0.9);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body data-lang="{{ language|default:'en' }}">
+  <header>
+    <div class="header-left">
+      <h1>{% if language == "hi" %}श्लोक कला{% else %}Verse Art{% endif %}</h1>
+      <p>{% if language == "hi" %}भगवद् गीता के श्लोकों से दिव्य कला{% else %}Create shareable art from Bhagavad Gita verses{% endif %}</p>
+    </div>
+    <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
+      ← {% if language == "hi" %}होम{% else %}Home{% endif %}
+    </a>
+  </header>
+
+  <main>
+    <div class="art-layout">
+      <!-- Left: Art canvas + actions -->
+      <div>
+        <div id="art-placeholder" class="art-canvas-placeholder">
+          <div class="lotus">🪷</div>
+          <p>{% if language == "hi" %}एक श्लोक संदर्भ चुनें और शैली चुनें, फिर &ldquo;कला बनाएं&rdquo; दबाएं{% else %}Choose a verse reference and style, then press &ldquo;Generate Art&rdquo;{% endif %}</p>
+        </div>
+        <div id="art-result" style="display:none">
+          <div class="art-canvas-wrap" id="art-canvas-wrap">
+            <div class="art-canvas" id="art-canvas">
+              <div class="art-verse-ref" id="art-ref"></div>
+              <div class="art-sanskrit" id="art-sanskrit"></div>
+              <div class="art-quote" id="art-quote"></div>
+              <div class="art-attribution" id="art-attribution"></div>
+            </div>
+          </div>
+          <div class="art-actions">
+            <button class="btn-action" id="btn-copy-text" onclick="copyShareText()">
+              {% if language == "hi" %}📋 टेक्स्ट कॉपी करें{% else %}📋 Copy Text{% endif %}
+            </button>
+            <button class="btn-action" id="btn-share" onclick="shareArt()">
+              {% if language == "hi" %}↗ शेयर करें{% else %}↗ Share{% endif %}
+            </button>
+          </div>
+        </div>
+        <div id="art-spinner" style="display:none;text-align:center;padding:60px 0">
+          <div class="spinner-ring"></div>
+          <p style="color:var(--muted);font-size:13px;margin:0">{% if language == "hi" %}कला बना रहे हैं…{% else %}Creating your verse art…{% endif %}</p>
+        </div>
+      </div>
+
+      <!-- Right: Generator controls -->
+      <div>
+        <div class="panel">
+          <h2 class="section-heading">{% if language == "hi" %}श्लोक चुनें{% else %}Generate Verse Art{% endif %}</h2>
+
+          <div class="form-field">
+            <label>{% if language == "hi" %}श्लोक संदर्भ{% else %}Verse Reference{% endif %}</label>
+            <input
+              type="text"
+              id="verse-ref"
+              placeholder="{% if language == 'hi' %}जैसे: 2.47, 18.65{% else %}e.g. 2.47, 18.65{% endif %}"
+              maxlength="10"
+            >
+            <div class="verse-suggestions" id="verse-suggestions">
+              <!-- loaded dynamically -->
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label>{% if language == "hi" %}भाषा{% else %}Language{% endif %}</label>
+            <select id="art-language">
+              <option value="en" {% if language != 'hi' %}selected{% endif %}>English</option>
+              <option value="hi" {% if language == 'hi' %}selected{% endif %}>हिन्दी</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>{% if language == "hi" %}शैली{% else %}Style{% endif %}</label>
+            <div class="style-grid" id="style-grid">
+              <!-- loaded dynamically, fallback static -->
+              <div class="style-card selected" data-style="divine" onclick="selectStyle('divine')">
+                <div class="style-preview" style="background:linear-gradient(135deg,#1a0a2e,#2d1856,#4a2080)">श्री</div>
+                <div class="style-name">Divine</div>
+              </div>
+              <div class="style-card" data-style="minimal" onclick="selectStyle('minimal')">
+                <div class="style-preview" style="background:linear-gradient(135deg,#0d1117,#1c2333,#0a0e18)">अर्जुन</div>
+                <div class="style-name">Minimal</div>
+              </div>
+              <div class="style-card" data-style="nature" onclick="selectStyle('nature')">
+                <div class="style-preview" style="background:linear-gradient(135deg,#0a1f0e,#143d18,#1a5220)">कृष्ण</div>
+                <div class="style-name">Nature</div>
+              </div>
+              <div class="style-card" data-style="cosmic" onclick="selectStyle('cosmic')">
+                <div class="style-preview" style="background:linear-gradient(135deg,#050b28,#0b1840,#0c2060)">ॐ</div>
+                <div class="style-name">Cosmic</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-field" id="custom-quote-wrap">
+            <label>
+              {% if language == "hi" %}कस्टम उद्धरण{% else %}Custom Quote{% endif %}
+              <span style="font-weight:400;margin-left:4px;opacity:.7">({% if language == "hi" %}वैकल्पिक{% else %}optional{% endif %})</span>
+            </label>
+            <textarea
+              id="custom-quote"
+              placeholder="{% if language == 'hi' %}श्लोक का अनुकूलित भाव…{% else %}Override with your own interpretation…{% endif %}"
+              maxlength="500"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="error-msg" id="gen-error"></div>
+          <button class="btn-generate" id="btn-generate" onclick="generateArt()">
+            ✦ {% if language == "hi" %}कला बनाएं{% else %}Generate Art{% endif %}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured gallery -->
+    <div class="gallery-section">
+      <h2 class="section-heading">{% if language == "hi" %}प्रेरणादायक श्लोक{% else %}Featured Verses{% endif %}</h2>
+      <div class="gallery-grid" id="gallery-grid">
+        <div class="gallery-loading" style="display:contents">
+          <div class="skeleton skel-card"></div>
+          <div class="skeleton skel-card"></div>
+          <div class="skeleton skel-card"></div>
+          <div class="skeleton skel-card"></div>
+          <div class="skeleton skel-card"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+  (function() {
+    const LANG = document.body.dataset.lang || "en";
+    const API = "/api/v1";
+    const STYLE_GRADIENTS = {
+      divine: "linear-gradient(135deg, #1a0a2e, #2d1856, #4a2080)",
+      minimal: "linear-gradient(135deg, #0d1117, #1c2333, #0a0e18)",
+      nature: "linear-gradient(135deg, #0a1f0e, #143d18, #1a5220)",
+      cosmic: "linear-gradient(135deg, #050b28, #0b1840, #0c2060)",
+    };
+    const STYLE_TEXT = {
+      divine: "#f5d9a0",
+      minimal: "#e0d8c8",
+      nature: "#c8f0b8",
+      cosmic: "#b8d8f0",
+    };
+    let selectedStyle = "divine";
+    let currentArt = null;
+
+    function apiFetch(path, opts = {}) {
+      const hdrs = { "Content-Type": "application/json", ...(opts.headers||{}) };
+      const token = localStorage.getItem("gita_token");
+      if (token) hdrs["Authorization"] = "Bearer " + token;
+      return fetch(API + path, { ...opts, headers: hdrs });
+    }
+
+    window.selectStyle = function(s) {
+      selectedStyle = s;
+      document.querySelectorAll(".style-card").forEach(c => {
+        c.classList.toggle("selected", c.dataset.style === s);
+      });
+    };
+
+    // Load styles from API and update grid
+    apiFetch("/quote-art/styles/").then(r => r.ok ? r.json() : null).then(data => {
+      if (!data?.styles?.length) return;
+      const grid = document.getElementById("style-grid");
+      grid.innerHTML = data.styles.map(s => {
+        const grad = s.gradient?.length >= 2
+          ? `linear-gradient(135deg, ${s.gradient[0]}, ${s.gradient[1]})`
+          : STYLE_GRADIENTS[s.id] ?? STYLE_GRADIENTS.divine;
+        const textC = s.text_color ?? STYLE_TEXT[s.id] ?? "#f5d9a0";
+        return `<div class="style-card${s.id === selectedStyle ? " selected" : ""}" data-style="${escAttr(s.id)}" onclick="selectStyle('${escJs(s.id)}')">
+          <div class="style-preview" style="background:${escAttr(grad)};color:${escAttr(textC)}">✦</div>
+          <div class="style-name">${escHtml(s.name)}</div>
+        </div>`;
+      }).join("");
+    }).catch(() => {});
+
+    // Load featured quotes
+    const langParam = document.getElementById("art-language")?.value || "en";
+    apiFetch(`/quote-art/featured/?language=${langParam}&limit=6`).then(r => r.ok ? r.json() : null).then(data => {
+      const grid = document.getElementById("gallery-grid");
+      const quotes = data?.quotes ?? [];
+      if (!quotes.length) {
+        grid.innerHTML = `<p style="color:var(--muted);font-size:13px">${LANG==="hi"?"कोई उदाहरण उपलब्ध नहीं":"No featured verses available"}</p>`;
+        return;
+      }
+      grid.innerHTML = quotes.map(q => {
+        const styleKey = ["divine","minimal","nature","cosmic"][Math.floor(Math.random()*4)];
+        return `<div class="gallery-card" onclick="loadFeatured('${escJs(q.reference)}')" style="cursor:pointer">
+          <div class="gallery-card-inner" style="background:${STYLE_GRADIENTS[styleKey]};color:${STYLE_TEXT[styleKey]}">
+            <div class="gc-ref">${escHtml(q.reference)}</div>
+            <div class="gc-quote">"${escHtml((q.preview_quote??'').slice(0,80))}"</div>
+          </div>
+        </div>`;
+      }).join("");
+
+      // Also populate suggestions
+      const sugs = document.getElementById("verse-suggestions");
+      sugs.innerHTML = quotes.slice(0,5).map(q =>
+        `<span class="verse-sug-chip" onclick="pickVerse('${escJs(q.reference)}')">${escHtml(q.reference)}</span>`
+      ).join("");
+    }).catch(() => {
+      document.getElementById("gallery-grid").innerHTML = "";
+    });
+
+    window.loadFeatured = function(ref) {
+      document.getElementById("verse-ref").value = ref;
+      generateArt();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
+    window.pickVerse = function(ref) {
+      document.getElementById("verse-ref").value = ref;
+      document.getElementById("verse-ref").focus();
+    };
+
+    window.generateArt = async function() {
+      const ref = document.getElementById("verse-ref").value.trim();
+      const lang = document.getElementById("art-language").value;
+      const customQ = document.getElementById("custom-quote").value.trim();
+      const errEl = document.getElementById("gen-error");
+      errEl.textContent = "";
+
+      if (!ref) {
+        errEl.textContent = LANG === "hi" ? "कृपया श्लोक संदर्भ दर्ज करें (जैसे 2.47)" : "Please enter a verse reference (e.g. 2.47)";
+        return;
+      }
+      // Basic format check
+      if (!/^\d{1,2}\.\d{1,3}$/.test(ref)) {
+        errEl.textContent = LANG === "hi" ? "प्रारूप: अध्याय.श्लोक (जैसे 2.47)" : "Format: chapter.verse (e.g. 2.47)";
+        return;
+      }
+
+      document.getElementById("art-placeholder").style.display = "none";
+      document.getElementById("art-result").style.display = "none";
+      document.getElementById("art-spinner").style.display = "";
+      document.getElementById("btn-generate").disabled = true;
+
+      const body = { verse_reference: ref, style: selectedStyle, language: lang };
+      if (customQ) body.custom_quote = customQ;
+
+      const r = await apiFetch("/quote-art/generate/", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+      document.getElementById("art-spinner").style.display = "none";
+      document.getElementById("btn-generate").disabled = false;
+
+      if (!r || !r.ok) {
+        const err = r ? await r.json().catch(() => ({})) : {};
+        errEl.textContent = err.message ?? (LANG==="hi" ? "कला बनाने में विफल" : "Could not generate art");
+        document.getElementById("art-placeholder").style.display = "";
+        return;
+      }
+
+      const d = await r.json();
+      currentArt = d;
+      renderArt(d);
+    };
+
+    function renderArt(d) {
+      const style = d.style ?? {};
+      const bg = style.gradient?.length >= 2
+        ? `linear-gradient(135deg, ${style.gradient[0]}, ${style.gradient[1]})`
+        : STYLE_GRADIENTS[d.style?.id ?? selectedStyle] ?? STYLE_GRADIENTS.divine;
+      const textC = style.text_color ?? STYLE_TEXT[d.style?.id ?? selectedStyle] ?? "#f5d9a0";
+      const accentC = style.accent_color ?? "rgba(255,255,255,0.6)";
+
+      const wrap = document.getElementById("art-canvas-wrap");
+      wrap.style.background = bg;
+
+      document.getElementById("art-ref").style.color = accentC;
+      document.getElementById("art-ref").textContent = d.verse_reference ?? "";
+
+      document.getElementById("art-sanskrit").style.color = accentC;
+      document.getElementById("art-sanskrit").textContent = d.sanskrit_text ?? "";
+
+      document.getElementById("art-quote").style.color = textC;
+      document.getElementById("art-quote").textContent = "\u201C" + (d.quote_text ?? "") + "\u201D";
+
+      document.getElementById("art-attribution").style.color = accentC;
+      document.getElementById("art-attribution").textContent = d.attribution ?? "Bhagavad Gita";
+
+      document.getElementById("art-result").style.display = "";
+    }
+
+    window.copyShareText = function() {
+      if (!currentArt) return;
+      const text = currentArt.share_text ?? `"${currentArt.quote_text}" — ${currentArt.attribution}`;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById("btn-copy-text");
+        const orig = btn.textContent;
+        btn.textContent = LANG === "hi" ? "✓ कॉपी हो गया" : "✓ Copied!";
+        setTimeout(() => { btn.textContent = orig; }, 2000);
+      }).catch(() => {});
+    };
+
+    window.shareArt = async function() {
+      if (!currentArt) return;
+      const text = currentArt.share_text ?? `"${currentArt.quote_text}" — ${currentArt.attribution}`;
+      if (navigator.share) {
+        await navigator.share({ title: "Bhagavad Gita · " + (currentArt.verse_reference ?? ""), text }).catch(() => {});
+      } else {
+        copyShareText();
+      }
+    };
+
+    function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+    function escAttr(s) { return String(s).replace(/"/g,"&quot;"); }
+    function escJs(s) { return String(s).replace(/'/g,"\\'"); }
+  })();
+  </script>
+</body>
+</html>
