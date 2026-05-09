@@ -9998,11 +9998,13 @@ class _WebPageTokenMixin:
         return response
 
     def _attach_token_cookie(self, request, response) -> None:
-        """Set chat_token cookie from session if not already present in request."""
-        # Already have it as a browser cookie — nothing to do.
-        if request.COOKIES.get(self._COOKIE_NAME):
-            return
+        """Set (or refresh) the chat_token cookie from the current session token.
 
+        The cookie is only skipped when the session has no authoritative token.
+        If the session carries a different (newer) token than the browser cookie
+        we overwrite the stale cookie so pages stop getting 401 responses after
+        the user logs out/in again and a new DRF token is created.
+        """
         # Try session token (set by ChatUIView login handler).
         token_key = request.session.get("chat_ui_auth_token", "")
 
@@ -10014,6 +10016,11 @@ class _WebPageTokenMixin:
                 pass
 
         if not token_key:
+            # No authoritative token available — leave existing cookie alone.
+            return
+
+        # Skip the Set-Cookie header only when the cookie is already up-to-date.
+        if request.COOKIES.get(self._COOKIE_NAME) == token_key:
             return
 
         response.set_cookie(

@@ -399,7 +399,18 @@
       while (true) {
         const r = await apiFetch(`/saved-reflections/?limit=${FETCH_BATCH}&offset=${offset}`).catch(() => null);
         if (!r || !r.ok) {
-          list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">${LANG === "hi" ? "लोड नहीं हो सका" : "Could not load reflections"}</div>`;
+          if (r && r.status === 401) {
+            // Token is stale (e.g. user logged in on another device and token was rotated).
+            // Clear it and show the sign-in prompt.
+            document.cookie = "chat_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax";
+            document.cookie = "chat_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax; Secure";
+            localStorage.removeItem("gita_token");
+            localStorage.removeItem("gita.auth.token");
+            document.getElementById("reflections-content").style.display = "none";
+            document.getElementById("auth-gate").style.display = "";
+          } else {
+            list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">${LANG === "hi" ? "लोड नहीं हो सका" : "Could not load reflections"}</div>`;
+          }
           return;
         }
         const data = await r.json();
