@@ -15,7 +15,7 @@
     { id: "read", label: "Read", icon: "☰", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1`, match: ["/read-", "/read/"] },
     { id: "meditate", label: "Practice", icon: "✦", href: `/meditation/?language=${encodeURIComponent(lang)}`, match: ["/meditation/", "/japa/", "/sadhana/", "/practice/"] },
     { id: "journal", label: "Journal", icon: "◷", href: `/history/?language=${encodeURIComponent(lang)}`, match: ["/history/", "/saved-reflections/", "/gratitude/", "/mood/", "/quote-art/"] },
-    { id: "you", label: "You", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/", "/account/", "/plans/", "/community/", "/support/"] },
+    { id: "you", label: "Insights", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/", "/account/", "/plans/", "/community/", "/support/"] },
   ];
 
   const quickActions = [

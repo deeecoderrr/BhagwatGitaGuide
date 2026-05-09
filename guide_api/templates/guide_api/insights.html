@@ -712,13 +712,15 @@
       return Number.isFinite(Number(value)) ? Number(value) : 0;
     }
 
-    function metricCard(icon, value, label, hint = "") {
-      return `<div class="stat-card">
+    function metricCard(icon, value, label, hint = "", href = "") {
+      const tag = href ? "a" : "div";
+      const extra = href ? ` href="${href}" style="cursor:pointer;text-decoration:none;display:block;"` : "";
+      return `<${tag} class="stat-card"${extra}>
         <div class="stat-icon">${icon}</div>
         <div class="stat-value">${escHtml(value)}</div>
         <div class="stat-label">${escHtml(label)}</div>
         ${hint ? `<div class="metric-hint">${escHtml(hint)}</div>` : ""}
-      </div>`;
+      </${tag}>`;
     }
 
     function signalCard(title, body, href, cta) {
@@ -923,9 +925,9 @@
       document.getElementById("overview-panel").innerHTML = `
         <div class="stats-grid metric-grid">
           ${metricCard("🔥", safeCount(data.engagement?.daily_streak), LANG === "hi" ? "दिन लकीर" : "Day streak", formatDateTime(lastActive))}
-          ${metricCard("🪷", safeCount(data.saved_reflections?.total), LANG === "hi" ? "सहेजी गई चिंतन" : "Saved reflections", LANG === "hi" ? "आपकी निजी मार्गदर्शिका" : "Your private manual")}
-          ${metricCard("💬", safeCount(data.conversations?.total), LANG === "hi" ? "बातचीत" : "Conversations", data.conversations?.last_activity_at ? formatDateTime(data.conversations.last_activity_at) : (LANG === "hi" ? "अभी तक नहीं" : "No asks yet"))}
-          ${metricCard("🤝", safeCount(data.community?.root_posts) + safeCount(data.community?.replies), LANG === "hi" ? "समुदाय योगदान" : "Community contributions", LANG === "hi" ? "पोस्ट और उत्तर" : "Posts and replies")}
+          ${metricCard("🪷", safeCount(data.saved_reflections?.total), LANG === "hi" ? "सहेजी गई चिंतन" : "Saved reflections", LANG === "hi" ? "आपकी निजी मार्गदर्शिका" : "Your private manual", `/saved-reflections/?language=${encodeURIComponent(LANG)}`)}
+          ${metricCard("💬", safeCount(data.conversations?.total), LANG === "hi" ? "बातचीत" : "Conversations", data.conversations?.last_activity_at ? formatDateTime(data.conversations.last_activity_at) : (LANG === "hi" ? "अभी तक नहीं" : "No asks yet"), `/history/?language=${encodeURIComponent(LANG)}`)}
+          ${metricCard("🤝", safeCount(data.community?.root_posts) + safeCount(data.community?.replies), LANG === "hi" ? "समुदाय योगदान" : "Community contributions", LANG === "hi" ? "पोस्ट और उत्तर" : "Posts and replies", `/community/?language=${encodeURIComponent(LANG)}`)}
         </div>
         <div class="panel-grid two-up">
           ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
@@ -1059,7 +1061,7 @@
             <h2 class="section-title" style="margin:0">${LANG === "hi" ? "मार्गदर्शन और चिंतन" : "Guidance &amp; Reflection"}</h2>
           </div>
           <div class="detail-list">
-            <div class="detail-item" style="cursor:pointer" onclick="window.location='/api/chat-ui/?language=${encodeURIComponent(LANG)}#history'">
+            <div class="detail-item" style="cursor:pointer" onclick="window.location='/history/?language=${encodeURIComponent(LANG)}'">
               <strong>${LANG === "hi" ? "कुल संवाद" : "Total Threads"}</strong>
               <span style="display:flex;align-items:center;gap:6px">${safeCount(data.conversations?.total)} <span style="opacity:0.4;font-size:11px">›</span></span>
             </div>
