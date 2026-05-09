@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -162,10 +163,134 @@
 
     #history-list.hidden { display: none; }
 
+    /* Today's check-in cards */
+    .mini-cards-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 560px) { .mini-cards-row { grid-template-columns: 1fr; } }
+    .mini-card {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.16);
+      border-radius: 16px;
+      padding: 18px 18px 16px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.18), 0 12px 32px rgba(2,6,16,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-height: 120px;
+    }
+    .mini-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mini-card-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .mini-card-status {
+      font-size: 11px;
+      color: rgba(100,220,140,0.8);
+      font-weight: 600;
+    }
+    .mood-logged {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mood-emoji-lg { font-size: 32px; line-height: 1; }
+    .mood-logged-label { font-size: 14px; font-weight: 600; color: var(--text); }
+    .mood-quick-grid {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .mood-quick-btn {
+      font-size: 22px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 6px 8px;
+      cursor: pointer;
+      transition: all 0.18s;
+      line-height: 1;
+    }
+    .mood-quick-btn:hover { background: rgba(232,184,109,0.12); border-color: rgba(232,184,109,0.35); transform: scale(1.1); }
+    .mood-quick-btn.selected { background: rgba(232,184,109,0.18); border-color: rgba(232,184,109,0.5); transform: scale(1.08); }
+    .mini-save-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.2), rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.35);
+      color: var(--gold);
+      cursor: pointer;
+      transition: all 0.2s;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+    .mini-save-btn:hover { background: rgba(232,184,109,0.25); }
+    .mini-save-btn:disabled { opacity: 0.5; cursor: default; }
+    .gratitude-count {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 34px;
+      font-weight: 600;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .gratitude-sub { font-size: 12px; color: var(--muted); }
+    .gratitude-add-btn {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: rgba(121,217,239,0.08);
+      border: 1px solid rgba(121,217,239,0.25);
+      color: rgba(121,217,239,0.85);
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: all 0.2s;
+    }
+    .gratitude-add-btn:hover { background: rgba(121,217,239,0.15); border-color: rgba(121,217,239,0.45); }
+
+    /* Community snippet */
+    .community-post {
+      display: flex;
+      gap: 12px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .community-post:last-child { border-bottom: none; }
+    .community-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .community-post-body { flex: 1; min-width: 0; }
+    .community-post-meta { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .community-post-meta strong { color: rgba(240,230,210,0.8); font-weight: 600; }
+    .community-post-text { font-size: 13px; color: rgba(240,230,210,0.78); line-height: 1.5; }
+
     @media (max-width: 500px) {
       .verse-hero { padding: 24px 18px; }
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body>
 <header>
@@ -173,8 +298,8 @@
     <h1>🌅 {% if language == "hi" %}आज का संकेत{% else %}Today's Signal{% endif %}</h1>
     <p>{% if language == "hi" %}भगवद गीता से आपका दैनिक श्लोक{% else %}Your daily verse from the Bhagavad Gita{% endif %}</p>
   </div>
-  <a href="/api/chat-ui/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
 </header>
+
 
 <main>
   <div id="verse-hero" class="verse-hero" style="min-height:300px">
@@ -192,6 +317,36 @@
     </div>
   </div>
 
+  <!-- Today's Check-in mini-cards (shown only when logged in) -->
+  <div id="checkin-section" style="display:none">
+    <div class="mini-cards-row">
+      <!-- Mood mini-card -->
+      <div class="mini-card" id="mood-mini-card">
+        <div class="mini-card-header">
+          <span class="mini-card-label">💭 {% if language == "hi" %}मनोदशा{% else %}Mood{% endif %}</span>
+          <span class="mini-card-status" id="mood-status-dot" style="display:none">✓ {% if language == "hi" %}दर्ज{% else %}Logged{% endif %}</span>
+        </div>
+        <div id="mood-mini-body">
+          <div style="height:60px;display:flex;align-items:center;justify-content:center">
+            <div class="skeleton" style="width:80px;height:32px;border-radius:8px"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Gratitude mini-card -->
+      <div class="mini-card" id="gratitude-mini-card">
+        <div class="mini-card-header">
+          <span class="mini-card-label">🌿 {% if language == "hi" %}कृतज्ञता{% else %}Gratitude{% endif %}</span>
+          <span class="mini-card-status" id="gratitude-status-dot" style="display:none">✓ {% if language == "hi" %}दर्ज{% else %}Logged{% endif %}</span>
+        </div>
+        <div id="gratitude-mini-body">
+          <div style="height:60px;display:flex;align-items:center;justify-content:center">
+            <div class="skeleton" style="width:80px;height:32px;border-radius:8px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Quick nav -->
   <div class="panel">
     <div class="section-title">{% if language == "hi" %}आज का अभ्यास{% else %}Today's Practice{% endif %}</div>
@@ -201,7 +356,7 @@
         <span class="quick-card-title">{% if language == "hi" %}मार्गदर्शन लें{% else %}Ask for Guidance{% endif %}</span>
         <span class="quick-card-desc">{% if language == "hi" %}कृष्ण से पूछें{% else %}Ask Krishna{% endif %}</span>
       </a>
-      <a href="/read-journey/" class="quick-card">
+      <a href="/api/chat-ui/?language={{ language|default:'en' }}&open_reader=1" class="quick-card">
         <span class="quick-card-icon">📖</span>
         <span class="quick-card-title">{% if language == "hi" %}गीता पढ़ें{% else %}Read Journey{% endif %}</span>
         <span class="quick-card-desc">{% if language == "hi" %}श्लोक दर श्लोक{% else %}Verse by verse{% endif %}</span>
@@ -216,15 +371,15 @@
         <span class="quick-card-title">{% if language == "hi" %}ध्यान{% else %}Meditation{% endif %}</span>
         <span class="quick-card-desc">{% if language == "hi" %}ध्यान का अभ्यास{% else %}Guided practice{% endif %}</span>
       </a>
-      <a href="/mood/" class="quick-card">
-        <span class="quick-card-icon">💭</span>
-        <span class="quick-card-title">{% if language == "hi" %}मनोदशा{% else %}Mood Check-in{% endif %}</span>
-        <span class="quick-card-desc">{% if language == "hi" %}आज आप कैसा महसूस कर रहे हैं?{% else %}How are you today?{% endif %}</span>
+      <a href="/saved-reflections/" class="quick-card">
+        <span class="quick-card-icon">📓</span>
+        <span class="quick-card-title">{% if language == "hi" %}सहेजी गई चिंतन{% else %}Saved Reflections{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}अपने उत्तर फिर से पढ़ें{% else %}Revisit your guidance{% endif %}</span>
       </a>
-      <a href="/gratitude/" class="quick-card">
-        <span class="quick-card-icon">🌿</span>
-        <span class="quick-card-title">{% if language == "hi" %}कृतज्ञता{% else %}Gratitude{% endif %}</span>
-        <span class="quick-card-desc">{% if language == "hi" %}तीन आभार{% else %}Three blessings{% endif %}</span>
+      <a href="/community/" class="quick-card">
+        <span class="quick-card-icon">🤝</span>
+        <span class="quick-card-title">{% if language == "hi" %}समुदाय{% else %}Community{% endif %}</span>
+        <span class="quick-card-desc">{% if language == "hi" %}सीकरों के साथ चलें{% else %}Walk with other seekers{% endif %}</span>
       </a>
       <a href="/insights/" class="quick-card">
         <span class="quick-card-icon">✨</span>
@@ -236,6 +391,20 @@
         <span class="quick-card-title">{% if language == "hi" %}साधना{% else %}Sadhana{% endif %}</span>
         <span class="quick-card-desc">{% if language == "hi" %}21-दिन कार्यक्रम{% else %}21-day programs{% endif %}</span>
       </a>
+    </div>
+  </div>
+
+  <!-- Community preview -->
+  <div class="panel" id="community-preview-panel" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div class="section-title" style="margin:0">{% if language == "hi" %}समुदाय{% else %}Community{% endif %}</div>
+      <a href="/community/" style="font-size:12px;color:var(--muted);text-decoration:none">
+        {% if language == "hi" %}सभी देखें →{% else %}See all →{% endif %}
+      </a>
+    </div>
+    <div id="community-preview-list">
+      <div class="skeleton" style="height:52px;margin-bottom:8px;border-radius:10px"></div>
+      <div class="skeleton" style="height:52px;border-radius:10px"></div>
     </div>
   </div>
 
@@ -259,7 +428,7 @@
 const LANG = "{{ language|default:'en' }}";
 const API_TOKEN = (() => {
   const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
 })();
 
 let historyLoaded = false;
@@ -278,7 +447,9 @@ async function loadDailyVerse() {
 
 function renderVerse(d) {
   const ref = d.verse?.chapter && d.verse?.verse ? `${d.verse.chapter}.${d.verse.verse}` : "";
-  const verseUrl = ref ? `/read/${ref}/` : "#";
+  const verseUrl = ref
+    ? `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(ref)}`
+    : "#";
   document.getElementById("verse-hero").innerHTML = `
     <div class="verse-date">${new Date().toLocaleDateString(LANG==="hi"?"hi-IN":"en-IN",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
     ${ref ? `<a href="${verseUrl}" class="verse-ref">BG ${ref}</a>` : ""}
@@ -297,7 +468,7 @@ function renderVerse(d) {
 async function loadStreak() {
   if (!API_TOKEN) return;
   try {
-    const res = await fetch("/api/auth/me/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    const res = await fetch("/api/v1/auth/me/", { headers: { Authorization: `Token ${API_TOKEN}` } });
     if (!res.ok) return;
     const d = await res.json();
     const streak = d.engagement?.daily_streak ?? 0;
@@ -354,8 +525,161 @@ function escHtml(s) {
   return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
+// ── Avatar helpers (same palette as mobile community.tsx) ──────────────────
+const AVATAR_PALETTE = ["#8B6FDE","#E07B54","#54A0BB","#7BBE8F","#D4845A","#6B9ED4","#C47AB5","#5BB3A0"];
+function avatarColor(username) {
+  let hash = 0;
+  for (let i = 0; i < (username||"?").length; i++) hash = (username||"?").charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+}
+function initials(username) { return (username||"?").slice(0,2).toUpperCase(); }
+
+// ── Mood quick-select ──────────────────────────────────────────────────────
+const MOOD_QUICK = [
+  {key:"happy",emoji:"😊",label:"Happy",labelHi:"प्रसन्न"},
+  {key:"grateful",emoji:"🥰",label:"Grateful",labelHi:"कृतज्ञ"},
+  {key:"relaxed",emoji:"😌",label:"Relaxed",labelHi:"शांत"},
+  {key:"content",emoji:"🙂",label:"Content",labelHi:"संतुष्ट"},
+  {key:"excited",emoji:"😛",label:"Excited",labelHi:"उत्साहित"},
+  {key:"tired",emoji:"😴",label:"Tired",labelHi:"थका"},
+  {key:"unsure",emoji:"😕",label:"Unsure",labelHi:"अनिश्चित"},
+  {key:"bored",emoji:"😑",label:"Bored",labelHi:"ऊबा हुआ"},
+  {key:"anxious",emoji:"😬",label:"Anxious",labelHi:"चिंतित"},
+  {key:"angry",emoji:"😤",label:"Angry",labelHi:"क्रोधित"},
+  {key:"stressed",emoji:"😣",label:"Stressed",labelHi:"तनावग्रस्त"},
+  {key:"sad",emoji:"😢",label:"Sad",labelHi:"उदास"},
+];
+let selectedMoodEmoji = null;
+let moodSaving = false;
+
+function renderMoodQuick() {
+  const body = document.getElementById("mood-mini-body");
+  body.innerHTML = `
+    <div class="mood-quick-grid" id="mood-quick-grid">
+      ${MOOD_QUICK.map(m => `<button class="mood-quick-btn" data-mood-key="${m.key}" onclick="selectMood('${m.key}')" title="${LANG==="hi"?m.labelHi:m.label}">${m.emoji}</button>`).join("")}
+    </div>
+    <button id="mood-save-btn" class="mini-save-btn" onclick="saveMood()" style="display:none">
+      ${LANG==="hi"?"सहेजें":"Save"}
+    </button>`;
+}
+
+function selectMood(key) {
+  selectedMoodEmoji = MOOD_QUICK.find(m => m.key === key) || null;
+  document.querySelectorAll(".mood-quick-btn").forEach(b => b.classList.toggle("selected", b.dataset.moodKey === key));
+  const saveBtn = document.getElementById("mood-save-btn");
+  if (saveBtn) saveBtn.style.display = "";
+}
+
+async function saveMood() {
+  if (!selectedMoodEmoji || moodSaving || !API_TOKEN) return;
+  moodSaving = true;
+  const btn = document.getElementById("mood-save-btn");
+  if (btn) { btn.disabled = true; btn.textContent = LANG==="hi"?"…":"Saving…"; }
+  try {
+    const r = await fetch("/api/v1/mood/", {
+      method: "POST",
+      headers: { "Content-Type":"application/json", "Authorization":"Token "+API_TOKEN },
+      body: JSON.stringify({ mood: selectedMoodEmoji.key, note: "" })
+    });
+    if (r.ok) {
+      renderMoodLogged(selectedMoodEmoji.emoji, selectedMoodEmoji.key);
+    } else {
+      if (btn) { btn.disabled = false; btn.textContent = LANG==="hi"?"पुनः":"Retry"; }
+    }
+  } catch { if (btn) { btn.disabled = false; btn.textContent = LANG==="hi"?"पुनः":"Retry"; } }
+  moodSaving = false;
+}
+
+function renderMoodLogged(emoji, moodKey) {
+  const moodMeta = MOOD_QUICK.find(m => m.key === moodKey) || MOOD_QUICK.find(m => m.label === moodKey) || null;
+  document.getElementById("mood-mini-body").innerHTML = `
+    <div class="mood-logged">
+      <span class="mood-emoji-lg">${emoji}</span>
+      <span class="mood-logged-label">${escHtml(LANG==="hi" ? (moodMeta?.labelHi || moodKey) : (moodMeta?.label || moodKey))}</span>
+    </div>`;
+  const dot = document.getElementById("mood-status-dot");
+  if (dot) dot.style.display = "";
+}
+
+async function loadMood() {
+  if (!API_TOKEN) return;
+  try {
+    const r = await fetch("/api/v1/mood/", { headers: { Authorization: "Token "+API_TOKEN } });
+    if (!r.ok) { renderMoodQuick(); return; }
+    const d = await r.json();
+    const entry = d.today;
+    if (entry && entry.mood) {
+      renderMoodLogged(entry.emoji ?? MOOD_QUICK.find(m => m.key === entry.mood)?.emoji ?? "😊", entry.mood);
+    } else {
+      renderMoodQuick();
+    }
+  } catch { renderMoodQuick(); }
+}
+
+// ── Gratitude ──────────────────────────────────────────────────────────────
+async function loadGratitude() {
+  if (!API_TOKEN) return;
+  try {
+    const r = await fetch("/api/v1/gratitude/", { headers: { Authorization: "Token "+API_TOKEN } });
+    const body = document.getElementById("gratitude-mini-body");
+    if (!r.ok) {
+      body.innerHTML = `<a href="/gratitude/" class="gratitude-add-btn">${LANG==="hi"?"3 आभार लिखें →":"Write 3 blessings →"}</a>`;
+      return;
+    }
+    const d = await r.json();
+    const items = d.today?.items ?? [];
+    if (items.length > 0) {
+      body.innerHTML = `
+        <div class="gratitude-count">${items.length}</div>
+        <div class="gratitude-sub">${LANG==="hi"?`आज ${items.length} आभार दर्ज`:`${items.length} blessing${items.length>1?"s":""} today`}</div>
+        <a href="/gratitude/" class="gratitude-add-btn" style="margin-top:4px">${LANG==="hi"?"और जोड़ें →":"Add more →"}</a>`;
+      const dot = document.getElementById("gratitude-status-dot");
+      if (dot) dot.style.display = "";
+    } else {
+      body.innerHTML = `
+        <div class="gratitude-sub" style="margin-bottom:6px">${LANG==="hi"?"आज अभी तक कोई आभार नहीं":"No blessings logged today"}</div>
+        <a href="/gratitude/" class="gratitude-add-btn">${LANG==="hi"?"3 आभार लिखें →":"Write 3 blessings →"}</a>`;
+    }
+  } catch {
+    const body = document.getElementById("gratitude-mini-body");
+    body.innerHTML = `<a href="/gratitude/" class="gratitude-add-btn">${LANG==="hi"?"3 आभार लिखें →":"Write 3 blessings →"}</a>`;
+  }
+}
+
+// ── Community preview ──────────────────────────────────────────────────────
+async function loadCommunityPreview() {
+  try {
+    const r = await fetch("/api/community/posts/?limit=3&offset=0");
+    if (!r.ok) return;
+    const d = await r.json();
+    const posts = d.results ?? [];
+    if (!posts.length) return;
+    const panel = document.getElementById("community-preview-panel");
+    const list = document.getElementById("community-preview-list");
+    list.innerHTML = posts.slice(0,3).map(p => {
+      const username = p.author_username ?? p.user?.username ?? p.username ?? "?";
+      const color = avatarColor(username);
+      const text = (p.body ?? p.content ?? p.text ?? p.message ?? "").slice(0, 110);
+      return `<div class="community-post">
+        <div class="community-avatar" style="background:${color}">${initials(username)}</div>
+        <div class="community-post-body">
+          <div class="community-post-meta"><strong>${escHtml(username)}</strong></div>
+          <div class="community-post-text">${escHtml(text)}${text.length===110?"…":""}</div>
+        </div>
+      </div>`;
+    }).join("");
+    panel.style.display = "";
+  } catch {}
+}
+
 loadDailyVerse();
 loadStreak();
+if (API_TOKEN) {
+  document.getElementById("checkin-section").style.display = "";
+  loadMood();
+  loadGratitude();
+}
+loadCommunityPreview();
 </script>
 </body>
 </html>

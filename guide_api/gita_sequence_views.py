@@ -15,7 +15,7 @@ from guide_api.gita_sequence import (
     verse_following,
 )
 from guide_api.models import UserGitaSequenceJourney
-from guide_api.views import _error_response
+from guide_api.views import _error_response, _invalidate_user_insights_cache
 
 
 def _get_journey(user):
@@ -89,6 +89,7 @@ class GitaPathStartView(APIView):
                 ]
             )
             j = existing
+        _invalidate_user_insights_cache(request.user)
         return Response(
             {
                 "ok": True,
@@ -116,6 +117,7 @@ class GitaPathPauseView(APIView):
             return Response({"ok": True, "journey": path_progress_payload(j)})
         j.status = UserGitaSequenceJourney.STATUS_PAUSED
         j.save(update_fields=["status", "updated_at"])
+        _invalidate_user_insights_cache(request.user)
         return Response({"ok": True, "journey": path_progress_payload(j)})
 
 
@@ -136,6 +138,7 @@ class GitaPathResumeView(APIView):
             return Response({"ok": True, "journey": path_progress_payload(j)})
         j.status = UserGitaSequenceJourney.STATUS_ACTIVE
         j.save(update_fields=["status", "updated_at"])
+        _invalidate_user_insights_cache(request.user)
         return Response({"ok": True, "journey": path_progress_payload(j)})
 
 
@@ -184,6 +187,7 @@ class GitaPathAdvanceView(APIView):
             j.next_chapter = nxt.chapter
             j.next_verse = nxt.verse
             j.save(update_fields=["status", "next_chapter", "next_verse", "updated_at"])
+        _invalidate_user_insights_cache(request.user)
         return Response({"ok": True, "journey": path_progress_payload(j)})
 
 
@@ -194,4 +198,5 @@ class GitaPathAbandonView(APIView):
 
     def post(self, request):
         deleted, _ = UserGitaSequenceJourney.objects.filter(user=request.user).delete()
+        _invalidate_user_insights_cache(request.user)
         return Response({"ok": True, "deleted": deleted > 0})

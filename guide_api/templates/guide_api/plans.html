@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -259,6 +260,7 @@
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     #error-msg { color: rgba(240,100,100,0.9); font-size: 13px; margin-top: 8px; min-height: 20px; }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body data-lang="{{ language|default:'en' }}" data-currency="{{ currency|default:'INR' }}">
   <header>
@@ -325,7 +327,10 @@
   <script>
   (function() {
     const LANG = document.body.dataset.lang || "en";
-    const token = localStorage.getItem("gita_token");
+    const token = (() => {
+      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
     const API = "/api/v1";
     let currentCurrency = document.body.dataset.currency || "INR";
     let catalogData = null;
@@ -333,7 +338,7 @@
 
     function apiFetch(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers||{}) };
-      if (token) headers["Authorization"] = "Bearer " + token;
+      if (token) headers["Authorization"] = "Token " + token;
       return fetch(API + path, { ...opts, headers });
     }
 
@@ -471,6 +476,27 @@
       document.getElementById("plans-grid").innerHTML = html;
     }
 
+    // Reconcile subscription after payment (poll up to 6 times with backoff)
+    async function reconcileSubscription(attempts) {
+      const max = attempts ?? 6;
+      for (let i = 0; i < max; i++) {
+        await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+        try {
+          const r = await apiFetch("/subscription/status/");
+          if (r.ok) {
+            const d = await r.json();
+            if ((d.plan ?? "free") !== "free") {
+              currentPlan = d.plan;
+              renderCurrentSub(d);
+              if (catalogData) renderPlans(catalogData);
+              return true;
+            }
+          }
+        } catch {}
+      }
+      return false;
+    }
+
     window.startCheckout = async function(planKey) {
       const errEl = document.getElementById("error-msg");
       errEl.textContent = "";
@@ -501,9 +527,20 @@
               })
             });
             if (vr.ok) {
-              location.reload();
+              // Payment verified — poll until subscription status confirms upgrade
+              errEl.style.color = "rgba(100,220,140,0.9)";
+              errEl.textContent = LANG === "hi" ? "✓ भुगतान सफल — सदस्यता सक्रिय हो रही है…" : "✓ Payment successful — activating subscription…";
+              const upgraded = await reconcileSubscription(6);
+              if (upgraded) {
+                errEl.textContent = LANG === "hi" ? "✓ सदस्यता सक्रिय हो गई!" : "✓ Subscription activated!";
+              } else {
+                errEl.style.color = "";
+                errEl.textContent = LANG === "hi" ? "भुगतान हो गया। पृष्ठ रिफ्रेश करें।" : "Payment received. Please refresh the page.";
+                setTimeout(() => location.reload(), 2000);
+              }
             } else {
-              const ve = await vr.json();
+              const ve = await vr.json().catch(() => ({}));
+              errEl.style.color = "";
               errEl.textContent = ve.message ?? (LANG === "hi" ? "भुगतान सत्यापन विफल" : "Payment verification failed");
             }
           },

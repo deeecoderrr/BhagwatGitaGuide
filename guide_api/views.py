@@ -2338,10 +2338,36 @@ def _get_user_plan_and_usage(user):
     return subscription, usage
 
 
+def _subscription_status_cache_version(user) -> int:
+    """Return the explicit cache-bust version for subscription status payloads."""
+    uid = user.pk if hasattr(user, "pk") else user
+    return int(cache.get(f"sub_status_ver:{uid}") or 0)
+
+
 def _invalidate_subscription_cache(user) -> None:
     """Clear all per-user subscription caches when plan/state changes."""
     uid = user.pk if hasattr(user, "pk") else user
-    cache.delete_many([f"sub_status:{uid}", f"user_sub_obj:{uid}", f"me_response:{uid}"])
+    cache.set(f"sub_status_ver:{uid}", _subscription_status_cache_version(uid) + 1, None)
+    cache.delete_many([f"user_sub_obj:{uid}", f"me_response:{uid}"])
+
+
+def _user_insights_cache_key(user, *, now=None) -> str:
+    """Return the hourly cache key used by the mobile insights summary."""
+    current = now or timezone.now()
+    uid = user.pk if hasattr(user, "pk") else user
+    return f"user_insights_{uid}_{current.strftime('%Y%m%d_%H')}"
+
+
+def _invalidate_user_insights_cache(user, *, now=None) -> None:
+    """Drop nearby hourly insights cache keys after journey or activity mutations."""
+    current = now or timezone.now()
+    cache.delete_many(
+        [
+            _user_insights_cache_key(user, now=current - timedelta(hours=1)),
+            _user_insights_cache_key(user, now=current),
+            _user_insights_cache_key(user, now=current + timedelta(hours=1)),
+        ]
+    )
 
 
 def _request_quota_settings() -> RequestQuotaSettings | None:
@@ -3053,7 +3079,13 @@ class MeView(APIView):
             request.user,
         )
         payload = {
+            "id": request.user.pk,
             "username": request.user.get_username(),
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "full_name": request.user.get_full_name().strip(),
+            "joined_at": request.user.date_joined.isoformat() if request.user.date_joined else None,
             **quota_snapshot,
             "engagement": _serialize_engagement_profile(engagement),
         }
@@ -3116,10 +3148,13 @@ class ProfileUpdateView(APIView):
         cache.delete(f"me_response:{user.pk}")
         return Response(
             {
+                "id": user.pk,
                 "username": user.username,
+                "full_name": user.get_full_name().strip(),
                 "first_name": user.first_name,
                 "last_name": user.last_name,
                 "email": user.email,
+                "joined_at": user.date_joined.isoformat() if user.date_joined else None,
             },
         )
 
@@ -3344,7 +3379,7 @@ class UserInsightsSummaryView(APIView):
         now = timezone.now()
 
         # Cache key unique to user and day (or short window)
-        cache_key = f"user_insights_{user.id}_{now.strftime('%Y%m%d_%H')}"
+        cache_key = _user_insights_cache_key(user, now=now)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
@@ -3701,7 +3736,6 @@ class GuestHistoryResetView(APIView):
 
     def post(self, request):
         ChatUIView._clear_guest_conversation(request)
-        request.session.pop("chat_ui_recent_questions", None)
         request.session.modified = True
         guest_id = str(request.COOKIES.get(ChatUIView.guest_cookie_name, "")).strip()
         if guest_id:
@@ -4881,10 +4915,13 @@ class ConversationMessagesView(APIView):
                 status_code=status.HTTP_404_NOT_FOUND,
                 code="conversation_not_found",
             )
-        base_qs = conversation.messages.all()
+        # Page from the newest end of the transcript while preserving
+        # chronological order within each returned page.
+        base_qs = conversation.messages.order_by("-created_at")
         total = base_qs.count()
-        rows = base_qs[offset : offset + limit]
-        next_offset = offset + limit if (offset + limit) < total else None
+        rows = list(base_qs[offset : offset + limit])
+        rows.reverse()
+        next_offset = offset + len(rows) if (offset + len(rows)) < total else None
         return Response(
             {
                 "conversation_id": conversation.id,
@@ -5707,29 +5744,45 @@ class CommunityWallView(TemplateView):
     """Browser page for the public Path thread (posts + replies)."""
 
     template_name = "guide_api/community_wall.html"
+    _COOKIE_NAME = "chat_token"
+    _COOKIE_AGE = 60 * 60 * 24 * 30
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        if request.COOKIES.get(self._COOKIE_NAME):
+            return response
+
+        token_key = request.session.get("chat_ui_auth_token", "")
+        if not token_key and request.user.is_authenticated:
+            try:
+                token_key = Token.objects.get(user=request.user).key
+            except Token.DoesNotExist:
+                token_key = ""
+
+        if token_key:
+            response.set_cookie(
+                self._COOKIE_NAME,
+                token_key,
+                max_age=self._COOKIE_AGE,
+                httponly=False,
+                samesite="Lax",
+                secure=not settings.DEBUG,
+            )
+        return response
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         lang = str(self.request.GET.get("language") or "en").strip().lower()
         if lang not in {"en", "hi"}:
             lang = "en"
-        session_user = str(
-            self.request.session.get("chat_ui_auth_username", ""),
-        ).strip()
-        auth_name = ""
-        if self.request.user.is_authenticated:
-            auth_name = self.request.user.get_username()
-        display_user = auth_name or session_user
+        resolved_user = _get_user_from_session(self.request)
+        display_user = resolved_user.get_username() if resolved_user else ""
         context.update(
             {
                 "language": lang,
                 "community_username": display_user,
-                "community_logged_in": bool(
-                    self.request.user.is_authenticated,
-                ),
-                "community_is_staff": bool(
-                    getattr(self.request.user, "is_staff", False),
-                ),
+                "community_logged_in": bool(resolved_user),
+                "community_is_staff": bool(getattr(resolved_user, "is_staff", False)),
                 "google_oauth_client_id": getattr(
                     settings,
                     "GOOGLE_OAUTH_CLIENT_ID",
@@ -5910,6 +5963,7 @@ class ChatUIView(View):
     """Simple server-rendered page for manual API testing."""
 
     template_name = "guide_api/chat_ui.html"
+    thread_page_size = 30
     guest_cookie_name = "chat_ui_guest_id"
     guest_cookie_age = 60 * 60 * 24 * 90
 
@@ -5956,6 +6010,7 @@ class ChatUIView(View):
 
     def _render_chat_ui(self, request, context: dict):
         """Render chat UI with guest quota state and debug flag attached when needed."""
+        chat_ui_signed_in = ChatUIView._chat_ui_authenticated_user(request) is not None
         context.setdefault(
             "guest_quota_snapshot",
             (
@@ -6034,6 +6089,106 @@ class ChatUIView(View):
             "chat_ui_auth_display_name",
             display_label,
         )
+        context.setdefault("chat_ui_signed_in", chat_ui_signed_in)
+        flash_feedback_message = str(
+            request.session.pop("chat_ui_feedback_message", ""),
+        ).strip()
+        flash_success_feedback_message = str(
+            request.session.pop("chat_ui_success_feedback_message", ""),
+        ).strip()
+        if not str(context.get("feedback_message", "")).strip():
+            if context.get("response_data") and flash_success_feedback_message:
+                context["feedback_message"] = flash_success_feedback_message
+            elif flash_feedback_message:
+                context["feedback_message"] = flash_feedback_message
+        feedback_already_recorded = False
+        reflection_already_saved = False
+        response_data = context.get("response_data")
+        active_feedback_user = self._chat_ui_authenticated_username(request)
+        if chat_ui_signed_in and isinstance(response_data, dict):
+            feedback_already_recorded = self._feedback_recorded_for_response(
+                active_feedback_user or "",
+                conversation_id=(
+                    response_data.get("conversation_id")
+                    or context.get("active_conversation_id")
+                    or ""
+                ),
+                message=(
+                    response_data.get("question")
+                    or context.get("message", "")
+                ),
+            )
+            reflection_already_saved = self._reflection_saved_for_response(
+                request.user,
+                conversation_id=(
+                    response_data.get("conversation_id")
+                    or context.get("active_conversation_id")
+                    or ""
+                ),
+                message=(
+                    response_data.get("question")
+                    or context.get("message", "")
+                ),
+                guidance=response_data.get("guidance", ""),
+            )
+        context.setdefault(
+            "feedback_already_recorded",
+            feedback_already_recorded,
+        )
+        context.setdefault(
+            "reflection_already_saved",
+            reflection_already_saved,
+        )
+
+        conversation_messages = context.get("conversation_messages")
+        active_conversation_id = str(
+            context.get("active_conversation_id") or ""
+        ).strip()
+        if (
+            chat_ui_signed_in
+            and active_conversation_id
+            and isinstance(conversation_messages, list)
+        ):
+            thread_total = len(conversation_messages)
+            context.setdefault("thread_total_messages", thread_total)
+            context.setdefault("thread_page_limit", self.thread_page_size)
+            if thread_total > self.thread_page_size:
+                visible_messages = conversation_messages[
+                    -self.thread_page_size :
+                ]
+                context["conversation_messages"] = visible_messages
+                context.setdefault("thread_messages_has_more", True)
+                context.setdefault(
+                    "thread_messages_next_offset",
+                    self.thread_page_size,
+                )
+                conversations = context.get("conversations")
+                if isinstance(conversations, list):
+                    latest_visible_content = ""
+                    if visible_messages:
+                        latest_visible = visible_messages[-1]
+                        latest_visible_content = str(
+                            latest_visible.get("content", "")
+                            if isinstance(latest_visible, dict)
+                            else getattr(latest_visible, "content", "")
+                        ).strip()
+                    active_preview = self._truncate_text(
+                        latest_visible_content or "No messages yet.",
+                        84,
+                    )
+                    active_title = self._conversation_title(
+                        visible_messages,
+                        int(active_conversation_id),
+                    )
+                    for conversation in conversations:
+                        if str(conversation.get("id") or "") != active_conversation_id:
+                            continue
+                        conversation["title"] = active_title
+                        conversation["preview"] = active_preview
+                        break
+            else:
+                context.setdefault("thread_messages_has_more", False)
+                context.setdefault("thread_messages_next_offset", None)
         context.setdefault(
             "support_form_email",
             (
@@ -6910,12 +7065,55 @@ class ChatUIView(View):
                 user_id=user_id,
             ).first()
 
+        response_data = self._response_data_from_post(request)
+        if self._feedback_recorded_for_response(
+            user_id,
+            conversation_id=conversation_id,
+            message=message,
+        ):
+            active_conversation = self._chat_ui_conversation(
+                user_id,
+                conversation_id,
+            )
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": response_data,
+                    "error": "",
+                    "feedback_message": "Feedback already saved for this answer.",
+                    "feedback_already_recorded": True,
+                    "chat_ui_signed_in": True,
+                    "user_id": user_id,
+                    "mode": mode,
+                    "language": current_language,
+                    "message": message,
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": (
+                        response_data.get("follow_ups", []) if response_data else []
+                    ),
+                    "saved_reflections": self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    ),
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": self._conversation_messages(
+                        active_conversation,
+                    ),
+                    "conversations": self._conversation_list(user_id),
+                },
+            )
+
         ResponseFeedback.objects.create(
             conversation=conversation,
             user_id=user_id,
             message=message,
             mode=mode,
             response_mode=response_mode,
+            surface=ResponseFeedback.SURFACE_WEB_CHAT_UI,
             helpful=helpful,
             note=note,
         )
@@ -6928,16 +7126,20 @@ class ChatUIView(View):
             request,
             self.template_name,
             {
-                "response_data": None,
+                "response_data": response_data,
                 "error": "",
                 "feedback_message": "Thank you. Your feedback was saved.",
+                "feedback_already_recorded": True,
+                "chat_ui_signed_in": True,
                 "user_id": user_id,
                 "mode": mode,
                 "language": current_language,
                 "message": message,
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
-                "follow_up_prompts": [],
+                "follow_up_prompts": (
+                    response_data.get("follow_ups", []) if response_data else []
+                ),
                 "saved_reflections": self._saved_reflections_for_user(
                     request,
                     user_id,
@@ -7024,36 +7226,81 @@ class ChatUIView(View):
         verse_references = [
             item.strip() for item in refs_raw.split("|") if item.strip()
         ]
+        message = request.POST.get("message", "").strip()
+        guidance = request.POST.get("guidance", "").strip()
+
+        active_conversation = self._chat_ui_conversation(
+            user_id,
+            conversation_id,
+        )
+        response_data = self._response_data_from_post(request)
+        if self._reflection_saved_for_response(
+            user,
+            conversation_id=conversation_id,
+            message=message,
+            guidance=guidance,
+        ):
+            return render(
+                request,
+                self.template_name,
+                {
+                    "response_data": response_data,
+                    "error": "",
+                    "feedback_message": "Reflection already saved for this answer.",
+                    "reflection_already_saved": True,
+                    "chat_ui_signed_in": True,
+                    "user_id": user_id,
+                    "mode": request.POST.get("mode", "simple"),
+                    "language": current_language,
+                    "message": message,
+                    "starter_prompts": self._starter_prompts(),
+                    "recent_questions": self._recent_questions(request),
+                    "follow_up_prompts": (
+                        response_data.get("follow_ups", []) if response_data else []
+                    ),
+                    "saved_reflections": self._saved_reflections_for_user(
+                        request,
+                        user_id,
+                    ),
+                    "active_conversation_id": (
+                        active_conversation.id if active_conversation else ""
+                    ),
+                    "conversation_messages": self._conversation_messages(
+                        active_conversation,
+                    ),
+                    "conversations": self._conversation_list(user_id),
+                },
+            )
 
         SavedReflection.objects.create(
             user=user,
             conversation=conversation,
-            message=request.POST.get("message", "").strip(),
-            guidance=request.POST.get("guidance", "").strip(),
+            message=message,
+            guidance=guidance,
             meaning=request.POST.get("meaning", "").strip(),
             actions=actions,
             reflection=request.POST.get("reflection", "").strip(),
             verse_references=verse_references,
             note=request.POST.get("note", "").strip(),
         )
-        active_conversation = self._chat_ui_conversation(
-            user_id,
-            conversation_id,
-        )
         return render(
             request,
             self.template_name,
             {
-                "response_data": None,
+                "response_data": response_data,
                 "error": "",
                 "feedback_message": "Reflection saved.",
+                "reflection_already_saved": True,
+                "chat_ui_signed_in": True,
                 "user_id": user_id,
                 "mode": request.POST.get("mode", "simple"),
                 "language": current_language,
-                "message": request.POST.get("message", ""),
+                "message": message,
                 "starter_prompts": self._starter_prompts(),
                 "recent_questions": self._recent_questions(request),
-                "follow_up_prompts": [],
+                "follow_up_prompts": (
+                    response_data.get("follow_ups", []) if response_data else []
+                ),
                 "saved_reflections": self._saved_reflections_for_user(
                     request,
                     user_id,
@@ -7103,6 +7350,7 @@ class ChatUIView(View):
             messages = list(row.messages.all())
             title = ChatUIView._conversation_title(messages, row.id)
             last_message = messages[-1].content.strip() if messages else ""
+            local_updated_at = timezone.localtime(row.updated_at)
             items.append(
                 {
                     "id": row.id,
@@ -7118,9 +7366,10 @@ class ChatUIView(View):
                     "updated_label": ChatUIView._relative_timestamp(
                         row.updated_at,
                     ),
-                    "updated_at_display": timezone.localtime(
-                        row.updated_at,
-                    ).strftime("%d %b %Y, %I:%M %p"),
+                    "updated_at_display": local_updated_at.strftime(
+                        "%d %b %Y, %I:%M %p"
+                    ),
+                    "updated_at_iso": local_updated_at.isoformat(),
                 }
             )
         has_more = (offset + limit) < total
@@ -7137,11 +7386,13 @@ class ChatUIView(View):
         user = user_model.objects.filter(username=user_id).first()
         if user is None:
             return []
-        rows = SavedReflection.objects.filter(user=user)[:5]
+        rows = SavedReflection.objects.filter(user=user)[:8]
         return [
             {
                 "id": row.id,
                 "message": row.message,
+                "guidance_short": (row.guidance or "")[:120],
+                "verse_references": row.verse_references or [],
                 "created_at": row.created_at.isoformat(),
             }
             for row in rows
@@ -7160,6 +7411,132 @@ class ChatUIView(View):
             }
             for message in conversation.messages.all()
         ]
+
+    @staticmethod
+    def _reflection_saved_for_response(
+        user,
+        conversation_id,
+        message: str,
+        guidance: str,
+    ) -> bool:
+        """Return whether the current web Ask answer is already bookmarked."""
+        normalized_message = str(message or "").strip()
+        normalized_guidance = str(guidance or "").strip()
+        if user is None or not normalized_message or not normalized_guidance:
+            return False
+
+        queryset = SavedReflection.objects.filter(
+            user=user,
+            message=normalized_message,
+            guidance=normalized_guidance,
+        )
+        conversation_value = str(conversation_id or "").strip()
+        if conversation_value.isdigit():
+            queryset = queryset.filter(conversation_id=int(conversation_value))
+        elif conversation_value:
+            return False
+        else:
+            queryset = queryset.filter(conversation__isnull=True)
+        return queryset.exists()
+
+    def _response_data_from_post(self, request) -> dict | None:
+        """Rebuild the latest answer card from submitted hidden form fields."""
+        guidance = request.POST.get("guidance", "").strip()
+        if not guidance:
+            return None
+
+        message = request.POST.get("message", "").strip()
+        mode = self._chat_ui_mode(request.POST.get("mode", "simple"))
+        language = self._chat_ui_language(request.POST.get("language", "en"))
+        meaning = request.POST.get("meaning", "").strip()
+        reflection = request.POST.get("reflection", "").strip()
+        response_mode = request.POST.get("response_mode", "fallback").strip()
+        if response_mode not in {"llm", "fallback"}:
+            response_mode = "fallback"
+
+        actions = [
+            item.strip()
+            for item in request.POST.get("actions", "").split("|")
+            if item.strip()
+        ]
+        verse_references = [
+            item.strip()
+            for item in request.POST.get("verse_references", "").split("|")
+            if item.strip()
+        ]
+        verses = []
+        for reference in verse_references:
+            try:
+                chapter_raw, verse_raw = reference.split(".", 1)
+                chapter = int(chapter_raw)
+                verse_number = int(verse_raw)
+            except (TypeError, ValueError):
+                continue
+            verse = Verse.objects.filter(
+                chapter=chapter,
+                verse=verse_number,
+            ).first()
+            if verse is not None:
+                verses.append(verse)
+
+        response_language = resolve_guidance_language(language, message)
+        follow_ups = []
+        if message and actions:
+            follow_ups = _build_contextual_follow_ups(
+                message=message,
+                mode=mode,
+                language=response_language,
+                query_themes=[],
+            )
+
+        conversation_id = request.POST.get("conversation_id", "").strip()
+        return {
+            "conversation_id": int(conversation_id)
+            if conversation_id.isdigit()
+            else conversation_id,
+            "question": message,
+            "guidance": guidance,
+            "verses": VerseSerializer(verses, many=True).data,
+            "meaning": meaning,
+            "actions": actions,
+            "reflection": reflection,
+            "show_meaning": bool(meaning),
+            "show_actions": bool(actions),
+            "show_reflection": bool(reflection),
+            "show_related_verses": False,
+            "verse_references": verse_references,
+            "related_verses": [],
+            "language": language,
+            "response_language": response_language,
+            "response_mode": response_mode,
+            "follow_ups": follow_ups,
+        }
+
+    @staticmethod
+    def _feedback_recorded_for_response(
+        user_id: str,
+        *,
+        conversation_id,
+        message: str,
+    ) -> bool:
+        """Return whether the current web Ask answer already has feedback."""
+        normalized_message = str(message or "").strip()
+        if not user_id or not normalized_message:
+            return False
+
+        queryset = ResponseFeedback.objects.filter(
+            user_id=user_id,
+            message=normalized_message,
+            surface=ResponseFeedback.SURFACE_WEB_CHAT_UI,
+        )
+        conversation_value = str(conversation_id or "").strip()
+        if conversation_value.isdigit():
+            queryset = queryset.filter(conversation_id=int(conversation_value))
+        elif conversation_value:
+            return False
+        else:
+            queryset = queryset.filter(conversation__isnull=True)
+        return queryset.exists()
 
     @staticmethod
     def _chat_ui_conversation(user_id: str, conversation_id=None):
@@ -7495,8 +7872,18 @@ class ChatUIView(View):
     def _conversation_title(messages: list[Message], conversation_id: int) -> str:
         """Build a stable sidebar label from the first user-authored prompt."""
         for message in messages:
-            if message.role == Message.ROLE_USER and message.content:
-                return ChatUIView._truncate_text(message.content, 60)
+            role = (
+                message.get("role", "")
+                if isinstance(message, dict)
+                else getattr(message, "role", "")
+            )
+            content = (
+                message.get("content", "")
+                if isinstance(message, dict)
+                else getattr(message, "content", "")
+            )
+            if role == Message.ROLE_USER and content:
+                return ChatUIView._truncate_text(str(content), 60)
         return f"Conversation {conversation_id}"
 
     @staticmethod
@@ -7742,10 +8129,17 @@ class ChatUIView(View):
         current_language = self._chat_ui_language(
             request.POST.get("language", "en"),
         )
+        continue_guest_chat = (
+            str(request.POST.get("continue_guest_chat", "")).strip() == "1"
+        )
+        pending_guest_seed = (
+            self._latest_guest_user_message(request)
+            if continue_guest_chat
+            else ""
+        )
         if not username or not password:
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": "Please enter username and password to register.",
@@ -7760,9 +8154,8 @@ class ChatUIView(View):
                 },
             )
         if len(password) < 8:
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": "Password must be at least 8 characters.",
@@ -7778,9 +8171,8 @@ class ChatUIView(View):
             )
         user_model = get_user_model()
         if user_model.objects.filter(username=username).exists():
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": "Username is already taken.",
@@ -7803,12 +8195,27 @@ class ChatUIView(View):
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
         self._clear_guest_conversation(request)
+        if pending_guest_seed:
+            request.session["chat_ui_feedback_message"] = (
+                f"Registered and logged in as {user.username}."
+            )
+            request.session["chat_ui_success_feedback_message"] = (
+                f"Registered and logged in as {user.username}. "
+                "Continued your guest chat in a new thread."
+            )
+            request.session.modified = True
+            ask_post = request.POST.copy()
+            ask_post["action"] = "ask"
+            ask_post["message"] = pending_guest_seed
+            ask_post["mode"] = AskEvent.MODE_SIMPLE
+            ask_post["language"] = current_language
+            request.POST = ask_post
+            return self.post(request)
         # Hydrate sidebar history immediately after auth so the signed-in user
         # sees their own saved chat list without needing to send a new message.
         active_conversation = self._chat_ui_conversation(user.username)
-        return render(
+        return self._render_chat_ui(
             request,
-            self.template_name,
             {
                 "response_data": None,
                 "error": "",
@@ -7844,15 +8251,22 @@ class ChatUIView(View):
         current_language = self._chat_ui_language(
             request.POST.get("language", "en"),
         )
+        continue_guest_chat = (
+            str(request.POST.get("continue_guest_chat", "")).strip() == "1"
+        )
+        pending_guest_seed = (
+            self._latest_guest_user_message(request)
+            if continue_guest_chat
+            else ""
+        )
         user = authenticate(
             request=request,
             username=username,
             password=password,
         )
         if user is None:
-            return render(
+            return self._render_chat_ui(
                 request,
-                self.template_name,
                 {
                     "response_data": None,
                     "error": "Invalid username or password.",
@@ -7871,12 +8285,27 @@ class ChatUIView(View):
         request.session["chat_ui_auth_username"] = user.username
         request.session["chat_ui_auth_token"] = token.key
         self._clear_guest_conversation(request)
+        if pending_guest_seed:
+            request.session["chat_ui_feedback_message"] = (
+                f"Logged in as {user.username}."
+            )
+            request.session["chat_ui_success_feedback_message"] = (
+                f"Logged in as {user.username}. "
+                "Continued your guest chat in a new thread."
+            )
+            request.session.modified = True
+            ask_post = request.POST.copy()
+            ask_post["action"] = "ask"
+            ask_post["message"] = pending_guest_seed
+            ask_post["mode"] = AskEvent.MODE_SIMPLE
+            ask_post["language"] = current_language
+            request.POST = ask_post
+            return self.post(request)
         # Show the user's existing threads right after login so account
         # ownership feels obvious and they can reopen history immediately.
         active_conversation = self._chat_ui_conversation(user.username)
-        return render(
+        return self._render_chat_ui(
             request,
-            self.template_name,
             {
                 "response_data": None,
                 "error": "",
@@ -7947,13 +8376,9 @@ class ChatUIView(View):
     @staticmethod
     def _default_user_id(request) -> str:
         """Resolve default chat-ui user from session fallback."""
-        session_username = str(
-            request.session.get("chat_ui_auth_username", ""),
-        ).strip()
-        if session_username:
-            return session_username
-        if request.user and request.user.is_authenticated:
-            return request.user.get_username()
+        user = ChatUIView._chat_ui_authenticated_user(request)
+        if user is not None:
+            return user.get_username()
         return "guest"
 
     @staticmethod
@@ -7969,24 +8394,28 @@ class ChatUIView(View):
     @staticmethod
     def _chat_ui_authenticated_username(request) -> str:
         """Return the logged-in chat-ui username, or blank for guest mode."""
-        session_username = str(
-            request.session.get("chat_ui_auth_username", ""),
-        ).strip()
-        if session_username:
-            return session_username
-        if request.user and request.user.is_authenticated:
-            return request.user.get_username()
-        return ""
+        user = ChatUIView._chat_ui_authenticated_user(request)
+        return user.get_username() if user is not None else ""
 
     @staticmethod
     def _chat_ui_authenticated_user(request):
-        """Return the authenticated Django user, or a session-mapped fallback."""
+        """Return the authenticated Django user, session user, or chat_token user."""
         username = str(request.session.get("chat_ui_auth_username", "")).strip()
         user_model = get_user_model()
         if username:
             return user_model.objects.filter(username=username).first()
         if request.user and request.user.is_authenticated:
             return request.user
+        token_key = str(request.session.get("chat_ui_auth_token", "")).strip()
+        if token_key:
+            token = Token.objects.select_related("user").filter(key=token_key).first()
+            if token is not None:
+                return token.user
+        cookie_token = str(request.COOKIES.get("chat_token", "")).strip()
+        if cookie_token:
+            token = Token.objects.select_related("user").filter(key=cookie_token).first()
+            if token is not None:
+                return token.user
         return None
 
     @staticmethod
@@ -8007,6 +8436,17 @@ class ChatUIView(View):
     def _guest_conversation_messages(request) -> list[dict]:
         """Return the temporary guest transcript stored only in session."""
         return list(request.session.get("chat_ui_guest_messages", []))
+
+    @staticmethod
+    def _latest_guest_user_message(request) -> str:
+        """Return the newest guest prompt that can be continued after auth."""
+        for item in reversed(ChatUIView._guest_conversation_messages(request)):
+            if str(item.get("role", "")) != Message.ROLE_USER:
+                continue
+            content = str(item.get("content", "")).strip()
+            if content:
+                return content
+        return ""
 
     @staticmethod
     def _guest_conversation_objects(request) -> list[SimpleNamespace]:
@@ -8048,8 +8488,9 @@ class ChatUIView(View):
 
     @staticmethod
     def _clear_guest_conversation(request) -> None:
-        """Drop the temporary guest transcript from the current session."""
+        """Drop temporary guest transcript state from the current session."""
         request.session.pop("chat_ui_guest_messages", None)
+        request.session.pop("chat_ui_recent_questions", None)
 
     @staticmethod
     def _starter_prompts() -> list[str]:
@@ -9417,15 +9858,24 @@ class SubscriptionStatusView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED,
             )
 
-        subscription, created = UserSubscription.objects.get_or_create(
-            user=user,
-            defaults={"plan": UserSubscription.PLAN_FREE},
-        )
-        subscription = _normalize_subscription_state(subscription)
+        subscription, usage = _get_user_plan_and_usage(user)
 
-        # Cache key includes updated_at (microseconds) so any DB-level plan change auto-busts it
+        latest_billing_record = BillingRecord.objects.filter(
+            user=user,
+        ).order_by("-created_at").first()
+        # Cache key also includes the latest billing row so payment reconciliation
+        # never serves a stale ledger/status snapshot to mobile account screens.
         _ts = int(subscription.updated_at.timestamp() * 1_000_000) if subscription.updated_at else 0
-        _cache_key = f"sub_status:{user.pk}:{_ts}"
+        _billing_ts = (
+            int(latest_billing_record.updated_at.timestamp() * 1_000_000)
+            if latest_billing_record and latest_billing_record.updated_at
+            else 0
+        )
+        _billing_id = latest_billing_record.pk if latest_billing_record else 0
+        _cache_version = _subscription_status_cache_version(user)
+        _cache_key = (
+            f"sub_status:{user.pk}:v{_cache_version}:{_ts}:{_billing_id}:{_billing_ts}"
+        )
         _cached = cache.get(_cache_key)
         if _cached is not None:
             return Response(_cached)
@@ -9439,19 +9889,23 @@ class SubscriptionStatusView(APIView):
             )
         )
 
-        latest_billing_record = BillingRecord.objects.filter(
-            user=user,
-        ).order_by("-created_at").first()
+        quota_snapshot = _quota_snapshot_for_user(subscription, usage, user)
+        subscription_end = (
+            subscription.subscription_end_date.isoformat()
+            if subscription.subscription_end_date
+            else None
+        )
 
         _response_data = {
             "plan": subscription.plan,
+            "active": subscription.is_active,
             "is_active": subscription.is_active,
             "is_pro": is_pro,
-            "subscription_end_date": (
-                subscription.subscription_end_date.isoformat()
-                if subscription.subscription_end_date
-                else None
-            ),
+            "subscription_end_date": subscription_end,
+            "expires_at": subscription_end,
+            "current_period_end": subscription_end,
+            "renews": bool(subscription.razorpay_subscription_id),
+            **quota_snapshot,
             "pricing": {
                 "INR": settings.SUBSCRIPTION_PRICE_PRO_INR,
                 "USD": settings.SUBSCRIPTION_PRICE_PRO_USD,
@@ -9521,7 +9975,58 @@ def _safe_lang(request) -> str:
     return lang if lang in {"en", "hi"} else "en"
 
 
-class InsightsPageView(TemplateView):
+class _WebPageTokenMixin:
+    """
+    Mixin for all web portal TemplateViews that make client-side API calls.
+
+    After a session login (chat UI username/password or Google OAuth), the user's
+    API token is stored server-side in ``request.session["chat_ui_auth_token"]``.
+    Client-side JavaScript in every page template reads it from the ``chat_token``
+    cookie — but that cookie is never set by login itself.
+
+    This mixin bridges the gap: on every GET it reads the session token and sets it
+    as a JS-readable (httponly=False) ``chat_token`` cookie so every template's
+    inline token-reading IIFE finds it immediately without a round-trip.
+    """
+
+    _COOKIE_NAME = "chat_token"
+    _COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)  # type: ignore[misc]
+        self._attach_token_cookie(request, response)
+        return response
+
+    def _attach_token_cookie(self, request, response) -> None:
+        """Set chat_token cookie from session if not already present in request."""
+        # Already have it as a browser cookie — nothing to do.
+        if request.COOKIES.get(self._COOKIE_NAME):
+            return
+
+        # Try session token (set by ChatUIView login handler).
+        token_key = request.session.get("chat_ui_auth_token", "")
+
+        # Fallback: authenticated Django user → look up their DRF token.
+        if not token_key and getattr(request, "user", None) and request.user.is_authenticated:
+            try:
+                token_key = Token.objects.get(user=request.user).key
+            except Token.DoesNotExist:
+                pass
+
+        if not token_key:
+            return
+
+        response.set_cookie(
+            self._COOKIE_NAME,
+            token_key,
+            max_age=self._COOKIE_AGE,
+            httponly=False,   # Must be JS-readable so inline token IIFEs can find it.
+            samesite="Lax",
+            secure=not settings.DEBUG,
+        )
+
+
+class InsightsPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for the user's journey insights and activity dashboard."""
 
     template_name = "guide_api/insights.html"
@@ -9532,7 +10037,7 @@ class InsightsPageView(TemplateView):
         return context
 
 
-class JapaPageView(TemplateView):
+class JapaPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for Naam Japa practice timer and commitments."""
 
     template_name = "guide_api/japa.html"
@@ -9543,7 +10048,7 @@ class JapaPageView(TemplateView):
         return context
 
 
-class PlansPageView(TemplateView):
+class PlansPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for subscription plans and Razorpay checkout."""
 
     template_name = "guide_api/plans.html"
@@ -9554,7 +10059,7 @@ class PlansPageView(TemplateView):
         return context
 
 
-class AccountPageView(TemplateView):
+class AccountPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for profile management, password change, and account settings."""
 
     template_name = "guide_api/account.html"
@@ -9565,7 +10070,7 @@ class AccountPageView(TemplateView):
         return context
 
 
-class SavedReflectionsPageView(TemplateView):
+class SavedReflectionsPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for listing and managing saved reflections."""
 
     template_name = "guide_api/saved_reflections.html"
@@ -9576,7 +10081,7 @@ class SavedReflectionsPageView(TemplateView):
         return context
 
 
-class QuoteArtPageView(TemplateView):
+class QuoteArtPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for generating and sharing Gita verse art."""
 
     template_name = "guide_api/quote_art.html"
@@ -9587,7 +10092,7 @@ class QuoteArtPageView(TemplateView):
         return context
 
 
-class SadhanaPageView(TemplateView):
+class SadhanaPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for browsing and enrolling in Sadhana programs."""
 
     template_name = "guide_api/sadhana.html"
@@ -9598,7 +10103,7 @@ class SadhanaPageView(TemplateView):
         return context
 
 
-class ReadGitaPageView(TemplateView):
+class ReadGitaPageView(_WebPageTokenMixin, TemplateView):
     """Browser page for reading the Bhagavad Gita with chapter/verse navigation."""
 
     template_name = "guide_api/read_gita.html"
@@ -9609,7 +10114,7 @@ class ReadGitaPageView(TemplateView):
         return context
 
 
-class TodayPageView(TemplateView):
+class TodayPageView(_WebPageTokenMixin, TemplateView):
     """Daily verse / Today hub page."""
 
     template_name = "guide_api/today.html"
@@ -9620,7 +10125,7 @@ class TodayPageView(TemplateView):
         return context
 
 
-class ReadJourneyPageView(TemplateView):
+class ReadJourneyPageView(_WebPageTokenMixin, TemplateView):
     """Chapter browser + Gita Path progress page."""
 
     template_name = "guide_api/read_journey.html"
@@ -9631,7 +10136,7 @@ class ReadJourneyPageView(TemplateView):
         return context
 
 
-class ChapterDetailPageView(TemplateView):
+class ChapterDetailPageView(_WebPageTokenMixin, TemplateView):
     """Single chapter page with verse list."""
 
     template_name = "guide_api/chapter_detail.html"
@@ -9643,7 +10148,7 @@ class ChapterDetailPageView(TemplateView):
         return context
 
 
-class VerseDetailPageView(TemplateView):
+class VerseDetailPageView(_WebPageTokenMixin, TemplateView):
     """Single verse page with commentaries."""
 
     template_name = "guide_api/verse_detail.html"
@@ -9656,7 +10161,7 @@ class VerseDetailPageView(TemplateView):
         return context
 
 
-class MoodPageView(TemplateView):
+class MoodPageView(_WebPageTokenMixin, TemplateView):
     """Daily mood check-in page."""
 
     template_name = "guide_api/mood.html"
@@ -9667,7 +10172,7 @@ class MoodPageView(TemplateView):
         return context
 
 
-class GratitudePageView(TemplateView):
+class GratitudePageView(_WebPageTokenMixin, TemplateView):
     """Gratitude journal page."""
 
     template_name = "guide_api/gratitude.html"
@@ -9678,7 +10183,7 @@ class GratitudePageView(TemplateView):
         return context
 
 
-class MeditationPageView(TemplateView):
+class MeditationPageView(_WebPageTokenMixin, TemplateView):
     """Meditation practice library hub."""
 
     template_name = "guide_api/meditation.html"

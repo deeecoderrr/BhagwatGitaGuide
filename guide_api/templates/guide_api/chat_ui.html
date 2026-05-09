@@ -16,6 +16,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <link
     rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
@@ -182,8 +183,8 @@
       background:
         radial-gradient(circle at top left, rgba(232, 184, 109, 0.2), transparent 30%),
         linear-gradient(145deg, rgba(10, 18, 30, 0.84), rgba(18, 31, 50, 0.78) 45%, rgba(44, 22, 53, 0.72));
-      border-radius: 28px;
-      padding: 28px;
+      border-radius: 22px;
+      padding: 20px 24px;
       box-shadow: var(--shadow);
       backdrop-filter: blur(16px);
       margin-bottom: 16px;
@@ -223,7 +224,7 @@
       opacity: 0.9;
       animation: haloRotate 18s linear infinite;
     }
-    .hero h1 { margin: 0 0 10px; font-size: clamp(30px, 4vw, 48px); letter-spacing: -0.02em; line-height: 1.08; }
+    .hero h1 { margin: 0 0 8px; font-size: clamp(24px, 3vw, 36px); letter-spacing: -0.02em; line-height: 1.1; }
     .hero p { margin: 0; color: var(--muted); line-height: 1.7; max-width: 60ch; }
     .hero h1,
     .panel h2,
@@ -249,8 +250,8 @@
 
     .hero-blessing {
       align-self: stretch;
-      border-radius: 22px;
-      padding: 18px 18px 16px;
+      border-radius: 16px;
+      padding: 14px 16px 12px;
       border: 1px solid rgba(232, 184, 109, 0.18);
       background:
         linear-gradient(180deg, rgba(255, 247, 230, 0.08), rgba(232, 184, 109, 0.03)),
@@ -1151,6 +1152,58 @@
     }
     .mini-list li { margin-bottom: 4px; }
 
+    /* ── Saved Reflections panel ───────────────────────────────────── */
+    .saved-reflections-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+    .saved-reflection-item { background: rgba(18,10,22,0.52); border: 1px solid rgba(232,184,109,0.18); border-radius: 12px; padding: 10px 12px; }
+    .saved-verse-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+    .saved-verse-chip { font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--divine-gold); background: rgba(232,184,109,0.1); border: 1px solid rgba(232,184,109,0.28); border-radius: 6px; padding: 2px 7px; cursor: pointer; }
+    .saved-verse-chip:hover { background: rgba(232,184,109,0.18); }
+    .saved-reflection-msg { font-size: 12px; color: rgba(251,246,235,0.75); line-height: 1.45; margin: 0 0 6px; }
+    .saved-reflection-foot { display: flex; align-items: center; justify-content: space-between; }
+    .saved-reflection-date { font-size: 10px; color: rgba(251,246,235,0.3); }
+    .saved-delete-btn { display: flex; align-items: center; background: none; border: none; padding: 3px; cursor: pointer; color: rgba(251,246,235,0.3); border-radius: 4px; }
+    .saved-delete-btn:hover { color: rgba(232,80,80,0.8); background: rgba(232,80,80,0.08); }
+    .saved-ref-count { font-size: 11px; font-weight: 400; color: rgba(251,246,235,0.4); margin-left: 4px; }
+    .saved-empty-msg { font-size: 12px; color: rgba(251,246,235,0.4); text-align: center; padding: 8px 0; }
+
+    /* ── Mood check-in strip ───────────────────────────────────────── */
+    .mood-strip { margin: 14px 0 0; padding: 14px 16px; border-radius: 14px; background: rgba(18,10,22,0.52); border: 1px solid rgba(232,184,109,0.15); }
+    .mood-strip-title { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; color: var(--divine-gold); text-transform: uppercase; margin-bottom: 10px; }
+    .mood-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .mood-pill { display: inline-flex; align-items: center; gap: 4px; padding: 5px 10px; border-radius: 20px; background: rgba(7,4,10,0.55); border: 1px solid rgba(232,184,109,0.15); font-size: 12px; color: rgba(251,246,235,0.7); cursor: pointer; font-family: inherit; transition: background 0.18s, border-color 0.18s; }
+    .mood-pill:hover, .mood-pill.active { border-color: rgba(232,184,109,0.55); background: rgba(232,184,109,0.15); color: var(--divine-gold); }
+    .mood-pill .mood-emoji { font-size: 14px; line-height: 1; }
+    .mood-done-msg { font-size: 11px; color: rgba(232,184,109,0.7); margin-top: 8px; display: none; }
+    .mood-done-msg.show { display: block; }
+
+    /* ── Gratitude journal ─────────────────────────────────────────── */
+    .gratitude-prompt-card { background: rgba(18,10,22,0.52); border: 1px solid rgba(232,184,109,0.18); border-radius: 14px; padding: 14px 16px; }
+    .gratitude-prompt-title { font-size: 10px; font-weight: 800; letter-spacing: 0.16em; color: var(--divine-gold); text-transform: uppercase; margin-bottom: 10px; }
+    .gratitude-lines { display: flex; flex-direction: column; gap: 8px; }
+    .gratitude-line { display: flex; align-items: center; gap: 8px; color: rgba(251,246,235,0.4); }
+    .gratitude-num { font-size: 11px; font-weight: 700; min-width: 14px; }
+    .gratitude-input { flex: 1; background: rgba(7,4,10,0.4); border: 1px solid rgba(232,184,109,0.18); border-radius: 8px; padding: 7px 10px; font-size: 12px; color: #fbf6eb; font-family: inherit; outline: none; }
+    .gratitude-input:focus { border-color: rgba(232,184,109,0.42); }
+    .gratitude-input::placeholder { color: rgba(255,255,255,0.22); }
+    .gratitude-save-btn { margin-top: 10px; width: 100%; }
+    .gratitude-saved-msg { font-size: 11px; color: rgba(232,184,109,0.7); text-align: center; margin-top: 6px; display: none; }
+    .gratitude-saved-msg.show { display: block; }
+
+    /* ── Insights panel ────────────────────────────────────────────── */
+    .insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+    .insight-card { background: rgba(18,10,22,0.52); border: 1px solid rgba(232,184,109,0.18); border-radius: 12px; padding: 12px 10px; text-align: center; }
+    .insight-value { font-size: 22px; font-weight: 900; color: var(--divine-gold); line-height: 1; }
+    .insight-label { font-size: 10px; color: rgba(251,246,235,0.45); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.1em; }
+    .insights-empty { font-size: 12px; color: rgba(251,246,235,0.38); text-align: center; padding: 12px 0; }
+
+    /* ── Reading journey panel ─────────────────────────────────────── */
+    .reading-journey-card { background: rgba(18,10,22,0.52); border: 1px solid rgba(232,184,109,0.18); border-radius: 12px; padding: 12px 14px; }
+    .reading-journey-progress { height: 4px; background: rgba(232,184,109,0.12); border-radius: 2px; margin: 8px 0; overflow: hidden; }
+    .reading-journey-fill { height: 100%; background: linear-gradient(90deg, var(--divine-gold), rgba(232,184,109,0.6)); border-radius: 2px; transition: width 0.6s ease; }
+    .reading-journey-meta { font-size: 11px; color: rgba(251,246,235,0.45); display: flex; justify-content: space-between; }
+    .reading-journey-next { font-size: 12px; color: rgba(251,246,235,0.75); margin-top: 8px; }
+    .reading-journey-next strong { color: var(--divine-gold); }
+
     .conversation-list {
       display: grid;
       gap: 8px;
@@ -1167,6 +1220,171 @@
       color: var(--muted);
       font-size: 12px;
       padding: 8px 2px 0;
+    }
+
+    .conversation-history-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 12px 0 14px;
+    }
+
+    .conversation-stat-pill {
+      display: grid;
+      gap: 4px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.03);
+      min-width: 0;
+    }
+
+    .conversation-stat-value {
+      color: var(--text);
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .conversation-stat-label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .conversation-history-controls {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .conversation-search-shell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .conversation-search-shell:focus-within {
+      border-color: rgba(232, 184, 109, 0.3);
+      box-shadow: 0 0 0 1px rgba(232, 184, 109, 0.16);
+    }
+
+    .conversation-search-icon {
+      width: 16px;
+      height: 16px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .conversation-search-input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .conversation-search-input::placeholder {
+      color: rgba(255, 255, 255, 0.42);
+    }
+
+    .conversation-clear-btn {
+      border-radius: 999px;
+      padding: 6px 9px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    .conversation-clear-btn:hover {
+      color: var(--text);
+      border-color: rgba(232, 184, 109, 0.24);
+    }
+
+    .conversation-sort-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.025);
+      width: fit-content;
+    }
+
+    .conversation-sort-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      line-height: 1;
+    }
+
+    .conversation-sort-btn.active,
+    .conversation-sort-btn:hover {
+      background: rgba(232, 184, 109, 0.12);
+      color: var(--gold);
+    }
+
+    .conversation-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .conversation-group + .conversation-group {
+      margin-top: 12px;
+    }
+
+    .conversation-group-label {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding-left: 2px;
+    }
+
+    .conversation-group-items {
+      display: grid;
+      gap: 8px;
+    }
+
+    .conversation-empty {
+      display: grid;
+      gap: 6px;
+      padding: 14px 12px;
+      margin-top: 8px;
+      border-radius: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .conversation-empty strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .conversation-empty span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
     }
 
     .conversation-card {
@@ -1256,6 +1474,21 @@
     .conversation-delete:hover {
       filter: brightness(1.08);
       transform: translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      .conversation-history-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .conversation-sort-toggle {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .conversation-sort-btn {
+        flex: 1;
+      }
     }
 
     .conversation-panel-head {
@@ -2119,6 +2352,48 @@
       font-size: 16px;
       line-height: 1.8;
       max-width: var(--reading-width);
+    }
+
+    .reply-main.is-collapsed {
+      display: -webkit-box;
+      -webkit-line-clamp: 6;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .top-nav-lang-strip {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      padding: 8px clamp(16px,4vw,48px);
+      border-bottom: 1px solid rgba(232,184,109,0.1);
+    }
+    .top-nav-lang-strip .nav-language-form {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .top-nav-lang-strip .nav-language-label {
+      font-size: 12px; color: var(--muted);
+    }
+    .top-nav-lang-strip .nav-language-select {
+      background: rgba(232,184,109,0.06);
+      border: 1px solid rgba(232,184,109,0.2);
+      color: var(--gold); border-radius: 6px;
+      padding: 4px 8px; font-size: 12px; cursor: pointer;
+    }
+
+    .guidance-toggle {
+      background: none;
+      border: none;
+      color: rgba(163, 160, 190, 0.9);
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 0 0;
+      text-align: left;
+      transition: color 0.15s;
+    }
+
+    .guidance-toggle:hover {
+      color: #e8d9a0;
     }
 
     .reply-grid {
@@ -3218,48 +3493,132 @@
     }
 
     .verse-detail-header {
-      text-align: center;
-      padding: 24px;
-      background: linear-gradient(180deg, rgba(232, 184, 109, 0.12), transparent);
-      border-radius: 20px;
-      margin-bottom: 24px;
+      position: relative;
+      text-align: left;
+      padding: 20px;
+      background: linear-gradient(130deg, rgba(232, 184, 109, 0.18), rgba(18, 55, 46, 0.45), rgba(7, 4, 10, 0.38));
+      border: 1px solid rgba(232, 184, 109, 0.26);
+      border-radius: 24px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .verse-hero-seal {
+      position: absolute;
+      right: 16px;
+      top: 14px;
+      width: 58px;
+      height: 58px;
+      border-radius: 50%;
+      background: rgba(7, 4, 10, 0.72);
+      border: 1px solid rgba(232, 184, 109, 0.34);
+      color: #f5d49a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.03em;
+    }
+
+    .verse-detail-eyebrow {
+      color: var(--divine-gold);
+      font-size: 10px;
+      letter-spacing: 0.24em;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 8px;
     }
 
     .verse-detail-ref {
       font-family: "Sora", "Manrope", sans-serif;
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--divine-gold);
+      font-size: clamp(22px, 2.8vw, 28px);
+      font-weight: 800;
+      color: #fbf6eb;
+      margin-bottom: 6px;
+    }
+
+    .verse-detail-sub {
+      font-size: 13px;
+      color: #e3cdb7;
+      line-height: 1.45;
       margin-bottom: 8px;
+      max-width: 82%;
     }
 
     .verse-detail-speaker {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--muted);
+      margin-bottom: 10px;
     }
 
     .verse-sanskrit-box {
-      background: linear-gradient(145deg, #1a1a2e, #0f1520);
-      border: 1px solid rgba(232, 184, 109, 0.25);
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      margin-bottom: 20px;
+      position: relative;
+      background: rgba(32, 20, 26, 0.72);
+      border: 1px solid rgba(232, 184, 109, 0.28);
+      border-radius: 22px;
+      padding: 20px;
+      text-align: left;
+      margin-bottom: 16px;
+      overflow: hidden;
+      box-shadow: 0 16px 34px rgba(0, 0, 0, 0.3);
+    }
+
+    .verse-manuscript-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(232, 184, 109, 0.14);
+    }
+
+    .verse-manuscript-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--divine-gold);
+    }
+
+    .verse-manuscript-label {
+      color: #f5d49a;
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      font-weight: 800;
+      text-transform: uppercase;
     }
 
     .verse-sanskrit {
-      font-size: 20px;
-      line-height: 1.8;
-      color: var(--divine-gold);
-      font-weight: 500;
-      margin-bottom: 16px;
+      font-size: clamp(20px, 2.5vw, 24px);
+      line-height: 1.7;
+      color: #fbf6eb;
+      font-weight: 600;
+      font-style: italic;
+      letter-spacing: 0.02em;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 1;
     }
 
     .verse-transliteration {
       font-size: 14px;
-      color: var(--muted);
+      color: #e3cdb7;
       font-style: italic;
       line-height: 1.6;
+      position: relative;
+      z-index: 1;
+    }
+
+    .verse-sanskrit-shimmer {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -120px;
+      width: 120px;
+      background: linear-gradient(90deg, transparent, rgba(232, 184, 109, 0.28), transparent);
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-120%);
     }
 
     .verse-audio-btn {
@@ -3283,11 +3642,11 @@
     .verse-audio-btn svg { width: 16px; height: 16px; flex-shrink: 0; }
 
     .verse-meaning-section {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 14px;
-      padding: 20px;
-      margin-bottom: 16px;
+      background: rgba(32, 20, 26, 0.56);
+      border: 1px solid rgba(232, 184, 109, 0.14);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 12px;
     }
 
     .verse-meaning-label {
@@ -3310,29 +3669,62 @@
 
     .verse-meaning-text {
       font-size: 15px;
-      line-height: 1.7;
-      color: var(--text);
+      line-height: 1.65;
+      color: rgba(251, 246, 235, 0.92);
+      font-weight: 500;
     }
 
     .verse-meaning-text.hindi {
       font-size: 16px;
     }
 
-    .verse-commentaries {
-      margin-top: 24px;
+    .verse-practice-wrap {
+      margin: 4px 0 14px;
+    }
+
+    .verse-practice-card {
+      margin-top: 4px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(232, 184, 109, 0.09);
+      border: 1px solid rgba(232, 184, 109, 0.28);
+      display: grid;
+      gap: 10px;
+    }
+
+    .verse-practice-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .verse-practice-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-top: 7px;
+      background: var(--divine-gold);
+      flex-shrink: 0;
+    }
+
+    .verse-practice-text {
+      color: #fbf6eb;
+      font-size: 14px;
+      line-height: 1.55;
+      font-weight: 600;
     }
 
     .verse-synthesis {
-      margin-top: 24px;
       display: grid;
-      gap: 14px;
+      gap: 12px;
+      margin-top: 8px;
     }
 
     .verse-synthesis-card {
-      background: linear-gradient(180deg, rgba(245, 158, 11, 0.09), rgba(59, 130, 246, 0.07));
-      border: 1px solid rgba(251, 191, 36, 0.18);
+      background: rgba(32, 20, 26, 0.62);
+      border: 1px solid rgba(232, 184, 109, 0.35);
       border-radius: 16px;
-      padding: 18px;
+      padding: 16px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
 
@@ -3370,33 +3762,363 @@
       margin-bottom: 6px;
     }
 
-    .verse-commentaries-title {
-      font-family: "Sora", "Manrope", sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 16px;
+    /* Commentary accordion */
+    .commentary-item {
+      background: rgba(32, 20, 26, 0.62);
+      border: 1px solid rgba(232, 184, 109, 0.2);
+      border-radius: 12px;
+      margin-bottom: 10px;
+      overflow: hidden;
     }
 
-    .commentary-item {
-      background: rgba(139, 92, 246, 0.08);
-      border: 1px solid rgba(139, 92, 246, 0.2);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 12px;
+    .commentary-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 13px 14px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-align: left;
     }
 
     .commentary-author {
       font-size: 13px;
       font-weight: 700;
-      color: var(--accent);
-      margin-bottom: 8px;
+      color: #f5d49a;
+    }
+
+    .commentary-chevron {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      color: rgba(232, 184, 109, 0.55);
+      transition: transform 0.22s ease;
+    }
+
+    .commentary-item.open .commentary-chevron {
+      transform: rotate(180deg);
+    }
+
+    .commentary-body {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.25s ease;
+    }
+
+    .commentary-item.open .commentary-body {
+      grid-template-rows: 1fr;
+    }
+
+    .commentary-body-inner {
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .verse-commentaries-list {
+      display: none;
+      padding: 4px 0 0;
+    }
+    .verse-commentaries-list.open {
+      display: block;
+    }
+    .verse-commentaries-section-chevron {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      color: rgba(232,184,109,0.6);
+      transition: transform 0.22s ease;
+    }
+    .verse-commentaries-section-toggle.open .verse-commentaries-section-chevron {
+      transform: rotate(180deg);
     }
 
     .commentary-text {
       font-size: 14px;
       line-height: 1.6;
+      color: #e3cdb7;
+      padding: 0 14px 14px;
+    }
+
+    /* Wisdom / synthesis section — matches mobile wisdomWrap */
+    .verse-wisdom-wrap {
+      margin-top: 16px;
+      background: rgba(18, 10, 22, 0.62);
+      border: 1px solid rgba(232, 184, 109, 0.28);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 0 14px rgba(232, 184, 109, 0.06), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+    .verse-wisdom-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .verse-wisdom-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: rgba(232, 184, 109, 0.12);
+      border: 1px solid rgba(232, 184, 109, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .verse-wisdom-icon svg { width: 14px; height: 14px; color: var(--divine-gold); }
+    .verse-wisdom-title {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.2em;
+      color: var(--divine-gold);
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .verse-wisdom-blurb {
+      font-size: 12px;
+      color: rgba(251, 246, 235, 0.48);
+      margin-top: 3px;
+      line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* Commentary section header — matches mobile wisdomBtn */
+    .verse-commentaries-section-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      background: rgba(18, 10, 22, 0.62);
+      border: 1px solid rgba(232, 184, 109, 0.28);
+      border-radius: 16px;
+      cursor: pointer;
+      text-align: left;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .verse-commentaries-section-toggle:hover { background: rgba(232, 184, 109, 0.06); }
+    .verse-commentary-header-left {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+    .verse-commentary-cta {
+      font-size: 12px;
+      color: rgba(251, 246, 235, 0.48);
+      margin-top: 3px;
+      line-height: 1.5;
+    }
+    .verse-commentaries-section-toggle.open .verse-commentary-cta { display: none; }
+
+    /* Commentary author row with icon */
+    .commentary-author-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .verse-commentary-icon-sm {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(232, 184, 109, 0.1);
+      border: 1px solid rgba(232, 184, 109, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .verse-commentary-icon-sm svg { width: 11px; height: 11px; color: var(--divine-gold); }
+
+    /* Reflection note panel */
+    .verse-reflection-panel {
+      margin-top: 20px;
+      background: rgba(18, 10, 22, 0.72);
+      border: 1px solid rgba(232, 184, 109, 0.26);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 0 18px rgba(232, 184, 109, 0.07), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .verse-reflection-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--divine-gold);
+      font-weight: 700;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .verse-reflection-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(232, 184, 109, 0.18);
+    }
+
+    .verse-reflection-textarea {
+      width: 100%;
+      min-height: 84px;
+      background: rgba(7, 4, 10, 0.55);
+      border: 1px solid rgba(232, 184, 109, 0.18);
+      border-radius: 10px;
+      color: #fbf6eb;
+      font-size: 14px;
+      line-height: 1.55;
+      padding: 10px 12px;
+      resize: vertical;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      box-sizing: border-box;
+    }
+
+    .verse-reflection-textarea:focus {
+      outline: none;
+      border-color: rgba(232, 184, 109, 0.46);
+    }
+
+    .verse-reflection-textarea::placeholder {
+      color: rgba(255, 255, 255, 0.28);
+    }
+
+    .verse-reflection-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 10px;
+      gap: 10px;
+    }
+
+    .verse-reflection-status {
+      font-size: 12px;
       color: var(--muted);
+      flex: 1;
+    }
+
+    .verse-reflection-save {
+      padding: 7px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid rgba(232, 184, 109, 0.45);
+      background: rgba(232, 184, 109, 0.12);
+      color: var(--divine-gold);
+      cursor: pointer;
+      transition: background 0.18s;
+    }
+
+    .verse-reflection-save:hover { background: rgba(232, 184, 109, 0.22); }
+    .verse-reflection-save:disabled { opacity: 0.45; cursor: default; }
+
+    .verse-reflection-ask {
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1px solid rgba(232, 184, 109, 0.3);
+      background: rgba(232, 184, 109, 0.07);
+      color: rgba(232, 184, 109, 0.85);
+      cursor: pointer;
+      transition: background 0.18s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .verse-reflection-ask:hover { background: rgba(232, 184, 109, 0.14); }
+
+    .verse-reflection-guest-cta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .verse-reflection-guest-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: rgba(232, 184, 109, 0.12);
+      border: 1px solid rgba(232, 184, 109, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--divine-gold);
+    }
+
+    .verse-reflection-guest-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fbf6eb;
+      margin-bottom: 2px;
+    }
+
+    .verse-reflection-guest-sub {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .verse-reflection-signin-btn {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 9px 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.22), rgba(232,184,109,0.14));
+      border: 1px solid rgba(232, 184, 109, 0.42);
+      color: var(--divine-gold);
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background 0.18s;
+      box-sizing: border-box;
+    }
+    .verse-reflection-signin-btn:hover { background: linear-gradient(135deg, rgba(232,184,109,0.32), rgba(232,184,109,0.2)); }
+
+    /* Mobile breakpoints */
+    @media (max-width: 640px) {
+      .verse-detail-header {
+        padding: 14px 14px 14px 14px;
+      }
+      .verse-hero-seal {
+        width: 46px;
+        height: 46px;
+        font-size: 12px;
+      }
+      .verse-detail-ref {
+        font-size: clamp(18px, 5vw, 22px);
+      }
+      .verse-detail-sub {
+        max-width: 100%;
+        font-size: 12px;
+      }
+      .verse-sanskrit {
+        font-size: clamp(17px, 4.5vw, 20px);
+      }
+      .verse-sanskrit-box {
+        padding: 14px;
+      }
+      .verse-synthesis-columns {
+        grid-template-columns: 1fr;
+      }
+      .verse-practice-card {
+        padding: 12px;
+      }
+      .verse-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .verse-action-btn {
+        text-align: center;
+      }
     }
 
     .verse-actions {
@@ -4009,6 +4731,31 @@
       transform: translateY(-1px);
       border-color: rgba(121, 217, 239, 0.38);
       background: rgba(121, 217, 239, 0.14);
+    }
+
+    .conversation-reset-btn[disabled] {
+      opacity: 0.58;
+      cursor: wait;
+      transform: none;
+    }
+
+    .conversation-thread-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      padding: 4px 8px 14px;
+    }
+
+    .conversation-thread-status {
+      min-height: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .conversation-thread-status.is-error {
+      color: #fda4af;
     }
 
     .landing-hero-grid {
@@ -5172,11 +5919,26 @@
     }
     .verse-immersive-overlay.open { display: flex; }
     .verse-immersive-overlay .verse-immersive-card {
-      width: min(780px, 96vw);
-      min-height: 62vh;
+      width: min(620px, 96vw);
+      min-height: 40vh;
+      max-height: 90vh;
       margin: 0;
       box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+      overflow-y: auto;
     }
+    .verse-immersive-deep-link {
+      display: inline-block;
+      margin-top: 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #f3d694;
+      letter-spacing: 0.05em;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(232,184,109,0.35);
+      padding-bottom: 2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .verse-immersive-deep-link:hover { color: #fff7df; border-color: rgba(232,184,109,0.7); }
     .verse-immersive-close {
       position: absolute;
       top: 12px;
@@ -5240,6 +6002,7 @@
     }
     .gratitude-input::placeholder { color: rgba(255,255,255,0.25); }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body
   class="gita-sanctum"
@@ -5256,148 +6019,17 @@
   <div class="bg-orb orb-3"></div>
 
   <main class="app">
-    <nav class="top-nav" aria-label="{% if language == 'hi' %}मुख्य नेविगेशन{% else %}Primary{% endif %}">
-      <div class="nav-brand">
-        <a
-          class="nav-home"
-          href="/api/chat-ui/?mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}"
-        >
-          {% if language == "hi" %}होम{% else %}Home{% endif %}
-        </a>
-      </div>
-      <div class="nav-toolbar">
-        <div class="nav-cluster" role="group" aria-label="{% if language == 'hi' %}भाषा{% else %}Language{% endif %}">
-          <form method="get" class="nav-language-form">
-            <label class="nav-language-label" for="nav_language">
-              {% if language == "hi" %}भाषा{% else %}Language{% endif %}
-            </label>
-            <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-            {% if active_conversation_id %}
-              <input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">
-            {% endif %}
-            <select
-              id="nav_language"
-              name="language"
-              class="nav-language-select"
-              onchange="this.form.submit()"
-            >
-              <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
-              <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
-            </select>
-          </form>
-        </div>
-        <div class="nav-cluster nav-cluster--cta" role="group" aria-label="{% if language == 'hi' %}पढ़ें और चर्चा{% else %}Read and discuss{% endif %}">
-          <button
-            type="button"
-            class="nav-btn nav-btn-secondary"
-            data-open-gita-reader
-            data-language="{{ language|default:'en' }}"
-          >
-            <span class="asset-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 7v14" />
-                <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-              </svg>
-            </span>
-            {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
-          </button>
-          <a
-            href="/practice/?language={{ language|default:'en' }}"
-            class="nav-btn nav-btn-secondary"
-            title="{% if language == 'hi' %}मार्गदर्शित साधना — योग, प्राण, मंत्र{% else %}Guided sadhana — yoga, breath, mantra{% endif %}"
-          >
-            {% if language == "hi" %}साधना{% else %}Practice{% endif %}
-          </a>
-          <a
-            href="/sadhana/?language={{ language|default:'en' }}"
-            class="nav-btn nav-btn-secondary"
-            title="{% if language == 'hi' %}साधना कार्यक्रम — गीता-प्रेरित यात्रा{% else %}Sadhana programs — Gita-inspired journeys{% endif %}"
-          >
-            {% if language == "hi" %}साधना{% else %}Sadhana{% endif %}
-          </a>
-          <a
-            href="/read-gita/?language={{ language|default:'en' }}"
-            class="nav-btn nav-btn-secondary"
-            title="{% if language == 'hi' %}गीता पढ़ें — सभी अध्याय और श्लोक{% else %}Read the Gita — all chapters and verses{% endif %}"
-          >
-            {% if language == "hi" %}गीता पढ़ें{% else %}Read Gita{% endif %}
-          </a>
-          <a
-            href="/japa/?language={{ language|default:'en' }}"
-            class="nav-btn nav-btn-secondary"
-            title="{% if language == 'hi' %}नाम जप — मंत्र साधना{% else %}Naam Japa — mantra practice{% endif %}"
-          >
-            {% if language == "hi" %}जप{% else %}Japa{% endif %}
-          </a>
-          <a
-            href="/quote-art/?language={{ language|default:'en' }}"
-            class="nav-btn nav-btn-secondary"
-            title="{% if language == 'hi' %}दिव्य उद्धरण कला{% else %}Divine verse art{% endif %}"
-          >
-            {% if language == "hi" %}उद्धरण{% else %}Art{% endif %}
-          </a>
-          <a
-            href="#community-preview-discussion"
-            class="nav-btn nav-btn-secondary nav-comments"
-            title="{% if language == 'hi' %}टिप्पणियाँ और उत्तर — समुदाय की चर्चा{% else %}Comments and replies — community discussion{% endif %}"
-          >
-            {% if language == "hi" %}टिप्पणियाँ{% else %}Comments{% endif %}
-          </a>
-          <a
-            href="/plans/?language={{ language|default:'en' }}"
-            class="nav-btn nav-btn-secondary"
-            title="{% if language == 'hi' %}योजनाएं और सदस्यता{% else %}Plans and subscription{% endif %}"
-          >
-            {% if language == "hi" %}योजनाएं{% else %}Plans{% endif %}
-          </a>
-          {% if request.session.chat_ui_auth_username %}
-            <a
-              href="/insights/?language={{ language|default:'en' }}"
-              class="nav-btn nav-btn-secondary"
-              title="{% if language == 'hi' %}मेरी यात्रा और अंतर्दृष्टि{% else %}My journey and insights{% endif %}"
-            >
-              {% if language == "hi" %}अंतर्दृष्टि{% else %}Insights{% endif %}
-            </a>
-            <a
-              href="/account/?language={{ language|default:'en' }}"
-              class="nav-btn nav-btn-secondary"
-              title="{% if language == 'hi' %}मेरा खाता{% else %}My account{% endif %}"
-            >
-              {% if language == "hi" %}खाता{% else %}Account{% endif %}
-            </a>
-            <form method="post" class="nav-inline-form">
-              {% csrf_token %}
-              <input type="hidden" name="action" value="logout">
-              <input type="hidden" name="language" value="{{ language|default:'en' }}">
-              <button type="submit" class="nav-btn">
-                {% if language == "hi" %}लॉगआउट{% else %}Logout{% endif %}
-              </button>
-            </form>
-          {% endif %}
-          {% if not request.session.chat_ui_auth_username %}
-            <a href="#guest-auth-target" class="nav-btn" data-nav-auth-target="register">
-              {% if language == "hi" %}रजिस्टर{% else %}Register{% endif %}
-            </a>
-            <a href="#guest-auth-target" class="nav-btn nav-btn-secondary" data-nav-auth-target="login">
-              {% if language == "hi" %}लॉगिन{% else %}Login{% endif %}
-            </a>
-          {% endif %}
-        </div>
-        {% if request.session.chat_ui_auth_username %}
-          <div class="auth-pill nav-session-pill">
-            {% if language == "hi" %}
-              लॉगिन: {{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}
-            {% else %}
-              Signed in: {{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}
-            {% endif %}
-          </div>
-        {% else %}
-          <div class="auth-pill nav-session-pill">
-            {% if language == "hi" %}लॉगिन नहीं है{% else %}Not signed in{% endif %}
-          </div>
-        {% endif %}
-      </div>
-    </nav>
+    <div class="top-nav-lang-strip">
+      <form method="get" class="nav-language-form">
+        <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
+        {% if active_conversation_id %}<input type="hidden" name="conversation_id" value="{{ active_conversation_id }}">{% endif %}
+        <label class="nav-language-label" for="nav_language">{% if language == "hi" %}भाषा{% else %}Language{% endif %}</label>
+        <select id="nav_language" name="language" class="nav-language-select" onchange="this.form.submit()">
+          <option value="en" {% if language == "en" %}selected{% endif %}>English</option>
+          <option value="hi" {% if language == "hi" %}selected{% endif %}>हिंदी</option>
+        </select>
+      </form>
+    </div>
 
     <section
       class="hero hero-sanctum animate__animated animate__fadeInDown"
@@ -5445,7 +6077,7 @@
             <span class="hero-meta-pill social-proof" aria-label="Social proof">
               ✦ {% if language == "hi" %}४७,०००+ साधकों को मार्गदर्शन{% else %}47,000+ seekers guided{% endif %}
             </span>
-            {% if request.session.chat_ui_auth_username and user_daily_streak %}
+            {% if chat_ui_signed_in and user_daily_streak %}
               <span class="streak-pill" title="{% if language == 'hi' %}आपकी लगातार दिनों की श्रृंखला{% else %}Your daily practice streak{% endif %}">
                 🔥 {{ user_daily_streak }} {% if language == "hi" %}दिन{% else %}days{% endif %}
               </span>
@@ -5487,8 +6119,8 @@
                 {% if language == "hi" %}नीचे प्रश्न लिखें{% else %}Ask your question below{% endif %}
               </a>
             </div>
-            <button type="button" class="verse-immersive-trigger" data-open-immersive-verse>
-              {% if language == "hi" %}पूर्ण-स्क्रीन कार्ड देखें{% else %}Open immersive card{% endif %}
+            <button type="button" class="verse-immersive-trigger" data-open-immersive-verse title="{% if language == 'hi' %}आज का श्लोक ध्यान में देखें{% else %}View today's verse in full{% endif %}">
+              {% if language == "hi" %}🔍 आज का श्लोक विस्तार से देखें{% else %}🔍 View full verse{% endif %}
             </button>
             <div class="hero-support-note">
               <span data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</span>
@@ -5510,50 +6142,6 @@
                 <div class="verse-immersive-ref" data-daily-signal-reference>{% if language == "hi" %}भगवद्गीता 2.47 से 2.48{% else %}Bhagavad Gita 2.47 to 2.48{% endif %}</div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-      <div class="hero-glass-deck" role="region" aria-label="{% if language == 'hi' %}मुख्य विशेषताएँ{% else %}Key qualities{% endif %}">
-        <div class="hero-glass-card">
-          <div class="hero-glass-card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path d="M7 17L17 7M17 7H9M17 7V15" />
-            </svg>
-          </div>
-          <div>
-            <div class="hero-glass-card-kicker">{% if language == "hi" %}श्रोत{% else %}Source{% endif %}</div>
-            <div class="hero-glass-card-title">
-              {% if language == "hi" %}७०० श्लोक, एक ही खोज{% else %}700 ślokas, one search{% endif %}
-            </div>
-            <p class="hero-glass-card-sub">
-              {% if language == "hi" %}
-                हर उत्तर प्रासंगिक श्लोकों और अध्याय-संदर्भ से जुड़ा रहता है।
-              {% else %}
-                Every answer stays tied to cited verses and chapter context.
-              {% endif %}
-            </p>
-            <div class="hero-glass-card-meter hero-glass-card-meter--full" aria-hidden="true"><span></span></div>
-          </div>
-        </div>
-        <div class="hero-glass-card">
-          <div class="hero-glass-card-icon" aria-hidden="true">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-              <path d="M7 17L17 7M17 7H9M17 7V15" />
-            </svg>
-          </div>
-          <div>
-            <div class="hero-glass-card-kicker">{% if language == "hi" %}भाषा{% else %}Languages{% endif %}</div>
-            <div class="hero-glass-card-title">
-              {% if language == "hi" %}अंग्रेज़ी · हिंदी{% else %}English · Hindi{% endif %}
-            </div>
-            <p class="hero-glass-card-sub">
-              {% if language == "hi" %}
-                शांत गति, स्पष्ट भाषा — बिना शोर के मार्गदर्शन।
-              {% else %}
-                Calm pacing and plain language — guidance without hype.
-              {% endif %}
-            </p>
-            <div class="hero-glass-card-meter hero-glass-card-meter--high" aria-hidden="true"><span></span></div>
           </div>
         </div>
       </div>
@@ -5688,8 +6276,30 @@
       <div class="message success">{{ feedback_message }}</div>
     {% endif %}
 
-    <section class="layout {% if not request.session.chat_ui_auth_username and not active_conversation_id and not conversation_messages %}guest-home-layout{% endif %}">
-      {% if request.session.chat_ui_auth_username or active_conversation_id or conversation_messages %}
+    {% if chat_ui_signed_in %}
+    <div style="max-width: 900px; margin: 0 auto; padding: 0 16px;">
+      <div class="mood-strip" data-mood-form>
+        <div class="mood-strip-title">{% if language == "hi" %}आज आप कैसा महसूस कर रहे हैं?{% else %}How are you feeling today?{% endif %}</div>
+        <div class="mood-pills">
+          {% with today_mood=today_mood %}
+          <button type="button" class="mood-pill{% if today_mood == 'happy' %} active{% endif %}" data-mood-pill="happy"><span class="mood-emoji">😊</span> {% if language == "hi" %}खुश{% else %}Happy{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'grateful' %} active{% endif %}" data-mood-pill="grateful"><span class="mood-emoji">🥰</span> {% if language == "hi" %}आभारी{% else %}Grateful{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'relaxed' %} active{% endif %}" data-mood-pill="relaxed"><span class="mood-emoji">😌</span> {% if language == "hi" %}शांत{% else %}Relaxed{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'content' %} active{% endif %}" data-mood-pill="content"><span class="mood-emoji">🙂</span> {% if language == "hi" %}संतुष्ट{% else %}Content{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'tired' %} active{% endif %}" data-mood-pill="tired"><span class="mood-emoji">😴</span> {% if language == "hi" %}थका{% else %}Tired{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'unsure' %} active{% endif %}" data-mood-pill="unsure"><span class="mood-emoji">😕</span> {% if language == "hi" %}अनिश्चित{% else %}Unsure{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'anxious' %} active{% endif %}" data-mood-pill="anxious"><span class="mood-emoji">😬</span> {% if language == "hi" %}चिंतित{% else %}Anxious{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'stressed' %} active{% endif %}" data-mood-pill="stressed"><span class="mood-emoji">😣</span> {% if language == "hi" %}तनाव{% else %}Stressed{% endif %}</button>
+          <button type="button" class="mood-pill{% if today_mood == 'sad' %} active{% endif %}" data-mood-pill="sad"><span class="mood-emoji">😢</span> {% if language == "hi" %}उदास{% else %}Sad{% endif %}</button>
+          {% endwith %}
+        </div>
+        <div class="mood-done-msg" data-mood-done>{% if language == "hi" %}✓ आज का मूड सेव हो गया{% else %}✓ Today's mood saved{% endif %}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <section class="layout {% if not chat_ui_signed_in and not active_conversation_id and not conversation_messages %}guest-home-layout{% endif %}">
+      {% if chat_ui_signed_in or active_conversation_id or conversation_messages %}
       <aside class="stack sidebar-stack">
         <span class="sr-only">
           {% if language == "hi" %}
@@ -5712,11 +6322,59 @@
               {% if language == "hi" %}थ्रेड्स{% else %}Threads{% endif %}
             </div>
             <h2>{% if language == "hi" %}बातचीत सूची{% else %}Conversations{% endif %}</h2>
+            <div class="conversation-history-summary" data-conversation-summary>
+              <div class="conversation-stat-pill">
+                <span class="conversation-stat-value" data-conversation-stat="threads">{{ conversations|length }}</span>
+                <span class="conversation-stat-label">{% if language == "hi" %}थ्रेड्स{% else %}Threads{% endif %}</span>
+              </div>
+              <div class="conversation-stat-pill">
+                <span class="conversation-stat-value" data-conversation-stat="messages">--</span>
+                <span class="conversation-stat-label">{% if language == "hi" %}संदेश{% else %}Messages{% endif %}</span>
+              </div>
+              <div class="conversation-stat-pill">
+                <span class="conversation-stat-value" data-conversation-stat="latest">--</span>
+                <span class="conversation-stat-label">{% if language == "hi" %}आखिरी{% else %}Latest{% endif %}</span>
+              </div>
+            </div>
+            <div class="conversation-history-controls">
+              <label class="conversation-search-shell">
+                <span class="conversation-search-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="M20 20l-3.5-3.5"></path>
+                  </svg>
+                </span>
+                <input
+                  type="search"
+                  class="conversation-search-input"
+                  data-conversation-search
+                  placeholder="{% if language == 'hi' %}सहेजे हुए संवाद खोजें{% else %}Search saved guidance{% endif %}"
+                  autocomplete="off"
+                >
+                <button type="button" class="conversation-clear-btn" data-conversation-clear hidden>
+                  {% if language == "hi" %}साफ़ करें{% else %}Clear{% endif %}
+                </button>
+              </label>
+              <div
+                class="conversation-sort-toggle"
+                role="tablist"
+                aria-label="{% if language == 'hi' %}संवाद क्रम{% else %}Conversation sort order{% endif %}"
+              >
+                <button type="button" class="conversation-sort-btn active" data-conversation-sort="newest">
+                  {% if language == "hi" %}नवीनतम{% else %}Newest{% endif %}
+                </button>
+                <button type="button" class="conversation-sort-btn" data-conversation-sort="oldest">
+                  {% if language == "hi" %}सबसे पुराना{% else %}Oldest{% endif %}
+                </button>
+              </div>
+            </div>
+            {{ conversations|json_script:"chat-ui-conversation-items" }}
             <div
               class="conversation-scroll"
               data-conversation-scroll
               data-mode="{{ mode|default:'simple' }}"
               data-language="{{ language|default:'en' }}"
+              data-user-id="{{ user_id|default:'guest' }}"
               data-active-conversation-id="{{ active_conversation_id|default:'' }}"
               data-next-offset="{% if conversations_next_offset %}{{ conversations_next_offset }}{% else %}{% if conversations|length >= 3 %}3{% endif %}{% endif %}"
               data-has-more="{% if conversations_has_more or conversations|length >= 3 %}true{% else %}false{% endif %}"
@@ -5759,6 +6417,10 @@
               </div>
               <div class="conversation-scroll-loading" data-conversation-loading style="display: none;">
                 {% if language == "hi" %}पुरानी बातचीत लोड हो रही है...{% else %}Loading older conversations...{% endif %}
+              </div>
+              <div class="conversation-empty" data-conversation-empty hidden>
+                <strong>{% if language == "hi" %}कोई मेल खाता संवाद नहीं मिला{% else %}No matching conversations yet{% endif %}</strong>
+                <span>{% if language == "hi" %}दूसरा शब्द खोजें या क्रम बदलें।{% else %}Try another keyword or switch the sort order.{% endif %}</span>
               </div>
             </div>
           </div>
@@ -5861,7 +6523,7 @@
         </div>
 
         {% if saved_reflections %}
-          <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="120">
+          <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="120" data-saved-reflections-panel>
             <div class="panel-kicker">
               <span class="asset-icon" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -5873,17 +6535,142 @@
             </div>
             <details class="section-accordion">
               <summary>
-                <h2>{% if language == "hi" %}सेव किए गए चिंतन{% else %}Saved reflections{% endif %}</h2>
+                <h2>{% if language == "hi" %}सेव किए गए चिंतन{% else %}Saved reflections{% endif %} <span class="saved-ref-count">({{ saved_reflections|length }})</span></h2>
               </summary>
               <div class="section-accordion-body">
-                <ul class="mini-list">
+                <label class="conversation-search-shell" style="margin-bottom: 10px;">
+                  <span class="conversation-search-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+                    </svg>
+                  </span>
+                  <input type="search" class="conversation-search-input" data-saved-search placeholder="{% if language == 'hi' %}खोजें…{% else %}Search reflections…{% endif %}" autocomplete="off">
+                </label>
+                <ul class="saved-reflections-list" data-saved-reflections-list>
                   {% for item in saved_reflections %}
-                    <li>{{ item.message }}</li>
+                    <li class="saved-reflection-item" data-saved-id="{{ item.id }}" data-saved-text="{{ item.message|lower }}">
+                      {% if item.verse_references %}
+                        <span class="saved-verse-tags">
+                          {% for ref in item.verse_references %}
+                            <button type="button" class="saved-verse-chip" data-open-verse-reference="{{ ref }}">{{ ref }}</button>
+                          {% endfor %}
+                        </span>
+                      {% endif %}
+                      <p class="saved-reflection-msg">{{ item.message|truncatechars:100 }}</p>
+                      <div class="saved-reflection-foot">
+                        <span class="saved-reflection-date">{{ item.created_at|date:"M j" }}</span>
+                        <button type="button" class="saved-delete-btn" data-delete-saved="{{ item.id }}" title="{% if language == 'hi' %}हटाएं{% else %}Delete{% endif %}">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                      </div>
+                    </li>
                   {% endfor %}
                 </ul>
+                <p class="saved-empty-msg" data-saved-empty hidden>{% if language == "hi" %}कोई मेल नहीं मिला{% else %}No matching reflections{% endif %}</p>
               </div>
             </details>
           </div>
+        {% endif %}
+
+        {% if chat_ui_signed_in %}
+        <!-- Gratitude Journal Panel -->
+        <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="125" data-gratitude-panel>
+          <div class="panel-kicker">
+            <span class="asset-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z" />
+                <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+              </svg>
+            </span>
+            {% if language == "hi" %}कृतज्ञता{% else %}Gratitude{% endif %}
+          </div>
+          <details class="section-accordion">
+            <summary>
+              <h2>{% if language == "hi" %}आज की कृतज्ञता{% else %}Today's Gratitude{% endif %}</h2>
+            </summary>
+            <div class="section-accordion-body">
+              <div class="gratitude-prompt-card">
+                <div class="gratitude-prompt-title">{% if language == "hi" %}तीन बातें जिनके लिए आप कृतज्ञ हैं{% else %}Three things you're grateful for{% endif %}</div>
+                <div class="gratitude-lines">
+                  <div class="gratitude-line">
+                    <span class="gratitude-num">1.</span>
+                    <input type="text" class="gratitude-input" data-grat-input="0" placeholder="{% if language == 'hi' %}आज जो बात आपको खुशी दे गई…{% else %}Something that made you smile today…{% endif %}" value="{{ today_gratitude.item_1|default:'' }}">
+                  </div>
+                  <div class="gratitude-line">
+                    <span class="gratitude-num">2.</span>
+                    <input type="text" class="gratitude-input" data-grat-input="1" placeholder="{% if language == 'hi' %}एक व्यक्ति जिसके लिए आप आभारी हैं…{% else %}Someone you're grateful for…{% endif %}" value="{{ today_gratitude.item_2|default:'' }}">
+                  </div>
+                  <div class="gratitude-line">
+                    <span class="gratitude-num">3.</span>
+                    <input type="text" class="gratitude-input" data-grat-input="2" placeholder="{% if language == 'hi' %}एक छोटी सी कृपा जो आपने महसूस की…{% else %}A small blessing you noticed…{% endif %}" value="{{ today_gratitude.item_3|default:'' }}">
+                  </div>
+                </div>
+                <button type="button" class="btn-secondary gratitude-save-btn" data-grat-save>
+                  {% if language == "hi" %}सहेजें{% else %}Save{% endif %}
+                </button>
+                <div class="gratitude-saved-msg" data-grat-done>{% if language == "hi" %}✓ कृतज्ञता सहेजी गई{% else %}✓ Gratitude saved{% endif %}</div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Insights Panel -->
+        <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="126" data-insights-panel>
+          <div class="panel-kicker">
+            <span class="asset-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>
+              </svg>
+            </span>
+            {% if language == "hi" %}अंतर्दृष्टि{% else %}Insights{% endif %}
+          </div>
+          <details class="section-accordion">
+            <summary>
+              <h2>{% if language == "hi" %}आपकी साधना{% else %}Your Journey{% endif %}</h2>
+            </summary>
+            <div class="section-accordion-body" data-insights-body>
+              <div class="insights-grid" data-insights-grid style="display:none">
+                <div class="insight-card"><div class="insight-value" data-ins-streak>—</div><div class="insight-label">{% if language == "hi" %}दिन की लकीर{% else %}Day Streak{% endif %}</div></div>
+                <div class="insight-card"><div class="insight-value" data-ins-convs>—</div><div class="insight-label">{% if language == "hi" %}संवाद{% else %}Sessions{% endif %}</div></div>
+                <div class="insight-card"><div class="insight-value" data-ins-verses>—</div><div class="insight-label">{% if language == "hi" %}श्लोक खुले{% else %}Verses Opened{% endif %}</div></div>
+                <div class="insight-card"><div class="insight-value" data-ins-med>—</div><div class="insight-label">{% if language == "hi" %}ध्यान मिनट{% else %}Meditation Mins{% endif %}</div></div>
+              </div>
+              <p class="insights-empty" data-insights-empty>{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</p>
+            </div>
+          </details>
+        </div>
+
+        <!-- Reading Journey Panel -->
+        <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="127" data-reading-panel>
+          <div class="panel-kicker">
+            <span class="asset-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            </span>
+            {% if language == "hi" %}गीता पाठ{% else %}Gita Path{% endif %}
+          </div>
+          <details class="section-accordion">
+            <summary>
+              <h2>{% if language == "hi" %}पठन यात्रा{% else %}Reading Journey{% endif %}</h2>
+            </summary>
+            <div class="section-accordion-body">
+              <div class="reading-journey-card" data-reading-journey-card style="display:none">
+                <div class="reading-journey-meta">
+                  <span>{% if language == "hi" %}पठन प्रगति{% else %}Reading progress{% endif %}</span>
+                  <span data-rj-count>—</span>
+                </div>
+                <div class="reading-journey-progress"><div class="reading-journey-fill" data-rj-fill style="width:0%"></div></div>
+                <div class="reading-journey-next" data-rj-next></div>
+              </div>
+              <div data-reading-not-enrolled style="display:none">
+                <p style="font-size:12px;color:rgba(251,246,235,0.55);margin:0 0 10px;">{% if language == "hi" %}क्रमबद्ध गीता पाठ में नामांकन नहीं है।{% else %}Not yet enrolled in the sequential Gita reading path.{% endif %}</p>
+                <button type="button" class="btn-secondary" data-rj-enroll style="font-size:12px;">{% if language == "hi" %}यात्रा शुरू करें{% else %}Start Journey{% endif %}</button>
+              </div>
+              <p class="insights-empty" data-reading-loading>{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</p>
+            </div>
+          </details>
+        </div>
         {% endif %}
 
         <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="130">
@@ -5903,20 +6690,20 @@
               <h2>{% if language == "hi" %}चैट सेटिंग्स{% else %}Chat Settings{% endif %}</h2>
             </summary>
             <div class="section-accordion-body">
-              {% if request.session.chat_ui_auth_username %}
+              {% if chat_ui_signed_in %}
                 <div class="quota">
                   {% if language == "hi" %}
-                    आपकी सेव की गई चैट्स <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong> के अंतर्गत रहती हैं।
+                    आपकी सेव की गई चैट्स <strong>{{ chat_ui_auth_display_name|default:user_id }}</strong> के अंतर्गत रहती हैं।
                   {% else %}
-                    Your saved chats stay under <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong>.
+                    Your saved chats stay under <strong>{{ chat_ui_auth_display_name|default:user_id }}</strong>.
                   {% endif %}
                 </div>
               {% else %}
                 <div class="quota">
                   {% if language == "hi" %}
-                    गेस्ट चैट अस्थायी है। थ्रेड हिस्ट्री सेव करने और बाद में खोलने के लिए साइन इन करें।
+                    गेस्ट चैट अस्थायी है। साइन इन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो सकता है और थ्रेड हिस्ट्री बाद में उपलब्ध रहेगी।
                   {% else %}
-                    Guest chat is temporary. Sign in to save thread history and access it later.
+                    Guest chat is temporary. Sign in to continue your latest question in a new saved thread and access the history later.
                   {% endif %}
                 </div>
               {% endif %}
@@ -5935,7 +6722,7 @@
                   <option value="simple" {% if mode == "simple" %}selected{% endif %}>
                     {% if language == "hi" %}सिंपल - तुरंत, स्पष्ट दिशा{% else %}Simple - Quick, clear guidance{% endif %}
                   </option>
-                  {% if request.session.chat_ui_auth_username and quota_snapshot and quota_snapshot.deep_mode_allowed %}
+                  {% if chat_ui_signed_in and quota_snapshot and quota_snapshot.deep_mode_allowed %}
                     <option value="deep" {% if mode == "deep" %}selected{% endif %}>
                       {% if language == "hi" %}डीप - गहन विश्लेषण और चिंतन{% else %}Deep - Deeper insights and reflection{% endif %}
                     </option>
@@ -5968,7 +6755,7 @@
           </details>
         </div>
 
-        {% if request.session.chat_ui_auth_username %}
+        {% if chat_ui_signed_in %}
           <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="140">
             <div class="panel-kicker">
               <span class="asset-icon" aria-hidden="true">
@@ -6418,7 +7205,7 @@
           </details>
         </div>
 
-        <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="150" {% if not request.session.chat_ui_auth_username %}id="guest-auth-target"{% endif %}>
+        <div class="panel panel-utility" data-aos="fade-right" data-aos-delay="150" {% if not chat_ui_signed_in %}id="guest-auth-target"{% endif %}>
           <div class="panel-kicker">
             <span class="asset-icon" aria-hidden="true">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -6433,13 +7220,13 @@
               <h2>{% if language == "hi" %}अकाउंट{% else %}Account{% endif %}</h2>
             </summary>
             <div class="section-accordion-body">
-              {% if request.session.chat_ui_auth_username %}
+              {% if chat_ui_signed_in %}
                 <p class="hint">
                   {% if language == "hi" %}
-                    <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong> के रूप में लॉगिन।
+                    <strong>{{ chat_ui_auth_display_name|default:user_id }}</strong> के रूप में लॉगिन।
                     कोटा, सेव किए गए चिंतन और एंगेजमेंट के लिए यही अकाउंट उपयोग करें।
                   {% else %}
-                    Logged in as <strong>{{ chat_ui_auth_display_name|default:request.session.chat_ui_auth_username }}</strong>.
+                    Logged in as <strong>{{ chat_ui_auth_display_name|default:user_id }}</strong>.
                     Use this account for quota, saved reflections, and engagement.
                   {% endif %}
                 </p>
@@ -6453,11 +7240,11 @@
                 <p class="hint">
                   {% if language == "hi" %}
                     गेस्ट मोड में चैट केवल इस ब्राउज़र सत्र में अस्थायी रहती है।
-                    यह किसी अकाउंट में सेव नहीं होती और नया सत्र/लॉगआउट पर हट जाती है।
+                    साइन इन या रजिस्टर करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो सकता है, वरना नया सत्र/लॉगआउट पर यह हट जाती है।
                   {% else %}
                     Guest mode keeps this chat temporary inside the current browser
-                    session. It is not saved to any user account and disappears when
-                    you start fresh or log out.
+                    session. Sign in or register to continue the latest question in a
+                    new saved thread; otherwise it disappears when you start fresh or log out.
                   {% endif %}
                 </p>
                 <div class="split">
@@ -6465,6 +7252,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="register">
                     <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                    <input type="hidden" name="continue_guest_chat" value="1">
                     <label for="register_username">{% if language == "hi" %}रजिस्टर यूज़रनेम{% else %}Register username{% endif %}</label>
                     <input id="register_username" name="register_username" placeholder="{% if language == 'hi' %}नया यूज़रनेम{% else %}new username{% endif %}" />
                     <label for="register_password">{% if language == "hi" %}रजिस्टर पासवर्ड{% else %}Register password{% endif %}</label>
@@ -6475,6 +7263,7 @@
                     {% csrf_token %}
                     <input type="hidden" name="action" value="login">
                     <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                    <input type="hidden" name="continue_guest_chat" value="1">
                     <label for="login_username">{% if language == "hi" %}लॉगिन यूज़रनेम{% else %}Login username{% endif %}</label>
                     <input id="login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
                     <label for="login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
@@ -6518,9 +7307,13 @@
               </h2>
               <p class="conversation-panel-meta">
                 {% if conversation_messages %}
-                  {{ conversation_messages|length }} {% if language == "hi" %}संदेश इस थ्रेड में{% else %}messages in this thread{% endif %}
+                  {% if thread_total_messages or thread_total_messages == 0 %}
+                    {{ thread_total_messages }} {% if language == "hi" %}संदेश इस थ्रेड में{% else %}messages in this thread{% endif %}
+                  {% else %}
+                    {{ conversation_messages|length }} {% if language == "hi" %}संदेश इस थ्रेड में{% else %}messages in this thread{% endif %}
+                  {% endif %}
                 {% else %}
-                  {% if request.session.chat_ui_auth_username %}
+                  {% if chat_ui_signed_in %}
                     {% if language == "hi" %}
                       सेव थ्रेड खोलें या नीचे अपना पहला संदेश भेजें।
                     {% else %}
@@ -6528,9 +7321,9 @@
                     {% endif %}
                   {% else %}
                     {% if language == "hi" %}
-                      गेस्ट उत्तर इस ब्राउज़र सत्र में ही रहेंगे, जब तक आप रीसेट या साइन इन नहीं करते।
+                      गेस्ट उत्तर इसी ब्राउज़र सत्र में रहेंगे। साइन इन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो जाएगा, या आप गेस्ट हिस्ट्री रीसेट कर सकते हैं।
                     {% else %}
-                      Guest replies stay in this browser session until you reset or sign in.
+                      Guest replies stay in this browser session. Sign in to continue the latest question in a new saved thread, or reset the guest history.
                     {% endif %}
                   {% endif %}
                 {% endif %}
@@ -6558,10 +7351,19 @@
                   </a>
                 </div>
               </div>
-              {% if active_conversation_id %}
+              {% if chat_ui_signed_in and active_conversation_id %}
                 <div class="conversation-toolbar-meta">
                   <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="conversation-reset-btn">
                     {% if language == "hi" %}नई बातचीत{% else %}Start New{% endif %}
+                  </a>
+                </div>
+              {% elif not chat_ui_signed_in %}
+                <div class="conversation-toolbar-meta">
+                  <a href="#guest-auth-target" class="conversation-reset-btn" data-nav-auth-target="login">
+                    {% if language == "hi" %}साइन इन करें और चैट रखें{% else %}Sign in &amp; keep this chat{% endif %}
+                  </a>
+                  <a href="/api/chat-ui/?new=1&mode={{ mode|default:'simple' }}&language={{ language|default:'en' }}" class="conversation-reset-btn">
+                    {% if language == "hi" %}गेस्ट हिस्ट्री साफ करें{% else %}Clear guest history{% endif %}
                   </a>
                 </div>
               {% endif %}
@@ -6617,7 +7419,44 @@
           {% endif %}
 
           <div class="chat-scroll-area">
-            <div class="transcript" data-transcript>
+            {% if chat_ui_signed_in and active_conversation_id %}
+              <div
+                class="conversation-thread-controls"
+                data-thread-controls
+                data-conversation-id="{{ active_conversation_id|default:'' }}"
+                data-thread-next-offset="{{ thread_messages_next_offset|default:'' }}"
+                data-thread-limit="{{ thread_page_limit|default:30 }}"
+                data-thread-refresh-url="/api/chat-ui/?conversation_id={{ active_conversation_id|urlencode }}&mode={{ mode|default:'simple'|urlencode }}&language={{ language|default:'en'|urlencode }}"
+                data-thread-authenticated="{% if chat_ui_signed_in %}1{% else %}0{% endif %}"
+              >
+                <button
+                  type="button"
+                  class="conversation-reset-btn"
+                  data-thread-refresh
+                  data-label-default="{% if language == 'hi' %}धागा ताज़ा करें{% else %}Refresh thread{% endif %}"
+                  data-label-loading="{% if language == 'hi' %}धागा ताज़ा हो रहा है…{% else %}Refreshing thread…{% endif %}"
+                >
+                  {% if language == "hi" %}धागा ताज़ा करें{% else %}Refresh thread{% endif %}
+                </button>
+                <button
+                  type="button"
+                  class="conversation-reset-btn"
+                  data-thread-load-older
+                  data-label-default="{% if language == 'hi' %}पुराने संदेश लोड करें{% else %}Load older messages{% endif %}"
+                  data-label-loading="{% if language == 'hi' %}लोड हो रहा है…{% else %}Loading…{% endif %}"
+                  {% if not thread_messages_has_more %}hidden{% endif %}
+                >
+                  {% if language == "hi" %}पुराने संदेश लोड करें{% else %}Load older messages{% endif %}
+                </button>
+                <span class="conversation-thread-status" data-thread-status aria-live="polite"></span>
+              </div>
+            {% endif %}
+            <div
+              class="transcript"
+              data-transcript
+              data-thread-total-count="{% if thread_total_messages or thread_total_messages == 0 %}{{ thread_total_messages }}{% else %}{{ conversation_messages|length }}{% endif %}"
+              data-thread-empty-label="{% if language == 'hi' %}अभी कोई संदेश नहीं है। नीचे बातचीत शुरू करें।{% else %}No messages yet. Start the conversation below.{% endif %}"
+            >
               {% if conversation_messages %}
                 {% for item in conversation_messages %}
                   <div
@@ -6633,11 +7472,13 @@
                         {% if language == "hi" %}मार्गदर्शन{% else %}Guide{% endif %}
                       {% endif %}
                     </span>
-                    {% if response_data and forloop.last and item.role != 'user' %}
+                    {% if item.role != 'user' %}
                       <div class="assistant-stack">
-                        <div class="reply-main">
-                          <span class="typing-text">{{ item.content }}</span><span class="typing-cursor" aria-hidden="true">|</span>
+                        <div class="reply-main" data-guidance-body>
+                          <span class="typing-text">{{ item.content }}</span>{% if response_data and forloop.last %}<span class="typing-cursor" aria-hidden="true">|</span>{% endif %}
                         </div>
+                        <button type="button" class="guidance-toggle" data-guidance-toggle style="display:none" aria-expanded="true"></button>
+                        {% if response_data and forloop.last %}
                         <div class="reply-grid">
                           {% if response_data.show_meaning %}
                             <div class="reply-section warm">
@@ -6694,10 +7535,13 @@
 	                            </div>
                               {% endif %}
 	                        </div>
+                        {% endif %}
                         <div class="reply-share-row">
                           <div class="reply-actions-bar" data-reply-actions>
+                            {% if chat_ui_signed_in %}
                             <button type="button" class="reply-act-btn act-like" data-reply-like>{% if language == "hi" %}👍 पसंद{% else %}👍 Like{% endif %}</button>
                             <button type="button" class="reply-act-btn act-dislike" data-reply-dislike>{% if language == "hi" %}👎 नहीं{% else %}👎 Dislike{% endif %}</button>
+                            {% endif %}
                             <button type="button" class="reply-act-btn act-copy" data-reply-copy>{% if language == "hi" %}📋 कॉपी{% else %}📋 Copy{% endif %}</button>
                             <button type="button" class="reply-act-btn" data-share-answer data-language="{{ language|default:'en' }}">{% if language == "hi" %}↗ शेयर{% else %}↗ Share{% endif %}</button>
                           </div>
@@ -6709,14 +7553,14 @@
                           >
                             {% if language == "hi" %}इस उत्तर को शेयर करें{% else %}Share this answer{% endif %}
                           </button>
-                          <script type="application/json" id="share-answer-payload">
+                          <script type="application/json" data-reply-payload>
                             {
-                              "question": "{{ response_data.question|default:''|escapejs }}",
-                              "guidance": "{{ response_data.guidance|default:''|escapejs }}",
-                              "meaning": "{{ response_data.meaning|default:''|escapejs }}",
-                              "actions": [{% for action in response_data.actions %}"{{ action|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
-                              "reflection": "{{ response_data.reflection|default:''|escapejs }}",
-                              "verse_references": [{% for ref in response_data.verse_references %}"{{ ref|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}],
+                              "message": "",
+                              "guidance": "{{ item.content|default:''|escapejs }}",
+                              "response_preview": "{{ item.content|default:''|escapejs }}",
+                              "response_mode": "{% if response_data and forloop.last %}{{ response_data.response_mode|default:'fallback'|escapejs }}{% else %}fallback{% endif %}",
+                              "verse_references": [{% if response_data and forloop.last %}{% for ref in response_data.verse_references %}"{{ ref|escapejs }}"{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}],
+                              "conversation_id": "{{ active_conversation_id|default:''|escapejs }}",
                               "language": "{{ language|default:'en' }}"
                             }
                           </script>
@@ -7114,7 +7958,7 @@
             </div>
           </div>
 
-          {% if not request.session.chat_ui_auth_username %}
+          {% if not chat_ui_signed_in %}
             <div class="panel panel-secondary guest-access-panel" id="guest-auth-target" data-aos="fade-left" data-aos-delay="80">
               <div class="panel-kicker">
                 <span class="asset-icon" aria-hidden="true">
@@ -7142,15 +7986,15 @@
                 {% else %}
                   {% if guest_quota_snapshot and guest_quota_snapshot.limit_enabled %}
                     {% if language == "hi" %}
-                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अकाउंट बनाने या लॉगिन करने पर आपकी भविष्य की बातचीत, सेव किए गए चिंतन और थ्रेड इतिहास सुरक्षित रहेंगे। अभी {{ guest_quota_snapshot.remaining_asks|default:3 }} में से {{ guest_quota_snapshot.ask_limit|default:3 }} गेस्ट प्रश्न उपलब्ध हैं।
+                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अकाउंट बनाने या लॉगिन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो जाएगा और भविष्य की बातचीत, सेव किए गए चिंतन व थ्रेड इतिहास सुरक्षित रहेंगे। अभी {{ guest_quota_snapshot.remaining_asks|default:3 }} में से {{ guest_quota_snapshot.ask_limit|default:3 }} गेस्ट प्रश्न उपलब्ध हैं।
                     {% else %}
-                      Guest mode keeps your chat only in this browser session. Register or log in if you want future conversations, saved reflections, and thread history to stay with you. You currently have {{ guest_quota_snapshot.remaining_asks|default:3 }} of {{ guest_quota_snapshot.ask_limit|default:3 }} guest questions left.
+                      Guest mode keeps your chat only in this browser session. Register or log in to continue your latest question in a new saved thread and keep future conversations, saved reflections, and history with you. You currently have {{ guest_quota_snapshot.remaining_asks|default:3 }} of {{ guest_quota_snapshot.ask_limit|default:3 }} guest questions left.
                     {% endif %}
                   {% else %}
                     {% if language == "hi" %}
-                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अभी गेस्ट प्रश्नों पर कोई सीमा लागू नहीं है, लेकिन अकाउंट बनाने या लॉगिन करने पर आपकी बातचीत और सेव चिंतन आपके साथ सुरक्षित रहेंगे।
+                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अभी गेस्ट प्रश्नों पर कोई सीमा लागू नहीं है, लेकिन अकाउंट बनाने या लॉगिन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो सकता है और आपकी बातचीत व सेव चिंतन आपके साथ सुरक्षित रहेंगे।
                     {% else %}
-                      Guest mode keeps your chat only in this browser session. Guest asks are currently unlimited, but creating an account or logging in will keep your conversations and saved reflections with you.
+                      Guest mode keeps your chat only in this browser session. Guest asks are currently unlimited, but creating an account or logging in will continue your latest question in a new saved thread and keep future conversations and reflections with you.
                     {% endif %}
                   {% endif %}
                 {% endif %}
@@ -7160,6 +8004,7 @@
                   {% csrf_token %}
                   <input type="hidden" name="action" value="register">
                   <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                  <input type="hidden" name="continue_guest_chat" value="1">
                   <label for="guest_register_username">{% if language == "hi" %}रजिस्टर यूज़रनेम{% else %}Register username{% endif %}</label>
                   <input id="guest_register_username" name="register_username" placeholder="{% if language == 'hi' %}नया यूज़रनेम{% else %}new username{% endif %}" />
                   <label for="guest_register_password">{% if language == "hi" %}रजिस्टर पासवर्ड{% else %}Register password{% endif %}</label>
@@ -7170,6 +8015,7 @@
                   {% csrf_token %}
                   <input type="hidden" name="action" value="login">
                   <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                  <input type="hidden" name="continue_guest_chat" value="1">
                   <label for="guest_login_username">{% if language == "hi" %}लॉगिन यूज़रनेम{% else %}Login username{% endif %}</label>
                   <input id="guest_login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
                   <label for="guest_login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
@@ -7219,7 +8065,7 @@
             </div>
           {% endif %}
 
-          {% if request.session.chat_ui_auth_username %}
+          {% if chat_ui_signed_in %}
             <div class="split">
               <div class="panel" data-aos="fade-up" data-aos-delay="90">
                 <div class="panel-kicker">
@@ -7234,6 +8080,15 @@
                   {% if language == "hi" %}प्रतिक्रिया{% else %}Feedback{% endif %}
                 </div>
                 <h3>{% if language == "hi" %}क्या यह सहायक था?{% else %}Was this helpful?{% endif %}</h3>
+                {% if feedback_already_recorded %}
+                  <p class="support-help">
+                    {% if language == "hi" %}
+                      इस उत्तर के लिए आपकी प्रतिक्रिया पहले ही सहेजी जा चुकी है।
+                    {% else %}
+                      Your feedback for this answer is already saved.
+                    {% endif %}
+                  </p>
+                {% else %}
                 <form method="post" class="quick-submit">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="feedback">
@@ -7242,12 +8097,18 @@
                   <input type="hidden" name="language" value="{{ language|default:'en' }}">
                   <input type="hidden" name="message" value="{{ message|default:'' }}">
                   <input type="hidden" name="conversation_id" value="{{ response_data.conversation_id }}">
+                  <input type="hidden" name="guidance" value="{{ response_data.guidance }}">
+                  <input type="hidden" name="meaning" value="{{ response_data.meaning }}">
+                  <input type="hidden" name="reflection" value="{{ response_data.reflection }}">
+                  <input type="hidden" name="actions" value="{{ response_data.actions|join:'|' }}">
+                  <input type="hidden" name="verse_references" value="{{ response_data.verse_references|join:'|' }}">
                   <input type="hidden" name="response_mode" value="{{ response_data.response_mode|default:'fallback' }}">
                   <label for="note">{% if language == "hi" %}वैकल्पिक नोट{% else %}Optional note{% endif %}</label>
                   <input id="note" name="note" placeholder="{% if language == 'hi' %}क्या अच्छा रहा या क्या सुधारें?{% else %}What worked or what to improve?{% endif %}" />
                   <button type="submit" name="helpful" value="true" class="btn-secondary">{% if language == "hi" %}सहायक{% else %}Helpful{% endif %}</button>
                   <button type="submit" name="helpful" value="false" class="btn-ghost">{% if language == "hi" %}सहायक नहीं{% else %}Not Helpful{% endif %}</button>
                 </form>
+                {% endif %}
               </div>
 
               <div class="panel" data-aos="fade-up" data-aos-delay="120">
@@ -7261,6 +8122,15 @@
                   {% if language == "hi" %}सहेजें{% else %}Keep This{% endif %}
                 </div>
                 <h3>{% if language == "hi" %}इस चिंतन को सेव करें{% else %}Save this reflection{% endif %}</h3>
+                {% if reflection_already_saved %}
+                  <p class="support-help">
+                    {% if language == "hi" %}
+                      यह चिंतन इस उत्तर के लिए पहले ही सहेजा जा चुका है।
+                    {% else %}
+                      This reflection is already saved.
+                    {% endif %}
+                  </p>
+                {% else %}
                 <form method="post" class="quick-submit">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="save">
@@ -7278,68 +8148,25 @@
                   <input id="save-note" name="note" placeholder="{% if language == 'hi' %}आपने इसे क्यों सेव किया?{% else %}Why did you save this?{% endif %}" />
                   <button type="submit">{% if language == "hi" %}चिंतन सेव करें{% else %}Save Reflection{% endif %}</button>
                 </form>
-              </div>
-            </div>
-
-            <div class="split">
-              <div class="panel" id="mood-checkin" data-aos="fade-up" data-aos-delay="130">
-                <div class="panel-kicker">{% if language == "hi" %}मूड चेक-इन{% else %}Mood check-in{% endif %}</div>
-                <h3>{% if language == "hi" %}आज आप कैसा महसूस कर रहे हैं?{% else %}How are you feeling today?{% endif %}</h3>
-                <form method="post" class="quick-submit mood-strip" data-mood-form>
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="mood_checkin">
-                  <input type="hidden" name="language" value="{{ language|default:'en' }}">
-                  <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-                  <input type="hidden" name="mood" value="{{ today_mood|default:'' }}" data-mood-value>
-                  <div class="mood-pills" role="group" aria-label="{% if language == 'hi' %}मूड विकल्प{% else %}Mood options{% endif %}">
-                    <button type="button" class="mood-pill{% if today_mood == 'happy' %} active{% endif %}" data-mood-pill="happy"><span class="mood-emoji">😊</span><span>{% if language == "hi" %}खुश{% else %}Happy{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'grateful' %} active{% endif %}" data-mood-pill="grateful"><span class="mood-emoji">🥰</span><span>{% if language == "hi" %}आभारी{% else %}Grateful{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'relaxed' %} active{% endif %}" data-mood-pill="relaxed"><span class="mood-emoji">😌</span><span>{% if language == "hi" %}शांत{% else %}Relaxed{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'content' %} active{% endif %}" data-mood-pill="content"><span class="mood-emoji">🙂</span><span>{% if language == "hi" %}संतुष्ट{% else %}Content{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'excited' %} active{% endif %}" data-mood-pill="excited"><span class="mood-emoji">😛</span><span>{% if language == "hi" %}उत्साहित{% else %}Excited{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'tired' %} active{% endif %}" data-mood-pill="tired"><span class="mood-emoji">😴</span><span>{% if language == "hi" %}थका{% else %}Tired{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'unsure' %} active{% endif %}" data-mood-pill="unsure"><span class="mood-emoji">😕</span><span>{% if language == "hi" %}अनिश्चित{% else %}Unsure{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'bored' %} active{% endif %}" data-mood-pill="bored"><span class="mood-emoji">😑</span><span>{% if language == "hi" %}उबाऊ{% else %}Bored{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'anxious' %} active{% endif %}" data-mood-pill="anxious"><span class="mood-emoji">😬</span><span>{% if language == "hi" %}चिंतित{% else %}Anxious{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'angry' %} active{% endif %}" data-mood-pill="angry"><span class="mood-emoji">😤</span><span>{% if language == "hi" %}क्रोधित{% else %}Angry{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'stressed' %} active{% endif %}" data-mood-pill="stressed"><span class="mood-emoji">😣</span><span>{% if language == "hi" %}तनावग्रस्त{% else %}Stressed{% endif %}</span></button>
-                    <button type="button" class="mood-pill{% if today_mood == 'sad' %} active{% endif %}" data-mood-pill="sad"><span class="mood-emoji">😢</span><span>{% if language == "hi" %}उदास{% else %}Sad{% endif %}</span></button>
-                  </div>
-                  <input class="gratitude-input" type="text" name="mood_note" maxlength="300" placeholder="{% if language == 'hi' %}वैकल्पिक नोट{% else %}Optional note{% endif %}" />
-                  <button type="submit">{% if language == "hi" %}आज का मूड सेव करें{% else %}Save today's mood{% endif %}</button>
-                </form>
-              </div>
-
-              <div class="panel" id="gratitude" data-aos="fade-up" data-aos-delay="150">
-                <div class="gratitude-prompt-card">
-                  <div class="gratitude-prompt-title">{% if language == "hi" %}आज की कृतज्ञता{% else %}Today gratitude{% endif %}</div>
-                  <form method="post" class="quick-submit">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="gratitude_save">
-                    <input type="hidden" name="language" value="{{ language|default:'en' }}">
-                    <input type="hidden" name="mode" value="{{ mode|default:'simple' }}">
-                    <div class="gratitude-lines">
-                      <div class="gratitude-line"><span class="gratitude-num">1</span><input class="gratitude-input" type="text" name="g1" maxlength="300" value="{{ today_gratitude.item_1|default:'' }}" placeholder="{% if language == 'hi' %}मैं आभारी हूं...{% else %}I am grateful for...{% endif %}" /></div>
-                      <div class="gratitude-line"><span class="gratitude-num">2</span><input class="gratitude-input" type="text" name="g2" maxlength="300" value="{{ today_gratitude.item_2|default:'' }}" placeholder="{% if language == 'hi' %}मैं आभारी हूं...{% else %}I am grateful for...{% endif %}" /></div>
-                      <div class="gratitude-line"><span class="gratitude-num">3</span><input class="gratitude-input" type="text" name="g3" maxlength="300" value="{{ today_gratitude.item_3|default:'' }}" placeholder="{% if language == 'hi' %}मैं आभारी हूं...{% else %}I am grateful for...{% endif %}" /></div>
-                    </div>
-                    <button type="submit" style="margin-top:12px;">{% if language == "hi" %}कृतज्ञता सेव करें{% else %}Save gratitude{% endif %}</button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          {% else %}
-            <div class="panel" data-aos="fade-up" data-aos-delay="90">
-              <h3>{% if language == "hi" %}अस्थायी गेस्ट उत्तर{% else %}Temporary guest reply{% endif %}</h3>
-              <div class="section">
-                {% if language == "hi" %}
-                  यह उत्तर केवल वर्तमान ब्राउज़र सत्र में सुरक्षित है, ताकि आप फिलहाल बातचीत जारी रख सकें।
-                  यदि आप थ्रेड हिस्ट्री, सेव चिंतन, फीडबैक ट्रैकिंग और अकाउंट-आधारित कोटा चाहते हैं तो साइन इन करें।
-                {% else %}
-                  This response is only stored in the current browser session so you can continue the conversation for now.
-                  Sign in if you want thread history, saved reflections, feedback tracking, and quota settings tied to your account.
                 {% endif %}
               </div>
+            </div>
+
+          {% else %}
+            <div class="panel" data-aos="fade-up" data-aos-delay="90">
+              <h3>{% if language == "hi" %}इस मार्गदर्शन को सुरक्षित रखें{% else %}Keep this guidance{% endif %}</h3>
+              <div class="section">
+                {% if language == "hi" %}
+                  इस मार्गदर्शन को सेव करने और डिवाइसों के बीच सिंक करने के लिए साइन इन करें।
+                  आपका नवीनतम गेस्ट प्रश्न एक नए सेव थ्रेड में जारी रहेगा, लेकिन तब तक यह चैट केवल इसी ब्राउज़र सत्र में अस्थायी रहेगी।
+                {% else %}
+                  Sign in to save this guidance and sync across devices.
+                  Your latest guest question will continue in a new saved thread, but until then this chat stays temporary in the current browser session.
+                {% endif %}
+              </div>
+              <a href="#guest-auth-target" class="nav-btn nav-btn-secondary" data-nav-auth-target="login" style="margin-top: 12px; width: fit-content;">
+                {% if language == "hi" %}साइन इन करें और चैट रखें{% else %}Sign in &amp; keep this chat{% endif %}
+              </a>
             </div>
           {% endif %}
         {% else %}
@@ -7360,7 +8187,7 @@
           class="community-preview"
           data-community-preview
           data-preview-limit="4"
-          data-community-logged-in="{% if request.session.chat_ui_auth_username %}1{% else %}0{% endif %}"
+          data-community-logged-in="{% if chat_ui_signed_in %}1{% else %}0{% endif %}"
           data-api-base="/api/community/posts/"
           data-lang="{{ language|default:'en' }}"
         >
@@ -7423,7 +8250,7 @@
                 </a>
               </header>
 
-              {% if request.session.chat_ui_auth_username %}
+              {% if chat_ui_signed_in %}
                 <div class="community-preview-compose">
                   <label class="community-preview-label" for="community-root-input">
                     {% if language == "hi" %}नई टिप्पणी{% else %}New comment{% endif %}
@@ -7486,7 +8313,7 @@
     </div>
   </div>
 
-  {% if not request.session.chat_ui_auth_username %}
+  {% if not chat_ui_signed_in %}
     <div class="auth-modal-overlay" data-auth-modal-overlay></div>
     <div class="auth-modal" data-auth-modal>
       <div class="auth-modal-shell">
@@ -7504,9 +8331,9 @@
             <h2>{% if language == "hi" %}यात्रा सहेजें{% else %}Save Your Journey{% endif %}</h2>
             <p>
               {% if language == "hi" %}
-                अकाउंट बनाइए या लॉगिन कीजिए ताकि आपकी बातचीत, चिंतन और इतिहास आपके साथ सुरक्षित रहे।
+                अकाउंट बनाइए या लॉगिन कीजिए ताकि आपका नवीनतम गेस्ट प्रश्न नए थ्रेड में जारी हो और आपकी बातचीत, चिंतन व इतिहास सुरक्षित रहे।
               {% else %}
-                Register or log in so your conversations, reflections, and history stay with you.
+                Register or log in so your latest guest question continues in a new thread and your conversations, reflections, and history stay with you.
               {% endif %}
             </p>
           </div>
@@ -7538,6 +8365,7 @@
               {% csrf_token %}
               <input type="hidden" name="action" value="register">
               <input type="hidden" name="language" value="{{ language|default:'en' }}">
+              <input type="hidden" name="continue_guest_chat" value="1">
               <label for="auth_modal_register_username">{% if language == "hi" %}रजिस्टर यूज़रनेम{% else %}Register username{% endif %}</label>
               <input id="auth_modal_register_username" name="register_username" placeholder="{% if language == 'hi' %}नया यूज़रनेम{% else %}new username{% endif %}" />
               <label for="auth_modal_register_password">{% if language == "hi" %}रजिस्टर पासवर्ड{% else %}Register password{% endif %}</label>
@@ -7550,6 +8378,7 @@
               {% csrf_token %}
               <input type="hidden" name="action" value="login">
               <input type="hidden" name="language" value="{{ language|default:'en' }}">
+              <input type="hidden" name="continue_guest_chat" value="1">
               <label for="auth_modal_login_username">{% if language == "hi" %}लॉगिन यूज़रनेम{% else %}Login username{% endif %}</label>
               <input id="auth_modal_login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
               <label for="auth_modal_login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
@@ -7824,7 +8653,7 @@
         });
       });
 
-      function animateTyping(container, speed) {
+      function animateTyping(container, speed, onComplete) {
         if (!container) {
           return;
         }
@@ -7846,6 +8675,9 @@
             textNode.textContent = fullText;
             cursorNode.remove();
             container.classList.remove("typing-live");
+            if (typeof onComplete === 'function') {
+              onComplete(container);
+            }
             return;
           }
 
@@ -7861,13 +8693,36 @@
         tick();
       }
 
+      const GUIDANCE_TOGGLE_THRESHOLD = 380;
+
+      function initGuidanceToggle(bodyEl) {
+        if (!bodyEl) return;
+        const toggleBtn = bodyEl.parentElement
+          ? bodyEl.parentElement.querySelector('[data-guidance-toggle]')
+          : null;
+        if (!toggleBtn) return;
+        const text = bodyEl.textContent || '';
+        if (text.length <= GUIDANCE_TOGGLE_THRESHOLD) return;
+        bodyEl.classList.add('is-collapsed');
+        toggleBtn.style.display = '';
+        toggleBtn.textContent = 'Show more';
+        toggleBtn.setAttribute('aria-expanded', 'false');
+        toggleBtn.addEventListener('click', function () {
+          const collapsed = bodyEl.classList.toggle('is-collapsed');
+          toggleBtn.textContent = collapsed ? 'Show more' : 'Show less';
+          toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+        });
+      }
+
       animateTyping(
         document.querySelector('[data-typing-target="latest-reply"]'),
         18,
+        function (el) { initGuidanceToggle(el && el.closest('[data-guidance-body]')); },
       );
       animateTyping(
         document.querySelector('[data-typing-target="guidance-panel"]'),
         11,
+        function (el) { initGuidanceToggle(el && el.closest('[data-guidance-body]')); },
       );
 
       function buildBubble(role, contentHtml) {
@@ -8127,11 +8982,43 @@
 
         const list = scrollRoot.querySelector("[data-conversation-list]");
         const loading = scrollRoot.querySelector("[data-conversation-loading]");
+        const empty = scrollRoot.querySelector("[data-conversation-empty]");
+        const panel = scrollRoot.closest(".panel") || scrollRoot.parentElement;
+        const searchInput = panel?.querySelector("[data-conversation-search]");
+        const clearBtn = panel?.querySelector("[data-conversation-clear]");
+        const sortButtons = Array.from(
+          panel?.querySelectorAll("[data-conversation-sort]") || []
+        );
+        const threadStat = panel?.querySelector('[data-conversation-stat="threads"]');
+        const messageStat = panel?.querySelector('[data-conversation-stat="messages"]');
+        const latestStat = panel?.querySelector('[data-conversation-stat="latest"]');
+        const initialItemsNode = document.getElementById("chat-ui-conversation-items");
         if (!list) {
           return;
         }
 
+        const language = scrollRoot.dataset.language || "en";
+        const locale = language === "hi" ? "hi-IN" : undefined;
+        const labels = language === "hi"
+          ? {
+              today: "आज",
+              thisWeek: "इस सप्ताह",
+              earlier: "पुराने",
+              updated: "अपडेट",
+              deleteLabel: "हटाएं",
+            }
+          : {
+              today: "Today",
+              thisWeek: "This week",
+              earlier: "Earlier",
+              updated: "Updated",
+              deleteLabel: "Delete",
+            };
+
         let fetching = false;
+        let searchQuery = "";
+        let sortOrder = "newest";
+        let items = [];
 
         function escapeHtml(value) {
           return String(value || "")
@@ -8140,16 +9027,147 @@
             .replaceAll(">", "&gt;");
         }
 
-        function appendItems(items) {
+        function readJsonScript(node) {
+          if (!node || !node.textContent) {
+            return [];
+          }
+          try {
+            const parsed = JSON.parse(node.textContent);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (error) {
+            return [];
+          }
+        }
+
+        function getCsrfToken() {
+          const tokenInput = document.querySelector('[name="csrfmiddlewaretoken"]');
+          if (tokenInput && tokenInput.value) {
+            return tokenInput.value;
+          }
+          const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+          return match ? decodeURIComponent(match[1]) : "";
+        }
+
+        function normalizeItem(item) {
+          if (!item || item.id === undefined || item.id === null) {
+            return null;
+          }
+          return {
+            ...item,
+            id: String(item.id),
+            message_count: Number(item.message_count) || 0,
+            updated_at_iso: String(item.updated_at_iso || ""),
+          };
+        }
+
+        function rowDate(item) {
+          const raw = item.updated_at_iso || "";
+          const date = raw ? new Date(raw) : new Date(0);
+          return Number.isNaN(date.getTime()) ? new Date(0) : date;
+        }
+
+        function formatShortDate(value) {
+          const date = value ? new Date(value) : new Date(0);
+          if (Number.isNaN(date.getTime()) || date.getTime() === 0) {
+            return "-";
+          }
+          return date.toLocaleDateString(locale, {
+            month: "short",
+            day: "numeric",
+          });
+        }
+
+        function updateStats() {
+          const totalMessages = items.reduce(
+            (sum, item) => sum + (Number(item.message_count) || 0),
+            0,
+          );
+          if (threadStat) {
+            threadStat.textContent = String(items.length);
+          }
+          if (messageStat) {
+            messageStat.textContent = String(totalMessages);
+          }
+          if (latestStat) {
+            latestStat.textContent = formatShortDate(items[0]?.updated_at_iso || "");
+          }
+        }
+
+        function setSortState() {
+          sortButtons.forEach((button) => {
+            const isActive = button.dataset.conversationSort === sortOrder;
+            button.classList.toggle("active", isActive);
+            button.setAttribute("aria-pressed", isActive ? "true" : "false");
+          });
+        }
+
+        function getFilteredItems() {
+          let filtered = items;
+          if (searchQuery.trim()) {
+            const query = searchQuery.trim().toLowerCase();
+            filtered = items.filter((item) => {
+              const title = String(item.title || "").toLowerCase();
+              const preview = String(item.preview || "").toLowerCase();
+              return title.includes(query) || preview.includes(query);
+            });
+          }
+          if (sortOrder === "oldest") {
+            filtered = [...filtered].reverse();
+          }
+          return filtered;
+        }
+
+        function groupItems(sourceItems) {
+          const now = new Date();
+          const startOfToday = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+          const startOfWeek = new Date(startOfToday);
+          startOfWeek.setDate(startOfWeek.getDate() - 7);
+
+          const today = [];
+          const thisWeek = [];
+          const earlier = [];
+
+          sourceItems.forEach((item) => {
+            const updatedAt = rowDate(item);
+            if (updatedAt >= startOfToday) {
+              today.push(item);
+            } else if (updatedAt >= startOfWeek) {
+              thisWeek.push(item);
+            } else {
+              earlier.push(item);
+            }
+          });
+
+          const groups = [];
+          if (today.length) {
+            groups.push({ label: labels.today, items: today });
+          }
+          if (thisWeek.length) {
+            groups.push({ label: labels.thisWeek, items: thisWeek });
+          }
+          if (earlier.length) {
+            groups.push({ label: labels.earlier, items: earlier });
+          }
+          if (!groups.length && sourceItems.length) {
+            groups.push({ label: labels.earlier, items: [...sourceItems] });
+          }
+          return groups;
+        }
+
+        function renderCard(item, csrfToken) {
           const mode = scrollRoot.dataset.mode || "simple";
-          const language = scrollRoot.dataset.language || "en";
           const activeId = scrollRoot.dataset.activeConversationId || "";
-          items.forEach((item) => {
-            const card = document.createElement("div");
-            const isActive = String(item.id) === String(activeId);
-            card.className = `conversation-card${isActive ? " active" : ""}`;
-            const updatedLabel = language === "hi" ? "अपडेट" : "Updated";
-            card.innerHTML = `
+          const userId = scrollRoot.dataset.userId || "guest";
+          const isActive = String(item.id) === String(activeId);
+          const csrfField = csrfToken
+            ? `<input type="hidden" name="csrfmiddlewaretoken" value="${escapeHtml(csrfToken)}">`
+            : "";
+          return `
+            <div class="conversation-card${isActive ? " active" : ""}">
               <div class="conversation-card-top">
                 <a
                   href="/api/chat-ui/?conversation_id=${encodeURIComponent(item.id)}&mode=${encodeURIComponent(mode)}&language=${encodeURIComponent(language)}"
@@ -8160,14 +9178,80 @@
                   <span class="conversation-preview">${escapeHtml(item.preview)}</span>
                   <span class="conversation-meta">
                     <span>${escapeHtml(item.message_count_label)}</span>
-                    <span>${updatedLabel} ${escapeHtml(item.updated_label)}</span>
+                    <span>${labels.updated} ${escapeHtml(item.updated_label)}</span>
                   </span>
                 </a>
+                <form method="post" class="quick-submit">
+                  ${csrfField}
+                  <input type="hidden" name="action" value="delete_conversation">
+                  <input type="hidden" name="user_id" value="${escapeHtml(userId)}">
+                  <input type="hidden" name="mode" value="${escapeHtml(mode)}">
+                  <input type="hidden" name="language" value="${escapeHtml(language)}">
+                  <input type="hidden" name="conversation_id" value="${escapeHtml(item.id)}">
+                  <input type="hidden" name="active_conversation_id" value="${escapeHtml(activeId)}">
+                  <button
+                    type="submit"
+                    class="conversation-delete"
+                    title="${escapeHtml(item.updated_at_display)}"
+                  >
+                    ${labels.deleteLabel}
+                  </button>
+                </form>
               </div>
-            `;
-            list.appendChild(card);
-          });
+            </div>
+          `;
         }
+
+        function renderList() {
+          const filteredItems = getFilteredItems();
+          const groups = groupItems(filteredItems);
+          const csrfToken = getCsrfToken();
+
+          if (clearBtn) {
+            clearBtn.hidden = !searchQuery.trim();
+          }
+          setSortState();
+          updateStats();
+
+          if (!filteredItems.length) {
+            list.innerHTML = "";
+            if (empty) {
+              empty.hidden = false;
+            }
+            return;
+          }
+
+          if (empty) {
+            empty.hidden = true;
+          }
+
+          list.innerHTML = groups.map((group) => `
+            <section class="conversation-group">
+              <div class="conversation-group-label">${escapeHtml(group.label)}</div>
+              <div class="conversation-group-items">
+                ${group.items.map((item) => renderCard(item, csrfToken)).join("")}
+              </div>
+            </section>
+          `).join("");
+        }
+
+        function mergeItems(nextItems) {
+          const seenIds = new Set(items.map((item) => String(item.id)));
+          nextItems.forEach((rawItem) => {
+            const item = normalizeItem(rawItem);
+            if (!item || seenIds.has(item.id)) {
+              return;
+            }
+            seenIds.add(item.id);
+            items.push(item);
+          });
+          renderList();
+        }
+
+        items = readJsonScript(initialItemsNode)
+          .map(normalizeItem)
+          .filter(Boolean);
+        renderList();
 
         async function maybeLoadMore() {
           if (fetching) {
@@ -8205,8 +9289,11 @@
               method: "GET",
               headers: { "X-Requested-With": "XMLHttpRequest" },
             });
+            if (!response.ok) {
+              throw new Error("conversation_fragment_load_failed");
+            }
             const payload = await response.json();
-            appendItems(payload.items || []);
+            mergeItems(payload.items || []);
             scrollRoot.dataset.hasMore = payload.has_more ? "true" : "false";
             scrollRoot.dataset.nextOffset = (
               payload.next_offset === null || payload.next_offset === undefined
@@ -8222,6 +9309,31 @@
             }
           }
         }
+
+        searchInput?.addEventListener("input", (event) => {
+          searchQuery = String(event.target.value || "");
+          renderList();
+        });
+
+        clearBtn?.addEventListener("click", () => {
+          searchQuery = "";
+          if (searchInput) {
+            searchInput.value = "";
+            searchInput.focus();
+          }
+          renderList();
+        });
+
+        sortButtons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const nextSort = button.dataset.conversationSort || "newest";
+            if (sortOrder === nextSort) {
+              return;
+            }
+            sortOrder = nextSort;
+            renderList();
+          });
+        });
 
         scrollRoot.addEventListener("scroll", maybeLoadMore);
       }
@@ -8240,6 +9352,267 @@
           credentials: "same-origin",
           headers: h,
         });
+      }
+
+      function getChatTokenCookie() {
+        const match = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      }
+
+      function initConversationThreadPaging() {
+        const controls = document.querySelector('[data-thread-controls]');
+        const transcript = document.querySelector('[data-transcript]');
+        if (!controls || !transcript || controls.dataset.bound === 'true') {
+          return;
+        }
+        controls.dataset.bound = 'true';
+
+        const refreshBtn = controls.querySelector('[data-thread-refresh]');
+        const loadOlderBtn = controls.querySelector('[data-thread-load-older]');
+        const statusNode = controls.querySelector('[data-thread-status]');
+        const conversationId = String(controls.dataset.conversationId || '').trim();
+        const threadLimit = Math.max(
+          parseInt(controls.dataset.threadLimit || '30', 10) || 30,
+          1,
+        );
+
+        if (!conversationId) {
+          return;
+        }
+
+        function currentLanguage() {
+          return (
+            document.querySelector('#sidebar_language')?.value
+            || document.querySelector('input[name="language"]')?.value
+            || 'en'
+          );
+        }
+
+        function setStatus(message, isError = false) {
+          if (!statusNode) {
+            return;
+          }
+          statusNode.textContent = message || '';
+          statusNode.classList.toggle('is-error', Boolean(message && isError));
+        }
+
+        function setBusy(button, busy) {
+          if (!button) {
+            return;
+          }
+          const defaultLabel = button.dataset.labelDefault || button.textContent || '';
+          const loadingLabel = button.dataset.labelLoading || defaultLabel;
+          button.disabled = busy;
+          button.textContent = busy ? loadingLabel : defaultLabel;
+        }
+
+        function buildReplyPayload(content) {
+          return {
+            message: '',
+            guidance: String(content || ''),
+            response_preview: String(content || ''),
+            response_mode: 'fallback',
+            verse_references: [],
+            conversation_id: conversationId,
+            language: currentLanguage(),
+          };
+        }
+
+        function buildThreadBubble(message) {
+          const language = currentLanguage();
+          const isUser = String(message?.role || '') === 'user';
+          const bubble = document.createElement('div');
+          bubble.className = `chat-bubble ${isUser ? 'user' : 'assistant'}`;
+
+          const label = document.createElement('span');
+          label.className = 'chat-role';
+          label.textContent = isUser
+            ? (language === 'hi' ? 'आप' : 'You')
+            : (language === 'hi' ? 'मार्गदर्शन' : 'Guide');
+          bubble.appendChild(label);
+
+          if (isUser) {
+            bubble.appendChild(
+              document.createTextNode(String(message?.content || '')),
+            );
+            return bubble;
+          }
+
+          const stack = document.createElement('div');
+          stack.className = 'assistant-stack';
+
+          const replyMain = document.createElement('div');
+          replyMain.className = 'reply-main';
+          const replyText = document.createElement('span');
+          replyText.className = 'typing-text';
+          replyText.textContent = String(message?.content || '');
+          replyMain.appendChild(replyText);
+          stack.appendChild(replyMain);
+
+          const shareRow = document.createElement('div');
+          shareRow.className = 'reply-share-row';
+
+          const actionsBar = document.createElement('div');
+          actionsBar.className = 'reply-actions-bar';
+          actionsBar.setAttribute('data-reply-actions', '');
+
+          if (controls.dataset.threadAuthenticated === '1') {
+            const likeBtn = document.createElement('button');
+            likeBtn.type = 'button';
+            likeBtn.className = 'reply-act-btn act-like';
+            likeBtn.setAttribute('data-reply-like', '');
+            likeBtn.textContent = language === 'hi' ? '👍 पसंद' : '👍 Like';
+            actionsBar.appendChild(likeBtn);
+
+            const dislikeBtn = document.createElement('button');
+            dislikeBtn.type = 'button';
+            dislikeBtn.className = 'reply-act-btn act-dislike';
+            dislikeBtn.setAttribute('data-reply-dislike', '');
+            dislikeBtn.textContent = language === 'hi' ? '👎 नहीं' : '👎 Dislike';
+            actionsBar.appendChild(dislikeBtn);
+          }
+
+          const copyBtn = document.createElement('button');
+          copyBtn.type = 'button';
+          copyBtn.className = 'reply-act-btn act-copy';
+          copyBtn.setAttribute('data-reply-copy', '');
+          copyBtn.textContent = language === 'hi' ? '📋 कॉपी' : '📋 Copy';
+          actionsBar.appendChild(copyBtn);
+
+          const shareBtn = document.createElement('button');
+          shareBtn.type = 'button';
+          shareBtn.className = 'reply-act-btn';
+          shareBtn.setAttribute('data-share-answer', '');
+          shareBtn.dataset.language = language;
+          shareBtn.textContent = language === 'hi' ? '↗ शेयर' : '↗ Share';
+          actionsBar.appendChild(shareBtn);
+
+          shareRow.appendChild(actionsBar);
+
+          const shareAnswerBtn = document.createElement('button');
+          shareAnswerBtn.type = 'button';
+          shareAnswerBtn.className = 'btn-ghost reply-share-btn';
+          shareAnswerBtn.setAttribute('data-share-answer', '');
+          shareAnswerBtn.dataset.language = language;
+          shareAnswerBtn.textContent = language === 'hi'
+            ? 'इस उत्तर को शेयर करें'
+            : 'Share this answer';
+          shareRow.appendChild(shareAnswerBtn);
+
+          const payloadNode = document.createElement('script');
+          payloadNode.type = 'application/json';
+          payloadNode.setAttribute('data-reply-payload', '');
+          payloadNode.textContent = JSON.stringify(
+            buildReplyPayload(String(message?.content || '')),
+          );
+          shareRow.appendChild(payloadNode);
+
+          stack.appendChild(shareRow);
+          bubble.appendChild(stack);
+          return bubble;
+        }
+
+        async function loadThreadPage(offset) {
+          const chatToken = getChatTokenCookie();
+          const headers = new Headers();
+          if (chatToken) {
+            headers.set('Authorization', `Token ${chatToken}`);
+          }
+          const response = await fetch(
+            `/api/v1/conversations/${encodeURIComponent(conversationId)}/messages/?limit=${encodeURIComponent(threadLimit)}&offset=${encodeURIComponent(offset)}`,
+            {
+              credentials: 'same-origin',
+              headers,
+            },
+          );
+          if (!response.ok) {
+            throw new Error('thread_page_fetch_failed');
+          }
+          return response.json();
+        }
+
+        if (refreshBtn) {
+          refreshBtn.addEventListener('click', async () => {
+            const refreshUrl = controls.dataset.threadRefreshUrl || window.location.href;
+            setBusy(refreshBtn, true);
+            setStatus('');
+            try {
+              const response = await fetch(refreshUrl, {
+                headers: {
+                  'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+              });
+              const html = await response.text();
+              const swapped = replaceAppFromHtml(html, refreshUrl);
+              if (!swapped) {
+                return;
+              }
+              window.setTimeout(() => {
+                scrollTranscriptToLatestReplyStart();
+              }, 40);
+            } catch (_) {
+              setBusy(refreshBtn, false);
+              setStatus(
+                currentLanguage() === 'hi'
+                  ? 'धागा ताज़ा नहीं हो सका। कृपया फिर से प्रयास करें।'
+                  : 'The thread could not be refreshed. Please try again.',
+                true,
+              );
+            }
+          });
+        }
+
+        if (loadOlderBtn) {
+          loadOlderBtn.addEventListener('click', async () => {
+            const nextOffset = parseInt(controls.dataset.threadNextOffset || '', 10);
+            if (!Number.isFinite(nextOffset)) {
+              loadOlderBtn.hidden = true;
+              return;
+            }
+
+            setBusy(loadOlderBtn, true);
+            setStatus('');
+            const previousHeight = transcript.scrollHeight;
+            const previousTop = transcript.scrollTop;
+            try {
+              const data = await loadThreadPage(nextOffset);
+              const rows = Array.isArray(data.results) ? data.results : [];
+              if (!rows.length) {
+                controls.dataset.threadNextOffset = '';
+                loadOlderBtn.hidden = true;
+                setBusy(loadOlderBtn, false);
+                return;
+              }
+
+              const fragment = document.createDocumentFragment();
+              rows.forEach((message) => {
+                fragment.appendChild(buildThreadBubble(message));
+              });
+              transcript.prepend(fragment);
+              initShareAnswerBtn();
+              initReplyActionBar();
+
+              const next = data.next_offset;
+              controls.dataset.threadNextOffset = (
+                next === null || next === undefined ? '' : String(next)
+              );
+              loadOlderBtn.hidden = next === null || next === undefined;
+
+              const addedHeight = transcript.scrollHeight - previousHeight;
+              transcript.scrollTop = previousTop + addedHeight;
+            } catch (_) {
+              setStatus(
+                currentLanguage() === 'hi'
+                  ? 'पुराने संदेश लोड नहीं हो सके। कृपया फिर से प्रयास करें।'
+                  : 'Older messages could not be loaded. Please try again.',
+                true,
+              );
+            } finally {
+              setBusy(loadOlderBtn, false);
+            }
+          });
+        }
       }
 
       // Quote Art functionality
@@ -8460,6 +9833,25 @@
         let currentVerses = [];  // Store verses for prev/next navigation
         let currentVerseIndex = -1;  // Current verse index in currentVerses
 
+        /** Canonical Bhagavad Gita verse counts — mirrors mobile CHAPTER_VERSE_COUNTS */
+        const CHAPTER_VERSE_COUNTS = {
+          1:47, 2:72, 3:43, 4:42, 5:29, 6:47, 7:30, 8:28, 9:34,
+          10:42, 11:55, 12:20, 13:34, 14:27, 15:20, 16:24, 17:28, 18:78,
+        };
+
+        /** Compute global prev/next verse refs (works across all 700 verses, always) */
+        function globalPrevRef(chapter, verse) {
+          if (verse > 1) return `${chapter}.${verse - 1}`;
+          if (chapter > 1) return `${chapter - 1}.${CHAPTER_VERSE_COUNTS[chapter - 1]}`;
+          return null;
+        }
+        function globalNextRef(chapter, verse) {
+          const maxVerse = CHAPTER_VERSE_COUNTS[chapter];
+          if (maxVerse && verse < maxVerse) return `${chapter}.${verse + 1}`;
+          if (CHAPTER_VERSE_COUNTS[chapter + 1]) return `${chapter + 1}.1`;
+          return null;
+        }
+
         // Labels
         const labels = {
           en: {
@@ -8469,25 +9861,34 @@
             chapter: 'Chapter',
             back: '← Back',
             backToChapter: '← Back to Chapter',
-            prev: '← Prev',
-            next: 'Next →',
+            prev: '←',
+            next: '→',
             loading: 'Loading...',
             speaker: 'Speaker',
             sanskrit: 'Sanskrit',
             transliteration: 'Transliteration',
             english: 'English Meaning',
             hindi: 'Hindi Meaning (हिंदी अर्थ)',
-            commentaries: 'Commentaries',
-            integratedWisdom: 'Integrated Verse Wisdom',
-            overview: 'Overall Summary',
-            commentaryConsensus: 'Commentary Bridge',
-            lifeApplication: 'Living Application',
-            keyPoints: 'Key Points',
+            commentaries: 'COMMENTARY',
+            commentaryCta: 'Tap to expand integrated commentary',
+            integratedWisdom: 'INTEGRATED VERSE WISDOM',
+            wisdomBlurb: 'A synthesis distilled from classical commentaries by AI \u2014 read it as a bridge, not a replacement.',
+            overview: 'OVERALL SUMMARY',
+            commentaryConsensus: 'COMMENTARY BRIDGE',
+            lifeApplication: 'LIVING APPLICATION',
+            keyPoints: 'KEY POINTS',
+            wisdomEmpty: 'Integrated wisdom is not available for this verse yet.',
             copyVerse: 'Copy Verse',
             shareVerse: 'Share',
             createArt: 'Create Art',
             verseCount: 'verses',
             loadFailed: 'Could not load this section. Please try again.',
+            personalReflection: 'PERSONAL REFLECTION',
+            notePlaceholder: 'Reflections, questions, or reminders\u2026',
+            saveNote: 'Save note',
+            signInForNotes: 'Save notes on this verse',
+            signInForNotesSub: 'Sign in to keep private reflections you can open anytime.',
+            signInToJournal: 'Sign in to journal',
           },
           hi: {
             title: 'श्रीमद्भगवद्गीता',
@@ -8496,35 +9897,48 @@
             chapter: 'अध्याय',
             back: '← वापस',
             backToChapter: '← अध्याय पर वापस',
-            prev: '← पिछला',
-            next: 'अगला →',
+            prev: '←',
+            next: '→',
             loading: 'लोड हो रहा है...',
             speaker: 'वक्ता',
             sanskrit: 'संस्कृत',
             transliteration: 'लिप्यंतरण',
             english: 'अंग्रेज़ी अर्थ',
             hindi: 'हिंदी अर्थ',
-            commentaries: 'टीकाएं',
+            commentaries: 'व्याख्या',
+            commentaryCta: 'टैप करके पूरी टिप्पणी पढ़ें',
             integratedWisdom: 'समेकित श्लोक दृष्टि',
-            overview: 'समग्र सार',
-            commentaryConsensus: 'टीकाओं का संगम',
-            lifeApplication: 'जीवन में प्रयोग',
+            wisdomBlurb: 'शास्त्रीय व्याख्याओं से AI द्वारा निकाला गया सार \u2014 यह व्याख्याओं का पूरक है, विकल्प नहीं।',
+            overview: 'सारांश',
+            commentaryConsensus: 'व्याख्या-सेतु',
+            lifeApplication: 'जीवन में अनुप्रयोग',
             keyPoints: 'मुख्य बिंदु',
+            wisdomEmpty: 'इस श्लोक के लिए समेकित दृष्टि अभी उपलब्ध नहीं है।',
             copyVerse: 'श्लोक कॉपी करें',
             shareVerse: 'शेयर करें',
             createArt: 'कला बनाएं',
             verseCount: 'श्लोक',
             loadFailed: 'यह भाग लोड नहीं हो सका। कृपया पुनः प्रयास करें।',
+            personalReflection: 'व्यक्तिगत चिंतन',
+            notePlaceholder: 'चिंतन, प्रश्न या याद दिलाने वाली बातें\u2026',
+            saveNote: 'नोट सहेजें',
+            signInForNotes: 'इस श्लोक पर नोट सेव करें',
+            signInForNotesSub: 'साइन इन करें ताकि निजी चिंतन बाद में खोल सकें।',
+            signInToJournal: 'जर्नल के लिए साइन इन',
           }
         };
         const t = labels[lang] || labels.en;
 
-        function openReader(reference = null) {
+        function openReader(reference = null, chapterNum = null) {
           overlay.classList.add('visible');
           modal.classList.add('visible');
           document.body.style.overflow = 'hidden';
           if (reference) {
             loadVerseDetail(reference);
+            return;
+          }
+          if (chapterNum) {
+            loadChapterDetail(chapterNum);
             return;
           }
           loadChapters();
@@ -8727,21 +10141,50 @@
           }
 
           try {
-            const response = await fetchPublicBrowse(`/api/v1/verses/${chapter}.${verse}/`);
+            const response = await fetchPublicBrowse(`/api/v1/verses/${chapter}.${verse}/?lang=${lang}&include=synthesis`);
             if (!response.ok) {
               content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
               return;
             }
             const data = await response.json();
             renderVerseDetail(data);
+
+            // Track verse open (authenticated users only, matches mobile)
+            const _trackToken = getChatTokenCookie();
+            if (_trackToken) {
+              fetch('/api/v1/reading/verse-open/', {
+                method: 'POST',
+                headers: { 'Authorization': `Token ${_trackToken}`, 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ chapter: Number(chapter), verse: Number(verse) })
+              }).catch(() => {});
+            }
           } catch (error) {
             content.innerHTML = `<div class="message error">${t.loadFailed}</div>`;
           }
         }
 
         function renderVerseDetail(verse) {
-          const hasPrev = currentVerseIndex > 0;
-          const hasNext = currentVerseIndex < currentVerses.length - 1;
+          // Global prev/next (works for any verse, even when opened directly — matches mobile)
+          const prevRef = globalPrevRef(verse.chapter, verse.verse);
+          const nextRef = globalNextRef(verse.chapter, verse.verse);
+          const totalVersesInChapter = CHAPTER_VERSE_COUNTS[verse.chapter] || '?';
+
+          const originalVerseLabel = lang === 'hi' ? 'मूल श्लोक' : 'Original verse';
+          const verseEyebrow = lang === 'hi' ? 'श्लोक' : 'VERSE';
+          const verseHeroSub = lang === 'hi'
+            ? `${t.chapter} ${verse.chapter}, ${t.verses} ${verse.verse} · अर्थ, संदर्भ, जीवन में प्रयोग`
+            : `${t.chapter} ${verse.chapter}, ${t.verses} ${verse.verse} · meaning, context, and life application`;
+          const practiceTitle = lang === 'hi' ? 'आज का अभ्यास' : 'Practice today';
+          const practiceReflect = lang === 'hi'
+            ? 'आज सत्य से अधिक आसक्ति कहाँ चला रही है?'
+            : 'Where might attachment be steering you more than truth today?';
+          const practiceDo = lang === 'hi'
+            ? 'अगले २४ घंटे में एक स्थिर छोटा कदम।'
+            : 'One small action you can take in the next 24 hours with steadiness.';
+          const practiceCarry = lang === 'hi'
+            ? 'इस श्लोक से एक शब्द जो दिन भर मन में रहे।'
+            : 'One word or phrase from this verse to carry quietly through the day.';
 
           let html = `
             <div class="verse-nav-top">
@@ -8749,18 +10192,21 @@
                 ${t.backToChapter}
               </button>
               <div class="verse-nav-arrows">
-                <button type="button" class="verse-nav-btn ${!hasPrev ? 'disabled' : ''}" data-prev-verse ${!hasPrev ? 'disabled' : ''}>
+                <button type="button" class="verse-nav-btn ${!prevRef ? 'disabled' : ''}" data-prev-verse ${!prevRef ? 'disabled' : ''}>
                   ${t.prev}
                 </button>
-                <span class="verse-nav-current">${verse.verse} / ${currentVerses.length || '?'}</span>
-                <button type="button" class="verse-nav-btn ${!hasNext ? 'disabled' : ''}" data-next-verse ${!hasNext ? 'disabled' : ''}>
+                <span class="verse-nav-current">${verse.verse} / ${totalVersesInChapter}</span>
+                <button type="button" class="verse-nav-btn ${!nextRef ? 'disabled' : ''}" data-next-verse ${!nextRef ? 'disabled' : ''}>
                   ${t.next}
                 </button>
               </div>
             </div>
             <div class="verse-detail">
               <div class="verse-detail-header">
-                <div class="verse-detail-ref">${t.chapter} ${verse.chapter}, ${t.verses} ${verse.verse}</div>
+                <div class="verse-hero-seal">${verse.chapter}.${verse.verse}</div>
+                <div class="verse-detail-eyebrow">${verseEyebrow}</div>
+                <div class="verse-detail-ref">Bhagavad Gita</div>
+                <div class="verse-detail-sub">${verseHeroSub}</div>
                 ${verse.speaker ? `<div class="verse-detail-speaker">${t.speaker}: ${verse.speaker}</div>` : ''}
                 <button type="button" class="verse-audio-btn" id="verse-audio-btn" aria-label="Play Sanskrit recitation">
                   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
@@ -8769,12 +10215,17 @@
               </div>
 
               <div class="verse-sanskrit-box">
+                <div class="verse-manuscript-top">
+                  <span class="verse-manuscript-dot" aria-hidden="true"></span>
+                  <span class="verse-manuscript-label">${originalVerseLabel}</span>
+                </div>
                 <div class="verse-sanskrit">${verse.slok || ''}</div>
                 ${verse.transliteration ? `<div class="verse-transliteration">${verse.transliteration}</div>` : ''}
+                <div class="verse-sanskrit-shimmer" aria-hidden="true"></div>
               </div>
           `;
 
-          // English meaning
+          // Translation (English)
           if (verse.english_meaning || verse.translation) {
             html += `
               <div class="verse-meaning-section">
@@ -8784,7 +10235,7 @@
             `;
           }
 
-          // Hindi meaning
+          // Translation (Hindi)
           if (verse.hindi_meaning) {
             html += `
               <div class="verse-meaning-section">
@@ -8794,60 +10245,161 @@
             `;
           }
 
-          // Commentaries
-          if (verse.commentaries && verse.commentaries.length > 0) {
+          // Practice section
+          html += `
+            <div class="verse-practice-wrap">
+              <div class="verse-meaning-label">${practiceTitle}</div>
+              <div class="verse-practice-card">
+                <div class="verse-practice-row">
+                  <span class="verse-practice-dot" aria-hidden="true"></span>
+                  <span class="verse-practice-text">${practiceReflect}</span>
+                </div>
+                <div class="verse-practice-row">
+                  <span class="verse-practice-dot" aria-hidden="true"></span>
+                  <span class="verse-practice-text">${practiceDo}</span>
+                </div>
+                <div class="verse-practice-row">
+                  <span class="verse-practice-dot" aria-hidden="true"></span>
+                  <span class="verse-practice-text">${practiceCarry}</span>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // ── Integrated Wisdom (SYNTHESIS) — matches mobile order: before commentaries ──
+          if (verse.synthesis) {
+            const synthesis = verse.synthesis;
+            // Language fallback: hi→en and en→hi, matches mobile's || pattern
+            const overview = lang === 'hi'
+              ? (synthesis.overview_hi || synthesis.overview_en)
+              : (synthesis.overview_en || synthesis.overview_hi);
+            const commentaryConsensus = lang === 'hi'
+              ? (synthesis.commentary_consensus_hi || synthesis.commentary_consensus_en)
+              : (synthesis.commentary_consensus_en || synthesis.commentary_consensus_hi);
+            const lifeApplication = lang === 'hi'
+              ? (synthesis.life_application_hi || synthesis.life_application_en)
+              : (synthesis.life_application_en || synthesis.life_application_hi);
+            const keyPoints = lang === 'hi'
+              ? (synthesis.key_points_hi || synthesis.key_points_en)
+              : (synthesis.key_points_en || synthesis.key_points_hi);
+
             html += `
-              <div class="verse-commentaries">
-                <div class="verse-commentaries-title">${t.commentaries}</div>
+              <div class="verse-wisdom-wrap">
+                <div class="verse-wisdom-header">
+                  <div class="verse-wisdom-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.5 4.5H18l-3.75 2.7 1.5 4.5L12 12l-3.75 2.7 1.5-4.5L6 7.5h4.5z"/></svg>
+                  </div>
+                  <div>
+                    <div class="verse-wisdom-title">${t.integratedWisdom}</div>
+                    <div class="verse-wisdom-blurb">${t.wisdomBlurb}</div>
+                  </div>
+                </div>
+                <div class="verse-synthesis">
+                  <div class="verse-synthesis-columns">
+                    ${overview ? `<div class="verse-synthesis-card"><div class="verse-synthesis-title">${t.overview}</div><div class="verse-synthesis-copy">${overview}</div></div>` : ''}
+                    ${commentaryConsensus ? `<div class="verse-synthesis-card"><div class="verse-synthesis-title">${t.commentaryConsensus}</div><div class="verse-synthesis-copy">${commentaryConsensus}</div></div>` : ''}
+                  </div>
+                  ${lifeApplication ? `<div class="verse-synthesis-card"><div class="verse-synthesis-title">${t.lifeApplication}</div><div class="verse-synthesis-copy">${lifeApplication}</div></div>` : ''}
+                  ${keyPoints ? `<div class="verse-synthesis-card"><div class="verse-synthesis-title">${t.keyPoints}</div>${synthesisList(keyPoints)}</div>` : ''}
+                </div>
+              </div>
             `;
-            verse.commentaries.forEach(c => {
+          } else {
+            html += `
+              <div class="verse-wisdom-wrap">
+                <div class="verse-wisdom-header">
+                  <div class="verse-wisdom-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.5 4.5H18l-3.75 2.7 1.5 4.5L12 12l-3.75 2.7 1.5-4.5L6 7.5h4.5z"/></svg>
+                  </div>
+                  <div>
+                    <div class="verse-wisdom-title">${t.integratedWisdom}</div>
+                    <div class="verse-wisdom-blurb">${t.wisdomBlurb}</div>
+                  </div>
+                </div>
+                <div class="verse-synthesis-card" style="margin-top:8px">
+                  <div class="verse-synthesis-copy" style="color:rgba(251,246,235,0.48);font-style:italic">${t.wisdomEmpty}</div>
+                </div>
+              </div>
+            `;
+          }
+
+          // ── Commentaries — section collapsed by default (matches mobile) ──
+          const _allCommentaries = verse.commentaries || [];
+          const _filtered = _allCommentaries.filter(c => !c.language || c.language === lang);
+          const _commentaries = _filtered.length ? _filtered : _allCommentaries;
+          if (_commentaries.length > 0) {
+            html += `
+              <button type="button" class="verse-commentaries-section-toggle" id="commentary-section-toggle" aria-expanded="false">
+                <div class="verse-commentary-header-left">
+                  <div class="verse-wisdom-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                  </div>
+                  <div>
+                    <div class="verse-wisdom-title">${t.commentaries}</div>
+                    <div class="verse-commentary-cta">${t.commentaryCta}</div>
+                  </div>
+                </div>
+                <svg class="verse-commentaries-section-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="verse-commentaries-list" id="commentary-section-list">
+            `;
+            _commentaries.forEach((c, idx) => {
               html += `
-                <div class="commentary-item">
-                  <div class="commentary-author">${c.author}</div>
-                  <div class="commentary-text">${c.text}</div>
+                <div class="commentary-item" id="commentary-${idx}">
+                  <button type="button" class="commentary-toggle" aria-expanded="false" aria-controls="commentary-body-${idx}">
+                    <div class="commentary-author-row">
+                      <div class="verse-commentary-icon-sm" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+                      </div>
+                      <span class="commentary-author">${c.author || ''}</span>
+                    </div>
+                    <svg class="commentary-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  <div class="commentary-body" id="commentary-body-${idx}" role="region">
+                    <div class="commentary-body-inner">
+                      <div class="commentary-text">${c.text || c.commentary || ''}</div>
+                    </div>
+                  </div>
                 </div>
               `;
             });
             html += '</div>';
           }
 
-          if (verse.synthesis) {
-            const synthesis = verse.synthesis;
-            const overview = lang === 'hi' ? synthesis.overview_hi : synthesis.overview_en;
-            const commentaryConsensus = lang === 'hi'
-              ? synthesis.commentary_consensus_hi
-              : synthesis.commentary_consensus_en;
-            const lifeApplication = lang === 'hi'
-              ? synthesis.life_application_hi
-              : synthesis.life_application_en;
-            const keyPoints = lang === 'hi'
-              ? synthesis.key_points_hi
-              : synthesis.key_points_en;
-
-            html += `
-              <div class="verse-synthesis">
-                <div class="verse-commentaries-title">${t.integratedWisdom}</div>
-                <div class="verse-synthesis-columns">
-                  <div class="verse-synthesis-card">
-                    <div class="verse-synthesis-title">${t.overview}</div>
-                    <div class="verse-synthesis-copy">${overview || ''}</div>
-                  </div>
-                  <div class="verse-synthesis-card">
-                    <div class="verse-synthesis-title">${t.commentaryConsensus}</div>
-                    <div class="verse-synthesis-copy">${commentaryConsensus || ''}</div>
+          // Reflection note panel
+          const chatToken = getChatTokenCookie();
+          const hasToken = !!chatToken;
+          const _verseRefLabel = `BG ${verse.chapter}.${verse.verse}`;
+          const _askText = lang === 'hi'
+            ? `${_verseRefLabel} के बारे में पूछें`
+            : `Ask about ${_verseRefLabel}`;
+          html += `
+            <div class="verse-reflection-panel">
+              <div class="verse-reflection-label">${t.personalReflection}</div>
+              ${hasToken ? `
+                <textarea class="verse-reflection-textarea" id="verse-note-textarea" placeholder="${t.notePlaceholder}" maxlength="2000"></textarea>
+                <div class="verse-reflection-footer">
+                  <span class="verse-reflection-status" id="verse-note-status"></span>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <button type="button" class="verse-reflection-ask" id="verse-note-ask">${_askText}</button>
+                    <button type="button" class="verse-reflection-save" id="verse-note-save">${t.saveNote}</button>
                   </div>
                 </div>
-                <div class="verse-synthesis-card">
-                  <div class="verse-synthesis-title">${t.lifeApplication}</div>
-                  <div class="verse-synthesis-copy">${lifeApplication || ''}</div>
+              ` : `
+                <div class="verse-reflection-guest-cta">
+                  <div class="verse-reflection-guest-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                  </div>
+                  <div>
+                    <div class="verse-reflection-guest-title">${lang === 'hi' ? 'आपका चिंतन संरक्षण' : 'Your Reflection Sanctuary'}</div>
+                    <div class="verse-reflection-guest-sub">${t.signInForNotesSub}</div>
+                  </div>
                 </div>
-                <div class="verse-synthesis-card">
-                  <div class="verse-synthesis-title">${t.keyPoints}</div>
-                  ${synthesisList(keyPoints)}
-                </div>
-              </div>
-            `;
-          }
+                <a href="/auth/login/?next=/api/chat-ui/" class="verse-reflection-signin-btn">${t.signInToJournal}</a>
+                <button type="button" class="verse-reflection-ask" id="verse-note-ask" style="width:100%;margin-top:8px;">${_askText}</button>
+              `}
+            </div>
+          `;
 
           // Actions
           html += `
@@ -8880,28 +10432,44 @@
             );
           }
 
+          // Sanskrit shimmer sweep: gold highlight slides left→right once after load (matches mobile)
+          setTimeout(() => {
+            const shimmer = content.querySelector('.verse-sanskrit-shimmer');
+            if (shimmer) {
+              shimmer.style.transition = 'none';
+              shimmer.style.transform = 'translateX(-120%)';
+              shimmer.style.opacity = '1';
+              requestAnimationFrame(() => {
+                shimmer.style.transition = 'transform 0.88s ease';
+                shimmer.style.transform = 'translateX(360px)';
+                setTimeout(() => { shimmer.style.opacity = '0'; }, 900);
+              });
+            }
+          }, 300);
+
           // Bind events
           content.querySelector(`[data-back-to-chapter="${verse.chapter}"]`).addEventListener('click', () => {
             loadChapterDetail(verse.chapter);
           });
 
-          // Prev/Next verse navigation
+          // Prev/Next verse navigation — global, always works (matches mobile CHAPTER_VERSE_COUNTS)
           const prevBtn = content.querySelector('[data-prev-verse]');
           const nextBtn = content.querySelector('[data-next-verse]');
 
-          if (prevBtn && currentVerseIndex > 0) {
+          if (prevBtn && prevRef) {
             prevBtn.addEventListener('click', () => {
-              currentVerseIndex--;
-              const prevVerse = currentVerses[currentVerseIndex];
-              if (prevVerse) loadVerseDetail(prevVerse.reference);
+              // Keep chapter listing context in sync if we have it
+              const idx = currentVerses.findIndex(v => v.reference === prevRef);
+              if (idx >= 0) currentVerseIndex = idx;
+              loadVerseDetail(prevRef);
             });
           }
 
-          if (nextBtn && currentVerseIndex < currentVerses.length - 1) {
+          if (nextBtn && nextRef) {
             nextBtn.addEventListener('click', () => {
-              currentVerseIndex++;
-              const nextVerse = currentVerses[currentVerseIndex];
-              if (nextVerse) loadVerseDetail(nextVerse.reference);
+              const idx = currentVerses.findIndex(v => v.reference === nextRef);
+              if (idx >= 0) currentVerseIndex = idx;
+              loadVerseDetail(nextRef);
             });
           }
 
@@ -8963,12 +10531,12 @@
               }
             });
 
-            // Stop audio when navigating away (prev/next/back)
+            // Stop audio when navigating away
             function stopAudio() {
               if (audio) { audio.pause(); audio = null; }
             }
-            content.querySelector(`[data-back-to-chapter="${verse.chapter}"]`)
-              .addEventListener('click', stopAudio);
+            const _backBtn2 = content.querySelector(`[data-back-to-chapter="${verse.chapter}"]`);
+            if (_backBtn2) _backBtn2.addEventListener('click', stopAudio);
             if (prevBtn) prevBtn.addEventListener('click', stopAudio);
             if (nextBtn) nextBtn.addEventListener('click', stopAudio);
           }());
@@ -9002,6 +10570,114 @@
               }
             });
           }
+
+          // Commentary section toggle — collapsed by default (matches mobile outer toggle)
+          const sectionToggle = content.querySelector('#commentary-section-toggle');
+          const sectionList = content.querySelector('#commentary-section-list');
+          if (sectionToggle && sectionList) {
+            sectionToggle.addEventListener('click', () => {
+              const isOpen = sectionList.classList.toggle('open');
+              sectionToggle.classList.toggle('open', isOpen);
+              sectionToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+          }
+
+          // Individual commentary accordion toggles — all collapsed by default
+          content.querySelectorAll('.commentary-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+              const item = btn.closest('.commentary-item');
+              const isOpen = item.classList.toggle('open');
+              btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            });
+          });
+
+          // Reflection note panel
+          const noteTextarea = content.querySelector('#verse-note-textarea');
+          const noteSaveBtn = content.querySelector('#verse-note-save');
+          const noteStatus = content.querySelector('#verse-note-status');
+          const noteRef = `${verse.chapter}.${verse.verse}`;
+          let _savedNoteBody = '';
+          let _autosaveTimer = null;
+
+          function _doSaveNote(body) {
+            if (!chatToken) return;
+            if (noteSaveBtn) { noteSaveBtn.disabled = true; }
+            if (noteStatus) { noteStatus.textContent = 'Saving…'; }
+            fetch(`/api/v1/verses/${noteRef}/note/`, {
+              method: 'PUT',
+              headers: { 'Authorization': `Token ${chatToken}`, 'Content-Type': 'application/json' },
+              credentials: 'same-origin',
+              body: JSON.stringify({ body })
+            }).then(r => {
+              if (r.ok && noteStatus) {
+                _savedNoteBody = body;
+                noteStatus.textContent = 'Saved ✓';
+                setTimeout(() => { if (noteStatus) noteStatus.textContent = ''; }, 2500);
+              } else if (noteStatus) {
+                noteStatus.textContent = 'Could not save.';
+              }
+            }).catch(() => {
+              if (noteStatus) noteStatus.textContent = 'Network error.';
+            }).finally(() => {
+              if (noteSaveBtn) noteSaveBtn.disabled = false;
+            });
+          }
+
+          if (noteTextarea && noteSaveBtn && noteStatus) {
+            // Load existing note
+            fetch(`/api/v1/verses/${noteRef}/note/`, {
+              headers: { 'Authorization': `Token ${chatToken}`, 'Content-Type': 'application/json' },
+              credentials: 'same-origin'
+            }).then(r => r.ok ? r.json() : null).then(data => {
+              if (data && data.body) {
+                noteTextarea.value = data.body;
+                _savedNoteBody = data.body;
+              }
+            }).catch(() => {});
+
+            // Autosave with 800ms debounce (matches mobile)
+            noteTextarea.addEventListener('input', () => {
+              if (_autosaveTimer) clearTimeout(_autosaveTimer);
+              const draft = noteTextarea.value;
+              if (draft.trim() && draft !== _savedNoteBody) {
+                _autosaveTimer = setTimeout(() => _doSaveNote(draft), 800);
+              }
+            });
+
+            // Manual save button
+            noteSaveBtn.addEventListener('click', () => {
+              if (_autosaveTimer) clearTimeout(_autosaveTimer);
+              _doSaveNote(noteTextarea.value.trim());
+            });
+          }
+
+          // "Ask about this verse" — close reader, pre-fill chat, and auto-submit
+          const noteAskBtn = content.querySelector('#verse-note-ask');
+          if (noteAskBtn) {
+            noteAskBtn.addEventListener('click', () => {
+              const noteExcerpt = noteTextarea ? noteTextarea.value.trim().slice(0, 300) : '';
+              const prompt = noteExcerpt
+                ? `BG ${noteRef}: ${noteExcerpt}`
+                : `Tell me about Bhagavad Gita ${noteRef}`;
+              closeReader();
+              setTimeout(() => {
+                const chatShell = document.querySelector('[data-chat-shell]');
+                const chatInput = document.querySelector('#chat_message');
+                const chatForm = document.querySelector('.chat-bottom-composer form.quick-submit');
+                if (chatInput && chatForm) {
+                  // Switch out of landing mode if needed
+                  if (chatShell && chatShell.classList.contains('on-landing')) {
+                    chatShell.classList.remove('on-landing');
+                    chatShell.classList.add('composer-mode');
+                  }
+                  chatInput.value = prompt;
+                  chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                  // Auto-submit immediately (matches mobile's ask.mutate behaviour)
+                  chatForm.submit();
+                }
+              }, 320);
+            });
+          }
         }
 
         // Event bindings
@@ -9017,6 +10693,25 @@
         });
         closeBtn.addEventListener('click', closeReader);
         overlay.addEventListener('click', closeReader);
+
+        const readerParams = new URLSearchParams(window.location.search);
+        const shouldAutoOpen = ['1', 'true', 'yes'].includes(
+          String(readerParams.get('open_reader') || '').toLowerCase()
+        );
+        if (shouldAutoOpen) {
+          const requestedRef = String(
+            readerParams.get('open_reader_ref') || readerParams.get('verse') || ''
+          ).trim();
+          const requestedChapter = parseInt(
+            String(readerParams.get('open_reader_chapter') || '').trim(),
+            10
+          );
+          const safeRef = /^\d+\.\d+$/.test(requestedRef) ? requestedRef : null;
+          const safeChapter = Number.isInteger(requestedChapter) && requestedChapter > 0
+            ? requestedChapter
+            : null;
+          openReader(safeRef, safeChapter);
+        }
 
         // ESC key to close
         document.addEventListener('keydown', (e) => {
@@ -9346,58 +11041,31 @@
       function initShareAnswerBtn() {
         const buttons = Array.from(document.querySelectorAll('[data-share-answer]'));
         if (!buttons.length) return;
-        const payloadNode = document.querySelector('#share-answer-payload');
-        if (!payloadNode) return;
 
-        buttons.forEach((btn) => btn.addEventListener('click', async () => {
-          let payload = null;
+        function parsePayload(button) {
+          const stack = button.closest('.assistant-stack');
+          const payloadNode = stack ? stack.querySelector('[data-reply-payload]') : null;
+          if (!payloadNode) return null;
           try {
-            payload = JSON.parse(payloadNode.textContent || '{}');
+            return JSON.parse(payloadNode.textContent || '{}');
           } catch (_) {
-            payload = null;
+            return null;
           }
+        }
+
+        buttons.forEach((btn) => {
+          if (btn.dataset.shareBound === 'true') {
+            return;
+          }
+          btn.dataset.shareBound = 'true';
+          btn.addEventListener('click', async () => {
+          const payload = parsePayload(btn);
           if (!payload) return;
 
-          const question = payload.question || '';
           const guidance = payload.guidance || '';
-          const meaning = payload.meaning || '';
-          const actions = Array.isArray(payload.actions) ? payload.actions : [];
-          const reflection = payload.reflection || '';
-          const verseRefs = Array.isArray(payload.verse_references)
-            ? payload.verse_references
-            : [];
           const language = payload.language || btn.dataset.language || 'en';
-
-          // readCsrfToken is defined inside initLandingPage; read cookie directly here.
-          const csrfMatch = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
-          const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
-          const csrfToken = (tokenInput && tokenInput.value)
-            || (csrfMatch ? decodeURIComponent(csrfMatch[1]) : '');
-
-          const headers = { 'Content-Type': 'application/json' };
-          if (csrfToken) headers['X-CSRFToken'] = csrfToken;
-
-          let shareUrl = window.location.href;
-          try {
-            const res = await fetch('/api/answers/share/', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers,
-              body: JSON.stringify({
-                question,
-                guidance,
-                meaning,
-                actions,
-                reflection,
-                verse_references: verseRefs,
-                language,
-              }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              shareUrl = window.location.origin + data.share_url;
-            }
-          } catch (_) { /* fall back to current URL */ }
+          const shareText = String(guidance || '').trim();
+          if (!shareText) return;
 
           if (window.postAnalyticsEvent) {
             window.postAnalyticsEvent({
@@ -9412,17 +11080,17 @@
             if (navigator.share) {
               await navigator.share({
                 title: 'Bhagavad Gita Guidance',
-                text: question.slice(0, 140) || 'Gita guidance for a real-life question.',
-                url: shareUrl,
+                text: shareText,
               });
               return;
             }
-            await navigator.clipboard.writeText(shareUrl);
+            await navigator.clipboard.writeText(shareText);
             const orig = btn.textContent;
-            btn.textContent = '✓ Link copied';
+            btn.textContent = '✓ Copied';
             window.setTimeout(() => { btn.textContent = orig; }, 1400);
           } catch (_) { /* dismissed or blocked */ }
-        }));
+          });
+        });
       }
 
       function initReplyActionBar() {
@@ -9431,7 +11099,64 @@
           return;
         }
 
+        function getCsrfToken() {
+          const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+          if (tokenInput && tokenInput.value) {
+            return tokenInput.value;
+          }
+          const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+          return match ? decodeURIComponent(match[1]) : '';
+        }
+
+        function parsePayload(bar) {
+          const stack = bar.closest('.assistant-stack');
+          const payloadNode = stack ? stack.querySelector('[data-reply-payload]') : null;
+          if (!payloadNode) {
+            return null;
+          }
+          try {
+            return JSON.parse(payloadNode.textContent || '{}');
+          } catch (_) {
+            return null;
+          }
+        }
+
+        async function submitFeedback(bar, helpful) {
+          const payload = parsePayload(bar);
+          if (!payload) {
+            return false;
+          }
+          const csrfToken = getCsrfToken();
+          const chatToken = getChatTokenCookie();
+          const response = await fetch('/api/feedback/', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
+              ...(chatToken ? { 'Authorization': `Token ${chatToken}` } : {}),
+            },
+            body: JSON.stringify({
+              helpful,
+              message: payload.message || '',
+              mode: 'simple',
+              response_mode: payload.response_mode || 'fallback',
+              surface: 'web_chat_ui',
+              response_preview: String(payload.response_preview || payload.guidance || '').slice(0, 280),
+              verse_references: Array.isArray(payload.verse_references)
+                ? payload.verse_references
+                : [],
+              conversation_id: payload.conversation_id || undefined,
+            }),
+          });
+          return response.ok;
+        }
+
         bars.forEach((bar) => {
+          if (bar.dataset.replyBound === 'true') {
+            return;
+          }
+          bar.dataset.replyBound = 'true';
           const likeBtn = bar.querySelector('[data-reply-like]');
           const dislikeBtn = bar.querySelector('[data-reply-dislike]');
           const copyBtn = bar.querySelector('[data-reply-copy]');
@@ -9439,16 +11164,24 @@
           const textNode = bubble ? bubble.querySelector('.reply-main .typing-text') : null;
 
           if (likeBtn) {
-            likeBtn.addEventListener('click', () => {
-              likeBtn.classList.toggle('active');
+            likeBtn.addEventListener('click', async () => {
+              const ok = await submitFeedback(bar, true);
+              if (!ok) {
+                return;
+              }
+              likeBtn.classList.add('active');
               if (dislikeBtn) {
                 dislikeBtn.classList.remove('active');
               }
             });
           }
           if (dislikeBtn) {
-            dislikeBtn.addEventListener('click', () => {
-              dislikeBtn.classList.toggle('active');
+            dislikeBtn.addEventListener('click', async () => {
+              const ok = await submitFeedback(bar, false);
+              if (!ok) {
+                return;
+              }
+              dislikeBtn.classList.add('active');
               if (likeBtn) {
                 likeBtn.classList.remove('active');
               }
@@ -9479,21 +11212,204 @@
 
       function initMoodCheckinStrip() {
         const form = document.querySelector('[data-mood-form]');
-        if (!form) {
-          return;
-        }
-        const moodInput = form.querySelector('[data-mood-value]');
+        if (!form) return;
         const pills = Array.from(form.querySelectorAll('[data-mood-pill]'));
-        if (!moodInput || !pills.length) {
-          return;
-        }
+        if (!pills.length) return;
+        const doneMsg = form.querySelector('[data-mood-done]');
         pills.forEach((pill) => {
-          pill.addEventListener('click', () => {
+          pill.addEventListener('click', async () => {
             const mood = pill.getAttribute('data-mood-pill') || '';
-            moodInput.value = mood;
-            pills.forEach((node) => node.classList.remove('active'));
+            pills.forEach((p) => p.classList.remove('active'));
             pill.classList.add('active');
+            try {
+              await fetch('/api/v1/mood/', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify({ mood }),
+              });
+              if (doneMsg) { doneMsg.style.display = 'block'; }
+            } catch (_) {}
           });
+        });
+      }
+
+      function initSavedReflections() {
+        // Search filter
+        const searchEl = document.querySelector('[data-saved-search]');
+        const list = document.querySelector('[data-saved-reflections-list]');
+        const emptyEl = document.querySelector('[data-saved-empty]');
+        if (searchEl && list) {
+          searchEl.addEventListener('input', () => {
+            const q = searchEl.value.toLowerCase().trim();
+            let visible = 0;
+            list.querySelectorAll('[data-saved-id]').forEach((li) => {
+              const txt = (li.getAttribute('data-saved-text') || '') + ' ' +
+                Array.from(li.querySelectorAll('[data-open-verse-reference]'))
+                  .map((b) => b.textContent).join(' ').toLowerCase();
+              const show = !q || txt.includes(q);
+              li.style.display = show ? '' : 'none';
+              if (show) visible++;
+            });
+            if (emptyEl) emptyEl.hidden = visible > 0;
+          });
+        }
+        // Delete
+        document.addEventListener('click', async (e) => {
+          const btn = e.target.closest('[data-delete-saved]');
+          if (!btn) return;
+          const id = btn.getAttribute('data-delete-saved');
+          if (!id) return;
+          try {
+            const resp = await fetch('/api/saved-reflections/' + id + '/', {
+              method: 'DELETE',
+              headers: { 'X-CSRFToken': getCsrfToken() },
+            });
+            if (resp.ok || resp.status === 204) {
+              const li = btn.closest('[data-saved-id]');
+              if (li) {
+                li.style.transition = 'opacity 0.2s';
+                li.style.opacity = '0';
+                setTimeout(() => { li.remove(); }, 220);
+              }
+            }
+          } catch (_) {}
+        });
+        // Open verse from chip
+        document.addEventListener('click', (e) => {
+          const chip = e.target.closest('[data-open-verse-reference]');
+          if (!chip) return;
+          const ref = chip.getAttribute('data-open-verse-reference') || '';
+          if (!ref) return;
+          const parts = ref.split('.');
+          if (parts.length === 2) {
+            const ch = parseInt(parts[0], 10);
+            const v = parseInt(parts[1], 10);
+            if (!isNaN(ch) && !isNaN(v)) openVerseReader(ch, v);
+          }
+        });
+      }
+
+      function initGratitudePanel() {
+        const panel = document.querySelector('[data-gratitude-panel]');
+        if (!panel) return;
+        const inputs = panel.querySelectorAll('[data-grat-input]');
+        const saveBtn = panel.querySelector('[data-grat-save]');
+        const doneMsg = panel.querySelector('[data-grat-done]');
+        if (!saveBtn) return;
+        saveBtn.addEventListener('click', async () => {
+          const vals = Array.from(inputs).map((i) => i.value.trim());
+          try {
+            await fetch('/api/v1/gratitude/', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken(),
+              },
+              body: JSON.stringify({ item_1: vals[0] || '', item_2: vals[1] || '', item_3: vals[2] || '' }),
+            });
+            if (doneMsg) { doneMsg.style.display = 'block'; setTimeout(() => { doneMsg.style.display = 'none'; }, 3000); }
+          } catch (_) {}
+        });
+      }
+
+      function initInsightsPanel() {
+        const panel = document.querySelector('[data-insights-panel]');
+        if (!panel) return;
+        const details = panel.querySelector('details');
+        if (!details) return;
+        let loaded = false;
+        details.addEventListener('toggle', async () => {
+          if (!details.open || loaded) return;
+          loaded = true;
+          const grid = panel.querySelector('[data-insights-grid]');
+          const emptyEl = panel.querySelector('[data-insights-empty]');
+          try {
+            const resp = await fetch('/api/v1/insights/me/', {
+              headers: { 'X-CSRFToken': getCsrfToken() },
+              credentials: 'same-origin',
+            });
+            if (!resp.ok) throw new Error('failed');
+            const data = await resp.json();
+            const streak = data?.engagement?.daily_streak ?? '—';
+            const convs = data?.conversations?.total ?? '—';
+            const verses = data?.gita?.verses_opened ?? '—';
+            const med = data?.practice?.meditation_minutes_7d ?? '—';
+            panel.querySelector('[data-ins-streak]').textContent = streak;
+            panel.querySelector('[data-ins-convs]').textContent = convs;
+            panel.querySelector('[data-ins-verses]').textContent = verses;
+            panel.querySelector('[data-ins-med]').textContent = med;
+            if (grid) grid.style.display = '';
+            if (emptyEl) emptyEl.style.display = 'none';
+          } catch (_) {
+            if (emptyEl) emptyEl.textContent = 'Could not load insights.';
+          }
+        });
+      }
+
+      function initReadingJourneyPanel() {
+        const panel = document.querySelector('[data-reading-panel]');
+        if (!panel) return;
+        const details = panel.querySelector('details');
+        if (!details) return;
+        let loaded = false;
+        details.addEventListener('toggle', async () => {
+          if (!details.open || loaded) return;
+          loaded = true;
+          const card = panel.querySelector('[data-reading-journey-card]');
+          const notEnrolled = panel.querySelector('[data-reading-not-enrolled]');
+          const loadingEl = panel.querySelector('[data-reading-loading]');
+          const enrollBtn = panel.querySelector('[data-rj-enroll]');
+          try {
+            const resp = await fetch('/api/v1/reading/gita-path/', { credentials: 'same-origin' });
+            if (!resp.ok) throw new Error('failed');
+            const data = await resp.json();
+            if (loadingEl) loadingEl.style.display = 'none';
+            if (!data.enrolled) {
+              if (notEnrolled) notEnrolled.style.display = '';
+              if (enrollBtn) {
+                enrollBtn.addEventListener('click', async () => {
+                  try {
+                    await fetch('/api/v1/reading/gita-path/start/', {
+                      method: 'POST',
+                      headers: { 'X-CSRFToken': getCsrfToken() },
+                      credentials: 'same-origin',
+                    });
+                    loaded = false;
+                    if (notEnrolled) notEnrolled.style.display = 'none';
+                    if (loadingEl) loadingEl.style.display = '';
+                    // reload
+                    details.dispatchEvent(new Event('toggle'));
+                  } catch (_) {}
+                });
+              }
+            } else {
+              if (card) card.style.display = '';
+              const journey = data.journey || {};
+              const total = data.total_verses || 700;
+              const completed = (journey.completed || []).length;
+              const pct = Math.round((completed / total) * 100);
+              const fillEl = panel.querySelector('[data-rj-fill]');
+              const countEl = panel.querySelector('[data-rj-count]');
+              const nextEl = panel.querySelector('[data-rj-next]');
+              if (fillEl) fillEl.style.width = pct + '%';
+              if (countEl) countEl.textContent = completed + ' / ' + total;
+              if (nextEl && journey.next) {
+                const ref = journey.next;
+                const parts = (ref + '').split('.');
+                if (parts.length === 2) {
+                  const ch = parseInt(parts[0], 10), v = parseInt(parts[1], 10);
+                  nextEl.innerHTML = 'Next: <button class="saved-verse-chip" style="font-size:12px;padding:3px 9px;" onclick="openVerseReader(' + ch + ',' + v + ')">BG ' + ref + '</button>';
+                } else {
+                  nextEl.textContent = 'Next: ' + ref;
+                }
+              }
+            }
+          } catch (_) {
+            if (loadingEl) loadingEl.textContent = 'Could not load reading journey.';
+          }
         });
       }
 
@@ -9842,22 +11758,48 @@
           return true;
         }
 
+        const AVATAR_PALETTE = ["#8B6FDE","#E07B54","#54A0BB","#7BBE8F","#D4845A","#6B9ED4","#C47AB5","#5BB3A0"];
+        function avatarColor(username) {
+          let h = 0;
+          for (let i = 0; i < (username||"").length; i++) h = (username||"").charCodeAt(i) + ((h << 5) - h);
+          return AVATAR_PALETTE[Math.abs(h) % AVATAR_PALETTE.length];
+        }
+        function initials(username) { return ((username||"?").slice(0,2)).toUpperCase(); }
+        function relTime(iso) {
+          try {
+            const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+            if (diff < 60) return lang === "hi" ? "अभी" : "just now";
+            if (diff < 3600) return Math.floor(diff/60) + (lang === "hi" ? "मि पहले" : "m ago");
+            if (diff < 86400) return Math.floor(diff/3600) + (lang === "hi" ? "घं पहले" : "h ago");
+            if (diff < 86400*7) return Math.floor(diff/86400) + (lang === "hi" ? "दिन पहले" : "d ago");
+            return new Date(iso).toLocaleDateString(undefined, {month:"short",day:"numeric"});
+          } catch { return iso || ""; }
+        }
+        function makeAvatarEl(username) {
+          const av = document.createElement("div");
+          av.className = "comm-avatar";
+          av.style.cssText = `width:28px;height:28px;border-radius:50%;background:${avatarColor(username)};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:800;color:#fff;`;
+          av.textContent = initials(username);
+          return av;
+        }
+
         function renderReply(reply) {
           const wrap = document.createElement("div");
+          wrap.style.cssText = "display:flex;gap:8px;margin-top:10px;padding-left:4px;border-left:2px solid rgba(232,184,109,0.25);";
+          wrap.appendChild(makeAvatarEl(reply.author_username));
+          const inner = document.createElement("div");
+          inner.style.flex = "1;min-width:0";
           const meta = document.createElement("div");
           meta.className = "community-preview-meta";
           meta.innerHTML =
-            "<strong>" +
-            escHtml(reply.author_username) +
-            "</strong> · <span>" +
-            escHtml(reply.created_at || "") +
-            "</span>";
+            "<strong>" + escHtml(reply.author_username) + "</strong> · <span>" + escHtml(relTime(reply.created_at || "")) + "</span>";
           const body = document.createElement("p");
           body.className = "community-preview-body";
           body.style.fontSize = "12px";
           body.textContent = truncateText(reply.body, 220);
-          wrap.appendChild(meta);
-          wrap.appendChild(body);
+          inner.appendChild(meta);
+          inner.appendChild(body);
+          wrap.appendChild(inner);
           return wrap;
         }
 
@@ -9865,20 +11807,24 @@
           const thread = document.createElement("article");
           thread.className = "community-preview-thread";
 
+          // Header row: avatar + name + time
+          const header = document.createElement("div");
+          header.style.cssText = "display:flex;align-items:center;gap:8px;margin-bottom:8px;";
+          header.appendChild(makeAvatarEl(row.author_username));
+          const metaWrap = document.createElement("div");
+          metaWrap.style.flex = "1;min-width:0";
           const meta = document.createElement("div");
           meta.className = "community-preview-meta";
           meta.innerHTML =
-            "<strong>" +
-            escHtml(row.author_username) +
-            "</strong> · <span>" +
-            escHtml(row.created_at || "") +
-            "</span>";
+            "<strong>" + escHtml(row.author_username) + "</strong> · <span>" + escHtml(relTime(row.created_at || "")) + "</span>";
+          metaWrap.appendChild(meta);
+          header.appendChild(metaWrap);
+          thread.appendChild(header);
 
           const body = document.createElement("p");
           body.className = "community-preview-body";
           body.textContent = truncateText(row.body, 320);
 
-          thread.appendChild(meta);
           thread.appendChild(body);
 
           const replies = row.replies || [];
@@ -10063,16 +12009,28 @@
             return response.json();
           })
           .then((payload) => {
-            if (quoteNode && payload.quote) {
-              quoteNode.textContent = `"${payload.quote}"`;
-            }
-            if (meaningNode && payload.meaning) {
-              meaningNode.textContent = payload.meaning;
-            }
-            if (referenceNode && payload.verse && payload.verse.reference) {
-              referenceNode.textContent = language === "hi"
-                ? `भगवद्गीता ${payload.verse.reference}`
-                : `Bhagavad Gita ${payload.verse.reference}`;
+            const quote = payload.quote ? `"${payload.quote}"` : null;
+            const meaning = payload.meaning || null;
+            const ref = payload.verse?.reference
+              ? (language === "hi" ? `भगवद्गीता ${payload.verse.reference}` : `Bhagavad Gita ${payload.verse.reference}`)
+              : null;
+            // Update all nodes with matching data attrs across card AND immersive overlay
+            document.querySelectorAll("[data-daily-signal-quote]").forEach(n => { if (quote) n.textContent = quote; });
+            document.querySelectorAll("[data-daily-signal-meaning]").forEach(n => { if (meaning) n.textContent = meaning; });
+            document.querySelectorAll("[data-daily-signal-reference]").forEach(n => { if (ref) n.textContent = ref; });
+            // Also surface verse ref as a deep-link in the overlay
+            if (payload.verse?.reference) {
+              const overlay = document.querySelector("[data-immersive-verse-overlay]");
+              if (overlay) {
+                const refEl = overlay.querySelector(".verse-immersive-ref");
+                if (refEl) {
+                  const link = document.createElement("a");
+                  link.href = `/api/chat-ui/?language=${encodeURIComponent(language)}&open_reader=1&open_reader_ref=${encodeURIComponent(payload.verse.reference)}`;
+                  link.className = "verse-immersive-deep-link";
+                  link.textContent = language === "hi" ? "गीता में पढ़ें →" : "Read in Gita →";
+                  if (!overlay.querySelector(".verse-immersive-deep-link")) refEl.after(link);
+                }
+              }
             }
           })
           .catch(() => {
@@ -10085,12 +12043,17 @@
       initTilt();
       initAmbientEffects();
       initConversationScrollPaging();
+      initConversationThreadPaging();
       initQuoteArt();
       initGitaReader();
       initLandingPage();
       initShareAnswerBtn();
       initReplyActionBar();
       initMoodCheckinStrip();
+      initSavedReflections();
+      initGratitudePanel();
+      initInsightsPanel();
+      initReadingJourneyPanel();
       initVerseImmersiveCard();
       initGoogleSignIn();
       initGuestNavAuth();

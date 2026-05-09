@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0; min-height: 100vh;
@@ -108,6 +109,39 @@
     }
     .success-text { font-size: 13px; color: var(--muted); }
 
+    /* Week strip */
+    .week-strip {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .week-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .week-day {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .week-bubble {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      font-size: 18px;
+    }
+    .week-bubble.today { border-color: rgba(200,160,240,0.4); }
+
     /* Calendar grid */
     .calendar-grid {
       display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 4px;
@@ -130,6 +164,7 @@
     }
     .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body>
 <header>
@@ -149,6 +184,8 @@
 
   <!-- Calendar history panel -->
   <div class="panel" id="history-panel" style="display:none">
+    <div class="section-title">🗓️ {% if language == "hi" %}इस सप्ताह{% else %}This Week{% endif %}</div>
+    <div class="week-strip" id="week-strip"></div>
     <div class="section-title">📅 {% if language == "hi" %}पिछले 35 दिन{% else %}Last 35 Days{% endif %}</div>
     <div class="calendar-grid" id="cal-day-labels">
       <div class="cal-day-label">Su</div>
@@ -167,7 +204,7 @@
 const LANG = "{{ language|default:'en' }}";
 const API_TOKEN = (() => {
   const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
 })();
 
 const MOODS = [
@@ -199,7 +236,7 @@ async function init() {
     document.getElementById("main-panel").innerHTML = `
       <div class="sign-in-hint">
         <p>${LANG==="hi"?"अपनी मनोदशा ट्रैक करने के लिए साइन इन करें":"Sign in to track your daily mood"}</p>
-        <a href="/auth/" class="btn-primary">🙏 ${LANG==="hi"?"साइन इन करें":"Sign In"}</a>
+        <a href="/api/chat-ui/?language=${LANG}#guest-auth-target" class="btn-primary">🙏 ${LANG==="hi"?"साइन इन करें":"Sign In"}</a>
       </div>`;
     return;
   }
@@ -220,7 +257,10 @@ function renderMoodPanel(d) {
   } else {
     renderMoodForm(null, null);
   }
-  if (d.history?.length) renderCalendar(d.history);
+  if (d.history?.length) {
+    renderWeekStrip(d.history);
+    renderCalendar(d.history);
+  }
 }
 
 function renderMoodForm(existingMood, existingNote) {
@@ -320,6 +360,38 @@ function renderCalendar(history) {
     const title = c.entry?.mood ? `${c.date}: ${c.entry.mood}${c.entry.note?` — ${c.entry.note}`:""}` : c.date;
     return `<div class="cal-cell${isToday?" today":""}${c.entry?" has-entry":""}" title="${title}">${emoji}</div>`;
   }).join("");
+}
+
+function renderWeekStrip(history) {
+  const panel = document.getElementById("history-panel");
+  panel.style.display = "block";
+  const byDate = {};
+  history.forEach(e => { byDate[e.date] = e; });
+  const todayStr = new Date().toISOString().slice(0,10);
+  const dayLabels = LANG === "hi"
+    ? ["सो", "मं", "बु", "गु", "शु", "श", "र"]
+    : ["M", "T", "W", "T", "F", "S", "S"];
+
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const key = d.toISOString().slice(0, 10);
+    const dow = d.getDay();
+    const idx = dow === 0 ? 6 : dow - 1;
+    return {
+      date: key,
+      label: dayLabels[idx],
+      entry: byDate[key] || null,
+      isToday: key === todayStr,
+    };
+  });
+
+  document.getElementById("week-strip").innerHTML = last7Days.map(day => `
+    <div class="week-cell">
+      <div class="week-day">${day.label}</div>
+      <div class="week-bubble${day.isToday ? " today" : ""}">${day.entry?.emoji || (day.isToday ? "·" : "")}</div>
+    </div>
+  `).join("");
 }
 
 init();

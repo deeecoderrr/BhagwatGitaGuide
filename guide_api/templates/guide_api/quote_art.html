@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -339,6 +340,7 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body data-lang="{{ language|default:'en' }}">
   <header>
@@ -489,8 +491,11 @@
 
     function apiFetch(path, opts = {}) {
       const hdrs = { "Content-Type": "application/json", ...(opts.headers||{}) };
-      const token = localStorage.getItem("gita_token");
-      if (token) hdrs["Authorization"] = "Bearer " + token;
+      const token = (() => {
+        const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+        return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+      })();
+      if (token) hdrs["Authorization"] = "Token " + token;
       return fetch(API + path, { ...opts, headers: hdrs });
     }
 

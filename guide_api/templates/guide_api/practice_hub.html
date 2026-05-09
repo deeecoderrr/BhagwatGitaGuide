@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -186,6 +187,7 @@
       border-radius: 999px;
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body class="gita-ambient" data-lang="{{ language|default:'en' }}" data-currency="{{ billing_currency|default:'INR' }}">
   {% csrf_token %}

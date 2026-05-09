@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -332,6 +333,7 @@
       margin: 0 0 14px;
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body data-lang="{{ language|default:'en' }}">
   <header>
@@ -372,13 +374,16 @@
   (function() {
     const LANG = document.body.dataset.lang || "en";
     const API = "/api/v1";
-    const token = localStorage.getItem("gita_token");
+    const token = (() => {
+      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
     let allPrograms = [];
     let rzpKey = "";
 
     function apiFetch(path, opts = {}) {
       const hdrs = { "Content-Type": "application/json", ...(opts.headers||{}) };
-      if (token) hdrs["Authorization"] = "Bearer " + token;
+      if (token) hdrs["Authorization"] = "Token " + token;
       return fetch(API + path, { ...opts, headers: hdrs });
     }
 

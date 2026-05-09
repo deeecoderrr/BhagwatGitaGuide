@@ -307,6 +307,31 @@ Rules:
 - Public pages include daily verse hub, FAQ archive, topic pages, sitemap,
   robots, canonical and hreflang handling.
 - Chat UI lives at `/api/chat-ui/` and remains important for manual testing.
+- Mobile-parity web shell:
+  - CSS: `guide_api/static/guide_api/css/gita-web-portal.css`.
+  - JS: `guide_api/static/guide_api/js/gita-web-portal.js`.
+  - Included on all main Bhagavad Gita templates that load
+    `gita-app-theme.css`.
+  - Adds mobile-style top nav, bottom tab bar, devotional/consciousness VFX,
+    quick action drawer, auth-aware welcome state, legacy `/auth/` link
+    normalization, and common glass/gold card polish without replacing each
+    page's existing API-bound behavior.
+  - Keep this shell additive and namespaced (`portal-*`, `gita-web-app`) so
+    existing page JavaScript for Ask, Japa, Sadhana, Plans, Reading, Community,
+    Mood, Gratitude, Quote Art, Account, and Insights continues to own its
+    feature logic.
+- Meditation web portal lives at `/meditation/` in
+  `guide_api/templates/guide_api/meditation.html`. It is intentionally a
+  single-page workspace, not separate `/meditation/<slug>/` web routes. It uses
+  `/api/v1/meditation/types/`, `/contents/`, `/sessions/start/`,
+  `/sessions/<id>/complete/`, `/sessions/<id>/interrupt/`, `/sessions/recent/`,
+  and `/insights/` so web and mobile write to the same
+  `MeditationPracticeSession` records.
+- The `/meditation/` web UX mirrors the mobile practice flow: choose practice
+  type, switch Learn/Practice mode, set optional sankalpa and mood before,
+  start a tracked session, play/loop media when present, count mala rounds,
+  interrupt tracking when the page is hidden/unloaded, then save completion
+  reflection and insight fields.
 - Design direction is documented in `docs/design-playbook.md`.
 
 ## Optional ITR App

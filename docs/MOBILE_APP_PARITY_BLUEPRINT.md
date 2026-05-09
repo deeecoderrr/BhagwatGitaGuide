@@ -150,6 +150,42 @@ Frontend/mobile-owned:
 - `POST /sadhana/programs/<slug>/days/<day_number>/complete/`
 - `GET /sadhana/me/`
 
+### Meditation / Sadhana Practice Library
+
+- `GET /meditation/types/`
+- `GET /meditation/types/<slug>/`
+- `GET /meditation/types/<slug>/contents/?mode=learn|practice`
+- `POST /meditation/sessions/start/`
+- `POST /meditation/sessions/<session_id>/complete/`
+- `POST /meditation/sessions/<session_id>/interrupt/`
+- `GET /meditation/sessions/recent/?limit=`
+- `GET /meditation/insights/`
+- `GET /meditation/insights/<slug>/`
+
+Web parity note: `/meditation/` is a single-page web workspace that now mirrors
+the mobile app flow. It selects practice types with URL hashes instead of using
+separate `/meditation/<slug>/` routes, but all data is shared through the same
+API endpoints and `MeditationPracticeSession` backend model.
+
+## Web Portal Parity Shell
+
+The web app now has a shared mobile-style shell layered onto the existing Django
+templates:
+
+- `guide_api/static/guide_api/css/gita-web-portal.css`
+- `guide_api/static/guide_api/js/gita-web-portal.js`
+
+This shell is included on the core Gita pages and should remain the common
+place for app-wide web/mobile visual parity: devotional/consciousness ambient
+VFX, top navigation, bottom tab bar, quick action drawer, auth-aware greeting,
+and common glass/gold surface polish.
+
+Important implementation rule: keep feature-specific API logic inside the
+existing page templates unless a true shared frontend API helper is introduced.
+The shell should enhance navigation and cohesion without breaking working
+page-level flows for Ask, Reading, Japa, Meditation, Sadhana, Plans, Community,
+Saved Reflections, Mood, Gratitude, Quote Art, Account, and Insights.
+
 ---
 
 ## 4) Exact Integration Checklist (Call Order)

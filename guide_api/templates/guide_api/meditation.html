@@ -4,297 +4,1777 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if language == "hi" %}ध्यान अभ्यास{% else %}Meditation Practice{% endif %} · Bhagavad Gita Guide</title>
+  <title>{% if language == "hi" %}ध्यान और साधना{% else %}Meditation & Sadhana{% endif %} · Bhagavad Gita Guide</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
-    body {
-      margin: 0; min-height: 100vh;
-      font-family: "Manrope", system-ui, sans-serif;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(121,217,239,0.09), transparent 55%),
-        radial-gradient(circle at 20% 85%, rgba(107,78,158,0.12), transparent 50%),
-        var(--bg);
-      color: var(--text);
+    :root {
+      --shell-pad: clamp(16px, 4vw, 44px);
+      --glass: rgba(12, 16, 38, 0.72);
+      --glass-strong: rgba(8, 11, 28, 0.9);
+      --devotional-green: #315c46;
+      --lotus-pink: #d88181;
     }
-    header {
-      padding: 20px clamp(16px,4vw,40px);
-      display: flex; flex-wrap: wrap; gap: 12px;
-      align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(121,217,239,0.14);
-      background: linear-gradient(180deg,rgba(10,14,24,0.6),rgba(5,8,16,0.2));
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% -5%, rgba(255,230,184,0.16), transparent 42%),
+        radial-gradient(circle at 16% 28%, rgba(216,129,129,0.12), transparent 32%),
+        radial-gradient(circle at 84% 72%, rgba(49,92,70,0.22), transparent 40%),
+        linear-gradient(180deg, #07040a 0%, #0b1024 52%, #05060d 100%);
+      overflow-x: hidden;
+    }
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      background:
+        linear-gradient(108deg, transparent 0 38%, rgba(255,230,184,0.13) 42%, transparent 49%),
+        radial-gradient(circle at 50% 18%, rgba(232,184,109,0.08), transparent 24%),
+        repeating-radial-gradient(circle at 50% 18%, rgba(232,184,109,0.1) 0 1px, transparent 1px 18px);
+      opacity: 0.75;
+      animation: devotionalBreath 18s ease-in-out infinite alternate;
+    }
+    body::after {
+      opacity: 0.08;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: radial-gradient(ellipse at 50% 28%, black, transparent 72%);
+    }
+    @keyframes devotionalBreath {
+      from { transform: translateY(0) scale(1); opacity: 0.58; }
+      to { transform: translateY(-14px) scale(1.04); opacity: 0.88; }
+    }
+    a { color: inherit; }
+    button, input, textarea, select { font: inherit; }
+    button { border: 0; }
+
+    .floating-mantra {
+      position: fixed;
+      z-index: 0;
+      color: rgba(255,230,184,0.16);
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(20px, 3vw, 38px);
+      filter: drop-shadow(0 0 20px rgba(232,184,109,0.18));
+      animation: mantraFloat 22s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .floating-mantra.one { left: 8%; top: 22%; animation-delay: -4s; }
+    .floating-mantra.two { right: 10%; top: 42%; animation-delay: -12s; }
+    .floating-mantra.three { left: 72%; bottom: 12%; animation-delay: -8s; }
+    @keyframes mantraFloat {
+      0%, 100% { transform: translateY(20px); opacity: 0; }
+      18%, 72% { opacity: 1; }
+      100% { transform: translateY(-90px); }
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 22px var(--shell-pad) 96px;
+    }
+    .topbar {
+      display: flex;
+      gap: 14px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    .brand-mark {
+      width: 48px;
+      height: 48px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(145deg, rgba(232,184,109,0.24), rgba(49,92,70,0.22), rgba(7,4,10,0.62));
+      border: 1px solid rgba(232,184,109,0.34);
+      box-shadow: 0 18px 38px rgba(0,0,0,0.34), inset 0 0 26px rgba(232,184,109,0.08);
+    }
+    .brand-mark::before {
+      content: "";
+      width: 22px;
+      height: 30px;
+      border-radius: 50% 50% 46% 46%;
+      border: 1.5px solid rgba(255,230,184,0.86);
+      box-shadow: 0 0 24px rgba(232,184,109,0.5);
+    }
+    .brand-mark::after {
+      content: "";
+      position: absolute;
+      width: 3px;
+      height: 38px;
+      border-radius: 999px;
+      background: linear-gradient(#8e4cff, #2d8cff, #2ecf74, #ffe46b, #ff9b2f, #ff4d3f);
+      box-shadow: 0 0 16px rgba(255,230,184,0.6);
+    }
+    .eyebrow {
+      margin: 0 0 4px;
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 600;
+      margin: 0;
+    }
+    .topbar h1 {
+      font-size: clamp(26px, 4.8vw, 48px);
+      line-height: 0.92;
+      color: #fff5d8;
+      text-shadow: 0 0 46px rgba(232,184,109,0.16);
+    }
+    .topbar p {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .portal-nav {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .nav-pill,
+    .ghost-btn,
+    .gold-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 40px;
+      padding: 10px 15px;
+      border-radius: 999px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: transform 0.22s ease, border-color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease;
+    }
+    .nav-pill, .ghost-btn {
+      color: rgba(245,239,224,0.82);
+      border: 1px solid rgba(255,255,255,0.09);
+      background: rgba(255,255,255,0.045);
       backdrop-filter: blur(12px);
     }
-    .header-left h1 {
-      margin: 0; font-family: "Cormorant Garamond", serif;
-      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em; color: rgba(121,217,239,0.9);
+    .nav-pill:hover, .ghost-btn:hover {
+      transform: translateY(-1px);
+      border-color: rgba(232,184,109,0.32);
+      background: rgba(232,184,109,0.08);
     }
-    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
-    .nav-back {
-      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
-      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
-      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    .gold-btn {
+      color: var(--gita-on-gold);
+      font-weight: 800;
+      background: linear-gradient(135deg, #f7d99c, #e8b86d 48%, #b8893e);
+      box-shadow: 0 18px 36px rgba(232,184,109,0.18);
     }
-    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
-    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 960px; margin: 0 auto; }
+    .gold-btn:hover { transform: translateY(-2px); box-shadow: 0 22px 46px rgba(232,184,109,0.26); }
+    .ghost-btn[disabled], .gold-btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-    /* Stats row */
-    .stats-row {
-      display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 24px;
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+      gap: 18px;
+      align-items: stretch;
+      margin-bottom: 18px;
+    }
+    .hero-card,
+    .glass-card,
+    .practice-card,
+    .content-card,
+    .modal-panel,
+    .player-card {
+      position: relative;
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(232,184,109,0.2);
+      background: linear-gradient(155deg, rgba(255,255,255,0.075), rgba(12,16,38,0.82) 46%, rgba(7,4,10,0.76));
+      box-shadow: 0 28px 74px rgba(0,0,0,0.38), inset 0 0 0 1px rgba(255,255,255,0.025);
+      backdrop-filter: blur(18px) saturate(120%);
+    }
+    .hero-card::before,
+    .glass-card::before,
+    .practice-card::before,
+    .content-card::before,
+    .player-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        linear-gradient(112deg, transparent 0 34%, rgba(255,230,184,0.14) 42%, transparent 52%),
+        radial-gradient(circle at 18% 0%, rgba(232,184,109,0.16), transparent 32%);
+      opacity: 0.72;
+    }
+    .hero-card {
+      min-height: 360px;
+      padding: clamp(24px, 4vw, 44px);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hero-title {
+      max-width: 720px;
+      font-size: clamp(48px, 10vw, 96px);
+      line-height: 0.86;
+      letter-spacing: -0.05em;
+      color: #fff5d8;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-title span {
+      display: block;
+      color: var(--gold);
+      text-shadow: 0 0 50px rgba(232,184,109,0.28);
+    }
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+      max-width: 640px;
+      margin: 20px 0 0;
+      color: rgba(245,239,224,0.78);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+    .hero-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+    .mandala-card {
+      min-height: 360px;
+      padding: 26px;
+      display: grid;
+      place-items: center;
+    }
+    .mandala {
+      width: min(310px, 74vw);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      position: relative;
+      background:
+        radial-gradient(circle, rgba(255,230,184,0.8) 0 2%, rgba(232,184,109,0.3) 6%, transparent 12%),
+        repeating-radial-gradient(circle, rgba(232,184,109,0.2) 0 1px, transparent 1px 16px);
+      animation: mandalaSpin 48s linear infinite;
+    }
+    @keyframes mandalaSpin { to { transform: rotate(360deg); } }
+    .mandala::before,
+    .mandala::after {
+      content: "";
+      position: absolute;
+      inset: 13%;
+      border-radius: 50%;
+      border: 1px solid rgba(232,184,109,0.42);
+      box-shadow: 0 0 38px rgba(232,184,109,0.18), inset 0 0 36px rgba(232,184,109,0.08);
+    }
+    .mandala::after {
+      inset: 27%;
+      border-color: rgba(255,230,184,0.54);
+      animation: mandalaReverse 30s linear infinite;
+    }
+    @keyframes mandalaReverse { to { transform: rotate(-360deg); } }
+    .chakra-line {
+      position: absolute;
+      top: 18%;
+      bottom: 18%;
+      width: 5px;
+      border-radius: 999px;
+      background: linear-gradient(#8e4cff, #2d8cff, #2ee5ff, #2ecf74, #ffe46b, #ff9b2f, #ff4d3f);
+      box-shadow: 0 0 30px rgba(255,230,184,0.72);
+      animation: chakraGlow 3.6s ease-in-out infinite alternate;
+    }
+    @keyframes chakraGlow { to { filter: brightness(1.35); transform: scaleY(1.04); } }
+    .lotus-shape {
+      width: 58%;
+      aspect-ratio: 1.2;
+      position: relative;
+    }
+    .lotus-shape span {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 28%;
+      height: 48%;
+      transform-origin: 50% 92%;
+      border-radius: 60% 60% 18% 18%;
+      border: 1px solid rgba(255,230,184,0.5);
+      background: linear-gradient(180deg, rgba(255,230,184,0.24), rgba(232,184,109,0.04));
+    }
+    .lotus-shape span:nth-child(1) { transform: translate(-50%,-75%) rotate(0deg); }
+    .lotus-shape span:nth-child(2) { transform: translate(-50%,-75%) rotate(45deg); }
+    .lotus-shape span:nth-child(3) { transform: translate(-50%,-75%) rotate(90deg); }
+    .lotus-shape span:nth-child(4) { transform: translate(-50%,-75%) rotate(135deg); }
+    .lotus-shape span:nth-child(5) { transform: translate(-50%,-75%) rotate(180deg); }
+    .lotus-shape span:nth-child(6) { transform: translate(-50%,-75%) rotate(225deg); }
+    .lotus-shape span:nth-child(7) { transform: translate(-50%,-75%) rotate(270deg); }
+    .lotus-shape span:nth-child(8) { transform: translate(-50%,-75%) rotate(315deg); }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 18px;
     }
     .stat-card {
-      flex: 1 1 140px;
-      background: var(--panel); border: 1px solid rgba(121,217,239,0.15);
-      border-radius: 14px; padding: 18px 18px 16px; text-align: center;
+      padding: 18px;
+      min-height: 106px;
     }
     .stat-value {
-      font-family: "Cormorant Garamond", serif; font-size: 28px; font-weight: 600;
-      color: rgba(121,217,239,0.9); margin-bottom: 4px;
+      position: relative;
+      z-index: 1;
+      font-family: "Cormorant Garamond", serif;
+      color: #fff5d8;
+      font-size: 36px;
+      line-height: 1;
     }
-    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; }
-
-    /* Practice type cards */
-    .section-title {
-      font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600;
-      color: rgba(245,217,160,0.95); margin: 0 0 16px; letter-spacing: -0.01em;
+    .stat-label {
+      position: relative;
+      z-index: 1;
+      margin-top: 8px;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
     }
-    .panel {
-      background: var(--panel); border: 1px solid rgba(232,184,109,0.16);
-      border-radius: 16px; padding: 24px; margin-bottom: 22px;
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
     }
-    .practice-grid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+    .panel-title {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .panel-title h2 {
+      color: #fff5d8;
+      font-size: 26px;
+      letter-spacing: -0.02em;
+    }
+    .panel-title p {
+      margin: 5px 0 0;
+      color: var(--text-muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .filter-row,
+    .tab-row,
+    .chip-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .filter-btn,
+    .tab-btn,
+    .chip-btn {
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      transition: all 0.18s ease;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .filter-btn.active,
+    .tab-btn.active,
+    .chip-btn.active {
+      color: var(--gita-on-gold);
+      border-color: rgba(232,184,109,0.52);
+      background: linear-gradient(135deg, #f7d99c, #e8b86d);
+    }
+    .practice-list {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 12px;
     }
     .practice-card {
-      border-radius: 16px; padding: 20px 18px;
+      width: 100%;
+      text-align: left;
+      padding: 18px;
+      color: inherit;
+      cursor: pointer;
+    }
+    .practice-card.active {
+      border-color: rgba(232,184,109,0.58);
+      box-shadow: 0 24px 58px rgba(0,0,0,0.4), 0 0 34px rgba(232,184,109,0.1);
+    }
+    .practice-card.locked { opacity: 0.72; }
+    .practice-meta {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.25);
+      background: rgba(232,184,109,0.09);
+      color: var(--gold);
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .badge.sadhana { color: #9ce2ba; border-color: rgba(156,226,186,0.28); background: rgba(49,92,70,0.18); }
+    .badge.muted { color: var(--text-muted); border-color: rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); }
+    .practice-card h3 {
+      position: relative;
+      z-index: 1;
+      color: #fff5d8;
+      font-size: 24px;
+      line-height: 1.08;
+    }
+    .practice-card p {
+      position: relative;
+      z-index: 1;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .detail-shell {
+      min-height: 620px;
+    }
+    .detail-hero {
+      position: relative;
+      z-index: 1;
+      min-height: 310px;
+      padding: 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(232,184,109,0.2);
+      background:
+        linear-gradient(180deg, transparent, rgba(7,4,10,0.76)),
+        radial-gradient(circle at 50% 18%, rgba(232,184,109,0.22), transparent 34%),
+        linear-gradient(135deg, rgba(49,92,70,0.38), rgba(7,4,10,0.72));
+      margin-bottom: 14px;
+    }
+    .detail-hero.has-cover {
+      background-size: cover;
+      background-position: center;
+    }
+    .detail-hero.has-cover::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(7,4,10,0.14), rgba(7,4,10,0.86)),
+        radial-gradient(circle at 50% 20%, rgba(232,184,109,0.2), transparent 44%);
+      z-index: 0;
+    }
+    .detail-hero > * { position: relative; z-index: 1; }
+    .detail-hero h2 {
+      color: #fff5d8;
+      font-size: clamp(42px, 7vw, 72px);
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      max-width: 760px;
+    }
+    .detail-hero p {
+      margin: 12px 0 0;
+      color: rgba(245,239,224,0.82);
+      max-width: 680px;
+      line-height: 1.75;
+    }
+    .detail-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .content-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+    }
+    .content-card {
+      padding: 18px;
+      min-height: 210px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .content-card h3 {
+      position: relative;
+      z-index: 1;
+      color: #fff5d8;
+      font-size: 23px;
+      line-height: 1.12;
+    }
+    .content-card p {
+      position: relative;
+      z-index: 1;
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+    .content-tags {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin: 12px 0;
+    }
+    .content-actions {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .empty-state,
+    .loading-state,
+    .auth-state {
+      position: relative;
+      z-index: 1;
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed rgba(232,184,109,0.2);
+      border-radius: 24px;
+      background: rgba(255,255,255,0.035);
+    }
+    .recent-list {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+    }
+    .recent-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 13px;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      background: rgba(255,255,255,0.04);
+    }
+    .recent-row strong { color: #fff5d8; font-size: 13px; }
+    .recent-row span { color: var(--text-muted); font-size: 11px; }
+    .mobile-tabbar {
+      position: fixed;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      z-index: 40;
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgba(5,6,13,0.76);
+      border: 1px solid rgba(232,184,109,0.22);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.46), inset 0 1px rgba(255,255,255,0.05);
+      backdrop-filter: blur(18px);
+    }
+    .mobile-tabbar a {
+      width: 82px;
+      display: grid;
+      gap: 3px;
+      place-items: center;
+      padding: 9px 7px;
+      border-radius: 999px;
+      color: rgba(245,239,224,0.66);
+      text-decoration: none;
+      font-size: 11px;
+      font-weight: 800;
+    }
+    .mobile-tabbar a.active {
+      color: var(--gold);
+      background: rgba(232,184,109,0.1);
+    }
+    .modal,
+    .player-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(3,4,10,0.72);
+      backdrop-filter: blur(18px);
+    }
+    .modal.open,
+    .player-overlay.open { display: flex; }
+    .modal-panel {
+      width: min(640px, 100%);
+      max-height: min(760px, 92vh);
+      overflow: auto;
+      padding: 24px;
+    }
+    .modal-panel h2 {
+      color: #fff5d8;
+      font-size: 34px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .modal-panel p {
+      color: var(--muted);
+      line-height: 1.65;
+      margin: 0 0 14px;
+    }
+    .field {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0;
+    }
+    .field label {
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+    .field textarea,
+    .field input,
+    .field select {
+      width: 100%;
+      min-height: 46px;
+      border-radius: 16px;
       border: 1px solid rgba(232,184,109,0.18);
-      background: linear-gradient(135deg,rgba(232,184,109,0.1),rgba(18,22,38,0.5));
-      cursor: pointer; text-decoration: none; color: inherit; transition: all 0.2s;
-      display: block; position: relative; overflow: hidden;
+      background: rgba(5,6,13,0.5);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
     }
-    .practice-card:hover { border-color: rgba(232,184,109,0.38); transform: translateY(-2px); }
-    .practice-card.locked { opacity: 0.6; cursor: default; }
-    .practice-card.locked:hover { transform: none; }
-    .card-badges { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
-    .badge-cat {
-      font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-      background: rgba(121,217,239,0.12); color: rgba(121,217,239,0.9);
-      letter-spacing: 0.05em; text-transform: uppercase;
+    .field textarea { min-height: 92px; resize: vertical; }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
     }
-    .badge-sadhana {
-      font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-      background: rgba(232,184,109,0.12); color: var(--gold); letter-spacing: 0.05em;
+    .player-overlay {
+      align-items: stretch;
+      padding: 0;
     }
-    .badge-lock { font-size: 13px; color: var(--muted); margin-left: auto; }
-    .card-title {
-      font-family: "Cormorant Garamond", serif; font-size: 18px;
-      color: rgba(245,217,160,0.95); margin-bottom: 4px;
+    .player-card {
+      width: 100%;
+      min-height: 100vh;
+      border-radius: 0;
+      display: grid;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(320px, 1.1fr);
+      align-items: center;
+      gap: 28px;
+      padding: clamp(22px, 5vw, 70px);
+      background:
+        radial-gradient(circle at 35% 34%, rgba(232,184,109,0.16), transparent 28%),
+        linear-gradient(135deg, #0a0614, #0c1820 50%, #050309);
     }
-    .card-subtitle { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
-    .card-meta { display: flex; gap: 10px; }
-    .card-meta-item { font-size: 11px; color: rgba(121,217,239,0.6); }
+    .player-orb-wrap {
+      position: relative;
+      width: min(420px, 82vw);
+      margin: 0 auto;
+    }
+    .player-orb-wrap > svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .bead-arc-bg { fill: none; stroke: rgba(232,184,109,0.1); stroke-width: 6; }
+    .bead-arc-fill { fill: none; stroke: rgba(232,184,109,0.88); stroke-width: 6; stroke-linecap: round;
+      filter: drop-shadow(0 0 6px rgba(232,184,109,0.6));
+      transition: stroke-dashoffset 0.15s linear; }
+    .player-orb {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, rgba(255,230,184,0.2), transparent 34%),
+        repeating-radial-gradient(circle, rgba(232,184,109,0.18) 0 1px, transparent 1px 22px);
+      border: 1px solid rgba(232,184,109,0.26);
+      box-shadow: 0 0 90px rgba(232,184,109,0.12), inset 0 0 60px rgba(232,184,109,0.06);
+      cursor: pointer;
+    }
+    .player-orb::before {
+      content: "";
+      position: absolute;
+      inset: 13%;
+      border-radius: inherit;
+      border: 1px dashed rgba(232,184,109,0.28);
+      animation: mandalaSpin 36s linear infinite;
+    }
+    .player-orb strong {
+      color: #fff5d8;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(34px, 7vw, 72px);
+      text-align: center;
+      line-height: 0.96;
+      max-width: 72%;
+      text-shadow: 0 0 36px rgba(232,184,109,0.22);
+    }
+    .mala-count {
+      position: absolute;
+      left: 50%;
+      bottom: 22%;
+      transform: translateX(-50%);
+      color: var(--gold);
+      font-weight: 900;
+      text-align: center;
+    }
+    .player-side {
+      position: relative;
+      z-index: 1;
+    }
+    .player-side h2 {
+      color: #fff5d8;
+      font-size: clamp(42px, 7vw, 80px);
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+    .player-side p { color: var(--muted); line-height: 1.65; }
+    .progress-track {
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin: 18px 0 8px;
+    }
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #b8893e, #f5d49a);
+      box-shadow: 0 0 20px rgba(232,184,109,0.44);
+    }
+    .time-row {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+    .control-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+    }
+    .mini-player {
+      position: fixed;
+      left: 18px;
+      right: 18px;
+      bottom: 96px;
+      z-index: 45;
+      display: none;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 12px;
+      border-radius: 22px;
+      border: 1px solid rgba(232,184,109,0.24);
+      background: rgba(5,6,13,0.82);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 18px 48px rgba(0,0,0,0.42);
+    }
+    .mini-player.open { display: block; }
+    .mini-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .mini-row strong { color: #fff5d8; font-size: 13px; }
+    .mini-row span { display: block; color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 100px;
+      transform: translateX(-50%) translateY(18px);
+      z-index: 90;
+      opacity: 0;
+      pointer-events: none;
+      padding: 12px 16px;
+      border-radius: 999px;
+      color: #fff5d8;
+      background: rgba(5,6,13,0.86);
+      border: 1px solid rgba(232,184,109,0.24);
+      box-shadow: 0 18px 44px rgba(0,0,0,0.4);
+      transition: all 0.25s ease;
+    }
+    .toast.open {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .hidden { display: none !important; }
 
-    /* Filter tabs */
-    .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
-    .filter-btn {
-      font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.08); background: transparent; color: var(--muted);
-      cursor: pointer; transition: all 0.15s; font-family: "Manrope",sans-serif;
+    @media (max-width: 980px) {
+      .hero-grid,
+      .workspace-grid,
+      .player-card {
+        grid-template-columns: 1fr;
+      }
+      .portal-nav { justify-content: flex-start; }
+      .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    .filter-btn.active {
-      border-color: rgba(121,217,239,0.35); color: rgba(121,217,239,0.9); background: rgba(121,217,239,0.08);
+    @media (max-width: 620px) {
+      .app-shell { padding-left: 14px; padding-right: 14px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .portal-nav { display: none; }
+      .hero-card { min-height: 420px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .mobile-tabbar { left: 10px; right: 10px; transform: none; justify-content: space-between; }
+      .mobile-tabbar a { width: auto; min-width: 58px; }
+      .modal { padding: 12px; }
+      .player-card { padding: 22px 16px 92px; }
     }
-
-    /* Recent sessions */
-    .session-row {
-      display: flex; align-items: center; gap: 14px;
-      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .session-row:last-child { border-bottom: none; }
-    .session-icon { font-size: 22px; }
-    .session-info { flex: 1; }
-    .session-title { font-size: 13px; font-weight: 600; color: rgba(240,230,210,0.9); margin-bottom: 2px; }
-    .session-meta { font-size: 11px; color: var(--muted); }
-    .session-dur { font-size: 13px; font-weight: 600; color: rgba(121,217,239,0.8); }
-
-    .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
-    .sign-in-hint { text-align:center; padding:20px; color:var(--muted); font-size:13px; }
-    .btn-primary {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 11px 22px; border-radius: 999px;
-      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
-      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
-      font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; margin-top: 12px;
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body>
-<header>
-  <div class="header-left">
-    <h1>🧘 {% if language == "hi" %}ध्यान अभ्यास{% else %}Meditation Practice{% endif %}</h1>
-    <p>{% if language == "hi" %}मन की शांति के लिए पवित्र अभ्यास{% else %}Sacred practices for inner stillness{% endif %}</p>
-  </div>
-  <a href="/today/" class="nav-back">← {% if language == "hi" %}वापस{% else %}Back{% endif %}</a>
-</header>
+  <div class="floating-mantra one">ॐ</div>
+  <div class="floating-mantra two">शान्ति</div>
+  <div class="floating-mantra three">हरि</div>
 
-<main>
-  <!-- Stats (logged-in) -->
-  <div id="stats-row" class="stats-row" style="display:none">
-    <div class="stat-card">
-      <div class="stat-value" id="stat-sessions">—</div>
-      <div class="stat-label">{% if language == "hi" %}कुल सत्र{% else %}TOTAL SESSIONS{% endif %}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-minutes">—</div>
-      <div class="stat-label">{% if language == "hi" %}कुल मिनट{% else %}TOTAL MINUTES{% endif %}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="stat-streak">—</div>
-      <div class="stat-label">{% if language == "hi" %}लय{% else %}STREAK{% endif %}</div>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <p class="eyebrow">{% if language == "hi" %}ध्यान · साधना · जप{% else %}Meditation · Sadhana · Japa{% endif %}</p>
+          <h1>{% if language == "hi" %}अभ्यास{% else %}Practice{% endif %}</h1>
+          <p>{% if language == "hi" %}गीता के ज्ञान को केवल पढ़ें नहीं, उसे श्वास, जप और ध्यान में जिएं।{% else %}Do not only read Gita wisdom. Breathe it, chant it, and live it as practice.{% endif %}</p>
+        </div>
+      </div>
+      <nav class="portal-nav" aria-label="Bhagavad Gita web app">
+        <a class="nav-pill" href="/today/">Today</a>
+        <a class="nav-pill" href="/api/chat-ui/">Ask</a>
+        <a class="nav-pill" href="/api/chat-ui/?language={{ language|default:'en' }}&open_reader=1">Read</a>
+        <a class="nav-pill" href="/japa/">Japa</a>
+        <a class="nav-pill" href="/insights/">Insights</a>
+        <a class="nav-pill" href="/account/">You</a>
+      </nav>
+    </header>
+
+    <section class="hero-grid">
+      <div class="hero-card">
+        <div>
+          <p class="eyebrow">{% if language == "hi" %}पूछें · ध्यान करें · चंगाई पाएं{% else %}Ask · Meditate · Heal{% endif %}</p>
+          <h2 class="hero-title">{% if language == "hi" %}मन को <span>साधना</span> में उतारें{% else %}Step into <span>the practice.</span>{% endif %}</h2>
+          <p class="hero-copy">{% if language == "hi" %}यह वेब पोर्टल अब मोबाइल ऐप की तरह ही सीखने और साधना करने के लिए बना है: अभ्यास चुनें, संकल्प लें, ऑडियो चलाएं, माला गिनें, और अंत में अपनी अनुभूति सहेजें।{% else %}This web portal now follows the mobile app flow: choose a practice, set a sankalpa, play the track, count mala rounds, and save what changed inside you when the session ends.{% endif %}</p>
+          <div class="hero-actions">
+            <button class="gold-btn" type="button" data-scroll-to-library>{% if language == "hi" %}अभ्यास शुरू करें{% else %}Begin Practice{% endif %}</button>
+            <a class="ghost-btn" href="/api/chat-ui/">{% if language == "hi" %}पहले मार्गदर्शन लें{% else %}Ask for Guidance First{% endif %}</a>
+          </div>
+        </div>
+      </div>
+      <div class="glass-card mandala-card" aria-hidden="true">
+        <div class="mandala">
+          <div class="chakra-line"></div>
+          <div class="lotus-shape">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="stats-grid" id="stats-grid" aria-label="Practice insights">
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-practice">-</div>
+        <div class="stat-label">Practice sessions</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-learn">-</div>
+        <div class="stat-label">Learning sessions</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-minutes">-</div>
+        <div class="stat-label">Tracked minutes</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-presence">-</div>
+        <div class="stat-label">Presence score</div>
+      </div>
+    </section>
+
+    <section class="workspace-grid" id="practice-library">
+      <aside class="glass-card" style="padding:18px">
+        <div class="panel-title">
+          <div>
+            <h2>{% if language == "hi" %}अभ्यास पुस्तकालय{% else %}Practice Library{% endif %}</h2>
+            <p>{% if language == "hi" %}हर अभ्यास स्वतंत्र, विस्तार योग्य और योजना/खरीद के अनुसार लॉक हो सकता है।{% else %}Each practice can be free, plan-gated, or separately purchased as the library grows.{% endif %}</p>
+          </div>
+        </div>
+        <div class="filter-row" id="filter-row"></div>
+        <div class="practice-list" id="practice-list">
+          <div class="loading-state">Loading practices...</div>
+        </div>
+      </aside>
+
+      <main class="detail-shell" id="detail-shell">
+        <div class="glass-card" style="padding:24px">
+          <div class="empty-state">
+            <strong>{% if language == "hi" %}एक अभ्यास चुनें{% else %}Choose a practice{% endif %}</strong>
+            <p style="margin:8px 0 0">{% if language == "hi" %}फिर आप सीखने वाले ट्रैक, साथ-साथ साधना, ऑडियो प्लेयर, माला काउंटर और reflection saving देख पाएंगे।{% else %}Then you will see learning tracks, practice mode, the audio player, mala counter, and reflection saving in one flow.{% endif %}</p>
+          </div>
+        </div>
+      </main>
+    </section>
+
+    <section class="glass-card" style="padding:20px;margin-top:18px" id="recent-panel">
+      <div class="panel-title">
+        <div>
+          <h2>{% if language == "hi" %}हाल की साधना{% else %}Recent Practice{% endif %}</h2>
+          <p>{% if language == "hi" %}वेब और मोबाइल दोनों एक ही backend meditation sessions में सेव करते हैं।{% else %}Web and mobile save into the same backend meditation session model.{% endif %}</p>
+        </div>
+        <a class="ghost-btn" href="/insights/">Open Insights</a>
+      </div>
+      <div class="recent-list" id="recent-list">
+        <div class="empty-state">Complete a practice session to see it here.</div>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal" id="pre-modal" role="dialog" aria-modal="true" aria-labelledby="pre-title">
+    <div class="modal-panel">
+      <p class="eyebrow">Sankalpa</p>
+      <h2 id="pre-title">Begin with intention</h2>
+      <p id="pre-copy">Tell your mind why you are entering this practice. This is optional, but it makes the session more conscious.</p>
+      <div class="field">
+        <label for="mood-before">How are you right now?</label>
+        <select id="mood-before">
+          <option value="">Prefer not to say</option>
+          <option value="1">1 - Troubled</option>
+          <option value="2">2 - Restless</option>
+          <option value="3">3 - Neutral</option>
+          <option value="4">4 - Calm</option>
+          <option value="5">5 - Joyful</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="session-intention">Sankalpa or intention</label>
+        <textarea id="session-intention" maxlength="500" placeholder="Example: I offer this practice to Krishna and ask for steadiness."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost-btn" type="button" data-close-pre>Cancel</button>
+        <button class="gold-btn" type="button" data-start-session>Begin Practice</button>
+      </div>
     </div>
   </div>
 
-  <!-- Practice types library -->
-  <div class="panel">
-    <div class="section-title">🕉️ {% if language == "hi" %}अभ्यास पुस्तकालय{% else %}Practice Library{% endif %}</div>
-    <div class="filter-tabs" id="filter-tabs"></div>
-    <div class="practice-grid" id="practice-grid">
-      <div class="loading-state">{% if language == "hi" %}अभ्यास लोड हो रहे हैं…{% else %}Loading practices…{% endif %}</div>
+  <div class="player-overlay" id="player-overlay" role="dialog" aria-modal="true" aria-labelledby="player-title">
+    <div class="player-card">
+      <button class="ghost-btn" type="button" data-minimize-player style="position:absolute;top:18px;right:18px;z-index:4">Minimize</button>
+      <div class="player-orb-wrap">
+        <!-- SVG bead progress ring -->
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="bead-arc-bg" cx="50" cy="50" r="47" />
+          <circle class="bead-arc-fill" id="bead-arc" cx="50" cy="50" r="47"
+            stroke-dasharray="295.3"
+            stroke-dashoffset="295.3"
+            transform="rotate(-90 50 50)" />
+        </svg>
+        <div class="player-orb" data-mala-tap title="Tap for each chant" accessibilityRole="button" accessibilityLabel="Count bead">
+          <strong id="player-mantra">ॐ</strong>
+          <div class="mala-count">
+            <div id="mala-count">0 malas</div>
+            <div id="bead-count" style="font-size:12px;color:var(--text-muted);margin-top:4px">0 / 108</div>
+          </div>
+        </div>
+      </div>
+      <div class="player-side">
+        <p class="eyebrow" id="player-kicker">Now practicing</p>
+        <h2 id="player-title">Practice</h2>
+        <p id="player-subtitle">Let the sound carry the mind gently back.</p>
+        <audio id="session-audio" preload="metadata"></audio>
+        <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="time-row"><span id="time-current">0:00</span><span id="time-total">--:--</span></div>
+        <div class="control-row">
+          <button class="gold-btn" type="button" data-toggle-audio>Pause</button>
+          <button class="ghost-btn" type="button" data-skip="-15">Back 15s</button>
+          <button class="ghost-btn" type="button" data-skip="15">Forward 15s</button>
+          <button class="ghost-btn" type="button" data-loop-toggle>Loop on</button>
+          <button class="ghost-btn" type="button" data-complete-session>Done</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Recent sessions -->
-  <div class="panel" id="sessions-panel" style="display:none">
-    <div class="section-title">⏱️ {% if language == "hi" %}हाल के सत्र{% else %}Recent Sessions{% endif %}</div>
-    <div id="sessions-list"></div>
+  <div class="mini-player" id="mini-player">
+    <div class="mini-row">
+      <button class="ghost-btn" type="button" data-expand-player>Open</button>
+      <div style="min-width:0;flex:1">
+        <strong id="mini-title">Practice</strong>
+        <span id="mini-time">0:00</span>
+      </div>
+      <button class="ghost-btn" type="button" data-toggle-audio-mini>Pause</button>
+      <button class="gold-btn" type="button" data-complete-session>Done</button>
+    </div>
   </div>
-</main>
+
+  <div class="modal" id="post-modal" role="dialog" aria-modal="true" aria-labelledby="post-title">
+    <div class="modal-panel">
+      <p class="eyebrow">Practice complete</p>
+      <h2 id="post-title">What changed inside?</h2>
+      <p id="closing-verse">Fill your mind with Me, be devoted to Me, worship Me, bow down to Me - so shall you come to Me.</p>
+      <div class="chip-row" data-helpful-row>
+        <button class="chip-btn" type="button" data-helpful="true">Helpful</button>
+        <button class="chip-btn" type="button" data-helpful="false">Not sure</button>
+      </div>
+      <div class="field">
+        <label for="presence-rating">Presence rating</label>
+        <select id="presence-rating">
+          <option value="">Skip</option>
+          <option value="1">1 - distracted</option>
+          <option value="2">2</option>
+          <option value="3">3 - present sometimes</option>
+          <option value="4">4</option>
+          <option value="5">5 - deeply present</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="mood-after">How did it feel after?</label>
+        <select id="mood-after">
+          <option value="">Skip</option>
+          <option value="1">1 - Agitated</option>
+          <option value="2">2 - Restless</option>
+          <option value="3">3 - Neutral</option>
+          <option value="4">4 - Calm</option>
+          <option value="5">5 - Blissful</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="chanting-mode">Chanting mode</label>
+        <select id="chanting-mode">
+          <option value="">Skip</option>
+          <option value="aloud">Aloud</option>
+          <option value="whisper">Whisper</option>
+          <option value="mental">Mental</option>
+          <option value="listen_along">Listen along</option>
+          <option value="mixed">Mixed</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="actual-count">Rounds completed</label>
+        <input id="actual-count" type="number" min="0" placeholder="Auto-filled from mala counter when used">
+      </div>
+      <div class="field">
+        <label for="internal-observation">Inner observation</label>
+        <textarea id="internal-observation" maxlength="500" placeholder="What arose during practice?"></textarea>
+      </div>
+      <div class="field">
+        <label for="reflection-note">Reflection note</label>
+        <textarea id="reflection-note" maxlength="2000" placeholder="A thought to carry forward..."></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost-btn" type="button" data-save-minimal>Save quickly</button>
+        <button class="gold-btn" type="button" data-save-reflection>Save Reflection</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
 const LANG = "{{ language|default:'en' }}";
-const API_TOKEN = (() => {
-  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || "");
-})();
+const state = {
+  practices: [],
+  activeFilter: "all",
+  activePractice: null,
+  activeTab: "learn",
+  contents: [],
+  pendingItem: null,
+  activeSessionId: null,
+  activeItem: null,
+  sessionStartedAt: null,
+  elapsedTimer: null,
+  malaCount: 0,
+  beadCount: 0,
+  helpful: null,
+  authed: true,
+};
 
 const CATEGORY_LABELS = {
-  japa: "Japa", meditation: "Meditation", breath: "Breathwork",
-  mantra: "Mantra", sadhana: "Sadhana", other: "Practice",
-};
-const CATEGORY_LABELS_HI = {
-  japa: "जप", meditation: "ध्यान", breath: "प्राणायाम",
-  mantra: "मंत्र", sadhana: "साधना", other: "अभ्यास",
+  japa: "Japa",
+  meditation: "Meditation",
+  breath: "Breathwork",
+  mantra: "Mantra",
+  sadhana: "Sadhana",
+  other: "Practice",
 };
 
-let allPractices = [];
-let activeFilter = "all";
+const CLOSING_VERSES = [
+  ["Those who fix their minds on Me and worship Me with great faith are considered by Me to be most perfect.", "Bhagavad Gita 12.2"],
+  ["Fill your mind with Me, be devoted to Me, worship Me, bow down to Me - so shall you come to Me.", "Bhagavad Gita 9.34"],
+  ["Among sacrifices I am the japa sacrifice.", "Bhagavad Gita 10.25"],
+  ["The mind is restless, but it is restrained by practice and detachment.", "Bhagavad Gita 6.35"],
+];
 
-function escHtml(s) {
-  return String(s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+const audio = $("#session-audio");
+
+function escHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getCookie(name) {
+  const match = document.cookie.match(new RegExp(`(?:^|; )${name.replace(/[.$?*|{}()[\]\\/+^]/g, "\\$&")}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+function authHeaders(method = "GET") {
+  const token = getCookie("chat_token") || localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "";
+  const headers = { Accept: "application/json", "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Token ${token}`;
+  if (method !== "GET") headers["X-CSRFToken"] = getCookie("csrftoken");
+  return headers;
+}
+
+async function api(path, options = {}) {
+  const method = options.method || "GET";
+  const res = await fetch(path, {
+    credentials: "same-origin",
+    ...options,
+    headers: { ...authHeaders(method), ...(options.headers || {}) },
+  });
+  const text = await res.text();
+  let data = null;
+  if (text) {
+    try { data = JSON.parse(text); } catch { data = text; }
+  }
+  if (!res.ok) {
+    if (res.status === 401 || res.status === 403) state.authed = false;
+    const message = data?.error?.message || data?.detail || data?.message || `Request failed (${res.status})`;
+    throw Object.assign(new Error(message), { status: res.status, data });
+  }
+  return data;
+}
+
+function toast(message) {
+  const el = $("#toast");
+  el.textContent = message;
+  el.classList.add("open");
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove("open"), 2800);
+}
+
+function formatSeconds(seconds) {
+  const safe = Math.max(0, Math.floor(seconds || 0));
+  const m = Math.floor(safe / 60);
+  const s = safe % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatDuration(seconds) {
+  if (!seconds) return "";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m === 0) return `${s}s`;
+  return s ? `${m}m ${s}s` : `${m}m`;
+}
+
+function pageAuthState(message) {
+  return `
+    <div class="auth-state">
+      <strong>Sign in to use meditation practice</strong>
+      <p style="margin:8px 0 16px">${escHtml(message || "This flow saves your sessions, reflections, and insights to your account.")}</p>
+      <a class="gold-btn" href="/api/chat-ui/">Open app and sign in</a>
+    </div>
+  `;
 }
 
 async function loadPractices() {
   try {
-    const res = await fetch(`/api/v1/meditation/types/?language=${LANG}`);
-    if (!res.ok) throw new Error();
-    const d = await res.json();
-    allPractices = d.results || d;
-    buildFilterTabs();
-    renderPractices();
-  } catch {
-    document.getElementById("practice-grid").innerHTML =
-      `<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load practices"}</div>`;
+    const data = await api("/api/v1/meditation/types/");
+    state.practices = data.results || [];
+    buildFilters();
+    renderPracticeList();
+    if (state.practices.length) {
+      const hashSlug = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+      const initial = state.practices.find((p) => p.slug === hashSlug) || state.practices[0];
+      selectPractice(initial.slug, { replaceHash: !hashSlug });
+    }
+  } catch (err) {
+    $("#practice-list").innerHTML = err.status === 401 || err.status === 403
+      ? pageAuthState(err.message)
+      : `<div class="empty-state">Could not load practices. ${escHtml(err.message)}</div>`;
+    $("#detail-shell").innerHTML = err.status === 401 || err.status === 403 ? pageAuthState(err.message) : $("#detail-shell").innerHTML;
   }
 }
 
-function buildFilterTabs() {
-  const cats = ["all", ...new Set(allPractices.map(p => p.category).filter(Boolean))];
-  const tabsEl = document.getElementById("filter-tabs");
-  tabsEl.innerHTML = cats.map(c => `
-    <button class="filter-btn${c===activeFilter?" active":""}" onclick="setFilter('${c}')">
-      ${c==="all" ? (LANG==="hi"?"सभी":"All") : (LANG==="hi"?(CATEGORY_LABELS_HI[c]||c):(CATEGORY_LABELS[c]||c))}
+function buildFilters() {
+  const cats = ["all", ...new Set(state.practices.map((p) => p.category).filter(Boolean))];
+  $("#filter-row").innerHTML = cats.map((cat) => `
+    <button class="filter-btn ${state.activeFilter === cat ? "active" : ""}" type="button" data-filter="${escHtml(cat)}">
+      ${cat === "all" ? "All" : escHtml(CATEGORY_LABELS[cat] || cat)}
     </button>
   `).join("");
 }
 
-function setFilter(cat) {
-  activeFilter = cat;
-  buildFilterTabs();
-  renderPractices();
-}
-
-function renderPractices() {
-  const list = activeFilter === "all" ? allPractices : allPractices.filter(p => p.category === activeFilter);
-  const grid = document.getElementById("practice-grid");
-  if (!list.length) { grid.innerHTML = `<div style="color:var(--muted);font-size:13px;padding:8px">${LANG==="hi"?"कोई अभ्यास नहीं":"None found"}</div>`; return; }
-  grid.innerHTML = list.map(p => {
-    const catLabel = LANG==="hi"?(CATEGORY_LABELS_HI[p.category]||p.category):(CATEGORY_LABELS[p.category]||p.category);
-    const href = p.locked ? "#" : `/meditation/${p.slug}/`;
-    const durationStr = p.default_duration_seconds ? Math.round(p.default_duration_seconds/60) + (LANG==="hi"?" मिनट":" min") : "";
-    return `
-      <a href="${href}" class="practice-card${p.locked?" locked":""}">
-        <div class="card-badges">
-          <span class="badge-cat">${catLabel}</span>
-          ${p.counts_as_sadhana ? `<span class="badge-sadhana">${LANG==="hi"?"साधना":"Sadhana"}</span>` : ""}
-          ${p.locked ? `<span class="badge-lock">🔒</span>` : ""}
-        </div>
-        <div class="card-title">${escHtml(p.title)}</div>
-        ${p.subtitle ? `<div class="card-subtitle">${escHtml(p.subtitle)}</div>` : ""}
-        <div class="card-meta">
-          ${durationStr ? `<span class="card-meta-item">⏱ ${durationStr}</span>` : ""}
-          ${p.session_count ? `<span class="card-meta-item">📊 ${p.session_count} ${LANG==="hi"?"सत्र":"sessions"}</span>` : ""}
-        </div>
-      </a>
-    `;
-  }).join("");
-}
-
-async function loadStats() {
-  if (!API_TOKEN) return;
-  try {
-    const [sessRes, insRes] = await Promise.all([
-      fetch("/api/v1/meditation/sessions/?page_size=10", { headers: { Authorization: `Token ${API_TOKEN}` } }),
-      fetch("/api/v1/insights/me/", { headers: { Authorization: `Token ${API_TOKEN}` } }),
-    ]);
-    if (sessRes.ok) {
-      const sd = await sessRes.json();
-      const sessions = sd.results || sd;
-      renderRecentSessions(sessions);
-    }
-    if (insRes.ok) {
-      const id = await insRes.json();
-      const med = id.meditation || {};
-      document.getElementById("stat-sessions").textContent = med.total_sessions ?? "—";
-      document.getElementById("stat-minutes").textContent = med.total_minutes ?? "—";
-      document.getElementById("stat-streak").textContent = (med.streak_days ?? "—") + (med.streak_days != null ? (LANG==="hi"?"d":"d") : "");
-      document.getElementById("stats-row").style.display = "flex";
-    }
-  } catch {}
-}
-
-function renderRecentSessions(sessions) {
-  if (!sessions?.length) return;
-  const panel = document.getElementById("sessions-panel");
-  panel.style.display = "block";
-  const ICONS = { japa:"📿", meditation:"🧘", breath:"🌬️", mantra:"🕉️", sadhana:"✨", other:"🌀" };
-  document.getElementById("sessions-list").innerHTML = sessions.slice(0,8).map(s => {
-    const mins = s.duration_seconds ? Math.round(s.duration_seconds/60) : null;
-    return `
-      <div class="session-row">
-        <span class="session-icon">${ICONS[s.category]||"🌀"}</span>
-        <div class="session-info">
-          <div class="session-title">${escHtml(s.practice_title || s.title || "Session")}</div>
-          <div class="session-meta">${s.date || s.created_at?.slice(0,10) || ""}</div>
-        </div>
-        ${mins ? `<span class="session-dur">${mins}m</span>` : ""}
+function renderPracticeList() {
+  const list = state.activeFilter === "all"
+    ? state.practices
+    : state.practices.filter((p) => p.category === state.activeFilter);
+  if (!list.length) {
+    $("#practice-list").innerHTML = `<div class="empty-state">No practices found.</div>`;
+    return;
+  }
+  $("#practice-list").innerHTML = list.map((p) => `
+    <button type="button" class="practice-card ${state.activePractice?.slug === p.slug ? "active" : ""} ${p.locked ? "locked" : ""}" data-practice="${escHtml(p.slug)}">
+      <div class="practice-meta">
+        <span class="badge">${escHtml(CATEGORY_LABELS[p.category] || p.category || "Practice")}</span>
+        ${p.counts_as_sadhana ? `<span class="badge sadhana">Sadhana</span>` : ""}
+        ${p.locked ? `<span class="badge muted">Locked</span>` : ""}
       </div>
+      <h3>${escHtml(p.title)}</h3>
+      ${p.subtitle ? `<p>${escHtml(p.subtitle)}</p>` : ""}
+      <p style="color:var(--text-muted);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase">
+        ${p.content_count ? `${p.content_count} track${p.content_count === 1 ? "" : "s"}` : "Coming soon"}
+      </p>
+    </button>
+  `).join("");
+}
+
+async function selectPractice(slug, opts = {}) {
+  const summary = state.practices.find((p) => p.slug === slug);
+  if (!summary) return;
+  state.activePractice = summary;
+  state.activeTab = "learn";
+  renderPracticeList();
+  if (!opts.replaceHash) history.replaceState(null, "", `#${encodeURIComponent(slug)}`);
+  renderDetailLoading(summary);
+  try {
+    const detail = await api(`/api/v1/meditation/types/${encodeURIComponent(slug)}/`);
+    state.activePractice = { ...summary, ...detail };
+    renderPracticeList();
+    await loadContents();
+    loadTypeInsights(slug).catch(() => {});
+  } catch (err) {
+    $("#detail-shell").innerHTML = `<div class="glass-card" style="padding:24px"><div class="empty-state">${escHtml(err.message)}</div></div>`;
+  }
+}
+
+function renderDetailLoading(practice) {
+  $("#detail-shell").innerHTML = `
+    <section class="detail-hero ${practice.cover_url ? "has-cover" : ""}" ${practice.cover_url ? `style="background-image:url('${escHtml(practice.cover_url)}')"` : ""}>
+      <span class="badge">${escHtml(CATEGORY_LABELS[practice.category] || practice.category || "Practice")}</span>
+      <h2>${escHtml(practice.title)}</h2>
+      <p>${escHtml(practice.subtitle || "Loading practice details...")}</p>
+    </section>
+    <div class="glass-card" style="padding:24px"><div class="loading-state">Loading tracks...</div></div>
+  `;
+}
+
+function renderDetail() {
+  const p = state.activePractice;
+  if (!p) return;
+  const coverStyle = p.cover_url ? `style="background-image:url('${escHtml(p.cover_url)}')"` : "";
+  $("#detail-shell").innerHTML = `
+    <section class="detail-hero ${p.cover_url ? "has-cover" : ""}" ${coverStyle}>
+      <div class="chip-row">
+        <span class="badge">${escHtml(CATEGORY_LABELS[p.category] || p.category || "Practice")}</span>
+        ${p.counts_as_sadhana ? `<span class="badge sadhana">Counts as sadhana</span>` : ""}
+        ${p.locked ? `<span class="badge muted">${escHtml(p.locked_reason || "Locked")}</span>` : ""}
+      </div>
+      <h2>${escHtml(p.title)}</h2>
+      <p>${escHtml(p.description || p.subtitle || "")}</p>
+      <div class="detail-actions">
+        <button class="gold-btn" type="button" data-tab="practice">Practice now</button>
+        <button class="ghost-btn" type="button" data-tab="learn">Learn first</button>
+        <a class="ghost-btn" href="/api/chat-ui/?prefill=${encodeURIComponent(`Help me understand and practice ${p.title}`)}">Ask about this</a>
+      </div>
+    </section>
+    <section class="glass-card" style="padding:20px">
+      <div class="panel-title">
+        <div>
+          <h2>${state.activeTab === "practice" ? "Practice Tracks" : "Learning Tracks"}</h2>
+          <p>${state.activeTab === "practice" ? "Start a tracked session. If you leave the page, the session is interrupted safely." : "Listen or read first. Learn sessions are saved separately from sadhana practice."}</p>
+        </div>
+      </div>
+      <div class="tab-row">
+        <button class="tab-btn ${state.activeTab === "learn" ? "active" : ""}" type="button" data-tab="learn">Learn</button>
+        <button class="tab-btn ${state.activeTab === "practice" ? "active" : ""}" type="button" data-tab="practice">Practice</button>
+      </div>
+      <div class="content-grid" id="content-grid">
+        ${renderContents()}
+      </div>
+    </section>
+    <section class="glass-card" style="padding:20px;margin-top:14px" id="type-insights">
+      <div class="panel-title">
+        <div>
+          <h2>Practice Insight</h2>
+          <p>Complete this practice to build a personal history here.</p>
+        </div>
+      </div>
+      <div class="recent-list"><div class="empty-state">Loading insight...</div></div>
+    </section>
+  `;
+}
+
+async function loadContents() {
+  const p = state.activePractice;
+  if (!p) return;
+  renderDetail();
+  try {
+    const data = await api(`/api/v1/meditation/types/${encodeURIComponent(p.slug)}/contents/?mode=${state.activeTab}`);
+    state.contents = data.results || [];
+    renderDetail();
+  } catch (err) {
+    $("#content-grid").innerHTML = `<div class="empty-state">${escHtml(err.message)}</div>`;
+  }
+}
+
+function renderContents() {
+  if (!state.contents.length) {
+    return `<div class="empty-state">${state.activeTab === "learn" ? "Learning tracks are being prepared." : "Practice tracks are being prepared."}</div>`;
+  }
+  return state.contents.map((item) => {
+    const locked = item.locked || !item.can_practice;
+    const duration = formatDuration(item.duration_seconds);
+    return `
+      <article class="content-card">
+        <div>
+          <div class="content-tags">
+            <span class="badge">${escHtml(item.content_type || "track")}</span>
+            ${item.mode ? `<span class="badge muted">${escHtml(item.mode)}</span>` : ""}
+            ${duration ? `<span class="badge muted">${duration}</span>` : ""}
+            ${item.supports_loop ? `<span class="badge sadhana">Loop</span>` : ""}
+            ${item.locked ? `<span class="badge muted">${escHtml(item.locked_reason || "Locked")}</span>` : ""}
+          </div>
+          <h3>${escHtml(item.title)}</h3>
+          ${item.subtitle ? `<p>${escHtml(item.subtitle)}</p>` : ""}
+          ${item.description ? `<p>${escHtml(item.description)}</p>` : ""}
+          <div class="content-tags">
+            ${item.mantra_name ? `<span class="badge">${escHtml(item.mantra_name)}</span>` : ""}
+            ${item.teacher ? `<span class="badge muted">${escHtml(item.teacher)}</span>` : ""}
+            ${item.language ? `<span class="badge muted">${escHtml(item.language)}</span>` : ""}
+          </div>
+        </div>
+        <div class="content-actions">
+          ${locked ? `<a class="ghost-btn" href="/plans/">Unlock</a>` : `<button class="gold-btn" type="button" data-begin-content="${item.id}">${state.activeTab === "learn" ? "Listen & Learn" : "Begin Practice"}</button>`}
+          ${item.media_url ? `<button class="ghost-btn" type="button" data-preview-content="${item.id}">Preview</button>` : ""}
+        </div>
+      </article>
     `;
   }).join("");
 }
+
+async function loadInsights() {
+  try {
+    const data = await api("/api/v1/meditation/insights/");
+    $("#stat-practice").textContent = data.practice_sessions_completed ?? "-";
+    $("#stat-learn").textContent = data.learn_sessions_completed ?? "-";
+    $("#stat-minutes").textContent = data.total_tracked_minutes ?? "-";
+    $("#stat-presence").textContent = data.avg_presence_rating ?? "-";
+  } catch {
+    $("#stats-grid").classList.add("hidden");
+  }
+}
+
+async function loadTypeInsights(slug) {
+  const panel = $("#type-insights");
+  if (!panel) return;
+  try {
+    const data = await api(`/api/v1/meditation/insights/${encodeURIComponent(slug)}/`);
+    const recent = data.recent_sessions || [];
+    $(".recent-list", panel).innerHTML = `
+      <div class="stats-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:12px">
+        <div class="glass-card stat-card"><div class="stat-value">${data.sessions ?? 0}</div><div class="stat-label">Sessions</div></div>
+        <div class="glass-card stat-card"><div class="stat-value">${data.total_tracked_minutes ?? 0}</div><div class="stat-label">Minutes</div></div>
+        <div class="glass-card stat-card"><div class="stat-value">${data.total_malas ?? 0}</div><div class="stat-label">Malas</div></div>
+        <div class="glass-card stat-card"><div class="stat-value">${data.avg_presence_rating ?? "-"}</div><div class="stat-label">Presence</div></div>
+      </div>
+      ${recent.length ? recent.slice(0, 3).map(renderRecentRow).join("") : `<div class="empty-state">No completed sessions for this practice yet.</div>`}
+    `;
+  } catch {
+    $(".recent-list", panel).innerHTML = `<div class="empty-state">Practice insight appears after your first completed session.</div>`;
+  }
+}
+
+async function loadRecent() {
+  try {
+    const data = await api("/api/v1/meditation/sessions/recent/?limit=8");
+    const rows = data.results || [];
+    $("#recent-list").innerHTML = rows.length ? rows.map(renderRecentRow).join("") : `<div class="empty-state">Complete a practice session to see it here.</div>`;
+  } catch {
+    $("#recent-panel").classList.add("hidden");
+  }
+}
+
+function renderRecentRow(row) {
+  const mins = row.tracked_seconds ? `${Math.round(row.tracked_seconds / 60)} min` : "";
+  const date = row.started_at ? new Date(row.started_at).toLocaleString([], { dateStyle: "medium", timeStyle: "short" }) : "";
+  return `
+    <div class="recent-row">
+      <div>
+        <strong>${escHtml(row.content_title || row.practice_type_title || "Practice")}</strong>
+        <span>${escHtml(row.practice_type_title || "")} ${row.mode ? `· ${row.mode}` : ""} ${date ? `· ${date}` : ""}</span>
+        ${row.reflection_note ? `<p style="grid-column:1/-1;margin:8px 0 0;color:var(--muted);font-size:12px;line-height:1.5">${escHtml(row.reflection_note)}</p>` : ""}
+      </div>
+      <span>${escHtml(mins)}</span>
+    </div>
+  `;
+}
+
+function openPreSession(item) {
+  state.pendingItem = item;
+  $("#pre-title").textContent = state.activeTab === "learn" ? "Begin learning session" : "Begin with intention";
+  $("#pre-copy").textContent = item.mantra_name
+    ? `You are about to practice with ${item.mantra_name}. Set a sankalpa if you want this to be tracked with more meaning.`
+    : "Set a sankalpa if you want this session to be tracked with more meaning.";
+  $("#mood-before").value = "";
+  $("#session-intention").value = "";
+  $("#pre-modal").classList.add("open");
+}
+
+async function startSession() {
+  const item = state.pendingItem;
+  const practice = state.activePractice;
+  if (!item || !practice) return;
+  $("#pre-modal").classList.remove("open");
+  try {
+    const data = await api("/api/v1/meditation/sessions/start/", {
+      method: "POST",
+      body: JSON.stringify({
+        practice_type_slug: practice.slug,
+        content_id: item.id,
+        mode: state.activeTab,
+        intention: $("#session-intention").value.trim() || undefined,
+        mood_before: $("#mood-before").value || undefined,
+        chosen_mantra: item.mantra_name || undefined,
+      }),
+    });
+    state.activeSessionId = data.session_id;
+    state.activeItem = item;
+    state.sessionStartedAt = Date.now();
+    state.malaCount = 0;
+    state.beadCount = 0;
+    startElapsedTimer();
+    openPlayer(item);
+    toast("Practice session started");
+  } catch (err) {
+    toast(err.message || "Unable to start session");
+  }
+}
+
+function openPlayer(item) {
+  $("#player-title").textContent = item.title || "Practice";
+  $("#player-subtitle").textContent = item.subtitle || item.description || "Let the sound carry the mind gently back.";
+  $("#player-mantra").textContent = item.mantra_name || "ॐ";
+  $("#player-kicker").textContent = state.activePractice?.title || "Now practicing";
+  $("#mini-title").textContent = item.title || "Practice";
+  updateMalaUi();
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.loop = !!item.supports_loop;
+  if (item.media_url) {
+    audio.src = item.media_url;
+    audio.play().catch(() => toast("Tap play to start audio"));
+  }
+  $("[data-loop-toggle]").textContent = audio.loop ? "Loop on" : "Loop off";
+  $("#player-overlay").classList.add("open");
+  $("#mini-player").classList.remove("open");
+}
+
+function startElapsedTimer() {
+  clearInterval(state.elapsedTimer);
+  state.elapsedTimer = setInterval(updatePlayerProgress, 500);
+  updatePlayerProgress();
+}
+
+function trackedSeconds() {
+  if (!state.sessionStartedAt) return 0;
+  return Math.max(0, Math.floor((Date.now() - state.sessionStartedAt) / 1000));
+}
+
+function updatePlayerProgress() {
+  const current = audio.src ? Math.floor(audio.currentTime || 0) : trackedSeconds();
+  const total = audio.src && Number.isFinite(audio.duration) ? Math.floor(audio.duration) : 0;
+  const pct = total ? Math.min(100, (current / total) * 100) : Math.min(100, (trackedSeconds() / Math.max(60, state.activeItem?.duration_seconds || 1800)) * 100);
+  $("#progress-fill").style.width = `${pct}%`;
+  $("#time-current").textContent = formatSeconds(current);
+  $("#time-total").textContent = total ? formatSeconds(total) : formatSeconds(trackedSeconds());
+  $("#mini-time").textContent = `${formatSeconds(current)} ${state.malaCount ? `· ${state.malaCount} mala` : ""}`;
+  const label = audio.paused ? "Play" : "Pause";
+  $("[data-toggle-audio]").textContent = label;
+  $("[data-toggle-audio-mini]").textContent = label;
+}
+
+function updateMalaUi() {
+  $("#mala-count").textContent = `${state.malaCount} mala${state.malaCount === 1 ? "" : "s"}`;
+  $("#bead-count").textContent = `${state.beadCount} / 108`;
+  $("#actual-count").value = state.malaCount > 0 ? String(state.malaCount) : "";
+  // Update SVG bead arc
+  const arc = $("#bead-arc");
+  if (arc) {
+    const circumference = 295.3; // 2π × r where r=47
+    const pct = state.beadCount / 108;
+    arc.style.strokeDashoffset = String(circumference * (1 - pct));
+  }
+}
+
+function malaTap() {
+  state.beadCount += 1;
+  if (state.beadCount >= 108) {
+    state.beadCount = 0;
+    state.malaCount += 1;
+    toast(`One mala completed (${state.malaCount})`);
+  }
+  updateMalaUi();
+}
+
+function toggleAudio() {
+  if (!state.activeItem) return;
+  if (!audio.src) {
+    toast("This track has no audio. Timer is still tracking your practice.");
+    return;
+  }
+  if (audio.paused) audio.play().catch(() => {});
+  else audio.pause();
+  updatePlayerProgress();
+}
+
+function completeSessionPrompt() {
+  if (!state.activeSessionId) return;
+  audio.pause();
+  $("#player-overlay").classList.remove("open");
+  $("#mini-player").classList.remove("open");
+  const v = CLOSING_VERSES[state.activeSessionId % CLOSING_VERSES.length];
+  $("#closing-verse").textContent = `"${v[0]}" - ${v[1]}`;
+  state.helpful = null;
+  $$("[data-helpful]").forEach((b) => b.classList.remove("active"));
+  $("#mood-after").value = "";
+  $("#presence-rating").value = "";
+  $("#chanting-mode").value = "";
+  $("#internal-observation").value = "";
+  $("#reflection-note").value = "";
+  updateMalaUi();
+  $("#post-modal").classList.add("open");
+}
+
+async function saveReflection(minimal = false) {
+  if (!state.activeSessionId) return;
+  const payload = {
+    tracked_seconds: trackedSeconds(),
+    helpful: state.helpful,
+    actual_count: state.malaCount > 0 ? state.malaCount : (Number($("#actual-count").value) || undefined),
+  };
+  if (!minimal) {
+    payload.mood_after = $("#mood-after").value || undefined;
+    payload.presence_rating = Number($("#presence-rating").value) || undefined;
+    payload.chanting_mode = $("#chanting-mode").value || undefined;
+    payload.internal_observation = $("#internal-observation").value.trim() || undefined;
+    payload.reflection_note = $("#reflection-note").value.trim() || undefined;
+  }
+  try {
+    await api(`/api/v1/meditation/sessions/${state.activeSessionId}/complete/`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    clearInterval(state.elapsedTimer);
+    state.activeSessionId = null;
+    state.activeItem = null;
+    state.sessionStartedAt = null;
+    state.malaCount = 0;
+    state.beadCount = 0;
+    $("#post-modal").classList.remove("open");
+    toast("Practice saved");
+    loadInsights();
+    loadRecent();
+    if (state.activePractice) loadTypeInsights(state.activePractice.slug).catch(() => {});
+  } catch (err) {
+    toast(err.message || "Could not save session");
+  }
+}
+
+function interruptActiveSession() {
+  if (!state.activeSessionId) return;
+  const id = state.activeSessionId;
+  const body = JSON.stringify({ tracked_seconds: trackedSeconds() });
+  fetch(`/api/v1/meditation/sessions/${id}/interrupt/`, {
+    method: "POST",
+    credentials: "same-origin",
+    keepalive: true,
+    headers: authHeaders("POST"),
+    body,
+  }).catch(() => {});
+  state.activeSessionId = null;
+  state.activeItem = null;
+  state.sessionStartedAt = null;
+  clearInterval(state.elapsedTimer);
+  audio.pause();
+  $("#player-overlay").classList.remove("open");
+  $("#mini-player").classList.remove("open");
+}
+
+document.addEventListener("click", (event) => {
+  const filter = event.target.closest("[data-filter]");
+  if (filter) {
+    state.activeFilter = filter.dataset.filter;
+    buildFilters();
+    renderPracticeList();
+    return;
+  }
+  const practice = event.target.closest("[data-practice]");
+  if (practice) {
+    selectPractice(practice.dataset.practice);
+    return;
+  }
+  const tab = event.target.closest("[data-tab]");
+  if (tab) {
+    state.activeTab = tab.dataset.tab;
+    loadContents();
+    return;
+  }
+  const begin = event.target.closest("[data-begin-content], [data-preview-content]");
+  if (begin) {
+    const id = Number(begin.dataset.beginContent || begin.dataset.previewContent);
+    const item = state.contents.find((c) => c.id === id);
+    if (item) openPreSession(item);
+    return;
+  }
+  if (event.target.closest("[data-scroll-to-library]")) {
+    $("#practice-library").scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+  if (event.target.closest("[data-close-pre]")) {
+    $("#pre-modal").classList.remove("open");
+    state.pendingItem = null;
+    return;
+  }
+  if (event.target.closest("[data-start-session]")) {
+    startSession();
+    return;
+  }
+  if (event.target.closest("[data-toggle-audio], [data-toggle-audio-mini]")) {
+    toggleAudio();
+    return;
+  }
+  const skip = event.target.closest("[data-skip]");
+  if (skip && audio.src) {
+    audio.currentTime = Math.max(0, (audio.currentTime || 0) + Number(skip.dataset.skip));
+    updatePlayerProgress();
+    return;
+  }
+  if (event.target.closest("[data-loop-toggle]")) {
+    audio.loop = !audio.loop;
+    $("[data-loop-toggle]").textContent = audio.loop ? "Loop on" : "Loop off";
+    return;
+  }
+  if (event.target.closest("[data-mala-tap]")) {
+    malaTap();
+    return;
+  }
+  if (event.target.closest("[data-minimize-player]")) {
+    $("#player-overlay").classList.remove("open");
+    $("#mini-player").classList.add("open");
+    return;
+  }
+  if (event.target.closest("[data-expand-player]")) {
+    $("#player-overlay").classList.add("open");
+    $("#mini-player").classList.remove("open");
+    return;
+  }
+  if (event.target.closest("[data-complete-session]")) {
+    completeSessionPrompt();
+    return;
+  }
+  const helpful = event.target.closest("[data-helpful]");
+  if (helpful) {
+    state.helpful = helpful.dataset.helpful === "true";
+    $$("[data-helpful]").forEach((b) => b.classList.toggle("active", b === helpful));
+    return;
+  }
+  if (event.target.closest("[data-save-minimal]")) {
+    saveReflection(true);
+    return;
+  }
+  if (event.target.closest("[data-save-reflection]")) {
+    saveReflection(false);
+  }
+});
+
+audio.addEventListener("timeupdate", updatePlayerProgress);
+audio.addEventListener("loadedmetadata", updatePlayerProgress);
+audio.addEventListener("ended", () => {
+  if (!audio.loop && state.activeSessionId) completeSessionPrompt();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") interruptActiveSession();
+});
+window.addEventListener("beforeunload", interruptActiveSession);
+window.addEventListener("hashchange", () => {
+  const slug = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+  if (slug && slug !== state.activePractice?.slug) selectPractice(slug, { replaceHash: true });
+});
 
 loadPractices();
-loadStats();
+loadInsights();
+loadRecent();
 </script>
 </body>
 </html>

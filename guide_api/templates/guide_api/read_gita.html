@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -49,6 +50,7 @@
       color: var(--gold); text-decoration: none; background: rgba(232,184,109,0.06); transition: all 0.2s;
     }
     .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+
 
     /* Layout */
     .layout {
@@ -255,6 +257,23 @@
       gap: 5px;
     }
     .verse-btn:hover { background: rgba(232,184,109,0.14); border-color: rgba(232,184,109,0.4); }
+    .verse-audio-btn { color: rgba(121,217,239,0.85); border-color: rgba(121,217,239,0.25); background: rgba(121,217,239,0.07); }
+    .verse-audio-btn:hover { background: rgba(121,217,239,0.15); border-color: rgba(121,217,239,0.45); }
+    .verse-synthesis {
+      margin-top: 20px; padding: 18px;
+      background: rgba(107,78,158,0.08);
+      border: 1px solid rgba(107,78,158,0.22);
+      border-radius: 12px;
+    }
+    .syn-header {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+      text-transform: uppercase; color: rgba(107,78,158,0.85); margin-bottom: 14px;
+    }
+    .syn-section { margin-bottom: 14px; }
+    .syn-section:last-child { margin-bottom: 0; }
+    .syn-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 5px; }
+    .syn-body { font-size: 13.5px; line-height: 1.65; color: var(--text-dim,rgba(255,255,255,0.75)); margin: 0; }
+    .synthesis-loading { font-size: 12px; color: var(--muted); text-align: center; padding: 8px 0; }
 
     /* Home view: chapter grid */
     .home-hero {
@@ -283,6 +302,196 @@
       transition: all 0.2s;
     }
     .resume-banner:hover { background: rgba(232,184,109,0.13); }
+    .read-top-stack {
+      display: grid;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
+    .read-search-shell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.18);
+      background: rgba(7, 4, 10, 0.72);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.24);
+    }
+    .read-search-shell input {
+      flex: 1;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font: 500 14px/1.4 "Manrope", system-ui, sans-serif;
+    }
+    .read-search-shell input::placeholder { color: var(--muted); }
+    .search-clear-btn {
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      font: 700 14px/1 "Manrope", system-ui, sans-serif;
+      cursor: pointer;
+      padding: 0;
+      display: none;
+    }
+    .read-search-meta {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: -8px;
+      padding-left: 4px;
+    }
+    .gita-path-card,
+    .gita-path-guest {
+      position: relative;
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(232,184,109,0.18);
+      background:
+        linear-gradient(135deg, rgba(232,184,109,0.18), rgba(18,55,46,0.42), rgba(7,4,10,0.94));
+      padding: 18px 18px 16px;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+    }
+    .gita-path-guest {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .gita-path-card::before,
+    .gita-path-guest::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at top right, rgba(245,212,154,0.12), transparent 45%);
+      pointer-events: none;
+    }
+    .gita-path-kicker {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(245,212,154,0.8);
+      margin-bottom: 6px;
+    }
+    .gita-path-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(23px, 3vw, 30px);
+      color: var(--gold);
+      margin: 0 0 6px;
+    }
+    .gita-path-body {
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: rgba(230, 222, 208, 0.86);
+      margin: 0;
+    }
+    .gita-path-progress {
+      margin-top: 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .gita-path-track {
+      width: 100%;
+      height: 9px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+    }
+    .gita-path-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(232,184,109,0.96), rgba(245,212,154,0.8));
+      transition: width 0.35s ease;
+    }
+    .gita-path-progress-label {
+      font-size: 12px;
+      color: rgba(245,212,154,0.8);
+      font-weight: 700;
+    }
+    .gita-path-guest-copy {
+      flex: 1;
+      min-width: 0;
+    }
+    .gita-path-guest-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(245,212,154,0.92);
+      margin-bottom: 2px;
+    }
+    .gita-path-guest-body {
+      font-size: 12.5px;
+      color: rgba(230, 222, 208, 0.8);
+      line-height: 1.55;
+    }
+    .gita-path-guest-cta {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: rgba(245,212,154,0.95);
+      white-space: nowrap;
+    }
+    .search-results {
+      display: none;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .search-results.visible { display: grid; }
+    .search-result-card {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: start;
+      padding: 16px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(232,184,109,0.16);
+      background: var(--panel);
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+    .search-result-card:hover {
+      transform: translateY(-1px);
+      border-color: rgba(232,184,109,0.34);
+    }
+    .search-result-ref {
+      min-width: 74px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(232,184,109,0.12);
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+    .search-result-title {
+      font-size: 14px;
+      line-height: 1.6;
+      color: rgba(230, 222, 208, 0.92);
+      margin: 0 0 6px;
+    }
+    .search-result-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .search-result-arrow {
+      color: rgba(245,212,154,0.9);
+      font-size: 18px;
+      line-height: 1;
+      padding-top: 2px;
+    }
+    .search-empty {
+      padding: 18px;
+      border-radius: 16px;
+      border: 1px dashed rgba(232,184,109,0.18);
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+      font-size: 13px;
+      text-align: center;
+    }
     .chapters-home-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -342,6 +551,7 @@
     }
     .note-save-btn:hover { opacity: 0.8; }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body data-lang="{{ language|default:'en' }}">
   <header>
@@ -351,12 +561,8 @@
     </div>
     <div class="header-right">
       <button class="mobile-sidebar-btn" onclick="toggleSidebar()">☰ {% if language == "hi" %}अध्याय{% else %}Chapters{% endif %}</button>
-      <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">
-        ← {% if language == "hi" %}होम{% else %}Home{% endif %}
-      </a>
     </div>
   </header>
-
   <div class="layout">
     <!-- Sidebar: chapter list -->
     <aside class="sidebar" id="sidebar">
@@ -388,6 +594,24 @@
             </div>
           </div>
         </div>
+        <div class="read-top-stack">
+          <div>
+            <div class="read-search-shell">
+              <span aria-hidden="true">🔎</span>
+              <input
+                id="verse-search-input"
+                type="search"
+                autocomplete="off"
+                spellcheck="false"
+                placeholder="{% if language == 'hi' %}श्लोक, अर्थ या विषय खोजें{% else %}Search verses, meanings, or themes{% endif %}"
+              >
+              <button type="button" id="search-clear-btn" class="search-clear-btn" aria-label="{% if language == 'hi' %}खोज साफ़ करें{% else %}Clear search{% endif %}">✕</button>
+            </div>
+            <div class="read-search-meta">{% if language == "hi" %}2 या अधिक अक्षरों पर खोज शुरू होगी{% else %}Search begins after 2 or more characters{% endif %}</div>
+          </div>
+          <div id="gita-path-slot"></div>
+        </div>
+        <div class="search-results" id="search-results"></div>
         <div class="chapters-home-grid" id="chapters-home-grid">
           {% for i in "123456789012345678" %}
           <div class="ch-home-card"><div class="skeleton" style="height:10px;width:40%;margin-bottom:6px"></div><div class="skeleton" style="height:17px;width:80%;margin-bottom:4px"></div><div class="skeleton" style="height:11px;width:50%"></div></div>
@@ -414,24 +638,46 @@
   <script>
   (function() {
     const LANG = document.body.dataset.lang || "en";
+    const pageParams = new URLSearchParams(window.location.search);
+    if (!pageParams.has("legacy_read")) {
+      const target = new URL("/api/chat-ui/", window.location.origin);
+      target.searchParams.set("language", LANG);
+      target.searchParams.set("open_reader", "1");
+      const requestedRef = String(pageParams.get("verse") || "").trim();
+      if (/^\d+\.\d+$/.test(requestedRef)) {
+        target.searchParams.set("open_reader_ref", requestedRef);
+      }
+      window.location.replace(target.toString());
+      return;
+    }
     const API = "/api/v1";
-    const token = localStorage.getItem("gita_token");
+    const token = (() => {
+      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
     let allChapters = [];
     let readingState = { verses_opened_count: 0, read_streak: 0, last_verse: null };
+    let gitaPathState = { enrolled: false, journey: null };
     let openedVerseRefs = new Set();
     let currentChapter = null;
+    let searchDebounce = null;
 
+    // For public browse endpoints (chapters, verses, search) – never send token.
+    // GitaBrowseAPIPermission allows anonymous/session requests but rejects Free-plan token calls.
+    const PUBLIC_BROWSE_PREFIXES = ["/chapters", "/verses", "/verses/search"];
     function apiFetch(path, opts = {}) {
       const hdrs = { "Content-Type": "application/json", ...(opts.headers||{}) };
-      if (token) hdrs["Authorization"] = "Bearer " + token;
-      return fetch(API + path, { ...opts, headers: hdrs });
+      const isPublic = PUBLIC_BROWSE_PREFIXES.some(p => path.startsWith(p));
+      if (token && !isPublic) hdrs["Authorization"] = "Token " + token;
+      return fetch(API + path, { ...opts, credentials: "same-origin", headers: hdrs });
     }
 
     // Load chapters + reading state concurrently
     async function init() {
-      const [chapR, stateR] = await Promise.all([
+      const [chapR, stateR, gitaPathR] = await Promise.all([
         apiFetch("/chapters/"),
-        token ? apiFetch("/reading/state/") : Promise.resolve(null)
+        token ? apiFetch("/reading/state/") : Promise.resolve(null),
+        token ? apiFetch("/reading/gita-path/") : Promise.resolve(null)
       ]);
 
       if (chapR && chapR.ok) {
@@ -452,6 +698,13 @@
           window._lastChapter = ch;
         }
       }
+
+      if (gitaPathR && gitaPathR.ok) {
+        gitaPathState = await gitaPathR.json();
+      }
+
+      renderGitaPathCard();
+      wireSearch();
     }
 
     function renderReadingStats() {
@@ -488,6 +741,148 @@
           <div class="ch-home-name">${escHtml(ch.name_transliterated ?? ch.name ?? "")}</div>
           <div class="ch-home-verses">${ch.verses_count ?? ""} ${LANG==="hi"?"श्लोक":"verses"}</div>
         </div>`;
+      }).join("");
+    }
+
+    function renderGitaPathCard() {
+      const slot = document.getElementById("gita-path-slot");
+      if (!slot) return;
+
+      if (!token) {
+        slot.innerHTML = `
+          <a class="gita-path-guest" href="/api/chat-ui/?language=${LANG}#guest-auth-target">
+            <span aria-hidden="true">📚</span>
+            <div class="gita-path-guest-copy">
+              <div class="gita-path-guest-title">${LANG === "hi" ? "अपनी पठन यात्रा सहेजें" : "Save your reading journey"}</div>
+              <div class="gita-path-guest-body">${LANG === "hi" ? "साइन इन करें और गीता पथ, प्रगति और हाल का श्लोक वहीं से जारी रखें।" : "Sign in to unlock Gita Path, progress tracking, and resume from your latest verse."}</div>
+            </div>
+            <div class="gita-path-guest-cta">${LANG === "hi" ? "साइन इन" : "Sign In"}</div>
+          </a>`;
+        return;
+      }
+
+      const journey = gitaPathState?.journey || null;
+      const enrolled = Boolean(gitaPathState?.enrolled && journey);
+      const title = LANG === "hi" ? "गीता पथ" : "Gita Path";
+      let body = LANG === "hi"
+        ? "700 श्लोकों की क्रमबद्ध यात्रा शुरू करें।"
+        : "Start a guided journey through all 700 verses.";
+      let progress = "";
+
+      if (enrolled) {
+        const pct = typeof journey.percent === "number"
+          ? Math.max(0, Math.min(100, Math.round(journey.percent)))
+          : 0;
+        if (journey.status === "completed") {
+          body = LANG === "hi"
+            ? "आपने पूरी गीता यात्रा पूर्ण कर ली है।"
+            : "You have completed the full Gita journey.";
+        } else if (journey.status === "paused") {
+          body = LANG === "hi"
+            ? `यात्रा रुकी हुई है • अगला ${journey.next || "—"}`
+            : `Journey paused • next BG ${journey.next || "—"}`;
+        } else {
+          body = LANG === "hi"
+            ? `यात्रा सक्रिय है • अगला ${journey.next || "—"}`
+            : `Journey active • next BG ${journey.next || "—"}`;
+        }
+        progress = `
+          <div class="gita-path-progress">
+            <div class="gita-path-track"><div class="gita-path-fill" style="width:${pct}%"></div></div>
+            <div class="gita-path-progress-label">${LANG === "hi" ? "प्रगति" : "Progress"}: ${journey.verses_completed || 0}/${journey.total_verses || 700}</div>
+          </div>`;
+      }
+
+      slot.innerHTML = `
+        <div class="gita-path-card" onclick="window.location.href='/api/chat-ui/?language=' + encodeURIComponent(LANG) + '&open_reader=1'">
+          <div class="gita-path-kicker">${LANG === "hi" ? "क्रमबद्ध यात्रा" : "Sequential Journey"}</div>
+          <h3 class="gita-path-title">${title}</h3>
+          <p class="gita-path-body">${escHtml(body)}</p>
+          ${progress}
+        </div>`;
+    }
+
+    function wireSearch() {
+      const input = document.getElementById("verse-search-input");
+      const clearBtn = document.getElementById("search-clear-btn");
+      if (!input || !clearBtn) return;
+
+      input.addEventListener("input", () => {
+        const q = input.value.trim();
+        clearBtn.style.display = q ? "inline-flex" : "none";
+        if (searchDebounce) window.clearTimeout(searchDebounce);
+        if (q.length < 2) {
+          renderSearchResults([], q, false);
+          return;
+        }
+        renderSearchResults([], q, true);
+        searchDebounce = window.setTimeout(() => runSearch(q), 350);
+      });
+
+      clearBtn.addEventListener("click", () => {
+        input.value = "";
+        clearBtn.style.display = "none";
+        renderSearchResults([], "", false);
+        input.focus();
+      });
+    }
+
+    async function runSearch(q) {
+      const res = await apiFetch(`/verses/search/?q=${encodeURIComponent(q)}&limit=20&lang=${LANG}`).catch(() => null);
+      if (!res || !res.ok) {
+        renderSearchResults(null, q, false);
+        return;
+      }
+      const data = await res.json();
+      renderSearchResults(data.results ?? [], q, false);
+    }
+
+    function renderSearchResults(results, q, loading) {
+      const resultsEl = document.getElementById("search-results");
+      const grid = document.getElementById("chapters-home-grid");
+      if (!resultsEl || !grid) return;
+
+      if (!q || q.length < 2) {
+        resultsEl.classList.remove("visible");
+        resultsEl.innerHTML = "";
+        grid.style.display = "grid";
+        return;
+      }
+
+      resultsEl.classList.add("visible");
+      grid.style.display = "none";
+
+      if (loading) {
+        resultsEl.innerHTML = `<div class="search-empty">${LANG === "hi" ? "श्लोक खोजे जा रहे हैं…" : "Searching verses…"}</div>`;
+        return;
+      }
+
+      if (results === null) {
+        resultsEl.innerHTML = `<div class="search-empty">${LANG === "hi" ? "खोज अभी उपलब्ध नहीं है" : "Search is unavailable right now"}</div>`;
+        return;
+      }
+
+      if (!results.length) {
+        resultsEl.innerHTML = `<div class="search-empty">${LANG === "hi" ? "कोई श्लोक नहीं मिला" : "No verses found"}</div>`;
+        return;
+      }
+
+      resultsEl.innerHTML = results.map(v => {
+        const verseNumber = v.verse_number ?? v.verse;
+        const reference = `${v.chapter}.${verseNumber}`;
+        const title = getTranslation(v) || (v.translation ?? v.commentary ?? v.themes ?? "");
+        const sub = LANG === "hi"
+          ? `${v.name_transliterated ?? ""}`
+          : `BG ${reference}`;
+        return `
+          <a class="search-result-card" href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(reference)}">
+            <div class="search-result-ref">BG ${reference}</div>
+            <div>
+              <div class="search-result-title">${escHtml(title || (LANG === "hi" ? "श्लोक खोलें" : "Open verse"))}</div>
+              <div class="search-result-sub">${escHtml(sub)}</div>
+            </div>
+            <div class="search-result-arrow">›</div>
+          </a>`;
       }).join("");
     }
 
@@ -536,11 +931,16 @@
           <div class="verse-expanded" id="ve-${ref}">
             ${getCommentary(v) ? `<div class="verse-commentary-label">${LANG==="hi"?"भाष्य":"Commentary"}</div><div class="verse-commentary">${escHtml(getCommentary(v))}</div>` : ""}
             <div class="verse-actions">
+              <button class="verse-btn verse-audio-btn" id="audio-btn-${ref}" onclick="event.stopPropagation();playVerseAudio('${ref}', ${num}, ${v.verse_number ?? v.verse})" aria-label="${LANG==='hi'?'संस्कृत सुनें':'Play Sanskrit'}">
+                ▶ ${LANG==="hi"?"संस्कृत":"Sanskrit"}
+              </button>
+              <audio id="audio-${ref}" src="" preload="none" style="display:none" onended="resetAudioBtn('${ref}')"></audio>
               <a class="verse-btn" href="/api/chat-ui/?language=${LANG}&verse=${encodeURIComponent(ref)}" onclick="event.stopPropagation()">
                 💬 ${LANG==="hi"?"गीता से पूछें":"Ask the Gita"}
               </a>
               ${token ? `<button class="verse-btn" onclick="event.stopPropagation();toggleNote('${ref}')">✎ ${LANG==="hi"?"नोट":"Note"}</button>` : ""}
             </div>
+            <div id="synthesis-${ref}" class="verse-synthesis" style="display:none"></div>
             ${token ? `<div id="note-section-${ref}" style="display:none">
               <textarea class="note-area" id="note-ta-${ref}" placeholder="${LANG==="hi"?"अपना नोट यहाँ लिखें…":"Your personal note…"}" rows="3"></textarea>
               <button class="note-save-btn" onclick="event.stopPropagation();saveNote('${ref}', ${num}, ${v.verse_number ?? v.verse})">
@@ -577,6 +977,8 @@
       if (isOpen && !openedVerseRefs.has(ref)) {
         openedVerseRefs.add(ref);
         el.classList.add("opened");
+        // Load synthesis
+        loadVerseSynthesis(chapter, verse, ref);
         if (token) {
           // Record verse open for reading progress
           apiFetch("/reading/verse-open/", {
@@ -590,7 +992,7 @@
             }
           }).catch(() => {});
           // Load note if any
-          apiFetch(`/reading/verse/${chapter}/${verse}/note/`).then(r => r.ok ? r.json() : null).then(d => {
+          apiFetch(`/verses/${chapter}.${verse}/note/`).then(r => r.ok ? r.json() : null).then(d => {
             if (d?.body) {
               const ta = document.getElementById(`note-ta-${ref}`);
               if (ta) ta.value = d.body;
@@ -605,11 +1007,60 @@
       if (ns) ns.style.display = ns.style.display === "none" ? "" : "none";
     };
 
+    window.playVerseAudio = function(ref, chapter, verse) {
+      const audio = document.getElementById(`audio-${ref}`);
+      const btn = document.getElementById(`audio-btn-${ref}`);
+      if (!audio || !btn) return;
+      const ch = String(chapter).padStart(3, "0");
+      const vs = String(verse).padStart(3, "0");
+      const url = `https://gita-audio.jkyog.org/audio/sanskrit/gita_audios/${ch}_${vs}.mp3`;
+      if (audio.paused || !audio.src || audio.src !== url) {
+        audio.src = url;
+        audio.play().then(() => {
+          btn.textContent = `⏸ ${LANG === "hi" ? "रोकें" : "Pause"}`;
+        }).catch(() => {
+          btn.textContent = `▶ ${LANG === "hi" ? "संस्कृत" : "Sanskrit"}`;
+        });
+      } else {
+        audio.pause();
+        btn.textContent = `▶ ${LANG === "hi" ? "संस्कृत" : "Sanskrit"}`;
+      }
+    };
+
+    window.resetAudioBtn = function(ref) {
+      const btn = document.getElementById(`audio-btn-${ref}`);
+      if (btn) btn.textContent = `▶ ${LANG === "hi" ? "संस्कृत" : "Sanskrit"}`;
+    };
+
+    async function loadVerseSynthesis(chapter, verse, ref) {
+      const container = document.getElementById(`synthesis-${ref}`);
+      if (!container || container.dataset.loaded) return;
+      container.dataset.loaded = "1";
+      container.style.display = "";
+      container.innerHTML = `<div class="synthesis-loading">${LANG === "hi" ? "संश्लेषण लोड हो रहा है…" : "Loading integrated wisdom…"}</div>`;
+      const r = await apiFetch(`/verses/${chapter}.${verse}/`).catch(() => null);
+      if (!r || !r.ok) { container.style.display = "none"; return; }
+      const d = await r.json();
+      const syn = d.synthesis ?? null;
+      if (!syn) { container.style.display = "none"; return; }
+      const lang = LANG === "hi" ? "hi" : "en";
+      const sections = [
+        { key: `overview_${lang}`, label: LANG === "hi" ? "सार" : "Overview" },
+        { key: `commentary_consensus_${lang}`, label: LANG === "hi" ? "टीकाकारों की एकमत" : "Commentary Consensus" },
+        { key: `life_application_${lang}`, label: LANG === "hi" ? "जीवन में उपयोग" : "Life Application" },
+      ];
+      const html = sections.filter(s => syn[s.key]).map(s =>
+        `<div class="syn-section"><div class="syn-label">${s.label}</div><p class="syn-body">${escHtml(syn[s.key])}</p></div>`
+      ).join("");
+      if (!html) { container.style.display = "none"; return; }
+      container.innerHTML = `<div class="syn-header">${LANG === "hi" ? "एकीकृत ज्ञान" : "Integrated Wisdom"}</div>${html}`;
+    }
+
     window.saveNote = async function(ref, chapter, verse) {
       const ta = document.getElementById(`note-ta-${ref}`);
       const body = ta?.value?.trim() ?? "";
       if (!token) return;
-      await apiFetch(`/reading/verse/${chapter}/${verse}/note/`, {
+      await apiFetch(`/verses/${chapter}.${verse}/note/`, {
         method: "PUT",
         body: JSON.stringify({ body })
       }).catch(() => {});

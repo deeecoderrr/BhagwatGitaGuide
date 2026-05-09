@@ -1,6 +1,6 @@
 # Bhagwat Gita Guide - Progress Tracker
 
-Last updated: 2026-05-07
+Last updated: 2026-05-09
 
 ## Deferred / To Do Later
 
@@ -16,6 +16,76 @@ Last updated: 2026-05-07
     PracticeWorkflowStep, JapaCommitment, MeditationPracticeType.
 
 ## Completed
+
+- **Web Ask guest footer prompt parity pass (2026-05-09):**
+  - Guest Ask answers on the web now mirror the mobile footer flow more closely by replacing the generic temporary guest reply panel with a direct sign-in/save prompt on the answer surface.
+  - Added an inline `Sign in & keep this chat` CTA next to the guest save-and-sync copy so the guest continuation path stays attached to the current answer instead of feeling detached in a separate account panel.
+  - Kept the guest-state messaging explicit that the latest guest question continues in a new saved thread after sign-in while the current browser-only chat remains temporary until then.
+  - Validation: focused guest Ask regression passed, and the full backend suite passed (`350` tests).
+
+- **Web Ask save-state parity pass (2026-05-09):**
+  - Web Ask now mirrors the mobile saved-state footer by replacing the live `Save Reflection` form with an already-saved notice once the current answer has been bookmarked.
+  - Duplicate saves for the same signed-in answer are now suppressed instead of creating repeated `SavedReflection` rows, so the footer stays in a stable saved state.
+  - Added focused save regressions to verify the answer stays visible, the save CTA disappears after success, and duplicate save posts return the saved-state notice without writing a second row.
+  - Validation: focused feedback/save regressions passed, and the full backend suite passed (`350` tests).
+
+- **Web Ask feedback gating parity pass (2026-05-09):**
+  - Web Ask now matches the mobile answer footer by treating feedback as one-time for the current answer: after `Helpful` or `Not Helpful`, the live feedback form is replaced with an already-saved notice.
+  - Duplicate submissions for the same signed-in answer are now suppressed instead of creating repeat `ResponseFeedback` rows, and web Ask feedback is explicitly tagged with the `web_chat_ui` surface.
+  - Tightened feedback regressions so the current answer stays visible, the action buttons disappear after feedback is recorded, and duplicate posts keep the saved-state notice instead of re-submitting.
+  - Validation: focused feedback/save regressions passed, and the full backend suite passed (`350` tests).
+
+- **Web Ask response action persistence parity pass (2026-05-09):**
+  - Feedback and Save Reflection on the web Ask page now keep the current answer card visible instead of dropping back to a stripped thread-only state.
+  - Reused the submitted answer payload to rebuild meaning, actions, reflection, verse references, and follow-up chips after those post-answer actions, matching the mobile in-place notice behavior more closely.
+  - Added focused regressions for feedback/save so future changes cannot silently clear `response_data` after those actions.
+  - Validation: focused feedback/save regressions passed, and the full backend suite passed (`350` tests).
+
+- **Web Ask guest auth carryover parity pass (2026-05-09):**
+  - Web Ask guest mode now matches the mobile `Sign in & keep this chat` workflow by carrying the latest guest question through login/register and continuing it in a fresh signed-in thread.
+  - Added an explicit guest-only `Sign in & keep this chat` CTA to the Ask toolbar and wired all guest auth forms/modal entries to the same carryover behavior.
+  - Kept the guest-only browser transcript cleared after auth so temporary guest state does not leak alongside the new signed-in thread.
+  - Validation: focused guest/auth carryover regressions passed, and the full backend suite passed (`350` tests).
+
+- **Web Ask guest reset affordance parity pass (2026-05-09):**
+  - Added an explicit guest-only `Clear guest history` action to the web Ask toolbar so browser guests now get the same dedicated reset affordance already present on mobile.
+  - Reused the existing `?new=1` Ask reset path so the control clears both the temporary guest transcript and recent prompt chips without adding a second web-only reset flow.
+  - Added focused regressions to keep the guest reset affordance visible for guests and hidden after sign-in.
+  - Validation: focused toolbar branch regressions passed.
+
+- **Web Ask guest reset/auth parity pass (2026-05-09):**
+  - Unified guest session clearing so `?new=1` and guest reset API flows drop the temporary guest transcript and guest recent-question state together.
+  - Prevented stale guest prompt chips from leaking across Ask auth transitions while keeping guest-only session state separate from signed-in threads.
+  - Added focused regressions for guest reset, guest-to-login transition, and guest-to-register transition.
+  - Validation: focused guest regressions passed, adjacent auth/chat-ui regressions passed, and full backend suite passed (`350` tests).
+
+- **Web Ask thread paging parity pass (2026-05-09):**
+  - Signed-in Ask threads now open on the latest visible page instead of rendering the full message backlog at once, matching the mobile conversation detail flow.
+  - Added in-thread `Refresh thread` and `Load older messages` controls so the web transcript can resync the newest page and page backward through older messages.
+  - Kept active-thread sidebar metadata aligned with the visible transcript slice so trimmed older prompts do not leak back into the current page state.
+  - Added regression coverage for latest-page thread rendering and newest-page conversation message paging.
+  - Validation: focused conversation regressions passed and full backend suite passed (`348` tests).
+
+- **Web Ask transcript action parity pass (2026-05-09):**
+  - Upgraded the web Ask transcript so every assistant reply in a signed-in conversation now renders with the same inline action affordances expected from the mobile conversation detail screen, instead of limiting actions to only the newest response.
+  - Older assistant messages now keep per-message copy/share controls when you reopen an existing thread.
+  - Inline thumbs feedback on transcript replies now persists through the existing `POST /api/feedback/` pipeline using the same browser auth/session patterns as the rest of the web app.
+  - Replaced the single global answer-share payload with per-message transcript payloads so each assistant action row targets the correct reply.
+  - Added regression coverage for multi-message signed-in threads so assistant action rows and per-message payload hooks render for each assistant reply.
+  - Validation: focused continued-conversation regression passed after the transcript/action changes.
+
+- **Web Ask/history parity + auth consistency pass (2026-05-09):**
+  - Fixed the Ask page auth split so server-rendered chat state now respects the same `chat_token` browser auth path as the shared web shell.
+  - `ChatUIView` login/register/logout responses now go through the shared `_render_chat_ui()` path, keeping same-request sign-in state, billing defaults, and sidebar/history UI consistent.
+  - Added regression coverage that verifies a `chat_token` cookie alone renders the Ask page as signed in.
+  - Upgraded the web `Conversations` sidebar to better match mobile history:
+    - live search over saved threads
+    - newest/oldest sort toggle
+    - Today / This week / Earlier grouping
+    - loaded-thread stats for threads, messages, and latest activity
+    - lazy-loaded older threads now keep their `Delete` action
+  - Added additive sidebar payload field `updated_at_iso` for stable client-side grouping/sorting.
+  - Validation: targeted chat-ui regressions passed, live browser validation passed, and full backend suite passed (`346` tests).
 
 - **Web app parity — 8 new standalone pages deployed (2026-05-07):**
   - `/insights/` — Journey dashboard: streak, heatmap, verse stats, chapter progress.
@@ -1302,9 +1372,9 @@ Last updated: 2026-05-07
 
 ## Next 3 Tasks (Recommended)
 
-1. Wire payment button UI in chat-ui to trigger order creation + checkout flow
-2. Add push/email delivery service integration for reminder preferences.
-3. Add automated subscription renewal/expiry notification job.
+1. Continue web/mobile parity on chat/history so the browser Ask flow matches mobile thread affordances more closely.
+2. Add signed-in web smoke coverage for Today, Insights, Account, Read Journey, and Meditation flows.
+3. Deepen web plans/community parity with mobile payment status, richer community states, and workflow entry points.
 
 ## Deferred (Do Later)
 
@@ -1327,6 +1397,23 @@ At the end of each coding session:
 - Move completed items from "Remaining" to "Completed".
 - Add any new scope under "Remaining".
 - Update "Next 3 Tasks" so the next session can start immediately.
+
+## 2026-05-09
+
+- Reworked the web meditation portal at `/meditation/` to follow the mobile app's meditation/sadhana flow instead of only listing practice cards.
+- Added end-to-end web wiring for meditation practice types, learn/practice content tabs, sankalpa capture, tracked session start, audio/timer player, loop support, mala counting, session interruption on page leave, completion reflection, recent sessions, and per-practice insights using the existing `/api/v1/meditation/*` endpoints.
+- Fixed the previous web gap where practice cards linked to `/meditation/<slug>/` even though no matching web route existed; the page now behaves as a single-page practice workspace using hash selection.
+- Updated the web meditation visual system toward the current mobile devotional/consciousness theme: gold glass cards, lotus/chakra mark, animated mantra atmosphere, mobile-style bottom navigation, and full-screen practice player.
+- Verification: inline meditation JavaScript syntax checked with Node, `guide_api/meditation.html` rendered through Django successfully, and `.venv/bin/python manage.py check` completed with no issues.
+- Added a shared mobile-parity web shell across the Bhagavad Gita templates via `guide_api/static/guide_api/css/gita-web-portal.css` and `guide_api/static/guide_api/js/gita-web-portal.js`.
+- The shared shell injects mobile-style top navigation, bottom tab bar, devotional/consciousness VFX, global quick-action drawer, auth-aware welcome state, legacy `/auth/` link normalization, shared link copy/share helpers, and stronger glass/gold styling across Today, Ask, Read, Meditate, Journal, Insights, Plans, Account, Community, Quote Art, Mood, Gratitude, Japa, Sadhana, SEO, and shared answer pages.
+- Wired the shared shell into all user-facing Gita templates that already use `gita-app-theme.css`, and fixed remaining hard-coded `/auth/` sign-in links in mood, gratitude, and read journey to point to the working chat auth anchor.
+- Aligned Today's web auth status call with the mobile contract by using `/api/v1/auth/me/`.
+- Fixed two broken Today web mini-flows: gratitude now reads the real `/api/v1/gratitude/` payload and community preview now loads from `/api/community/posts/` instead of missing endpoints.
+- Reworked Today's web quick-entry grid to match the mobile home priorities better by replacing duplicate mood/gratitude cards with Saved Reflections and Community entry points while keeping mood/gratitude as inline check-ins.
+- Rebuilt the web Insights page into mobile-style `Overview`, `Read`, `Ask`, and `Practice` sections driven by `/api/v1/insights/me/`, including contextual journey signal cards, Gita Path summary, recent question snippets, and practice/japa state panels.
+- Expanded the web account hub quick links so signed-in users can jump directly to plans, saved reflections, community, japa, mood, gratitude, quote art, support, and privacy from one page.
+- Verification: 23 web routes rendered successfully with Django test client, `node --check guide_api/static/guide_api/js/gita-web-portal.js` passed, meditation inline JS syntax passed, `.venv/bin/python manage.py check` passed, and `git diff --check` passed.
 
 ## 2026-04-15
 

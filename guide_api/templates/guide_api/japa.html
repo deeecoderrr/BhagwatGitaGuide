@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -346,6 +347,7 @@
     .accordion-body { display: none; margin-top: 20px; }
     .accordion-body.open { display: block; }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body>
   <header>
@@ -474,7 +476,10 @@
   <script>
   (function() {
     const LANG = "{{ language|default:'en' }}";
-    const token = localStorage.getItem("gita_token");
+    const token = (() => {
+      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
     const API = "/api/v1";
 
     if (!token) {
@@ -486,7 +491,7 @@
     function apiFetch(path, opts = {}) {
       return fetch(API + path, {
         ...opts,
-        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+        headers: { "Authorization": "Token " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
       });
     }
 
@@ -642,11 +647,21 @@
         </li>`;
       }).join("");
 
-      // Update timer mantra display
+      // Update timer mantra + mala count display
       const active = items.find(c => c.is_active) ?? items[0];
       if (active) {
         const mantraEl = document.getElementById("timer-mantra-display");
         mantraEl.textContent = "॥ " + (active.mantra_name ?? "Mantra") + " ॥";
+        // Mala count = today's beads / 108 (one mala = 108)
+        const todayCount = active.today_count ?? 0;
+        const malas = Math.floor(todayCount / 108);
+        const remainder = todayCount % 108;
+        const malaEl = document.getElementById("timer-mala-info");
+        if (malaEl) {
+          malaEl.textContent = malas > 0
+            ? malas + (LANG === "hi" ? " माला" : " mala" + (malas > 1 ? "s" : "")) + (remainder > 0 ? " + " + remainder : "")
+            : (todayCount > 0 ? todayCount + " / 108" : (LANG === "hi" ? "— माला" : "— mala"));
+        }
       }
     }
 

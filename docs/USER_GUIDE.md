@@ -21,6 +21,9 @@ and give feedback on whether the answer was useful.
    - choose `language` (`English` or `Hindi`)
    - enter your message
    - guest chat stays temporary in the current browser session only
+  - the web Ask page now shows dedicated `Sign in & keep this chat` and `Clear guest history` actions in guest mode
+  - using `Start New Conversation` or `Clear guest history` clears the temporary guest transcript and recent prompt chips
+  - signing in or registering from Ask continues your latest guest question in a new saved thread and clears the guest-only browser transcript
 3. If you want saved history, register or log in first.
    - **Note:** Email is now **mandatory** during signup to support secure password recovery.
 4. **Password Reset:** If you forget your password, the reset link will now lead you to a secure **web-based reset page** where you can safely enter your new password.
@@ -29,32 +32,52 @@ and give feedback on whether the answer was useful.
 6. **Mobile Insights Tab:**
    - **Active Sadhana & Japa Breakdown:** Tap your active programs to see a **7-day activity map**. Brighter dots represent days with higher japa counts.
    - **Interactive Discovery Grids:** Explore verses and chapters in the "Read" tab through a clean grid layout. Tap any item to jump straight into the Gita.
-7. Optional: click any starter prompt chip to begin quickly.
-8. Submit and review:
+7. **Web Today / Insights / Account:**
+   - The web app now mirrors the mobile entry flow more closely: **Today** includes daily verse, mood/gratitude check-ins, practice/journal/community entry cards, and a live community preview.
+   - **Insights** now has **Overview / Read / Ask / Practice** sections with contextual signal cards built from your real journey data.
+   - **Account** now works as a broader hub for plans, saved reflections, community, japa, mood, gratitude, quote art, and support.
+8. Optional: click any starter prompt chip to begin quickly.
+9. Submit and review:
     - guidance
     - meaning
     - actions
     - reflection
     - verses used
     - continue directly from the in-chat message box above the transcript
-9. Optional: continue with follow-up chips or recent-question chips.
-10. When logged in, mark answer as `Helpful` or `Not Helpful`.
-11. When logged in, use the `Conversations` sidebar to reopen an older thread, or click
+10. Optional: continue with follow-up chips or recent-question chips.
+11. When logged in, each assistant reply in the transcript now includes inline actions similar to mobile conversation detail:
+   - `Copy` copies that specific reply text
+   - `Share` shares or copies that specific reply text
+   - `Like` / `Dislike` saves feedback for that specific reply
+12. When logged in, use the `Conversations` sidebar to reopen an older thread, or click
     `Start New Conversation` to begin a separate thread.
-12. Each saved thread card shows message count and last-updated time. Use
+13. Each saved thread card shows message count and last-updated time. Use
     `Delete` on a card to remove that conversation.
-13. The sidebar `Mode` and `Language` selectors are global for the whole chat
+14. The web `Conversations` sidebar now behaves more like the mobile history tab:
+  - search saved threads by title or preview text
+  - switch between `Newest` and `Oldest`
+  - browse grouped sections like `Today`, `This week`, and `Earlier`
+  - older threads loaded as you scroll keep the same open/delete actions
+15. If you are already authenticated in the browser through the app shell,
+  the Ask page now honors that signed-in state consistently instead of
+  falling back to guest mode.
+16. Reopened conversations keep the same assistant reply actions on older replies,
+  so you are not limited to the newest answer when copying, sharing, or rating guidance.
+17. Long signed-in threads now reopen on the newest page of the conversation,
+  similar to the mobile conversation screen. Use `Load older messages` to page
+  backward and `Refresh thread` to resync the latest page.
+18. The sidebar `Mode` and `Language` selectors are global for the whole chat
     UI. Whatever you select there will be used for the next message in any
     conversation.
-14. A language selector is always available in the top navigation (including
+19. A language selector is always available in the top navigation (including
   guest pages before login), so you can switch between English and Hindi
   from anywhere.
-15. The chat UI uses smooth animations and transitions; if a CDN is blocked,
+20. The chat UI uses smooth animations and transitions; if a CDN is blocked,
     core chat functionality still works without the visual effects.
-16. Before upgrading to Plus or Pro, fill the billing section in the membership
+20. Before upgrading to Plus or Pro, fill the billing section in the membership
     panel. Those details are stored against the Razorpay order so you can later
     export invoice-ready rows for accounting/Tally.
-17. After a checkout attempt, the membership panel now shows your latest payment
+21. After a checkout attempt, the membership panel now shows your latest payment
     status snapshot so you can quickly see whether the last order is created,
     verified, captured, or failed.
 
@@ -205,10 +228,13 @@ On `GET /api/chat-ui/`:
 - newest assistant replies animate into the chat with a typing effect
 - recent question shortcuts (up to 3)
 - a sidebar list of recent conversations for the signed-in user
+- web history controls for search, sort, recency grouping, and lazy-loaded older threads
 - one global sidebar mode selector shared across all conversations
 - one global sidebar language selector shared across all conversations
 - per-thread message counts and updated timestamps in the sidebar
 - thread deletion directly from the sidebar
+- long-thread transcript paging that opens on the newest slice first
+- in-thread `Refresh thread` and `Load older messages` controls for signed-in conversations
 - `Start New Conversation` for beginning a separate thread
 
 When the app uses the LLM path, the latest message is treated as the main

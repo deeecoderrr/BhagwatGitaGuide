@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -335,7 +336,269 @@
       text-decoration: none;
     }
     .view-all-link:hover { color: var(--gold); text-decoration: underline; }
+
+    .insights-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.7fr);
+      gap: 18px;
+      margin-bottom: 22px;
+      padding: 26px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.08), rgba(12,16,38,0.84) 50%, rgba(7,4,10,0.75));
+      border: 1px solid rgba(232, 184, 109, 0.2);
+      border-radius: 22px;
+      box-shadow: 0 24px 60px rgba(2,6,16,0.5);
+      overflow: hidden;
+      position: relative;
+    }
+    .insights-hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at top right, rgba(232,184,109,0.16), transparent 36%),
+        linear-gradient(112deg, transparent 0 40%, rgba(255,230,184,0.08) 46%, transparent 54%);
+      pointer-events: none;
+    }
+    .insights-kicker {
+      margin: 0 0 10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(232,184,109,0.76);
+    }
+    .insights-hero h2 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-size: clamp(32px, 5vw, 50px);
+      line-height: 0.92;
+      color: rgba(255,246,221,0.98);
+      position: relative;
+      z-index: 1;
+    }
+    .insights-hero p {
+      margin: 12px 0 0;
+      color: rgba(240,230,210,0.8);
+      font-size: 14px;
+      line-height: 1.65;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.22);
+      background: rgba(232,184,109,0.08);
+      color: rgba(245,217,160,0.92);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+    .hero-metrics {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      position: relative;
+      z-index: 1;
+    }
+    .hero-metric {
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(6,12,22,0.54);
+    }
+    .hero-metric strong {
+      display: block;
+      font-family: "Cormorant Garamond", serif;
+      font-size: 28px;
+      line-height: 1;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+    .hero-metric span {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .insight-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+    .insight-tab-btn {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 9px 14px;
+      font: 700 12px/1 "Manrope", sans-serif;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    .insight-tab-btn.active {
+      border-color: rgba(232,184,109,0.42);
+      background: rgba(232,184,109,0.14);
+      color: rgba(245,217,160,0.95);
+      box-shadow: 0 12px 26px rgba(232,184,109,0.12);
+    }
+    .tab-panel {
+      display: none;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+    .panel-grid {
+      display: grid;
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    .panel-grid.two-up {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .signal-card {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.18);
+      border-radius: 18px;
+      padding: 20px 22px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 18px 44px rgba(2,6,16,0.42);
+    }
+    .signal-card h3 {
+      margin: 0 0 10px;
+      font-family: "Cormorant Garamond", serif;
+      font-size: 24px;
+      color: rgba(245,217,160,0.95);
+    }
+    .signal-card p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.65;
+      color: rgba(240,230,210,0.78);
+    }
+    .signal-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold);
+      text-decoration: none;
+    }
+    .metric-grid .stat-card {
+      text-align: left;
+      padding: 18px;
+    }
+    .metric-grid .stat-value {
+      font-size: 34px;
+      margin-bottom: 8px;
+    }
+    .metric-hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 6px;
+    }
+    .detail-list {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .detail-item {
+      padding: 14px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(6,12,22,0.46);
+    }
+    .detail-item strong,
+    .detail-item a {
+      color: rgba(245,217,160,0.94);
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .detail-item a:hover {
+      text-decoration: underline;
+    }
+    .detail-item span,
+    .detail-item p {
+      display: block;
+      margin: 5px 0 0;
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--muted);
+    }
+    .pill-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+    .pill-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.2);
+      background: rgba(232,184,109,0.08);
+      color: rgba(245,217,160,0.9);
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .path-progress {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      overflow: hidden;
+      margin-top: 14px;
+    }
+    .path-progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(232,184,109,0.95), rgba(245,217,160,0.8));
+      box-shadow: 0 0 18px rgba(232,184,109,0.28);
+    }
+    .path-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .empty-copy {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    @media (max-width: 720px) {
+      .insights-hero,
+      .panel-grid.two-up,
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body>
   <header>
@@ -367,121 +630,45 @@
 
     <!-- Main content (shown when authed) -->
     <div id="insights-content" style="display:none">
+      <section class="insights-hero">
+        <div>
+          <p class="insights-kicker">{% if language == "hi" %}जीवित साधना{% else %}Living Sadhana{% endif %}</p>
+          <h2 id="hero-title">{% if language == "hi" %}आपकी यात्रा अभी खुल रही है{% else %}Your journey is opening{% endif %}</h2>
+          <p id="hero-copy">{% if language == "hi" %}रीड, आस्क, जप और साधना के संकेत यहां एक साथ दिखाई देंगे।{% else %}Read, ask, japa, and sadhana signals will gather here in one view.{% endif %}</p>
+          <div class="hero-chip-row" id="hero-chip-row"></div>
+        </div>
+        <div class="hero-metrics" id="hero-metrics"></div>
+      </section>
 
-      <!-- Stats row -->
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon">🔥</div>
-          <div class="stat-value" id="streak-val">—</div>
-          <div class="stat-label">{% if language == "hi" %}दिन की लकीर{% else %}Day Streak{% endif %}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">💬</div>
-          <div class="stat-value" id="conversations-val">—</div>
-          <div class="stat-label">{% if language == "hi" %}बातचीत{% else %}Conversations{% endif %}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">📖</div>
-          <div class="stat-value" id="verses-read-val">—</div>
-          <div class="stat-label">{% if language == "hi" %}श्लोक पढ़े{% else %}Verses Read{% endif %}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">🫀</div>
-          <div class="stat-value" id="japa-sessions-val">—</div>
-          <div class="stat-label">{% if language == "hi" %}जप सत्र{% else %}Japa Sessions{% endif %}</div>
-        </div>
+      <div class="insight-tabs" id="insight-tabs">
+        <button type="button" class="insight-tab-btn active" data-tab="overview">{% if language == "hi" %}सार{% else %}Overview{% endif %}</button>
+        <button type="button" class="insight-tab-btn" data-tab="read">{% if language == "hi" %}पढ़ें{% else %}Read{% endif %}</button>
+        <button type="button" class="insight-tab-btn" data-tab="ask">{% if language == "hi" %}पूछें{% else %}Ask{% endif %}</button>
+        <button type="button" class="insight-tab-btn" data-tab="practice">{% if language == "hi" %}अभ्यास{% else %}Practice{% endif %}</button>
       </div>
 
-      <!-- Streak section -->
-      <div class="streak-section">
-        <div class="section-header-row">
-          <h2 class="section-title" style="margin:0">
-            {% if language == "hi" %}साधना लकीर{% else %}Sadhana Streak{% endif %}
-          </h2>
-        </div>
-        <div class="streak-display">
-          <div class="streak-flame">🔥</div>
-          <div class="streak-count" id="streak-count-big">—</div>
-          <div class="streak-meta">
-            <strong id="streak-label-main">{% if language == "hi" %}दिन{% else %}days{% endif %}</strong>
-            <span id="streak-sub">{% if language == "hi" %}लगातार{% else %}current streak{% endif %}</span>
-          </div>
-        </div>
-        <div class="streak-badges" id="streak-badges"></div>
-      </div>
-
-      <!-- Activity heatmap -->
-      <div class="heatmap-section">
-        <div class="section-header-row">
-          <h2 class="section-title" style="margin:0">
-            {% if language == "hi" %}गतिविधि{% else %}Activity{% endif %}
-          </h2>
-        </div>
-        <div class="heatmap-grid" id="heatmap-grid"></div>
-        <div class="heatmap-legend">
-          <span>{% if language == "hi" %}कम{% else %}Less{% endif %}</span>
-          <div class="heatmap-legend-swatch" style="background:rgba(255,255,255,0.05)"></div>
-          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.2)"></div>
-          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.45)"></div>
-          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.7)"></div>
-          <div class="heatmap-legend-swatch" style="background:rgba(232,184,109,0.95)"></div>
-          <span>{% if language == "hi" %}ज़्यादा{% else %}More{% endif %}</span>
-        </div>
-      </div>
-
-      <!-- Two-col: Chapter progress + Japa summary -->
-      <div class="two-col">
-        <div class="streak-section" style="margin-bottom:0">
-          <div class="section-header-row">
-            <h2 class="section-title" style="margin:0">
-              {% if language == "hi" %}अध्याय खोज{% else %}Chapter Discovery{% endif %}
-            </h2>
-          </div>
-          <div class="chapter-grid" id="chapter-grid">
-            <!-- populated by JS -->
-          </div>
-        </div>
-        <div class="japa-mini">
-          <div class="section-header-row">
-            <h2 class="section-title" style="margin:0;color:rgba(121,217,239,0.9)">
-              {% if language == "hi" %}जप सारांश{% else %}Japa Summary{% endif %}
-            </h2>
-            <a href="/japa/?language={{ language|default:'en' }}" class="view-all-link">
-              {% if language == "hi" %}विस्तार{% else %}Details →{% endif %}
-            </a>
-          </div>
-          <div class="stat-value" id="japa-total-count" style="font-size:36px;color:rgba(121,217,239,0.9)">—</div>
-          <div class="stat-label" style="margin-bottom:16px">
-            {% if language == "hi" %}कुल जप{% else %}Total Japa{% endif %}
-          </div>
-          <div id="japa-commitment-info" style="font-size:13px;color:var(--muted)"></div>
-        </div>
-      </div>
-
-      <!-- Recent conversations -->
-      <div class="streak-section">
-        <div class="section-header-row">
-          <h2 class="section-title" style="margin:0">
-            {% if language == "hi" %}हाल की बातचीत{% else %}Recent Conversations{% endif %}
-          </h2>
-          <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="view-all-link">
-            {% if language == "hi" %}सभी{% else %}All →{% endif %}
-          </a>
-        </div>
-        <ul class="conv-list" id="conv-list">
-          <li class="conv-item"><div class="conv-date skeleton" style="width:60px;height:14px"></div><div class="conv-question skeleton" style="width:80%;height:14px;margin-top:2px"></div></li>
-          <li class="conv-item"><div class="conv-date skeleton" style="width:60px;height:14px"></div><div class="conv-question skeleton" style="width:65%;height:14px;margin-top:2px"></div></li>
-          <li class="conv-item"><div class="conv-date skeleton" style="width:60px;height:14px"></div><div class="conv-question skeleton" style="width:72%;height:14px;margin-top:2px"></div></li>
-        </ul>
-      </div>
-
+      <section class="tab-panel active" data-tab-panel="overview">
+        <div id="overview-panel"></div>
+      </section>
+      <section class="tab-panel" data-tab-panel="read">
+        <div id="read-panel"></div>
+      </section>
+      <section class="tab-panel" data-tab-panel="ask">
+        <div id="ask-panel"></div>
+      </section>
+      <section class="tab-panel" data-tab-panel="practice">
+        <div id="practice-panel"></div>
+      </section>
     </div><!-- /insights-content -->
   </main>
 
   <script>
   (function () {
     const LANG = "{{ language|default:'en' }}";
-    const token = localStorage.getItem("gita_token");
+    const token = (() => {
+      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
     const API = "/api/v1";
 
     if (!token) {
@@ -493,116 +680,431 @@
     function apiFetch(path, opts = {}) {
       return fetch(API + path, {
         ...opts,
-        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+        headers: { "Authorization": "Token " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
       });
     }
 
-    // --- Insights summary ---
-    apiFetch("/insights/me/").then(r => r.ok ? r.json() : null).then(data => {
-      if (!data) return;
-      const streak = data.streak_current ?? data.current_streak ?? 0;
-      const longest = data.streak_longest ?? data.longest_streak ?? 0;
-      document.getElementById("streak-val").textContent = streak;
-      document.getElementById("streak-count-big").textContent = streak;
-      document.getElementById("conversations-val").textContent = data.total_conversations ?? data.conversations_count ?? "—";
-      document.getElementById("verses-read-val").textContent = data.verses_read ?? data.total_verses_read ?? "—";
+    let insightsData = null;
 
-      // Badges
-      const badges = [];
-      if (streak >= 7) badges.push("🌟 7-day");
-      if (streak >= 30) badges.push("⚡ 30-day");
-      if (streak >= 100) badges.push("💎 100-day");
-      if (longest > streak) badges.push("🏆 Best: " + longest);
-      const badgeEl = document.getElementById("streak-badges");
-      badgeEl.innerHTML = badges.map(b => `<span class="badge">${b}</span>`).join("");
+    function escHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;");
+    }
 
-      // Chapter grid
-      buildChapterGrid(data.chapters_explored ?? []);
-    }).catch(() => {});
+    function formatShortDate(value) {
+      if (!value) return LANG === "hi" ? "अभी नहीं" : "Not yet";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
+    }
 
-    // --- Japa sessions count ---
-    apiFetch("/japa/commitments/").then(r => r.ok ? r.json() : null).then(data => {
-      if (!data) return;
-      const commitments = Array.isArray(data) ? data : (data.results ?? []);
-      document.getElementById("japa-sessions-val").textContent = commitments.length;
-      const active = commitments.find(c => c.is_active);
-      if (active) {
-        document.getElementById("japa-total-count").textContent = active.total_count ?? "—";
-        document.getElementById("japa-commitment-info").innerHTML =
-          `<strong style="color:var(--text)">${active.mantra_name ?? "Mantra"}</strong><br>` +
-          `${LANG === "hi" ? "दैनिक लक्ष्य:" : "Daily goal:"} ${active.daily_target ?? "—"}`;
+    function formatDateTime(value) {
+      if (!value) return LANG === "hi" ? "कोई गतिविधि नहीं" : "No activity yet";
+      const parsed = new Date(value);
+      if (Number.isNaN(parsed.getTime())) return value;
+      return parsed.toLocaleString("en-IN", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+
+    function safeCount(value) {
+      return Number.isFinite(Number(value)) ? Number(value) : 0;
+    }
+
+    function metricCard(icon, value, label, hint = "") {
+      return `<div class="stat-card">
+        <div class="stat-icon">${icon}</div>
+        <div class="stat-value">${escHtml(value)}</div>
+        <div class="stat-label">${escHtml(label)}</div>
+        ${hint ? `<div class="metric-hint">${escHtml(hint)}</div>` : ""}
+      </div>`;
+    }
+
+    function signalCard(title, body, href, cta) {
+      return `<div class="signal-card">
+        <h3>${escHtml(title)}</h3>
+        <p>${escHtml(body)}</p>
+        ${href && cta ? `<a class="signal-cta" href="${href}">${escHtml(cta)} →</a>` : ""}
+      </div>`;
+    }
+
+    function renderList(items, emptyText, mapItem) {
+      if (!items || !items.length) {
+        return `<p class="empty-copy">${escHtml(emptyText)}</p>`;
       }
-    }).catch(() => {});
+      return `<div class="detail-list">${items.map(mapItem).join("")}</div>`;
+    }
 
-    // --- Activity heatmap (last 53 weeks from reading/sessions) ---
-    buildHeatmap();
+    function latestActivityDate(data) {
+      const candidates = [
+        data?.conversations?.last_activity_at,
+        data?.reading?.last_read_date,
+        data?.gita_path?.completed_at,
+        data?.gita_path?.started_at,
+      ].filter(Boolean).map(value => new Date(value)).filter(value => !Number.isNaN(value.getTime()));
+      if (!candidates.length) return null;
+      candidates.sort((left, right) => right.getTime() - left.getTime());
+      return candidates[0].toISOString();
+    }
 
-    // --- Recent conversations ---
-    apiFetch("/history/me/?limit=6").then(r => r.ok ? r.json() : null).then(data => {
-      if (!data) return;
-      const items = Array.isArray(data) ? data : (data.results ?? data.conversations ?? []);
-      const list = document.getElementById("conv-list");
-      if (!items.length) {
-        list.innerHTML = `<li class="empty-state"><div class="empty-icon">💬</div>${LANG === "hi" ? "अभी तक कोई बातचीत नहीं" : "No conversations yet"}</li>`;
-        return;
+    function journeySignal(data) {
+      const activeSadhana = data.sadhana?.active_list?.[0] ?? data.sadhana?.active;
+      if (activeSadhana) {
+        return {
+          title: LANG === "hi" ? "आपकी साधना जीवित है" : "Your sadhana is alive",
+          body: LANG === "hi"
+            ? `${activeSadhana.title} अभी आपकी यात्रा का केंद्र है। आज एक छोटा सत्र भी आपकी लय बनाए रखेगा।`
+            : `${activeSadhana.title} is your current practice anchor. Even a short session today will keep the rhythm alive.`,
+          href: `/sadhana/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "साधना खोलें" : "Open Sadhana",
+        };
       }
-      list.innerHTML = items.slice(0, 6).map(item => {
-        const date = item.created_at ? new Date(item.created_at).toLocaleDateString("en-IN", {month:"short",day:"numeric"}) : "";
-        const q = item.first_message ?? item.title ?? item.question ?? "Conversation";
-        const link = `/api/chat-ui/?conversation_id=${encodeURIComponent(item.id)}&language=${encodeURIComponent(LANG)}`;
-        return `<li class="conv-item">
-          <span class="conv-date">${date}</span>
-          <div class="conv-question"><a href="${link}">${escHtml(q.slice(0, 80))}</a></div>
-        </li>`;
-      }).join("");
-    }).catch(() => {});
+      if (data.gita_path?.status === "active" && data.gita_path?.next) {
+        return {
+          title: LANG === "hi" ? "आपकी गीता पथ खुली हुई है" : "Your Gita Path is open",
+          body: LANG === "hi"
+            ? `अगला श्लोक BG ${data.gita_path.next} आपकी प्रतीक्षा कर रहा है। छोटे-छोटे कदम पूरी यात्रा बनाते हैं।`
+            : `Your next verse, BG ${data.gita_path.next}, is waiting. Small, steady steps build the full journey.`,
+          href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(data.gita_path.next)}`,
+          cta: LANG === "hi" ? "अगला श्लोक" : "Continue Reading",
+        };
+      }
+      if (safeCount(data.practice?.meditation_minutes_7d) || safeCount(data.practice?.japa_rounds_7d)) {
+        return {
+          title: LANG === "hi" ? "अभ्यास से उपस्थिति बन रही है" : "Practice is building presence",
+          body: LANG === "hi"
+            ? `पिछले 7 दिनों में आपका अभ्यास दर्ज है। अब इसे एक स्पष्ट संकल्प के साथ और गहरा करें।`
+            : `You have real practice logged in the last 7 days. Deepen it now with one clear intention.`,
+          href: `/meditation/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "अभ्यास जारी रखें" : "Return to Practice",
+        };
+      }
+      if (safeCount(data.conversations?.total)) {
+        return {
+          title: LANG === "hi" ? "आप पूछ रहे हैं, अब लागू करें" : "You are asking, now apply",
+          body: LANG === "hi"
+            ? `आपने मार्गदर्शन शुरू कर दिया है। अब एक उत्तर चुनें और उसे आज के निर्णय में उतारें।`
+            : `You have started seeking guidance. Choose one answer and put it into a real decision today.`,
+          href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "मार्गदर्शन खोलें" : "Open Guidance",
+        };
+      }
+      return {
+        title: LANG === "hi" ? "आज की यात्रा शुरू करें" : "Begin today’s journey",
+        body: LANG === "hi"
+          ? "आज का संकेत, एक छोटा प्रश्न, या 10 मिनट का ध्यान आपकी पूरी लय बदल सकता है।"
+          : "Today’s signal, one honest question, or ten minutes of meditation can shift the whole tone of your day.",
+        href: `/today/?language=${encodeURIComponent(LANG)}`,
+        cta: LANG === "hi" ? "आज खोलें" : "Open Today",
+      };
+    }
 
-    function buildChapterGrid(exploredChapters) {
-      const CHAPTER_NAMES = [
+    function readingSignal(data) {
+      if (data.gita_path?.status === "active" && data.gita_path?.next) {
+        return {
+          title: LANG === "hi" ? "रीडिंग आपकी लय बना रही है" : "Reading is building your rhythm",
+          body: LANG === "hi"
+            ? `आप ${data.gita_path.verses_completed}/${data.gita_path.total_verses} श्लोक पूरे कर चुके हैं। अगला कदम स्पष्ट है।`
+            : `You have completed ${data.gita_path.verses_completed}/${data.gita_path.total_verses} verses. The next step is already clear.`,
+          href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(data.gita_path.next)}`,
+          cta: LANG === "hi" ? "गति बनाए रखें" : "Keep the Path Moving",
+        };
+      }
+      if (data.reading?.last_verse) {
+        return {
+          title: LANG === "hi" ? "जहां रुके थे वहीं से शुरू करें" : "Resume where you paused",
+          body: LANG === "hi"
+            ? `आपका अंतिम पढ़ा श्लोक BG ${data.reading.last_verse} था। वही आपका अगला प्रवेशद्वार है।`
+            : `Your last opened verse was BG ${data.reading.last_verse}. That is the cleanest doorway back in.`,
+          href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(data.reading.last_verse)}`,
+          cta: LANG === "hi" ? "फिर से पढ़ें" : "Resume Verse",
+        };
+      }
+      return {
+        title: LANG === "hi" ? "अध्ययन का पहला चिह्न रखें" : "Leave the first mark of study",
+        body: LANG === "hi"
+          ? "एक अध्याय खोलें, एक श्लोक सहेजें, या गीता पथ शुरू करें ताकि पढ़ाई की लकीर दिखने लगे।"
+          : "Open a chapter, save one verse note, or start Gita Path so the reading trail begins to appear.",
+        href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1`,
+        cta: LANG === "hi" ? "रीड यात्रा" : "Open Read Journey",
+      };
+    }
+
+    function askSignal(data) {
+      if (safeCount(data.saved_reflections?.total)) {
+        return {
+          title: LANG === "hi" ? "आपकी अंतर्दृष्टि सहेजी जा रही है" : "Your insights are being kept",
+          body: LANG === "hi"
+            ? `${data.saved_reflections.total} सहेजी गई चिंतन अब आपकी निजी मार्गदर्शिका बन सकती हैं।`
+            : `${data.saved_reflections.total} saved reflections can now become a personal manual for your future decisions.`,
+          href: `/saved-reflections/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "चिंतन पढ़ें" : "Open Reflections",
+        };
+      }
+      if (safeCount(data.conversations?.total)) {
+        return {
+          title: LANG === "hi" ? "प्रश्न पूछना जारी रखें" : "Keep the questions alive",
+          body: LANG === "hi"
+            ? `आपने ${data.conversations.total} बातचीत शुरू की है। अगला प्रश्न पिछले उत्तर को और स्पष्ट कर सकता है।`
+            : `You have started ${data.conversations.total} conversations. The next question can sharpen what the last answer began.`,
+          href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "फिर पूछें" : "Ask Again",
+        };
+      }
+      return {
+        title: LANG === "hi" ? "पहला प्रश्न पूछें" : "Ask the first real question",
+        body: LANG === "hi"
+          ? "ईमानदार प्रश्न से ही आपका व्यक्तिगत गीता संवाद शुरू होता है।"
+          : "A sincere question is what turns the Gita from scripture into living dialogue.",
+        href: `/api/chat-ui/?language=${encodeURIComponent(LANG)}`,
+        cta: LANG === "hi" ? "मार्गदर्शन लें" : "Ask for Guidance",
+      };
+    }
+
+    function practiceSignal(data) {
+      const activeCommitment = data.japa?.active_commitments_list?.[0];
+      if (activeCommitment) {
+        return {
+          title: LANG === "hi" ? "जप का सूत्र आपके साथ है" : "Your japa thread is active",
+          body: LANG === "hi"
+            ? `${activeCommitment.title} अभी चल रही है। रोज़ के छोटे माला-चिह्न लंबी स्थिरता बनाते हैं।`
+            : `${activeCommitment.title} is active. Small daily mala marks create long-term steadiness.`,
+          href: `/japa/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "जप खोलें" : "Open Japa",
+        };
+      }
+      if (safeCount(data.practice?.meditation_minutes_7d)) {
+        return {
+          title: LANG === "hi" ? "ध्यान की लकीर बनी हुई है" : "Meditation rhythm is forming",
+          body: LANG === "hi"
+            ? `पिछले 7 दिनों में ${data.practice.meditation_minutes_7d} मिनट दर्ज हुए हैं। इसे एक सुस्पष्ट अभ्यास क्रम में बदलें।`
+            : `${data.practice.meditation_minutes_7d} meditation minutes were logged in the last 7 days. Turn that into a clearer rhythm now.`,
+          href: `/meditation/?language=${encodeURIComponent(LANG)}`,
+          cta: LANG === "hi" ? "ध्यान पर लौटें" : "Return to Meditation",
+        };
+      }
+      return {
+        title: LANG === "hi" ? "अभ्यास का द्वार अभी खुला है" : "Practice is waiting for you",
+        body: LANG === "hi"
+          ? "जप, ध्यान, या साधना में से किसी एक छोटे सत्र से आज की ऊर्जा बदल सकती है।"
+          : "One short sit in japa, meditation, or sadhana can change the quality of the whole day.",
+        href: `/meditation/?language=${encodeURIComponent(LANG)}`,
+        cta: LANG === "hi" ? "अभ्यास शुरू करें" : "Begin Practice",
+      };
+    }
+
+    function renderHero(data) {
+      const signal = journeySignal(data);
+      const streak = safeCount(data.engagement?.daily_streak);
+      const lastActive = latestActivityDate(data);
+      document.getElementById("hero-title").textContent = signal.title;
+      document.getElementById("hero-copy").textContent = signal.body;
+      document.getElementById("hero-chip-row").innerHTML = [
+        `<span class="hero-chip">🔥 ${streak} ${LANG === "hi" ? "दिन लकीर" : "day streak"}</span>`,
+        `<span class="hero-chip">📖 ${safeCount(data.gita?.verses_opened)} ${LANG === "hi" ? "श्लोक खुले" : "verses opened"}</span>`,
+        `<span class="hero-chip">💬 ${safeCount(data.conversations?.total)} ${LANG === "hi" ? "संवाद" : "conversations"}</span>`,
+        data.gita_path?.status === "active" && data.gita_path?.next
+          ? `<span class="hero-chip">🪷 BG ${escHtml(data.gita_path.next)} ${LANG === "hi" ? "अगला" : "next"}</span>`
+          : `<span class="hero-chip">✨ ${LANG === "hi" ? "जीवित अभ्यास" : "living practice"}</span>`,
+      ].join("");
+      document.getElementById("hero-metrics").innerHTML = [
+        `<div class="hero-metric"><strong>${safeCount(data.saved_reflections?.total)}</strong><span>${LANG === "hi" ? "सहेजी गई चिंतन" : "Saved reflections"}</span></div>`,
+        `<div class="hero-metric"><strong>${safeCount(data.community?.root_posts) + safeCount(data.community?.replies)}</strong><span>${LANG === "hi" ? "समुदाय योगदान" : "Community contributions"}</span></div>`,
+        `<div class="hero-metric"><strong>${formatShortDate(lastActive)}</strong><span>${LANG === "hi" ? "अंतिम सक्रियता" : "Last active"}</span></div>`,
+      ].join("");
+    }
+
+    function renderOverviewPanel(data) {
+      const signal = journeySignal(data);
+      const activeSadhanaItems = data.sadhana?.active_list ?? [];
+      const japaItems = data.japa?.active_commitments_list ?? [];
+      const lastActive = latestActivityDate(data);
+      document.getElementById("overview-panel").innerHTML = `
+        <div class="stats-grid metric-grid">
+          ${metricCard("🔥", safeCount(data.engagement?.daily_streak), LANG === "hi" ? "दिन लकीर" : "Day streak", formatDateTime(lastActive))}
+          ${metricCard("🪷", safeCount(data.saved_reflections?.total), LANG === "hi" ? "सहेजी गई चिंतन" : "Saved reflections", LANG === "hi" ? "आपकी निजी मार्गदर्शिका" : "Your private manual")}
+          ${metricCard("💬", safeCount(data.conversations?.total), LANG === "hi" ? "बातचीत" : "Conversations", data.conversations?.last_activity_at ? formatDateTime(data.conversations.last_activity_at) : (LANG === "hi" ? "अभी तक नहीं" : "No asks yet"))}
+          ${metricCard("🤝", safeCount(data.community?.root_posts) + safeCount(data.community?.replies), LANG === "hi" ? "समुदाय योगदान" : "Community contributions", LANG === "hi" ? "पोस्ट और उत्तर" : "Posts and replies")}
+        </div>
+        <div class="panel-grid two-up">
+          ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
+          <div class="signal-card">
+            <h3>${LANG === "hi" ? "अभी की तस्वीर" : "What is active now"}</h3>
+            ${renderList(
+              [
+                ...activeSadhanaItems.map(item => ({
+                  title: item.title,
+                  subtitle: LANG === "hi" ? `साधना • 30 दिनों में ${safeCount(data.sadhana?.completed_days_last_30d)} दिन पूरे` : `Sadhana • ${safeCount(data.sadhana?.completed_days_last_30d)} completed days in 30d`,
+                  href: `/sadhana/?language=${encodeURIComponent(LANG)}`,
+                })),
+                ...japaItems.slice(0, 2).map(item => ({
+                  title: item.title,
+                  subtitle: LANG === "hi" ? `${item.completed_malas_30d} माला / 30 दिन` : `${item.completed_malas_30d} malas / 30d`,
+                  href: `/japa/?language=${encodeURIComponent(LANG)}`,
+                })),
+              ],
+              LANG === "hi" ? "अभी कोई सक्रिय साधना या जप ट्रैक नहीं है।" : "No active sadhana or japa track yet.",
+              item => `<div class="detail-item"><a href="${item.href}">${escHtml(item.title)}</a><span>${escHtml(item.subtitle)}</span></div>`
+            )}
+          </div>
+        </div>`;
+    }
+
+    function renderReadPanel(data) {
+      const signal = readingSignal(data);
+      const gitaPath = data.gita_path;
+      const topChapters = data.gita?.top_chapters ?? [];
+      const verseNotes = data.gita?.verse_notes_list ?? [];
+      const chapterNames = [
         "Arjuna Vishada","Sankhya","Karma","Jnana-Vibhaga","Karma-Vairagya",
         "Dhyana","Jnana-Vijnana","Akshara-Brahma","Raja-Vidya","Vibhuti",
         "Vishwarupa","Bhakti","Kshetra","Gunatraya","Purushottama","Daivāsura",
         "Shraddhatraya","Moksha-Sannyasa"
       ];
-      const exploredSet = new Set((exploredChapters || []).map(Number));
-      const grid = document.getElementById("chapter-grid");
-      grid.innerHTML = CHAPTER_NAMES.map((name, i) => {
-        const num = i + 1;
-        const read = exploredSet.has(num);
-        return `<div class="chapter-tile ${read ? 'read' : ''}">
-          <div class="chapter-tile-num">${num}</div>
-          <div class="chapter-tile-name">${name}</div>
-          ${read ? '<div class="chapter-tile-bar" style="width:100%"></div>' : ''}
+      document.getElementById("read-panel").innerHTML = `
+        <div class="stats-grid metric-grid">
+          ${metricCard("📖", safeCount(data.gita?.verses_opened), LANG === "hi" ? "श्लोक खुले" : "Verses opened", data.reading?.last_verse ? `BG ${data.reading.last_verse}` : (LANG === "hi" ? "अभी नहीं" : "No last verse"))}
+          ${metricCard("🪷", safeCount(data.gita?.chapters_explored), LANG === "hi" ? "अध्याय खोजे" : "Chapters explored", `${safeCount(data.gita?.verse_notes)} ${LANG === "hi" ? "नोट्स" : "notes"}`)}
+          ${metricCard("⏱️", safeCount(data.gita?.read_minutes_total ?? data.practice?.read_minutes_total), LANG === "hi" ? "कुल रीड मिनट" : "Total read minutes", `${safeCount(data.practice?.read_minutes_7d)} ${LANG === "hi" ? "मिनट / 7 दिन" : "min / 7d"}`)}
+          ${metricCard("🌿", `${Math.round(Number(gitaPath?.percent || 0))}%`, LANG === "hi" ? "गीता पथ" : "Gita Path", gitaPath?.next ? `BG ${gitaPath.next}` : (LANG === "hi" ? "अभी शुरू नहीं" : "Not started yet"))}
+        </div>
+        <div class="panel-grid two-up">
+          ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
+          <div class="signal-card">
+            <h3>${LANG === "hi" ? "गीता पथ" : "Gita Path"}</h3>
+            <p>${gitaPath?.enrolled ? (gitaPath?.intention_text || (LANG === "hi" ? "आपकी क्रमबद्ध गीता यात्रा अभी सक्रिय है।" : "Your sequential Gita journey is active.")) : (LANG === "hi" ? "700 श्लोकों की क्रमबद्ध यात्रा शुरू करें।" : "Start the guided journey through all 700 verses.")}</p>
+            <div class="path-progress"><div class="path-progress-fill" style="width:${Math.round(Number(gitaPath?.percent || 0))}%"></div></div>
+            <div class="path-meta">
+              <span>${safeCount(gitaPath?.verses_completed)} / ${safeCount(gitaPath?.total_verses || 700)}</span>
+              <span>${gitaPath?.status || (LANG === "hi" ? "शुरू नहीं" : "not started")}</span>
+            </div>
+            <a class="signal-cta" href="${gitaPath?.next ? `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(gitaPath.next)}` : `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1`}">${gitaPath?.next ? (LANG === "hi" ? "अगला श्लोक" : "Continue Path") : (LANG === "hi" ? "यात्रा शुरू करें" : "Start Path")} →</a>
+          </div>
+        </div>
+        <div class="panel-grid two-up">
+          <div class="streak-section" style="margin-bottom:0">
+            <div class="section-header-row">
+              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "शीर्ष अध्याय" : "Top Chapters"}</h2>
+              <a href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1" class="view-all-link">${LANG === "hi" ? "रीड यात्रा" : "Read journey →"}</a>
+            </div>
+            ${topChapters.length ? `<div class="pill-list">${topChapters.map(item => `<a class="pill-link" href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_chapter=${encodeURIComponent(item.chapter)}">BG ${item.chapter} · ${item.count}</a>`).join("")}</div>` : `<p class="empty-copy">${LANG === "hi" ? "अध्याय खोज अभी शुरू नहीं हुई।" : "Chapter discovery will appear after you read a few verses."}</p>`}
+            <div class="chapter-grid" id="chapter-grid">${chapterNames.map((name, index) => {
+              const chapter = index + 1;
+              const read = (data.gita?.chapters_explored_list || []).map(Number).includes(chapter);
+              return `<div class="chapter-tile ${read ? 'read' : ''}"><div class="chapter-tile-num">${chapter}</div><div class="chapter-tile-name">${name}</div>${read ? '<div class="chapter-tile-bar" style="width:100%"></div>' : ''}</div>`;
+            }).join("")}</div>
+          </div>
+          <div class="streak-section" style="margin-bottom:0">
+            <div class="section-header-row">
+              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "हाल के श्लोक नोट्स" : "Recent Verse Notes"}</h2>
+            </div>
+            ${renderList(verseNotes.slice(0, 4), LANG === "hi" ? "अभी तक कोई निजी श्लोक नोट नहीं।" : "No personal verse notes yet.", item => `<div class="detail-item"><a href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(item.reference)}">BG ${escHtml(item.reference)}</a><span>${escHtml(item.body_excerpt)}</span></div>`)}
+          </div>
         </div>`;
-      }).join("");
     }
 
-    function buildHeatmap() {
-      const grid = document.getElementById("heatmap-grid");
-      // Build 53 weeks × 7 days = 371 cells
-      const today = new Date();
-      const cells = [];
-      for (let w = 52; w >= 0; w--) {
-        for (let d = 0; d <= 6; d++) {
-          cells.push({ level: 0 });
-        }
-      }
-      // Try to populate from reading state
-      apiFetch("/reading/state/").then(r => r.ok ? r.json() : null).then(data => {
-        // Reading state may have activity data; if not, just render empty grid
-        renderHeatmap(grid, cells);
-      }).catch(() => renderHeatmap(grid, cells));
+    function renderAskPanel(data) {
+      const signal = askSignal(data);
+      const recentQuestions = data.recent_questions ?? [];
+      const verseCompanions = data.verse_companions ?? [];
+      document.getElementById("ask-panel").innerHTML = `
+        <div class="stats-grid metric-grid">
+          ${metricCard("💬", safeCount(data.conversations?.total), LANG === "hi" ? "कुल बातचीत" : "Total conversations", data.conversations?.last_activity_at ? formatDateTime(data.conversations.last_activity_at) : (LANG === "hi" ? "अभी तक नहीं" : "No asks yet"))}
+          ${metricCard("🪷", safeCount(recentQuestions.length), LANG === "hi" ? "हाल के प्रश्न" : "Recent prompts", LANG === "hi" ? "पिछले 5 स्निपेट" : "Last 5 snippets")}
+          ${metricCard("📓", safeCount(data.saved_reflections?.total), LANG === "hi" ? "सहेजी गई चिंतन" : "Saved reflections", `${safeCount(data.gita?.saved_reflections_with_verses)} ${LANG === "hi" ? "श्लोक-आधारित" : "with verses"}`)}
+          ${metricCard("🧭", safeCount(verseCompanions.length), LANG === "hi" ? "मार्गदर्शक श्लोक" : "Guiding verses", LANG === "hi" ? "आपके संवाद में लौटते हुए" : "Returning in your conversations")}
+        </div>
+        <div class="panel-grid two-up">
+          ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
+          <div class="signal-card">
+            <h3>${LANG === "hi" ? "हाल के प्रश्न" : "Recent Questions"}</h3>
+            ${renderList(recentQuestions, LANG === "hi" ? "पहला ईमानदार प्रश्न अभी बाकी है।" : "Your first sincere question is still waiting.", item => `<div class="detail-item"><strong>${escHtml(item.snippet)}</strong><span>${formatDateTime(item.created_at)}</span></div>`)}
+          </div>
+        </div>
+        <div class="panel-grid two-up">
+          <div class="streak-section" style="margin-bottom:0">
+            <div class="section-header-row">
+              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "सहेजी गई चिंतन" : "Saved Reflections"}</h2>
+              <a href="/saved-reflections/?language=${encodeURIComponent(LANG)}" class="view-all-link">${LANG === "hi" ? "सभी देखें" : "Open journal →"}</a>
+            </div>
+            <p class="empty-copy">${safeCount(data.saved_reflections?.total)
+              ? (LANG === "hi" ? `आपके पास ${data.saved_reflections.total} सहेजी गई चिंतन हैं। वापस पढ़ना भी साधना का हिस्सा है।` : `You have ${data.saved_reflections.total} saved reflections. Re-reading them is part of the practice too.`)
+              : (LANG === "hi" ? "उत्तर सहेजना शुरू करें ताकि आपकी निजी गीता पुस्तक बन सके।" : "Start saving answers so your private Gita journal can begin to take shape.")}</p>
+          </div>
+          <div class="streak-section" style="margin-bottom:0">
+            <div class="section-header-row">
+              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "संवाद में लौटते श्लोक" : "Verses Returning in Dialogue"}</h2>
+            </div>
+            ${verseCompanions.length ? `<div class="pill-list">${verseCompanions.map(item => `<a class="pill-link" href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(item.reference)}">BG ${escHtml(item.reference)} · ${item.count}</a>`).join("")}</div>` : `<p class="empty-copy">${LANG === "hi" ? "अभी कोई प्रमुख श्लोक पैटर्न नहीं दिख रहा।" : "No recurring verse pattern yet."}</p>`}
+          </div>
+        </div>`;
     }
 
-    function renderHeatmap(grid, cells) {
-      grid.innerHTML = cells.map(c =>
-        `<div class="heatmap-cell" data-level="${c.level}"></div>`
-      ).join("");
+    function renderPracticePanel(data) {
+      const signal = practiceSignal(data);
+      const activeJapa = data.japa?.active_commitments_list ?? [];
+      const activeSadhana = data.sadhana?.active_list ?? [];
+      document.getElementById("practice-panel").innerHTML = `
+        <div class="stats-grid metric-grid">
+          ${metricCard("🧘", safeCount(data.practice?.meditation_minutes_7d), LANG === "hi" ? "ध्यान मिनट / 7 दिन" : "Meditation min / 7d", `${safeCount(data.practice?.meditation_session_logs_30d)} ${LANG === "hi" ? "सत्र / 30 दिन" : "session logs / 30d"}`)}
+          ${metricCard("📿", safeCount(data.practice?.japa_rounds_7d), LANG === "hi" ? "जप राउंड / 7 दिन" : "Japa rounds / 7d", `${safeCount(data.japa?.completed_sessions_30d)} ${LANG === "hi" ? "पूर्ण सत्र / 30 दिन" : "completed sessions / 30d"}`)}
+          ${metricCard("📖", safeCount(data.practice?.read_minutes_7d), LANG === "hi" ? "रीड मिनट / 7 दिन" : "Read min / 7d", `${safeCount(data.practice?.read_minutes_total)} ${LANG === "hi" ? "कुल" : "total"}`)}
+          ${metricCard("🕉️", safeCount(data.sadhana?.completed_days_last_30d), LANG === "hi" ? "साधना दिन / 30 दिन" : "Sadhana days / 30d", `${safeCount(data.japa?.distinct_practice_days_30d)} ${LANG === "hi" ? "जप दिन / 30 दिन" : "japa days / 30d"}`)}
+        </div>
+        <div class="panel-grid two-up">
+          ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
+          <div class="signal-card">
+            <h3>${LANG === "hi" ? "जप सारांश" : "Japa Snapshot"}</h3>
+            ${renderList(activeJapa, LANG === "hi" ? "अभी कोई सक्रिय जप प्रतिबद्धता नहीं।" : "No active japa commitment yet.", item => `<div class="detail-item"><a href="/japa/?language=${encodeURIComponent(LANG)}">${escHtml(item.title)}</a><span>${escHtml(item.mantra_label)} · ${item.completed_malas_30d} ${LANG === "hi" ? "माला / 30 दिन" : "malas / 30d"}</span></div>`)}
+          </div>
+        </div>
+        <div class="panel-grid two-up">
+          <div class="streak-section" style="margin-bottom:0">
+            <div class="section-header-row">
+              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "सक्रिय साधना" : "Active Sadhana"}</h2>
+            </div>
+            ${renderList(activeSadhana, LANG === "hi" ? "अभी कोई सक्रिय साधना कार्यक्रम नहीं।" : "No active sadhana program yet.", item => `<div class="detail-item"><a href="/sadhana/?language=${encodeURIComponent(LANG)}">${escHtml(item.title)}</a><span>${LANG === "hi" ? `30 दिनों में ${safeCount(data.sadhana?.completed_days_last_30d)} दिन पूरे` : `${safeCount(data.sadhana?.completed_days_last_30d)} completed days in 30d`}</span></div>`)}
+          </div>
+          <div class="streak-section" style="margin-bottom:0">
+            <div class="section-header-row">
+              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "अगला अभ्यास" : "Next Practice Move"}</h2>
+            </div>
+            <p class="empty-copy">${safeCount(data.practice?.meditation_minutes_7d) || safeCount(data.practice?.japa_rounds_7d)
+              ? (LANG === "hi" ? "आज एक छोटा लेकिन सचेत सत्र चुनें। मात्रा से पहले नियमितता आए।" : "Choose one short but conscious sit today. Consistency matters before intensity.")
+              : (LANG === "hi" ? "पहला 10-मिनट सत्र ही आपकी साधना की धुरी बना सकता है।" : "The first ten-minute sit can become the axle of your practice.")}</p>
+            <a class="signal-cta" href="/meditation/?language=${encodeURIComponent(LANG)}">${LANG === "hi" ? "अभ्यास खोलें" : "Open Practice"} →</a>
+          </div>
+        </div>`;
     }
 
-    function escHtml(str) {
-      return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    function renderInsights(data) {
+      insightsData = data;
+      renderHero(data);
+      renderOverviewPanel(data);
+      renderReadPanel(data);
+      renderAskPanel(data);
+      renderPracticePanel(data);
     }
+
+    document.getElementById("insight-tabs").addEventListener("click", (event) => {
+      const target = event.target.closest("[data-tab]");
+      if (!target) return;
+      const tab = target.dataset.tab;
+      document.querySelectorAll(".insight-tab-btn").forEach(button => {
+        button.classList.toggle("active", button.dataset.tab === tab);
+      });
+      document.querySelectorAll(".tab-panel").forEach(panel => {
+        panel.classList.toggle("active", panel.dataset.tabPanel === tab);
+      });
+    });
+
+    apiFetch("/insights/me/").then(r => r.ok ? r.json() : null).then(data => {
+      if (!data) return;
+      renderInsights(data);
+    }).catch(() => {
+      document.getElementById("overview-panel").innerHTML = `<div class="signal-card"><h3>${LANG === "hi" ? "अंतर्दृष्टि अभी उपलब्ध नहीं" : "Insights are unavailable right now"}</h3><p>${LANG === "hi" ? "कृपया थोड़ी देर बाद फिर प्रयास करें।" : "Please try again in a moment."}</p></div>`;
+    });
   })();
   </script>
 </body>

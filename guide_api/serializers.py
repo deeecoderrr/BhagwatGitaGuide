@@ -477,6 +477,11 @@ class ProfileUpdateSerializer(serializers.Serializer):
     """Validate mutable profile fields for authenticated users."""
 
     username = serializers.CharField(max_length=150, required=False)
+    full_name = serializers.CharField(
+        max_length=301,
+        required=False,
+        allow_blank=True,
+    )
     first_name = serializers.CharField(
         max_length=150,
         required=False,
@@ -489,6 +494,21 @@ class ProfileUpdateSerializer(serializers.Serializer):
     )
     email = serializers.EmailField(required=False, allow_blank=True)
     onboarding_goal = serializers.CharField(max_length=64, required=False, allow_blank=True)
+
+    def validate(self, attrs):
+        """Support both mobile full_name and web first_name/last_name payloads."""
+        full_name = attrs.get("full_name")
+        has_split_names = "first_name" in attrs or "last_name" in attrs
+        if full_name is not None and not has_split_names:
+            clean = " ".join(str(full_name).strip().split())
+            if clean:
+                parts = clean.split(" ", 1)
+                attrs["first_name"] = parts[0]
+                attrs["last_name"] = parts[1] if len(parts) > 1 else ""
+            else:
+                attrs["first_name"] = ""
+                attrs["last_name"] = ""
+        return attrs
 
 
 class ChangePasswordSerializer(serializers.Serializer):

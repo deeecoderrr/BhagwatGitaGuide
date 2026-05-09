@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     body {
       margin: 0;
@@ -75,6 +76,31 @@
     }
     .search-input:focus { outline: none; border-color: rgba(232,184,109,0.35); }
     .search-input::placeholder { color: var(--muted); }
+    .filter-chips {
+      display: none;
+      width: 100%;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .filter-chip {
+      border: 1px solid rgba(232,184,109,0.2);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font: 600 12px/1 "Manrope", sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-chip:hover {
+      border-color: rgba(232,184,109,0.35);
+      color: var(--text);
+    }
+    .filter-chip.active {
+      background: rgba(232,184,109,0.14);
+      border-color: rgba(232,184,109,0.35);
+      color: rgba(245,217,160,0.9);
+    }
 
     /* Reflection cards */
     .reflections-list { display: grid; gap: 18px; }
@@ -270,6 +296,7 @@
       margin-left: 8px;
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body data-lang="{{ language|default:'en' }}">
   <header>
@@ -313,6 +340,7 @@
           id="search-input"
           placeholder="{% if language == 'hi' %}चिंतन खोजें…{% else %}Search reflections…{% endif %}"
         >
+        <div class="filter-chips" id="chapter-filters"></div>
       </div>
 
       <!-- List -->
@@ -338,13 +366,16 @@
   <script>
   (function() {
     const LANG = document.body.dataset.lang || "en";
-    const token = localStorage.getItem("gita_token");
+    const token = (() => {
+      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
     const API = "/api/v1";
-    const LIMIT = 12;
-    let currentOffset = 0;
+    const FETCH_BATCH = 100;
     let totalCount = 0;
     let allData = [];
     let searchQuery = "";
+    let chapterFilter = "";
 
     if (!token) {
       document.getElementById("auth-gate").style.display = "";
@@ -355,23 +386,33 @@
     function apiFetch(path, opts = {}) {
       return fetch(API + path, {
         ...opts,
-        headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+        headers: { "Authorization": "Token " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
       });
     }
 
-    async function loadReflections(offset = 0) {
-      currentOffset = offset;
-      const r = await apiFetch(`/saved-reflections/?limit=${LIMIT}&offset=${offset}`).catch(() => null);
+    async function loadReflections() {
       const list = document.getElementById("reflections-list");
-      if (!r || !r.ok) {
-        list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">${LANG === "hi" ? "लोड नहीं हो सका" : "Could not load reflections"}</div>`;
-        return;
+      const rows = [];
+      let offset = 0;
+      let total = 0;
+
+      while (true) {
+        const r = await apiFetch(`/saved-reflections/?limit=${FETCH_BATCH}&offset=${offset}`).catch(() => null);
+        if (!r || !r.ok) {
+          list.innerHTML = `<div style="text-align:center;padding:32px;color:var(--muted);font-size:13px">${LANG === "hi" ? "लोड नहीं हो सका" : "Could not load reflections"}</div>`;
+          return;
+        }
+        const data = await r.json();
+        total = data.count ?? total;
+        rows.push(...(data.results ?? []));
+        if (data.next_offset == null) break;
+        offset = data.next_offset;
       }
-      const data = await r.json();
-      totalCount = data.count ?? 0;
-      allData = data.results ?? [];
+
+      totalCount = total || rows.length;
+      allData = rows;
+      renderFilterChips();
       renderReflections(allData);
-      updatePagination(data);
       const countEl = document.getElementById("total-count");
       if (totalCount > 0) {
         countEl.textContent = totalCount;
@@ -379,16 +420,42 @@
       }
     }
 
+    function renderFilterChips() {
+      const wrap = document.getElementById("chapter-filters");
+      if (!wrap) return;
+      const chapters = Array.from(new Set(
+        allData.flatMap(r => (r.verse_references ?? []).map(ref => String(ref).split(".")[0]).filter(Boolean))
+      )).sort((a, b) => Number(a) - Number(b));
+
+      if (chapters.length <= 1) {
+        wrap.style.display = "none";
+        wrap.innerHTML = "";
+        return;
+      }
+
+      wrap.style.display = "flex";
+      const allLabel = LANG === "hi" ? "सभी" : "All";
+      wrap.innerHTML = [
+        `<button type="button" class="filter-chip${chapterFilter ? "" : " active"}" onclick="setChapterFilter('')">${allLabel}</button>`,
+        ...chapters.map(ch => `<button type="button" class="filter-chip${chapterFilter === ch ? " active" : ""}" onclick="setChapterFilter('${escHtml(ch)}')">${LANG === "hi" ? "अध्याय" : "Ch"} ${escHtml(ch)}</button>`),
+      ].join("");
+    }
+
     function renderReflections(items) {
       const list = document.getElementById("reflections-list");
-      const filtered = searchQuery
-        ? items.filter(r => {
-            const q = searchQuery.toLowerCase();
-            return (r.message ?? "").toLowerCase().includes(q) ||
-                   (r.guidance ?? "").toLowerCase().includes(q) ||
-                   (r.note ?? "").toLowerCase().includes(q);
-          })
+      let filtered = chapterFilter
+        ? items.filter(r => (r.verse_references ?? []).some(ref => String(ref).startsWith(`${chapterFilter}.`)))
         : items;
+
+      if (searchQuery) {
+        filtered = filtered.filter(r => {
+          const q = searchQuery.toLowerCase();
+          return (r.message ?? "").toLowerCase().includes(q) ||
+                 (r.guidance ?? "").toLowerCase().includes(q) ||
+                 (r.note ?? "").toLowerCase().includes(q) ||
+                 (r.verse_references ?? []).join(" ").toLowerCase().includes(q);
+        });
+      }
 
       if (!filtered.length) {
         list.innerHTML = `<div class="empty-state">
@@ -436,23 +503,15 @@
       }).join("");
     }
 
-    function updatePagination(data) {
-      const pagEl = document.getElementById("pagination");
-      if (data.count <= LIMIT) { pagEl.style.display = "none"; return; }
-      pagEl.style.display = "";
-      const page = Math.floor(currentOffset / LIMIT) + 1;
-      const totalPages = Math.ceil(data.count / LIMIT);
-      document.getElementById("page-info").textContent = `${page} / ${totalPages}`;
-      document.getElementById("btn-prev").disabled = currentOffset === 0;
-      document.getElementById("btn-next").disabled = !data.next_offset && data.next_offset !== 0;
-    }
-
-    window.changePage = function(dir) {
-      const newOffset = currentOffset + dir * LIMIT;
-      if (newOffset < 0 || newOffset >= totalCount) return;
-      loadReflections(newOffset);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    window.setChapterFilter = function(ch) {
+      chapterFilter = ch || "";
+      renderFilterChips();
+      renderReflections(allData);
     };
+
+    function updatePagination() {
+      document.getElementById("pagination").style.display = "none";
+    }
 
     window.deleteReflection = async function(id) {
       if (!confirm(LANG === "hi" ? "इस चिंतन को हटाएं?" : "Delete this reflection?")) return;
@@ -463,6 +522,7 @@
         const countEl = document.getElementById("total-count");
         countEl.textContent = totalCount;
         if (totalCount === 0) countEl.style.display = "none";
+        renderFilterChips();
         renderReflections(allData);
       }
     };
@@ -507,7 +567,8 @@
       return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
     }
 
-    loadReflections(0);
+    updatePagination();
+    loadReflections();
   })();
   </script>
 </body>

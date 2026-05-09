@@ -50,6 +50,7 @@ from guide_api.models import (
 )
 from django.test import Client, TestCase, override_settings
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
 from guide_api.push_reminders import (
@@ -527,6 +528,26 @@ class GuideApiTests(APITestCase):
         self.assertEqual(me_response.status_code, status.HTTP_200_OK)
         self.assertEqual(me_response.data["username"], "demo-user")
 
+    def test_auth_me_v1_returns_mobile_profile_fields(self):
+        self.user.first_name = "Dee"
+        self.user.last_name = "Coder"
+        self.user.email = "dee@example.com"
+        self.user.save(update_fields=["first_name", "last_name", "email"])
+
+        response = self.client.get("/api/v1/auth/me/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], self.user.id)
+        self.assertEqual(response.data["username"], self.user.username)
+        self.assertEqual(response.data["email"], "dee@example.com")
+        self.assertEqual(response.data["full_name"], "Dee Coder")
+        self.assertEqual(response.data["first_name"], "Dee")
+        self.assertEqual(response.data["last_name"], "Coder")
+        self.assertIn("joined_at", response.data)
+        self.assertIn("plan", response.data)
+        self.assertIn("remaining_today", response.data)
+        self.assertIn("daily_limit", response.data)
+
     def test_auth_logout_invalidates_token(self):
         self.client.force_authenticate(user=None)
         login_response = self.client.post(
@@ -586,6 +607,26 @@ class GuideApiTests(APITestCase):
         self.assertEqual(self.user.first_name, "Dee")
         self.assertEqual(self.user.last_name, "Coder")
         self.assertEqual(self.user.email, "dee@example.com")
+
+    def test_auth_profile_v1_patch_accepts_mobile_full_name(self):
+        response = self.client.patch(
+            "/api/v1/auth/profile/",
+            {
+                "email": "arjuna@example.com",
+                "full_name": "Arjuna Dev",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.first_name, "Arjuna")
+        self.assertEqual(self.user.last_name, "Dev")
+        self.assertEqual(self.user.email, "arjuna@example.com")
+        self.assertEqual(response.data["full_name"], "Arjuna Dev")
+        self.assertEqual(response.data["first_name"], "Arjuna")
+        self.assertEqual(response.data["last_name"], "Dev")
+        self.assertEqual(response.data["email"], "arjuna@example.com")
 
     def test_auth_change_password_updates_credentials(self):
         response = self.client.post(
@@ -693,6 +734,46 @@ class GuideApiTests(APITestCase):
         delete_response = self.client.delete(f"/api/conversations/{conversation_id}/")
         self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
 
+    def test_conversation_messages_endpoint_pages_from_latest_messages(self):
+        conversation = Conversation.objects.create(user_id=self.user.username)
+        base_time = timezone.now() - timedelta(minutes=8)
+
+        for index in range(8):
+            message = Message.objects.create(
+                conversation=conversation,
+                role=(
+                    Message.ROLE_USER
+                    if index % 2 == 0
+                    else Message.ROLE_ASSISTANT
+                ),
+                content=f"Message {index + 1}",
+            )
+            Message.objects.filter(pk=message.pk).update(
+                created_at=base_time + timedelta(minutes=index),
+            )
+
+        latest_page = self.client.get(
+            f"/api/conversations/{conversation.id}/messages/?limit=3&offset=0",
+        )
+
+        self.assertEqual(latest_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [row["content"] for row in latest_page.data["results"]],
+            ["Message 6", "Message 7", "Message 8"],
+        )
+        self.assertEqual(latest_page.data["next_offset"], 3)
+
+        older_page = self.client.get(
+            f"/api/conversations/{conversation.id}/messages/?limit=3&offset=3",
+        )
+
+        self.assertEqual(older_page.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [row["content"] for row in older_page.data["results"]],
+            ["Message 3", "Message 4", "Message 5"],
+        )
+        self.assertEqual(older_page.data["next_offset"], 6)
+
     def test_support_ticket_list_returns_user_tickets(self):
         SupportTicket.objects.create(
             user=self.user,
@@ -705,6 +786,88 @@ class GuideApiTests(APITestCase):
         response = self.client.get("/api/support/tickets/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
+
+    def test_mood_checkin_mobile_flow_supports_create_and_update(self):
+        initial = self.client.get("/api/v1/mood/")
+        self.assertEqual(initial.status_code, status.HTTP_200_OK)
+        self.assertEqual(initial.data["today"]["mood"], None)
+        self.assertEqual(initial.data["today"]["emoji"], None)
+        self.assertEqual(initial.data["history"], [])
+
+        created = self.client.post(
+            "/api/v1/mood/",
+            {"mood": "grateful", "note": "Felt supported today"},
+            format="json",
+        )
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(created.data["mood"], "grateful")
+        self.assertEqual(created.data["emoji"], "🥰")
+        self.assertEqual(created.data["note"], "Felt supported today")
+        self.assertTrue(created.data["created"])
+
+        updated = self.client.post(
+            "/api/v1/mood/",
+            {"mood": "relaxed", "note": "Evening was calmer"},
+            format="json",
+        )
+        self.assertEqual(updated.status_code, status.HTTP_200_OK)
+        self.assertEqual(updated.data["mood"], "relaxed")
+        self.assertEqual(updated.data["emoji"], "😌")
+        self.assertEqual(updated.data["note"], "Evening was calmer")
+        self.assertFalse(updated.data["created"])
+
+        final = self.client.get("/api/v1/mood/")
+        self.assertEqual(final.status_code, status.HTTP_200_OK)
+        self.assertEqual(final.data["today"]["mood"], "relaxed")
+        self.assertEqual(final.data["today"]["emoji"], "😌")
+        self.assertEqual(final.data["today"]["note"], "Evening was calmer")
+        self.assertEqual(len(final.data["history"]), 1)
+        self.assertEqual(final.data["history"][0]["mood"], "relaxed")
+
+    def test_gratitude_mobile_flow_supports_create_and_update(self):
+        initial = self.client.get("/api/v1/gratitude/")
+        self.assertEqual(initial.status_code, status.HTTP_200_OK)
+        self.assertEqual(initial.data["today"]["items"], [])
+        self.assertEqual(initial.data["today"]["item_1"], "")
+        self.assertEqual(initial.data["history"], [])
+
+        created = self.client.post(
+            "/api/v1/gratitude/",
+            {
+                "item_1": "A steady morning",
+                "item_2": "Helpful family",
+                "item_3": "A quiet evening walk",
+            },
+            format="json",
+        )
+        self.assertEqual(created.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            created.data["items"],
+            ["A steady morning", "Helpful family", "A quiet evening walk"],
+        )
+        self.assertTrue(created.data["created"])
+
+        updated = self.client.post(
+            "/api/v1/gratitude/",
+            {
+                "item_1": "A steady morning",
+                "item_2": "Helpful family",
+                "item_3": "",
+            },
+            format="json",
+        )
+        self.assertEqual(updated.status_code, status.HTTP_200_OK)
+        self.assertEqual(updated.data["items"], ["A steady morning", "Helpful family"])
+        self.assertFalse(updated.data["created"])
+
+        final = self.client.get("/api/v1/gratitude/")
+        self.assertEqual(final.status_code, status.HTTP_200_OK)
+        self.assertEqual(final.data["today"]["item_1"], "A steady morning")
+        self.assertEqual(final.data["today"]["item_2"], "Helpful family")
+        self.assertEqual(final.data["today"]["item_3"], "")
+        self.assertEqual(final.data["today"]["items"], ["A steady morning", "Helpful family"])
+        self.assertEqual(len(final.data["history"]), 1)
+        self.assertEqual(final.data["history"][0]["items"], ["A steady morning", "Helpful family"])
 
     def test_daily_verse_history_endpoint_returns_rows(self):
         response = self.client.get("/api/daily-verse/history/?days=3&language=en")
@@ -1291,6 +1454,8 @@ class GuideApiTests(APITestCase):
         self.assertContains(response, "Try a starter prompt")
         self.assertContains(response, "Save Your Journey")
         self.assertContains(response, "Guest mode is temporary")
+        self.assertContains(response, "Sign in &amp; keep this chat")
+        self.assertContains(response, "Clear guest history")
         self.assertContains(response, "Register")
         self.assertContains(response, "Login")
         self.assertContains(response, "Forgot password?")
@@ -1379,6 +1544,8 @@ class GuideApiTests(APITestCase):
             "My saved thread",
         )
         self.assertContains(login_response, "Conversations")
+        self.assertNotContains(login_response, "Sign in &amp; keep this chat")
+        self.assertNotContains(login_response, "Clear guest history")
         self.assertNotContains(login_response, "Other user's thread")
 
     def test_chat_ui_uses_authenticated_request_user_for_paid_plan_context(self):
@@ -1418,6 +1585,23 @@ class GuideApiTests(APITestCase):
             response.context["latest_billing_record"].plan,
             UserSubscription.PLAN_PLUS,
         )
+
+    def test_chat_ui_treats_chat_token_cookie_as_signed_in_browser_state(self):
+        token = Token.objects.create(user=self.user)
+
+        self.client.force_authenticate(user=None)
+        self.client.cookies["chat_token"] = token.key
+
+        response = self.client.get("/api/chat-ui/?language=en")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.context["chat_ui_signed_in"])
+        self.assertFalse(response.context["is_guest_chat"])
+        self.assertEqual(response.context["user_id"], self.user.username)
+        self.assertContains(response, "Signed in: demo-user")
+        self.assertContains(response, "Logout")
+        self.assertNotContains(response, "Guest mode is temporary")
+        self.assertNotContains(response, "Not signed in")
 
     def test_chat_ui_renders_structured_response_sections(self):
         self.client.force_authenticate(user=None)
@@ -1586,15 +1770,74 @@ class GuideApiTests(APITestCase):
             len(second.context["conversation_messages"]),
             4,
         )
+        self.assertContains(
+            second,
+            'class="reply-actions-bar" data-reply-actions',
+            count=2,
+        )
+        self.assertContains(
+            second,
+            'type="application/json" data-reply-payload',
+            count=2,
+        )
+
+    def test_chat_ui_long_thread_renders_latest_page_with_thread_controls(self):
+        self._login_chat_ui()
+        conversation = Conversation.objects.create(user_id=self.user.username)
+        base_time = timezone.now() - timedelta(hours=3)
+        total_messages = guide_views.ChatUIView.thread_page_size + 5
+
+        for index in range(total_messages):
+            message = Message.objects.create(
+                conversation=conversation,
+                role=(
+                    Message.ROLE_USER
+                    if index % 2 == 0
+                    else Message.ROLE_ASSISTANT
+                ),
+                content=f"Thread message {index + 1}",
+            )
+            Message.objects.filter(pk=message.pk).update(
+                created_at=base_time + timedelta(minutes=index),
+            )
+
+        response = self.client.get(
+            f"/api/chat-ui/?conversation_id={conversation.id}&language=en",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.context["thread_total_messages"], total_messages)
+        self.assertEqual(
+            response.context["thread_page_limit"],
+            guide_views.ChatUIView.thread_page_size,
+        )
+        self.assertTrue(response.context["thread_messages_has_more"])
+        self.assertEqual(
+            response.context["thread_messages_next_offset"],
+            guide_views.ChatUIView.thread_page_size,
+        )
+        self.assertEqual(
+            len(response.context["conversation_messages"]),
+            guide_views.ChatUIView.thread_page_size,
+        )
+        self.assertContains(response, "Refresh thread")
+        self.assertContains(response, "Load older messages")
+        self.assertContains(response, f"{total_messages} messages in this thread")
+        self.assertNotRegex(
+            response.content.decode(),
+            r">\s*Thread message 1\s*<",
+        )
+        self.assertContains(response, f"Thread message {total_messages}")
 
     def test_chat_ui_new_query_resets_visible_conversation(self):
         self.client.force_authenticate(user=None)
+        guest_question = "I feel anxious about my career growth."
         self.client.post(
             "/api/chat-ui/",
             data={
                 "action": "ask",
                 "mode": "simple",
-                "message": "I feel anxious about my career growth.",
+                "message": guest_question,
             },
         )
 
@@ -1602,8 +1845,97 @@ class GuideApiTests(APITestCase):
         self.assertEqual(reset.status_code, status.HTTP_200_OK)
         self.assertEqual(reset.context["active_conversation_id"], "")
         self.assertEqual(reset.context["conversation_messages"], [])
+        self.assertEqual(reset.context["recent_questions"], [])
         self.assertNotContains(reset, "Start New</a>")
+        self.assertNotContains(reset, guest_question)
         self.assertEqual(len(reset.context["conversations"]), 0)
+
+    def test_chat_ui_login_continues_latest_guest_question_in_new_thread(self):
+        self.client.force_authenticate(user=None)
+        guest_question = "I feel anxious about my guest chat history."
+        guest_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": guest_question,
+            },
+        )
+        self.assertEqual(guest_response.status_code, status.HTTP_200_OK)
+        self.assertIn(guest_question, guest_response.context["recent_questions"])
+        self.assertGreater(len(guest_response.context["conversation_messages"]), 0)
+
+        login_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "login",
+                "login_username": "demo-user",
+                "login_password": "demo-pass-123",
+                "continue_guest_chat": "1",
+            },
+        )
+
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertContains(
+            login_response,
+            "Logged in as demo-user. Continued your guest chat in a new thread.",
+        )
+        self.assertFalse(login_response.context["is_guest_chat"])
+        self.assertIn(guest_question, login_response.context["recent_questions"])
+        self.assertTrue(
+            any(
+                message.get("role") == Message.ROLE_USER
+                and message.get("content") == guest_question
+                for message in login_response.context["conversation_messages"]
+            )
+        )
+        self.assertGreater(len(login_response.context["conversations"]), 0)
+        self.assertNotIn("chat_ui_guest_messages", self.client.session)
+
+    def test_chat_ui_register_continues_latest_guest_question_in_new_thread(self):
+        self.client.force_authenticate(user=None)
+        guest_question = "I feel anxious about guest register carryover."
+        guest_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": guest_question,
+            },
+        )
+        self.assertEqual(guest_response.status_code, status.HTTP_200_OK)
+        self.assertIn(guest_question, guest_response.context["recent_questions"])
+        self.assertGreater(len(guest_response.context["conversation_messages"]), 0)
+
+        register_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "register",
+                "register_username": "guest-reset-user",
+                "register_password": "guest-reset-pass-123",
+                "continue_guest_chat": "1",
+            },
+        )
+
+        self.assertEqual(register_response.status_code, status.HTTP_200_OK)
+        self.assertContains(
+            register_response,
+            (
+                "Registered and logged in as guest-reset-user. "
+                "Continued your guest chat in a new thread."
+            ),
+        )
+        self.assertFalse(register_response.context["is_guest_chat"])
+        self.assertIn(guest_question, register_response.context["recent_questions"])
+        self.assertTrue(
+            any(
+                message.get("role") == Message.ROLE_USER
+                and message.get("content") == guest_question
+                for message in register_response.context["conversation_messages"]
+            )
+        )
+        self.assertGreater(len(register_response.context["conversations"]), 0)
+        self.assertNotIn("chat_ui_guest_messages", self.client.session)
 
     def test_chat_ui_guest_chat_stays_temporary_in_session(self):
         self.client.force_authenticate(user=None)
@@ -1618,7 +1950,16 @@ class GuideApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Conversation.objects.count(), 0)
         self.assertEqual(response.context["active_conversation_id"], "")
-        self.assertContains(response, "Guest chat is temporary")
+        self.assertContains(
+            response,
+            "Sign in to save this guidance and sync across devices.",
+        )
+        self.assertContains(
+            response,
+            "Your latest guest question will continue in a new saved thread",
+        )
+        self.assertContains(response, "Sign in &amp; keep this chat")
+        self.assertNotContains(response, "Temporary guest reply")
 
     def test_chat_ui_guest_limit_blocks_fourth_question(self):
         self.client.force_authenticate(user=None)
@@ -1829,6 +2170,47 @@ class GuideApiTests(APITestCase):
         self.assertEqual(conversation["message_count_label"], "2 messages")
         self.assertContains(response, "Updated just now")
         self.assertContains(response, "Delete")
+
+    def test_chat_ui_sidebar_includes_history_search_and_sort_controls(self):
+        self._login_chat_ui()
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "Help me build discipline in my daily routine.",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "data-conversation-search")
+        self.assertContains(response, 'data-conversation-sort="newest"')
+        self.assertContains(response, 'data-conversation-stat="threads"')
+        self.assertContains(response, 'id="chat-ui-conversation-items"')
+
+    def test_chat_ui_conversation_fragment_includes_iso_timestamp(self):
+        self._login_chat_ui()
+        self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+            },
+        )
+
+        response = self.client.get(
+            "/api/chat-ui/?fragment=conversations&offset=0&limit=3",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        payload = response.json()
+        self.assertTrue(payload["items"])
+        self.assertIn("updated_at_iso", payload["items"][0])
+        self.assertRegex(
+            payload["items"][0]["updated_at_iso"],
+            r"^\d{4}-\d{2}-\d{2}T",
+        )
 
     def test_chat_ui_can_open_specific_older_conversation(self):
         self._login_chat_ui()
@@ -2261,22 +2643,60 @@ class GuideApiTests(APITestCase):
         )
         self.assertEqual(ask_response.status_code, status.HTTP_200_OK)
         self.assertEqual(ResponseFeedback.objects.count(), 0)
-        conversation_id = ask_response.context["response_data"]["conversation_id"]
+        ask_payload = ask_response.context["response_data"]
+        conversation_id = ask_payload["conversation_id"]
+        feedback_payload = {
+            "action": "feedback",
+            "mode": "simple",
+            "message": "I feel anxious about my career growth.",
+            "helpful": "true",
+            "guidance": ask_payload["guidance"],
+            "meaning": ask_payload["meaning"],
+            "reflection": ask_payload["reflection"],
+            "actions": "|".join(ask_payload["actions"]),
+            "verse_references": "|".join(ask_payload["verse_references"]),
+            "response_mode": ask_payload.get("response_mode", "fallback"),
+            "conversation_id": str(conversation_id),
+            "note": "Useful",
+        }
 
         feedback_response = self.client.post(
             "/api/chat-ui/",
-            data={
-                "action": "feedback",
-                "mode": "simple",
-                "message": "I feel anxious about my career growth.",
-                "helpful": "true",
-                "response_mode": "fallback",
-                "conversation_id": str(conversation_id),
-                "note": "Useful",
-            },
+            data=feedback_payload,
         )
         self.assertEqual(feedback_response.status_code, status.HTTP_200_OK)
         self.assertEqual(ResponseFeedback.objects.count(), 1)
+        self.assertContains(feedback_response, "Thank you. Your feedback was saved.")
+        self.assertContains(
+            feedback_response,
+            "Your feedback for this answer is already saved.",
+        )
+        self.assertNotContains(feedback_response, 'name="helpful" value="true"')
+        self.assertNotContains(feedback_response, 'name="helpful" value="false"')
+        self.assertEqual(
+            feedback_response.context["response_data"]["guidance"],
+            ask_payload["guidance"],
+        )
+        self.assertEqual(
+            feedback_response.context["response_data"]["conversation_id"],
+            conversation_id,
+        )
+        self.assertTrue(feedback_response.context["feedback_already_recorded"])
+        self.assertEqual(
+            ResponseFeedback.objects.get().surface,
+            ResponseFeedback.SURFACE_WEB_CHAT_UI,
+        )
+
+        duplicate_response = self.client.post(
+            "/api/chat-ui/",
+            data=feedback_payload,
+        )
+        self.assertEqual(duplicate_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(ResponseFeedback.objects.count(), 1)
+        self.assertContains(
+            duplicate_response,
+            "Feedback already saved for this answer.",
+        )
 
     def test_chat_ui_save_reflection_flow(self):
         self._login_chat_ui()
@@ -2289,7 +2709,8 @@ class GuideApiTests(APITestCase):
             },
         )
         self.assertEqual(ask_response.status_code, status.HTTP_200_OK)
-        conversation_id = ask_response.context["response_data"]["conversation_id"]
+        ask_payload = ask_response.context["response_data"]
+        conversation_id = ask_payload["conversation_id"]
 
         save_response = self.client.post(
             "/api/chat-ui/",
@@ -2298,17 +2719,106 @@ class GuideApiTests(APITestCase):
                 "mode": "simple",
                 "message": "I feel anxious about my career growth.",
                 "conversation_id": str(conversation_id),
-                "guidance": "Do your duty without attachment.",
-                "meaning": "Focus on effort.",
-                "actions": "Work consistently|Let go of outcome anxiety",
-                "reflection": "What can I control today?",
-                "verse_references": "2.47|3.19",
+                "guidance": ask_payload["guidance"],
+                "meaning": ask_payload["meaning"],
+                "actions": "|".join(ask_payload["actions"]),
+                "reflection": ask_payload["reflection"],
+                "verse_references": "|".join(ask_payload["verse_references"]),
+                "response_mode": ask_payload.get("response_mode", "fallback"),
                 "note": "Saved from chat ui",
             },
         )
         self.assertEqual(save_response.status_code, status.HTTP_200_OK)
         self.assertContains(save_response, "Reflection saved.")
+        self.assertContains(save_response, "This reflection is already saved.")
+        self.assertNotContains(save_response, "Save Reflection")
         self.assertEqual(SavedReflection.objects.count(), 1)
+        self.assertEqual(
+            save_response.context["response_data"]["guidance"],
+            ask_payload["guidance"],
+        )
+        self.assertEqual(
+            save_response.context["response_data"]["conversation_id"],
+            conversation_id,
+        )
+        self.assertTrue(save_response.context["reflection_already_saved"])
+        self.assertNotContains(save_response, "Mood check-in")
+        self.assertNotContains(save_response, "Today gratitude")
+
+        duplicate_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "save",
+                "mode": "simple",
+                "message": "I feel anxious about my career growth.",
+                "conversation_id": str(conversation_id),
+                "guidance": ask_payload["guidance"],
+                "meaning": ask_payload["meaning"],
+                "actions": "|".join(ask_payload["actions"]),
+                "reflection": ask_payload["reflection"],
+                "verse_references": "|".join(ask_payload["verse_references"]),
+                "response_mode": ask_payload.get("response_mode", "fallback"),
+                "note": "Saved from chat ui",
+            },
+        )
+        self.assertEqual(duplicate_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(SavedReflection.objects.count(), 1)
+        self.assertContains(
+            duplicate_response,
+            "Reflection already saved for this answer.",
+        )
+
+    def test_chat_ui_guidance_toggle_markup_present(self):
+        """Guidance body and toggle button markup must be in the answer surface."""
+        self._login_chat_ui()
+        response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "How do I handle fear in difficult moments?",
+            },
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertContains(response, "data-guidance-body")
+        self.assertContains(response, "data-guidance-toggle")
+
+    def test_chat_ui_reflection_already_saved_on_render(self):
+        """_render_chat_ui must derive reflection_already_saved from the DB."""
+        self._login_chat_ui()
+        ask_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "ask",
+                "mode": "simple",
+                "message": "How can I overcome procrastination?",
+            },
+        )
+        self.assertEqual(ask_response.status_code, status.HTTP_200_OK)
+        ask_payload = ask_response.context["response_data"]
+        conversation_id = ask_payload["conversation_id"]
+
+        # Save the reflection via handler
+        save_response = self.client.post(
+            "/api/chat-ui/",
+            data={
+                "action": "save",
+                "mode": "simple",
+                "message": "How can I overcome procrastination?",
+                "conversation_id": str(conversation_id),
+                "guidance": ask_payload["guidance"],
+                "meaning": ask_payload["meaning"],
+                "actions": "|".join(ask_payload["actions"]),
+                "reflection": ask_payload["reflection"],
+                "verse_references": "|".join(ask_payload["verse_references"]),
+                "response_mode": ask_payload.get("response_mode", "fallback"),
+            },
+        )
+        self.assertEqual(save_response.status_code, status.HTTP_200_OK)
+        self.assertTrue(save_response.context["reflection_already_saved"])
+        # Already-saved notice must appear; Save Reflection button must not
+        self.assertContains(save_response, "This reflection is already saved.")
+        self.assertNotContains(save_response, "Save Reflection")
 
     def test_ask_endpoint_returns_anger_relevant_verses(self):
         payload = {
@@ -2935,6 +3445,9 @@ class UserInsightsVerseNormalizeTests(TestCase):
 )
 class PaymentIntegrationTests(APITestCase):
     def setUp(self):
+        cache.clear()
+        guide_views._quota_settings_cache["value"] = guide_views._QUOTA_SETTINGS_UNSET
+        guide_views._quota_settings_cache["loaded_at"] = 0.0
         self.user = User.objects.create_user(
             username="payment-user",
             email="paymentuser@test.com",
@@ -3741,6 +4254,58 @@ class PaymentIntegrationTests(APITestCase):
         self.assertEqual(response.data["pricing"]["plans"]["pro"]["INR"], 9900)
         self.assertEqual(response.data["pricing"]["plans"]["pro"]["USD"], 299)
         self.assertIsNone(response.data["latest_billing_record"])
+
+    def test_subscription_status_v1_includes_mobile_alias_fields(self):
+        subscription_end = timezone.now() + timedelta(days=30)
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_PRO,
+            is_active=True,
+            razorpay_subscription_id="sub_mobile_contract",
+            subscription_end_date=subscription_end,
+        )
+
+        response = self.client.get("/api/v1/subscription/status/")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["plan"], UserSubscription.PLAN_PRO)
+        self.assertTrue(response.data["is_active"])
+        self.assertTrue(response.data["active"])
+        self.assertTrue(response.data["renews"])
+        self.assertEqual(response.data["expires_at"], subscription_end.isoformat())
+        self.assertEqual(
+            response.data["current_period_end"],
+            subscription_end.isoformat(),
+        )
+        self.assertEqual(
+            response.data["subscription_end_date"],
+            subscription_end.isoformat(),
+        )
+        self.assertIn("daily_limit", response.data)
+        self.assertIn("remaining_today", response.data)
+
+    def test_subscription_status_cache_invalidation_helper_busts_mobile_status_cache(self):
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=UserSubscription.PLAN_FREE,
+            is_active=False,
+        )
+
+        initial = self.client.get("/api/v1/subscription/status/")
+        self.assertEqual(initial.status_code, status.HTTP_200_OK)
+        self.assertEqual(initial.data["plan"], UserSubscription.PLAN_FREE)
+        self.assertFalse(initial.data["is_active"])
+
+        UserSubscription.objects.filter(user=self.user).update(
+            plan=UserSubscription.PLAN_PRO,
+            is_active=True,
+        )
+        guide_views._invalidate_subscription_cache(self.user)
+
+        refreshed = self.client.get("/api/v1/subscription/status/")
+        self.assertEqual(refreshed.status_code, status.HTTP_200_OK)
+        self.assertEqual(refreshed.data["plan"], UserSubscription.PLAN_PRO)
+        self.assertTrue(refreshed.data["is_active"])
 
     def test_subscription_status_pro_plan_active(self):
         """Test subscription status endpoint returns pro plan data when active."""
@@ -5381,6 +5946,7 @@ class GitaPathApiTests(APITestCase):
     """Sequential Gita path (verse-by-verse) APIs."""
 
     def setUp(self):
+        cache.clear()
         self.user = User.objects.create_user(
             username="gita-path-user",
             password="test-pass-123",

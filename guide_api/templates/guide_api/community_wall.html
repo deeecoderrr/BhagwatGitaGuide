@@ -11,6 +11,7 @@
     rel="stylesheet"
   >
   <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
   <style>
     * { box-sizing: border-box; }
     body {
@@ -168,6 +169,61 @@
       min-height: 72px;
       font-size: 13px;
     }
+    /* Avatar + header layout */
+    .post-header-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .post-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .post-header-info { flex: 1; min-width: 0; }
+    .post-author-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1.2;
+    }
+    .post-time-row {
+      font-size: 11px;
+      color: var(--muted);
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .post-edited-tag {
+      color: rgba(255,255,255,0.3);
+      font-size: 10px;
+    }
+    /* Load more */
+    .load-more-btn {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid rgba(232,184,109,0.25);
+      border-radius: 12px;
+      background: rgba(232,184,109,0.04);
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .load-more-btn:hover { background: rgba(232,184,109,0.1); border-color: rgba(232,184,109,0.45); }
+    .load-more-btn:disabled { opacity: 0.45; cursor: default; }
     .sr-note {
       font-size: 12px;
       color: var(--muted);
@@ -177,6 +233,7 @@
       line-height: 1.55;
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
 <body class="gita-ambient">
   {% csrf_token %}
@@ -251,6 +308,35 @@
       isStaff: {{ community_is_staff|yesno:"true,false" }},
       apiList: "/api/community/posts/",
     };
+    const COMMUNITY_TOKEN = (() => {
+      const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+    })();
+
+    // ── Avatar helpers (matches mobile palette) ───────────────────────────
+    const AVATAR_PALETTE = ["#8B6FDE","#E07B54","#54A0BB","#7BBE8F","#D4845A","#6B9ED4","#C47AB5","#5BB3A0"];
+    function avatarColor(username) {
+      let hash = 0;
+      for (let i = 0; i < (username||"?").length; i++) hash = (username||"?").charCodeAt(i) + ((hash << 5) - hash);
+      return AVATAR_PALETTE[Math.abs(hash) % AVATAR_PALETTE.length];
+    }
+    function initials(username) { return (username||"?").slice(0,2).toUpperCase(); }
+
+    // ── Relative time ─────────────────────────────────────────────────────
+    function relTime(iso) {
+      if (!iso) return "";
+      const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+      if (diff < 60) return window.__communityCtx.language === "hi" ? "अभी" : "just now";
+      if (diff < 3600) return Math.floor(diff/60) + (window.__communityCtx.language === "hi" ? "मि पहले" : "m ago");
+      if (diff < 86400) return Math.floor(diff/3600) + (window.__communityCtx.language === "hi" ? "घं पहले" : "h ago");
+      if (diff < 86400*7) return Math.floor(diff/86400) + (window.__communityCtx.language === "hi" ? "दिन पहले" : "d ago");
+      return new Date(iso).toLocaleDateString(undefined, {month:"short",day:"numeric"});
+    }
+
+    // ── Pagination state ──────────────────────────────────────────────────
+    let threadOffset = 0;
+    let threadTotal = 0;
+    const PAGE_SIZE = 30;
 
     function getCsrfToken() {
       const name = "csrftoken";
@@ -282,31 +368,62 @@
       const h = { "Content-Type": "application/json" };
       const csrf = getCsrfToken();
       if (csrf) h["X-CSRFToken"] = csrf;
+      if (COMMUNITY_TOKEN) h["Authorization"] = "Token " + COMMUNITY_TOKEN;
       return h;
     }
 
-    async function fetchThreads() {
+    async function fetchThreads(reset = true) {
       const el = document.getElementById("threads");
       const listMsg = document.getElementById("list-msg");
       listMsg.textContent = "";
-      el.innerHTML = "";
+
+      if (reset) {
+        el.innerHTML = "";
+        threadOffset = 0;
+      }
+
+      // Remove old load-more button
+      const existing = document.getElementById("load-more-btn");
+      if (existing) existing.remove();
+
       try {
-        const res = await fetch(window.__communityCtx.apiList + "?limit=30&offset=0", {
-          credentials: "same-origin",
-        });
+        const res = await fetch(
+          window.__communityCtx.apiList + `?limit=${PAGE_SIZE}&offset=${threadOffset}`,
+          { credentials: "same-origin" }
+        );
         if (!res.ok) throw new Error("load_failed");
         const data = await res.json();
+        threadTotal = data.count ?? 0;
         const rows = data.results || [];
-        if (!rows.length) {
+
+        if (reset && !rows.length) {
           el.innerHTML = "<p class=hint>" +
             (window.__communityCtx.language === "hi"
               ? "अभी कोई पोस्ट नहीं — पहले आप लिख सकते हैं।"
               : "No posts yet — you can be the first.") + "</p>";
           return;
         }
+
         rows.forEach((root) => {
           el.appendChild(renderThread(root));
         });
+        threadOffset += rows.length;
+
+        // Show "Load more" if more pages exist
+        if (threadOffset < threadTotal) {
+          const btn = document.createElement("button");
+          btn.id = "load-more-btn";
+          btn.className = "load-more-btn";
+          btn.textContent = window.__communityCtx.language === "hi"
+            ? `और ${Math.min(PAGE_SIZE, threadTotal - threadOffset)} पोस्ट लोड करें`
+            : `Load ${Math.min(PAGE_SIZE, threadTotal - threadOffset)} more`;
+          btn.addEventListener("click", async () => {
+            btn.disabled = true;
+            btn.textContent = window.__communityCtx.language === "hi" ? "लोड हो रहा है…" : "Loading…";
+            await fetchThreads(false);
+          });
+          el.after(btn);
+        }
       } catch (e) {
         listMsg.textContent = window.__communityCtx.language === "hi"
           ? "लोड नहीं हो सका — पृष्ठ रिफ्रेश करें।"
@@ -336,17 +453,29 @@
 
     function renderPostBlock(post, isRoot) {
       const block = document.createElement("div");
-      const meta = document.createElement("div");
-      meta.className = "thread-meta";
-      const edited = post.edited ? (" · " + (window.__communityCtx.language === "hi" ? "संपादित" : "edited")) : "";
-      meta.innerHTML = "<strong>" + esc(post.author_username) + "</strong><span>" + esc(post.created_at || "") + edited + "</span>";
+      const username = post.author_username ?? "?";
+      const color = avatarColor(username);
+      const time = relTime(post.created_at);
+      const edited = post.edited
+        ? `<span class="post-edited-tag">· ${window.__communityCtx.language === "hi" ? "संपादित" : "edited"}</span>`
+        : "";
+
+      // Header row with avatar
+      const headerRow = document.createElement("div");
+      headerRow.className = "post-header-row";
+      headerRow.innerHTML = `
+        <div class="post-avatar" style="background:${color}">${initials(username)}</div>
+        <div class="post-header-info">
+          <div class="post-author-name">${esc(username)}</div>
+          <div class="post-time-row"><span>${esc(time)}</span>${edited}</div>
+        </div>`;
 
       const body = document.createElement("div");
       body.className = "thread-body";
       body.textContent = post.body || "";
 
       const actions = document.createElement("div");
-      actions.className = isRoot ? "post-actions" : "post-actions";
+      actions.className = "post-actions";
 
       if (canModify(post)) {
         const delBtn = document.createElement("button");
@@ -373,7 +502,7 @@
         actions.appendChild(editBtn);
       }
 
-      block.appendChild(meta);
+      block.appendChild(headerRow);
       block.appendChild(body);
       if (actions.childElementCount) block.appendChild(actions);
       return block;
@@ -384,6 +513,7 @@
       wrap.className = "composer compose-reply";
       const ta = document.createElement("textarea");
       ta.maxLength = 4000;
+      ta.placeholder = window.__communityCtx.language === "hi" ? "उत्तर लिखें…" : "Write a reply…";
       ta.dataset.parentId = String(parentId);
       const btn = document.createElement("button");
       btn.type = "button";
@@ -404,7 +534,6 @@
       if (parentId != null) payload.parent_id = parentId;
       const res = await fetch(window.__communityCtx.apiList, {
         method: "POST",
-        credentials: "same-origin",
         headers: postHeadersJson(),
         body: JSON.stringify(payload),
       });
@@ -414,13 +543,12 @@
           : "Could not post. Check that you are signed in.");
         return;
       }
-      await fetchThreads();
+      await fetchThreads(true);
     }
 
     async function patchPost(id, body) {
       const res = await fetch("/api/community/posts/" + id + "/", {
         method: "PATCH",
-        credentials: "same-origin",
         headers: postHeadersJson(),
         body: JSON.stringify({ body }),
       });
@@ -428,7 +556,7 @@
         alert(window.__communityCtx.language === "hi" ? "सहेज नहीं सका" : "Could not save");
         return;
       }
-      await fetchThreads();
+      await fetchThreads(true);
     }
 
     async function removePost(id) {
@@ -439,14 +567,13 @@
       )) return;
       const res = await fetch("/api/community/posts/" + id + "/", {
         method: "DELETE",
-        credentials: "same-origin",
         headers: postHeadersJson(),
       });
       if (!res.ok) {
         alert(window.__communityCtx.language === "hi" ? "नहीं हटा" : "Could not remove");
         return;
       }
-      await fetchThreads();
+      await fetchThreads(true);
     }
 
     document.getElementById("submit-root")?.addEventListener("click", async () => {
@@ -461,7 +588,7 @@
       msg.classList.add("ok");
     });
 
-    fetchThreads();
+    fetchThreads(true);
   </script>
 </body>
 </html>

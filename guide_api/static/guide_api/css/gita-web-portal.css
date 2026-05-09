@@ -1,0 +1,606 @@
+/*
+ * Bhagavad Gita Web Portal parity shell.
+ *
+ * Purpose:
+ * - Keep every Django web page visually and navigationally aligned with the
+ *   Expo mobile app without duplicating each page's working business logic.
+ * - Add devotional/consciousness atmosphere, mobile-style bottom navigation,
+ *   quick action drawer, and common card polish across Today, Ask, Read,
+ *   Meditate, Journal, Insights, Account, Community, Plans, Japa, and Sadhana.
+ */
+
+:root {
+  --portal-ink: #fff6dd;
+  --portal-muted: rgba(245, 239, 224, 0.72);
+  --portal-dim: rgba(200, 196, 214, 0.55);
+  --portal-bg: #07040a;
+  --portal-bg-2: #0b1024;
+  --portal-glass: rgba(9, 12, 31, 0.76);
+  --portal-glass-strong: rgba(7, 8, 20, 0.9);
+  --portal-gold: #e8b86d;
+  --portal-gold-light: #f7d99c;
+  --portal-green: #315c46;
+  --portal-lotus: #d88181;
+  --portal-violet: #6b4e9e;
+  --portal-border: rgba(232, 184, 109, 0.22);
+  --portal-shadow: 0 28px 80px rgba(0, 0, 0, 0.42);
+  --portal-radius: 28px;
+}
+
+html.gita-web-portal-ready {
+  scroll-padding-bottom: 112px;
+}
+
+body.gita-web-app {
+  position: relative;
+  isolation: isolate;
+  color: var(--text, var(--portal-ink));
+  background:
+    radial-gradient(circle at 50% -12%, rgba(255, 230, 184, 0.14), transparent 42%),
+    radial-gradient(circle at 12% 18%, rgba(216, 129, 129, 0.12), transparent 30%),
+    radial-gradient(circle at 88% 78%, rgba(49, 92, 70, 0.2), transparent 44%),
+    linear-gradient(180deg, var(--portal-bg) 0%, var(--portal-bg-2) 54%, #05060d 100%) !important;
+  padding-bottom: max(98px, env(safe-area-inset-bottom));
+  -webkit-font-smoothing: antialiased;
+}
+
+body.gita-web-app::before,
+body.gita-web-app::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+
+body.gita-web-app::before {
+  background:
+    linear-gradient(112deg, transparent 0 36%, rgba(255, 230, 184, 0.115) 43%, transparent 52%),
+    repeating-radial-gradient(circle at 50% 20%, rgba(232, 184, 109, 0.1) 0 1px, transparent 1px 19px);
+  opacity: 0.72;
+  animation: portalBreath 18s ease-in-out infinite alternate;
+}
+
+body.gita-web-app::after {
+  z-index: -3;
+  opacity: 0.075;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(ellipse at 50% 30%, #000 0%, transparent 74%);
+}
+
+@keyframes portalBreath {
+  from { transform: translateY(0) scale(1); opacity: 0.52; }
+  to { transform: translateY(-16px) scale(1.04); opacity: 0.86; }
+}
+
+body.gita-web-app .portal-vfx {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.portal-vfx .portal-light-beam {
+  position: absolute;
+  top: -24%;
+  left: 54%;
+  width: 160px;
+  height: 108vh;
+  transform: rotate(22deg);
+  transform-origin: top center;
+  background: linear-gradient(180deg, rgba(255, 230, 184, 0), rgba(255, 230, 184, 0.24), rgba(232, 184, 109, 0));
+  filter: blur(9px);
+  opacity: 0.42;
+  animation: portalBeam 12s ease-in-out infinite alternate;
+}
+
+@keyframes portalBeam {
+  from { transform: rotate(20deg) translateX(-22px); opacity: 0.24; }
+  to { transform: rotate(23deg) translateX(20px); opacity: 0.56; }
+}
+
+.portal-vfx .portal-mantra {
+  position: absolute;
+  color: rgba(255, 230, 184, 0.14);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(18px, 3vw, 42px);
+  text-shadow: 0 0 24px rgba(232, 184, 109, 0.32);
+  animation: portalMantraFloat 24s ease-in-out infinite;
+}
+
+.portal-vfx .portal-mantra:nth-child(2) { left: 7%; top: 24%; animation-delay: -4s; }
+.portal-vfx .portal-mantra:nth-child(3) { right: 9%; top: 44%; animation-delay: -13s; }
+.portal-vfx .portal-mantra:nth-child(4) { left: 69%; bottom: 12%; animation-delay: -8s; }
+
+@keyframes portalMantraFloat {
+  0%, 100% { transform: translateY(28px); opacity: 0; }
+  18%, 78% { opacity: 1; }
+  100% { transform: translateY(-110px); }
+}
+
+body.gita-web-app header,
+body.gita-web-app main,
+body.gita-web-app .page,
+body.gita-web-app .wrap,
+body.gita-web-app .container,
+body.gita-web-app .app-shell {
+  position: relative;
+  z-index: 1;
+}
+
+body.gita-web-app header:not(.portal-topbar),
+body.gita-web-app .topbar:not(.portal-topbar),
+body.gita-web-app .site-header {
+  border-color: rgba(232, 184, 109, 0.18) !important;
+  background:
+    linear-gradient(180deg, rgba(9, 12, 31, 0.82), rgba(9, 12, 31, 0.38)) !important;
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+}
+
+body.gita-web-app h1,
+body.gita-web-app h2,
+body.gita-web-app .hero-title,
+body.gita-web-app .section-title,
+body.gita-web-app .article-title {
+  color: var(--portal-ink);
+  text-shadow: 0 0 46px rgba(232, 184, 109, 0.14);
+}
+
+body.gita-web-app .panel,
+body.gita-web-app .card,
+body.gita-web-app .quick-card,
+body.gita-web-app .verse-hero,
+body.gita-web-app .chapter-card,
+body.gita-web-app .reflection-card,
+body.gita-web-app .community-card,
+body.gita-web-app .program-card,
+body.gita-web-app .commitment-card,
+body.gita-web-app .plan-card,
+body.gita-web-app .stat-card,
+body.gita-web-app .style-card,
+body.gita-web-app .hero-card,
+body.gita-web-app .glass-card,
+body.gita-web-app .practice-card,
+body.gita-web-app .content-card {
+  border-color: var(--portal-border) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(12, 16, 38, 0.82) 48%, rgba(7, 4, 10, 0.72)) !important;
+  box-shadow: var(--portal-shadow), inset 0 1px rgba(255, 255, 255, 0.035) !important;
+  backdrop-filter: blur(17px) saturate(122%);
+  -webkit-backdrop-filter: blur(17px) saturate(122%);
+}
+
+body.gita-web-app .quick-card,
+body.gita-web-app .chapter-card,
+body.gita-web-app .reflection-card,
+body.gita-web-app .community-card,
+body.gita-web-app .program-card,
+body.gita-web-app .commitment-card,
+body.gita-web-app .style-card,
+body.gita-web-app .practice-card,
+body.gita-web-app .content-card {
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+body.gita-web-app .quick-card:hover,
+body.gita-web-app .chapter-card:hover,
+body.gita-web-app .reflection-card:hover,
+body.gita-web-app .community-card:hover,
+body.gita-web-app .program-card:hover,
+body.gita-web-app .commitment-card:hover,
+body.gita-web-app .style-card:hover,
+body.gita-web-app .practice-card:hover,
+body.gita-web-app .content-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(232, 184, 109, 0.42) !important;
+  box-shadow: 0 34px 88px rgba(0, 0, 0, 0.5), 0 0 46px rgba(232, 184, 109, 0.08) !important;
+}
+
+body.gita-web-app .btn-primary,
+body.gita-web-app .btn-gold,
+body.gita-web-app .btn-teal,
+body.gita-web-app .btn-enroll,
+body.gita-web-app .gold-btn,
+body.gita-web-app button[type="submit"]:not(.btn-ghost):not(.ghost-btn),
+body.gita-web-app .subscribe-cycle {
+  background: linear-gradient(135deg, var(--portal-gold-light), var(--portal-gold) 48%, #b8893e) !important;
+  color: #1a1042 !important;
+  border: 1px solid rgba(255, 230, 184, 0.52) !important;
+  box-shadow: 0 18px 42px rgba(232, 184, 109, 0.18) !important;
+}
+
+body.gita-web-app .btn-secondary,
+body.gita-web-app .btn-ghost,
+body.gita-web-app .ghost-btn,
+body.gita-web-app .nav-back,
+body.gita-web-app .view-all-link {
+  border-color: rgba(232, 184, 109, 0.24) !important;
+  color: var(--portal-gold-light) !important;
+  background: rgba(232, 184, 109, 0.07) !important;
+}
+
+body.gita-web-app input,
+body.gita-web-app textarea,
+body.gita-web-app select {
+  border-color: rgba(232, 184, 109, 0.2) !important;
+  background: rgba(5, 6, 13, 0.54) !important;
+  color: var(--portal-ink) !important;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+body.gita-web-app input::placeholder,
+body.gita-web-app textarea::placeholder {
+  color: rgba(200, 196, 214, 0.48) !important;
+}
+
+.portal-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px clamp(14px, 3vw, 34px);
+  margin: 0;
+  border-bottom: 1px solid rgba(232, 184, 109, 0.18);
+  background: rgba(5, 6, 13, 0.72);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+}
+
+.portal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.portal-brand-mark {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(232, 184, 109, 0.34);
+  background: linear-gradient(145deg, rgba(232, 184, 109, 0.22), rgba(49, 92, 70, 0.2), rgba(7, 4, 10, 0.65));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.35), inset 0 0 22px rgba(232, 184, 109, 0.1);
+}
+
+.portal-brand-mark::before {
+  content: "";
+  width: 20px;
+  height: 28px;
+  border: 1.4px solid rgba(255, 230, 184, 0.84);
+  border-radius: 50% 50% 40% 40%;
+  box-shadow: 0 0 22px rgba(232, 184, 109, 0.48);
+}
+
+.portal-brand-mark::after {
+  content: "";
+  position: absolute;
+  width: 3px;
+  height: 34px;
+  border-radius: 999px;
+  background: linear-gradient(#8e4cff, #2d8cff, #2ee5ff, #2ecf74, #ffe46b, #ff9b2f, #ff4d3f);
+  box-shadow: 0 0 16px rgba(255, 230, 184, 0.58);
+}
+
+.portal-brand-kicker {
+  display: block;
+  color: var(--portal-gold);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.portal-brand-title {
+  display: block;
+  color: var(--portal-ink);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 21px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.portal-topnav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.portal-topnav::-webkit-scrollbar { display: none; }
+
+.portal-topnav a,
+.portal-command-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: rgba(245, 239, 224, 0.75);
+  text-decoration: none;
+  border: 1px solid transparent;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.portal-topnav a:hover,
+.portal-topnav a.active,
+.portal-command-trigger:hover {
+  color: var(--portal-gold-light);
+  border-color: rgba(232, 184, 109, 0.26);
+  background: rgba(232, 184, 109, 0.08);
+}
+
+.portal-bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 80;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  width: min(620px, calc(100vw - 24px));
+  border-radius: 999px;
+  border: 1px solid rgba(232, 184, 109, 0.22);
+  background: rgba(5, 6, 13, 0.8);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.48), inset 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px) saturate(135%);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+}
+
+.portal-bottom-nav a {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  padding: 9px 6px;
+  border-radius: 999px;
+  color: rgba(245, 239, 224, 0.66);
+  text-decoration: none;
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: -0.01em;
+}
+
+.portal-bottom-nav .portal-nav-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.portal-bottom-nav a.active {
+  color: var(--portal-gold-light);
+  background: rgba(232, 184, 109, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(232, 184, 109, 0.12);
+}
+
+.portal-fab {
+  position: fixed;
+  right: clamp(14px, 3vw, 28px);
+  bottom: max(104px, calc(env(safe-area-inset-bottom) + 104px));
+  z-index: 78;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 230, 184, 0.48);
+  color: #1a1042;
+  background: radial-gradient(circle at 35% 25%, #fff6dd, var(--portal-gold) 54%, #b8893e);
+  box-shadow: 0 22px 52px rgba(232, 184, 109, 0.28), 0 0 0 8px rgba(232, 184, 109, 0.08);
+  cursor: pointer;
+  font-size: 24px;
+  display: grid;
+  place-items: center;
+  transition: transform 0.22s ease, box-shadow 0.22s ease;
+}
+
+.portal-fab:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 26px 62px rgba(232, 184, 109, 0.36), 0 0 0 10px rgba(232, 184, 109, 0.1);
+}
+
+.portal-drawer {
+  position: fixed;
+  right: clamp(14px, 3vw, 28px);
+  bottom: max(174px, calc(env(safe-area-inset-bottom) + 174px));
+  z-index: 79;
+  width: min(390px, calc(100vw - 28px));
+  padding: 16px;
+  border-radius: 28px;
+  border: 1px solid rgba(232, 184, 109, 0.24);
+  background: rgba(7, 8, 20, 0.9);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.54);
+  backdrop-filter: blur(20px) saturate(135%);
+  -webkit-backdrop-filter: blur(20px) saturate(135%);
+  transform: translateY(12px) scale(0.98);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.portal-drawer.open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.portal-drawer h2 {
+  margin: 0;
+  color: var(--portal-ink);
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.portal-drawer p {
+  margin: 7px 0 14px;
+  color: var(--portal-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.portal-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.portal-action-card {
+  display: grid;
+  gap: 7px;
+  min-height: 88px;
+  padding: 12px;
+  border-radius: 20px;
+  color: inherit;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(12, 16, 38, 0.72));
+}
+
+.portal-action-card:hover {
+  border-color: rgba(232, 184, 109, 0.32);
+  background: rgba(232, 184, 109, 0.08);
+}
+
+.portal-action-card strong {
+  color: var(--portal-ink);
+  font-size: 13px;
+}
+
+.portal-action-card span {
+  color: var(--portal-dim);
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.portal-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(92px, env(safe-area-inset-bottom));
+  z-index: 120;
+  transform: translateX(-50%) translateY(14px);
+  padding: 11px 15px;
+  max-width: min(520px, calc(100vw - 28px));
+  border-radius: 999px;
+  color: var(--portal-ink);
+  background: rgba(5, 6, 13, 0.88);
+  border: 1px solid rgba(232, 184, 109, 0.24);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.portal-toast.open {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.portal-skip-link {
+  position: fixed;
+  left: 14px;
+  top: 14px;
+  z-index: 200;
+  transform: translateY(-90px);
+  padding: 10px 14px;
+  border-radius: 999px;
+  color: #1a1042;
+  background: var(--portal-gold-light);
+  text-decoration: none;
+  font-weight: 800;
+}
+
+.portal-skip-link:focus {
+  transform: translateY(0);
+}
+
+@media (max-width: 920px) {
+  .portal-topnav {
+    max-width: 55vw;
+  }
+}
+
+@media (max-width: 720px) {
+  body.gita-web-app {
+    padding-top: 0;
+  }
+
+  .portal-topbar {
+    padding: 10px 12px;
+  }
+
+  .portal-topnav {
+    display: none;
+  }
+
+  .portal-brand-title {
+    font-size: 19px;
+  }
+
+  .portal-brand-kicker {
+    font-size: 8px;
+  }
+
+  .portal-bottom-nav {
+    width: calc(100vw - 18px);
+    padding: 7px;
+  }
+
+  .portal-bottom-nav a {
+    font-size: 10px;
+    padding: 8px 3px;
+  }
+
+  .portal-fab {
+    width: 54px;
+    height: 54px;
+    right: 14px;
+  }
+
+  .portal-drawer {
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.gita-web-app::before,
+  .portal-vfx *,
+  .portal-fab,
+  .portal-drawer,
+  .portal-bottom-nav a,
+  body.gita-web-app .quick-card,
+  body.gita-web-app .chapter-card,
+  body.gita-web-app .reflection-card,
+  body.gita-web-app .community-card,
+  body.gita-web-app .program-card,
+  body.gita-web-app .commitment-card,
+  body.gita-web-app .style-card,
+  body.gita-web-app .practice-card,
+  body.gita-web-app .content-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
