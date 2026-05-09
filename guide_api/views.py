@@ -10192,3 +10192,29 @@ class MeditationPageView(_WebPageTokenMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context["language"] = _safe_lang(self.request)
         return context
+
+
+class SupportPageView(_WebPageTokenMixin, TemplateView):
+    """Support request form and ticket history page."""
+
+    template_name = "guide_api/support.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        context["support_email"] = (
+            getattr(settings, "SUPPORT_EMAIL", None)
+            or "support@askbhagavadgita.co.in"
+        )
+        return context
+
+
+class NotificationsPageView(_WebPageTokenMixin, TemplateView):
+    """Reminder and notification preferences page."""
+
+    template_name = "guide_api/notifications.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context

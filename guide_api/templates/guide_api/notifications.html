@@ -1,0 +1,431 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if language == "hi" %}अनुस्मारक सेटिंग{% else %}Reminder Settings{% endif %} · Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}">
+  <style>
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 70% 0%, rgba(107,78,158,0.1), transparent 50%),
+        radial-gradient(circle at 15% 80%, rgba(76,185,130,0.07), transparent 50%),
+        var(--bg);
+      color: var(--text);
+    }
+    header {
+      padding: 20px clamp(16px,4vw,40px);
+      display: flex; flex-wrap: wrap; gap: 12px;
+      align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(107,78,158,0.22);
+      background: linear-gradient(180deg,rgba(10,14,24,0.65),rgba(5,8,16,0.2));
+      backdrop-filter: blur(12px);
+    }
+    .header-left h1 {
+      margin: 0; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,3vw,28px); letter-spacing: -0.01em;
+      color: rgba(200,160,240,0.9);
+    }
+    .header-left p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .nav-back {
+      font-size: 13px; font-weight: 600; padding: 9px 16px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold); text-decoration: none;
+      background: rgba(232,184,109,0.06); transition: all 0.2s;
+    }
+    .nav-back:hover { border-color: rgba(232,184,109,0.5); background: rgba(232,184,109,0.1); }
+    main { padding: 28px clamp(16px,4vw,40px) 64px; max-width: 680px; margin: 0 auto; }
+
+    /* Hero */
+    .hero {
+      text-align: center; margin-bottom: 28px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .hero-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      border: 1px solid rgba(200,160,240,0.25);
+      background: rgba(200,160,240,0.1);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin: 0 auto 14px;
+    }
+    .hero h2 {
+      margin: 0 0 8px; font-family: "Cormorant Garamond", serif;
+      font-size: clamp(22px,4vw,28px); font-weight: 600;
+      color: rgba(245,235,215,0.95);
+    }
+    .hero p { margin: 0; font-size: 13.5px; line-height: 1.65; color: rgba(240,230,210,0.6); }
+
+    /* Panel */
+    .panel {
+      background: var(--panel);
+      border: 1px solid rgba(107,78,158,0.2);
+      border-radius: 20px; padding: 24px 26px; margin-bottom: 18px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 24px 56px rgba(2,6,16,0.45);
+      position: relative; overflow: hidden;
+      animation: fadeUp 0.6s ease both;
+    }
+    .panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(200,160,240,0.35), transparent);
+    }
+    .panel-title {
+      font-family: "Cormorant Garamond", serif; font-size: 18px; font-weight: 600;
+      color: rgba(245,235,215,0.9); margin: 0 0 18px;
+    }
+    #devices-panel { animation-delay: 0.1s; }
+
+    /* Row layout */
+    .pref-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      gap: 12px;
+    }
+    .pref-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .pref-row:first-child { padding-top: 0; }
+    .pref-label { font-size: 14px; color: rgba(240,230,210,0.85); line-height: 1.45; }
+    .pref-label small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    /* Toggle */
+    .toggle-wrap { flex-shrink: 0; }
+    .toggle {
+      position: relative; display: inline-block; width: 44px; height: 24px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 999px; cursor: pointer;
+      background: rgba(255,255,255,0.1); transition: background 0.2s;
+    }
+    .toggle input:checked ~ .toggle-track { background: rgba(200,160,240,0.55); }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px; width: 18px; height: 18px;
+      border-radius: 50%; background: #fff; transition: transform 0.2s;
+      pointer-events: none;
+    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(20px); }
+
+    /* Time + select inputs */
+    .pref-input {
+      background: rgba(32,20,28,0.55); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px; padding: 8px 12px;
+      font-family: "Manrope", sans-serif; font-size: 13.5px; color: var(--text);
+      outline: none; transition: border-color 0.2s;
+      min-width: 130px;
+    }
+    .pref-input:focus { border-color: rgba(200,160,240,0.4); }
+
+    /* Save button */
+    .btn-save {
+      width: 100%; padding: 13px; border: none; border-radius: 14px; cursor: pointer;
+      font-family: "Manrope", sans-serif; font-size: 14px; font-weight: 700;
+      color: #0a0e18;
+      background: linear-gradient(135deg, rgba(200,160,240,0.85), rgba(107,78,158,0.7));
+      transition: opacity 0.2s, transform 0.15s; margin-top: 18px;
+    }
+    .btn-save:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* Status */
+    .status-banner {
+      margin-top: 12px; padding: 11px 14px; border-radius: 12px;
+      font-size: 13px; font-weight: 600; display: none;
+    }
+    .status-banner.success {
+      background: rgba(76,185,130,0.12); border: 1px solid rgba(76,185,130,0.25);
+      color: rgba(76,185,130,0.9);
+    }
+    .status-banner.error {
+      background: rgba(220,80,80,0.1); border: 1px solid rgba(220,80,80,0.25);
+      color: rgba(255,100,100,0.9);
+    }
+
+    /* Devices */
+    .device-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .device-item:last-child { border-bottom: none; }
+    .device-icon {
+      width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      background: rgba(107,78,158,0.15); border: 1px solid rgba(107,78,158,0.2);
+    }
+    .device-info { flex: 1; min-width: 0; }
+    .device-name { font-size: 13.5px; color: rgba(240,230,210,0.85); font-weight: 600; }
+    .device-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .device-active {
+      font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 999px;
+      background: rgba(76,185,130,0.12); color: rgba(76,185,130,0.85);
+    }
+
+    /* Mobile push note */
+    .push-note {
+      margin-top: 14px; padding: 12px 14px; border-radius: 12px;
+      background: rgba(232,184,109,0.07); border: 1px solid rgba(232,184,109,0.18);
+      font-size: 12.5px; color: rgba(232,184,109,0.8); line-height: 1.55;
+    }
+
+    /* Loading / empty */
+    .spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid rgba(200,160,240,0.15); border-top-color: rgba(200,160,240,0.65);
+      animation: spin 0.8s linear infinite; margin: 18px auto;
+    }
+    .empty-state { text-align: center; padding: 18px 0; font-size: 13px; color: var(--muted); }
+
+    /* Auth gate */
+    .auth-gate { text-align: center; padding: 40px 20px; }
+    .auth-gate p { font-size: 14px; color: var(--muted); margin-bottom: 18px; }
+    .btn-primary {
+      display: inline-block; padding: 12px 26px; border-radius: 999px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.85), rgba(232,184,109,0.6));
+      color: #0a0e18; font-weight: 700; font-size: 14px;
+      text-decoration: none; transition: opacity 0.2s;
+    }
+    .btn-primary:hover { opacity: 0.88; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <h1>{% if language == "hi" %}🔔 अनुस्मारक{% else %}🔔 Reminders{% endif %}</h1>
+    <p>{% if language == "hi" %}अपनी साधना अनुस्मारक सेटिंग प्रबंधित करें{% else %}Manage your daily practice reminder settings{% endif %}</p>
+  </div>
+  <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="nav-back">← {% if language == "hi" %}वापस जाएं{% else %}Back{% endif %}</a>
+</header>
+
+<main id="main-content">
+  <div class="spinner" id="page-spinner"></div>
+</main>
+
+<script>
+const LANG = "{{ language|default:'en' }}";
+
+const API_TOKEN = (() => {
+  const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+})();
+
+let prefs = {};
+
+async function init() {
+  const main = document.getElementById("main-content");
+  if (!API_TOKEN) {
+    main.innerHTML = `
+      <div class="auth-gate">
+        <p>${LANG === "hi" ? "अनुस्मारक सेटिंग देखने के लिए साइन इन करें।" : "Sign in to manage your reminder settings."}</p>
+        <a href="/api/chat-ui/?language=${LANG}#guest-auth-target" class="btn-primary">🙏 ${LANG === "hi" ? "साइन इन करें" : "Sign In"}</a>
+      </div>`;
+    return;
+  }
+
+  try {
+    const res = await fetch("/api/v1/notifications/preferences/", {
+      headers: { Authorization: `Token ${API_TOKEN}` },
+    });
+    if (!res.ok) throw new Error();
+    prefs = await res.json();
+  } catch {
+    prefs = {};
+  }
+
+  renderPage(main);
+  loadDevices();
+}
+
+function renderPage(main) {
+  const reminderEnabled = !!prefs.reminder_enabled;
+  const reminderTime = prefs.reminder_time ? prefs.reminder_time.slice(0, 5) : "07:00";
+  const timezone = prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Kolkata";
+  const channel = prefs.preferred_channel || "push";
+  const lang = prefs.reminder_language || LANG;
+
+  main.innerHTML = `
+    <div class="hero">
+      <div class="hero-icon">🔔</div>
+      <h2>${LANG === "hi" ? "अपनी दैनिक साधना अनुस्मारक सेट करें" : "Set Your Daily Practice Reminder"}</h2>
+      <p>${LANG === "hi" ? "प्रतिदिन सही समय पर प्रेरणा पाएं — ध्यान, जप, या दैनिक संकेत के लिए।" : "Receive timely nudges for meditation, japa, or the daily Gita signal."}</p>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">${LANG === "hi" ? "अनुस्मारक प्राथमिकताएं" : "Reminder Preferences"}</div>
+
+      <!-- Enable toggle -->
+      <div class="pref-row">
+        <div class="pref-label">
+          ${LANG === "hi" ? "दैनिक अनुस्मारक सक्षम करें" : "Enable Daily Reminder"}
+          <small>${LANG === "hi" ? "मोबाइल ऐप पर सूचनाएं प्राप्त करें" : "Receive push notifications on the mobile app"}</small>
+        </div>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="pref-enabled" ${reminderEnabled ? "checked" : ""}>
+            <div class="toggle-track"></div>
+            <div class="toggle-thumb"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Reminder time -->
+      <div class="pref-row">
+        <div class="pref-label">
+          ${LANG === "hi" ? "अनुस्मारक समय" : "Reminder Time"}
+          <small>${LANG === "hi" ? "24-घंटे प्रारूप" : "24-hour format"}</small>
+        </div>
+        <input type="time" id="pref-time" class="pref-input" value="${reminderTime}">
+      </div>
+
+      <!-- Timezone -->
+      <div class="pref-row">
+        <div class="pref-label">
+          ${LANG === "hi" ? "समय क्षेत्र" : "Timezone"}
+          <small>${LANG === "hi" ? "आपका स्थानीय समय क्षेत्र" : "Your local timezone"}</small>
+        </div>
+        <input type="text" id="pref-tz" class="pref-input" value="${escHtml(timezone)}"
+          placeholder="Asia/Kolkata" style="min-width:180px">
+      </div>
+
+      <!-- Channel -->
+      <div class="pref-row">
+        <div class="pref-label">
+          ${LANG === "hi" ? "वितरण माध्यम" : "Delivery Channel"}
+          <small>${LANG === "hi" ? "पुश, ईमेल, या कोई नहीं" : "Push, email, or none"}</small>
+        </div>
+        <select id="pref-channel" class="pref-input">
+          <option value="push" ${channel==="push"?"selected":""}>📱 ${LANG === "hi" ? "पुश (मोबाइल)" : "Push (Mobile)"}</option>
+          <option value="email" ${channel==="email"?"selected":""}>📧 ${LANG === "hi" ? "ईमेल" : "Email"}</option>
+          <option value="none" ${channel==="none"?"selected":""}>🔕 ${LANG === "hi" ? "कोई नहीं" : "None"}</option>
+        </select>
+      </div>
+
+      <!-- Language -->
+      <div class="pref-row">
+        <div class="pref-label">
+          ${LANG === "hi" ? "अनुस्मारक भाषा" : "Reminder Language"}
+          <small>${LANG === "hi" ? "संदेश किस भाषा में आएं" : "Language for reminder messages"}</small>
+        </div>
+        <select id="pref-lang" class="pref-input" style="min-width:120px">
+          <option value="en" ${lang==="en"?"selected":""}>English</option>
+          <option value="hi" ${lang==="hi"?"selected":""}>हिंदी</option>
+        </select>
+      </div>
+
+      <button class="btn-save" id="save-btn" onclick="savePrefs()">
+        ${LANG === "hi" ? "सेटिंग सहेजें" : "Save Settings"}
+      </button>
+      <div class="status-banner" id="pref-status"></div>
+
+      <div class="push-note">
+        💡 ${LANG === "hi"
+          ? "पुश सूचनाएं केवल मोबाइल ऐप (iOS/Android) पर काम करती हैं। मोबाइल ऐप से साइन इन करने पर आपका डिवाइस स्वतः पंजीकृत होगा।"
+          : "Push notifications work on the mobile app (iOS & Android). Sign in via the mobile app to register your device for reminders."}
+      </div>
+    </div>
+
+    <!-- Registered devices -->
+    <div class="panel" id="devices-panel">
+      <div class="panel-title">${LANG === "hi" ? "पंजीकृत डिवाइस" : "Registered Devices"}</div>
+      <div id="devices-list"><div class="spinner"></div></div>
+    </div>
+  `;
+}
+
+async function savePrefs() {
+  const btn = document.getElementById("save-btn");
+  btn.disabled = true;
+  btn.textContent = LANG === "hi" ? "सहेज रहे हैं…" : "Saving…";
+
+  const payload = {
+    reminder_enabled: document.getElementById("pref-enabled").checked,
+    reminder_time: document.getElementById("pref-time").value || "07:00",
+    timezone: document.getElementById("pref-tz").value.trim() || "Asia/Kolkata",
+    preferred_channel: document.getElementById("pref-channel").value,
+    reminder_language: document.getElementById("pref-lang").value,
+  };
+
+  try {
+    const res = await fetch("/api/v1/notifications/preferences/", {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Token ${API_TOKEN}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(LANG === "hi" ? "सहेज नहीं सका।" : "Could not save.");
+    prefs = await res.json();
+    showStatus(LANG === "hi" ? "✅ सेटिंग सहेजी गई।" : "✅ Settings saved.", "success");
+  } catch (e) {
+    showStatus(e.message, "error");
+  } finally {
+    btn.disabled = false;
+    btn.textContent = LANG === "hi" ? "सेटिंग सहेजें" : "Save Settings";
+  }
+}
+
+function showStatus(msg, tone) {
+  const el = document.getElementById("pref-status");
+  el.textContent = msg;
+  el.className = "status-banner " + tone;
+  el.style.display = "block";
+  if (tone === "success") setTimeout(() => { el.style.display = "none"; }, 5000);
+}
+
+async function loadDevices() {
+  try {
+    const res = await fetch("/api/v1/devices/", {
+      headers: { Authorization: `Token ${API_TOKEN}` },
+    });
+    if (!res.ok) throw new Error();
+    const devices = await res.json();
+    renderDevices(devices);
+  } catch {
+    const el = document.getElementById("devices-list");
+    if (el) el.innerHTML = `<p class="empty-state">${LANG === "hi" ? "डिवाइस लोड नहीं हो सके।" : "Could not load devices."}</p>`;
+  }
+}
+
+function renderDevices(devices) {
+  const el = document.getElementById("devices-list");
+  if (!el) return;
+  if (!Array.isArray(devices) || !devices.length) {
+    el.innerHTML = `<div class="empty-state">${LANG === "hi"
+      ? "कोई डिवाइस पंजीकृत नहीं। मोबाइल ऐप में साइन इन करें।"
+      : "No devices registered yet. Sign in via the mobile app to enable push reminders."
+    }</div>`;
+    return;
+  }
+  el.innerHTML = devices.map(d => {
+    const icon = d.platform === "ios" ? "🍎" : d.platform === "android" ? "🤖" : "🌐";
+    const label = { ios: "iOS", android: "Android", web: "Web" }[d.platform] || d.platform;
+    const lastSeen = d.last_seen_at ? new Date(d.last_seen_at).toLocaleDateString() : "";
+    return `
+      <div class="device-item">
+        <div class="device-icon">${icon}</div>
+        <div class="device-info">
+          <div class="device-name">${label} Device</div>
+          <div class="device-meta">${LANG === "hi" ? "अंतिम सक्रिय:" : "Last seen:"} ${lastSeen}</div>
+        </div>
+        ${d.active ? `<span class="device-active">${LANG === "hi" ? "सक्रिय" : "Active"}</span>` : ""}
+      </div>`;
+  }).join("");
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+init();
+</script>
+</body>
+</html>

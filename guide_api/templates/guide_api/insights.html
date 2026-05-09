@@ -956,19 +956,69 @@
       const gitaPath = data.gita_path;
       const topChapters = data.gita?.top_chapters ?? [];
       const verseNotes = data.gita?.verse_notes_list ?? [];
-      const chapterNames = [
-        "Arjuna Vishada","Sankhya","Karma","Jnana-Vibhaga","Karma-Vairagya",
-        "Dhyana","Jnana-Vijnana","Akshara-Brahma","Raja-Vidya","Vibhuti",
-        "Vishwarupa","Bhakti","Kshetra","Gunatraya","Purushottama","Daivāsura",
-        "Shraddhatraya","Moksha-Sannyasa"
-      ];
+      const versesList = (data.gita?.verses_opened_list ?? []).slice().sort((a, b) => {
+        const [ac, av] = String(a).split(".").map(Number);
+        const [bc, bv] = String(b).split(".").map(Number);
+        return ac !== bc ? ac - bc : av - bv;
+      });
+      const CHAPTER_NAMES = ["Arjuna Vishada Yoga","Sankhya Yoga","Karma Yoga","Jnana Karma Sanyasa Yoga","Karma Vairagya Yoga","Dhyana Yoga","Jnana Vijnana Yoga","Aksara Brahma Yoga","Raja Vidya Yoga","Vibhuti Yoga","Vishvarupa Darshana Yoga","Bhakti Yoga","Kshetra Kshetrajna Vibhaga Yoga","Gunatraya Vibhaga Yoga","Purushottama Yoga","Daivasura Sampad Vibhaga Yoga","Shraddhatraya Vibhaga Yoga","Moksha Sanyasa Yoga"];
       document.getElementById("read-panel").innerHTML = `
-        <div class="stats-grid metric-grid">
-          ${metricCard("📖", safeCount(data.gita?.verses_opened), LANG === "hi" ? "श्लोक खुले" : "Verses opened", data.reading?.last_verse ? `BG ${data.reading.last_verse}` : (LANG === "hi" ? "अभी नहीं" : "No last verse"))}
-          ${metricCard("🪷", safeCount(data.gita?.chapters_explored), LANG === "hi" ? "अध्याय खोजे" : "Chapters explored", `${safeCount(data.gita?.verse_notes)} ${LANG === "hi" ? "नोट्स" : "notes"}`)}
-          ${metricCard("⏱️", safeCount(data.gita?.read_minutes_total ?? data.practice?.read_minutes_total), LANG === "hi" ? "कुल रीड मिनट" : "Total read minutes", `${safeCount(data.practice?.read_minutes_7d)} ${LANG === "hi" ? "मिनट / 7 दिन" : "min / 7d"}`)}
-          ${metricCard("🌿", `${Math.round(Number(gitaPath?.percent || 0))}%`, LANG === "hi" ? "गीता पथ" : "Gita Path", gitaPath?.next ? `BG ${gitaPath.next}` : (LANG === "hi" ? "अभी शुरू नहीं" : "Not started yet"))}
+        <div class="stats-grid metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+          ${metricCard("📖", safeCount(data.gita?.verses_opened), LANG === "hi" ? "श्लोक खोजे" : "Verses Explored", LANG === "hi" ? "आपका श्लोक मानचित्र" : "Your verse map")}
+          ${metricCard("🪷", `${safeCount(data.gita?.chapters_explored)}/18`, LANG === "hi" ? "अध्याय खोजे" : "Chapters Explored", LANG === "hi" ? "खोजने के लिए टैप करें" : "Tap to explore")}
         </div>
+
+        <!-- Verse Map accordion -->
+        ${versesList.length ? `
+        <div class="streak-section" style="margin-bottom:16px">
+          <div class="section-header-row" style="cursor:pointer" onclick="(function(el){el.classList.toggle('open');var panel=el.parentElement.querySelector('.verse-map-panel');panel.style.display=panel.style.display==='none'?'block':'none';})(this)">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "आपका श्लोक मानचित्र" : "Your Verse Map"} <span style="font-size:12px;opacity:0.5;margin-left:4px">(${versesList.length})</span></h2>
+            <span class="view-all-link">${LANG === "hi" ? "देखें / छुपाएँ" : "Show / Hide"} ↕</span>
+          </div>
+          <div class="verse-map-panel" style="display:none">
+            <p style="font-size:12px;color:var(--muted);margin:8px 0 12px">${LANG === "hi" ? "ये श्लोक आपने कहीं भी खोले — मार्गदर्शन, खोज, या रीडर में। यह आपकी प्राकृतिक जिज्ञासा को दर्शाते हैं।" : "These are verses you've opened anywhere — from guidance threads, search, or the reader. They reflect your natural curiosity."}</p>
+            ${gitaPath ? `<div style="display:flex;gap:20px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:12px">
+              <div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:800;color:#8ECAE6">${safeCount(data.gita?.verses_opened)}</div><div style="font-size:11px;color:var(--muted);margin-top:2px">${LANG === "hi" ? "स्वतंत्र रूप से" : "Explored freely"}</div></div>
+              <div style="width:1px;background:rgba(255,255,255,0.08)"></div>
+              <div style="text-align:center;flex:1"><div style="font-size:22px;font-weight:800;color:var(--gold)">${safeCount(gitaPath?.verses_completed)}<span style="font-size:14px;opacity:0.5">/${safeCount(gitaPath?.total_verses||700)}</span></div><div style="font-size:11px;color:var(--muted);margin-top:2px">${LANG === "hi" ? "गीता पथ (क्रम में)" : "In sequence (Gita Path)"}</div></div>
+            </div>` : ""}
+            <div class="pill-list" style="max-height:200px;overflow-y:auto">${versesList.map(v => `<a class="pill-link" href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(v)}" style="font-family:monospace;font-size:12px">BG ${escHtml(String(v))}</a>`).join("")}</div>
+            <a class="signal-cta" href="/read-journey/?language=${encodeURIComponent(LANG)}" style="display:block;text-align:center;margin-top:14px">${LANG === "hi" ? "क्रमबद्ध अध्ययन शुरू करें · गीता पथ →" : "Begin Sequential Study · Gita Path →"}</a>
+          </div>
+        </div>` : ""}
+
+        <!-- Gītā Reading Footprint list -->
+        <div class="streak-section" style="margin-bottom:16px">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "गीता रीडिंग फुटप्रिंट" : "Gītā Reading Footprint"}</h2>
+          </div>
+          <div class="detail-list">
+            ${gitaPath ? `<div class="detail-item" style="cursor:pointer" onclick="window.location='/read-journey/?language=${encodeURIComponent(LANG)}'">
+              <strong>${LANG === "hi" ? "क्रमबद्ध अध्ययन प्रगति" : "Sequential Study Progress"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(gitaPath?.verses_completed)} / ${safeCount(gitaPath?.total_verses||700)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>` : ""}
+            <div class="detail-item" style="cursor:pointer" onclick="(function(){var el=document.getElementById('verse-notes-inline');el.style.display=el.style.display==='none'?'block':'none'})()">
+              <strong>${LANG === "hi" ? "श्लोक अध्ययन नोट्स" : "Verse Study Notes"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(data.gita?.verse_notes)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+            <div id="verse-notes-inline" style="display:none;padding:8px 0 4px">
+              ${verseNotes.length ? verseNotes.slice(0,5).map(item => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><a href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(item.reference)}" style="color:var(--gold);font-size:12px;font-weight:600">BG ${escHtml(item.reference)}</a><span style="font-size:11px;color:var(--muted);max-width:60%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(item.body_excerpt||"")}</span></div>`).join("") : `<p class="empty-copy" style="margin:4px 0">${LANG === "hi" ? "अभी तक कोई नोट नहीं।" : "No notes yet."}</p>`}
+              <a class="signal-cta" href="/saved-reflections/?language=${encodeURIComponent(LANG)}" style="display:block;text-align:center;margin-top:10px;font-size:12px">${LANG === "hi" ? "सहेजी चिंतन में देखें →" : "View All in Saved Reflections →"}</a>
+            </div>
+            <div class="detail-item">
+              <strong>${LANG === "hi" ? "कुल रीडिंग समय" : "Reading Time Logged (Total)"}</strong>
+              <span>${safeCount(data.gita?.read_minutes_total ?? data.practice?.read_minutes_total)}m</span>
+            </div>
+            <div class="detail-item" style="cursor:pointer" onclick="(function(){var el=document.getElementById('top-chapters-inline');el.style.display=el.style.display==='none'?'block':'none'})()">
+              <strong>${LANG === "hi" ? "शीर्ष अध्याय" : "Top Chapters"}</strong>
+              <span style="display:flex;align-items:center;gap:6px"><span style="opacity:0.7;font-size:12px">${(topChapters.slice(0,3).map(c=>`Ch.${c.chapter}`).join(", "))||"—"}</span> <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+            <div id="top-chapters-inline" style="display:none;padding:8px 0 4px">
+              ${topChapters.map(c => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer" onclick="window.location='/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_chapter=${c.chapter}'"><span style="font-size:13px">Chapter ${c.chapter} · ${escHtml(CHAPTER_NAMES[c.chapter-1]||"")}</span><span style="font-size:12px;color:var(--muted)">${c.count} views</span></div>`).join("")}
+            </div>
+          </div>
+        </div>
+
         <div class="panel-grid two-up">
           ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
           <div class="signal-card">
@@ -982,60 +1032,56 @@
             <a class="signal-cta" href="${gitaPath?.next ? `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(gitaPath.next)}` : `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1`}">${gitaPath?.next ? (LANG === "hi" ? "अगला श्लोक" : "Continue Path") : (LANG === "hi" ? "यात्रा शुरू करें" : "Start Path")} →</a>
           </div>
         </div>
-        <div class="panel-grid two-up">
-          <div class="streak-section" style="margin-bottom:0">
-            <div class="section-header-row">
-              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "शीर्ष अध्याय" : "Top Chapters"}</h2>
-              <a href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1" class="view-all-link">${LANG === "hi" ? "रीड यात्रा" : "Read journey →"}</a>
-            </div>
-            ${topChapters.length ? `<div class="pill-list">${topChapters.map(item => `<a class="pill-link" href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_chapter=${encodeURIComponent(item.chapter)}">BG ${item.chapter} · ${item.count}</a>`).join("")}</div>` : `<p class="empty-copy">${LANG === "hi" ? "अध्याय खोज अभी शुरू नहीं हुई।" : "Chapter discovery will appear after you read a few verses."}</p>`}
-            <div class="chapter-grid" id="chapter-grid">${chapterNames.map((name, index) => {
-              const chapter = index + 1;
-              const read = (data.gita?.chapters_explored_list || []).map(Number).includes(chapter);
-              return `<div class="chapter-tile ${read ? 'read' : ''}"><div class="chapter-tile-num">${chapter}</div><div class="chapter-tile-name">${name}</div>${read ? '<div class="chapter-tile-bar" style="width:100%"></div>' : ''}</div>`;
-            }).join("")}</div>
+        <div class="streak-section" style="margin-bottom:0">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "18 अध्याय — खोजे गए" : "18 Chapters — Explored"}</h2>
+            <a href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1" class="view-all-link">${LANG === "hi" ? "रीड यात्रा →" : "Read journey →"}</a>
           </div>
-          <div class="streak-section" style="margin-bottom:0">
-            <div class="section-header-row">
-              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "हाल के श्लोक नोट्स" : "Recent Verse Notes"}</h2>
-            </div>
-            ${renderList(verseNotes.slice(0, 4), LANG === "hi" ? "अभी तक कोई निजी श्लोक नोट नहीं।" : "No personal verse notes yet.", item => `<div class="detail-item"><a href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(item.reference)}">BG ${escHtml(item.reference)}</a><span>${escHtml(item.body_excerpt)}</span></div>`)}
-          </div>
+          <div class="chapter-grid" id="chapter-grid">${CHAPTER_NAMES.map((name, index) => {
+            const chapter = index + 1;
+            const read = (data.gita?.chapters_explored_list || []).map(Number).includes(chapter);
+            return `<div class="chapter-tile ${read ? 'read' : ''}"><div class="chapter-tile-num">${chapter}</div><div class="chapter-tile-name">${name}</div>${read ? '<div class="chapter-tile-bar" style="width:100%"></div>' : ''}</div>`;
+          }).join("")}</div>
         </div>`;
     }
 
     function renderAskPanel(data) {
       const signal = askSignal(data);
-      const recentQuestions = data.recent_questions ?? [];
+      const recentQuestions = (data.recent_questions ?? []).slice(0, 3);
       const verseCompanions = data.verse_companions ?? [];
       document.getElementById("ask-panel").innerHTML = `
-        <div class="stats-grid metric-grid">
-          ${metricCard("💬", safeCount(data.conversations?.total), LANG === "hi" ? "कुल बातचीत" : "Total conversations", data.conversations?.last_activity_at ? formatDateTime(data.conversations.last_activity_at) : (LANG === "hi" ? "अभी तक नहीं" : "No asks yet"))}
-          ${metricCard("🪷", safeCount(recentQuestions.length), LANG === "hi" ? "हाल के प्रश्न" : "Recent prompts", LANG === "hi" ? "पिछले 5 स्निपेट" : "Last 5 snippets")}
-          ${metricCard("📓", safeCount(data.saved_reflections?.total), LANG === "hi" ? "सहेजी गई चिंतन" : "Saved reflections", `${safeCount(data.gita?.saved_reflections_with_verses)} ${LANG === "hi" ? "श्लोक-आधारित" : "with verses"}`)}
-          ${metricCard("🧭", safeCount(verseCompanions.length), LANG === "hi" ? "मार्गदर्शक श्लोक" : "Guiding verses", LANG === "hi" ? "आपके संवाद में लौटते हुए" : "Returning in your conversations")}
+        <div class="stats-grid metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+          ${metricCard("💬", safeCount(data.gita?.asks_with_guidance_30d), LANG === "hi" ? "पूछे गए (30 दिन)" : "Asks (30d)", LANG === "hi" ? "मार्गदर्शन सत्र" : "Guidance sessions")}
+          ${metricCard("🪷", safeCount(data.saved_reflections?.total), LANG === "hi" ? "सहेजी गई चिंतन" : "Saved", LANG === "hi" ? "आपकी निजी मार्गदर्शिका" : "Your private manual")}
         </div>
-        <div class="panel-grid two-up">
+        <div class="streak-section" style="margin-bottom:16px">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "मार्गदर्शन और चिंतन" : "Guidance &amp; Reflection"}</h2>
+          </div>
+          <div class="detail-list">
+            <div class="detail-item" style="cursor:pointer" onclick="window.location='/api/chat-ui/?language=${encodeURIComponent(LANG)}#history'">
+              <strong>${LANG === "hi" ? "कुल संवाद" : "Total Threads"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(data.conversations?.total)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+            <div class="detail-item" style="cursor:pointer" onclick="window.location='/saved-reflections/?language=${encodeURIComponent(LANG)}'">
+              <strong>${LANG === "hi" ? "श्लोक-आधारित सहेजी चिंतन" : "Saves linking to Verses"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(data.gita?.saved_reflections_with_verses)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+          </div>
+        </div>
+        ${recentQuestions.length ? `
+        <div class="streak-section" style="margin-bottom:16px">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "हाल के प्रश्न" : "Recent Inquiries"}</h2>
+          </div>
+          <div class="detail-list">
+            ${recentQuestions.map(q => `<div class="detail-item"><span style="font-style:italic;opacity:0.85">"${escHtml(q.snippet)}"</span></div>`).join("")}
+          </div>
+        </div>` : ""}
+        <div class="panel-grid two-up" style="margin-top:4px">
           ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
           <div class="signal-card">
-            <h3>${LANG === "hi" ? "हाल के प्रश्न" : "Recent Questions"}</h3>
-            ${renderList(recentQuestions, LANG === "hi" ? "पहला ईमानदार प्रश्न अभी बाकी है।" : "Your first sincere question is still waiting.", item => `<div class="detail-item"><strong>${escHtml(item.snippet)}</strong><span>${formatDateTime(item.created_at)}</span></div>`)}
-          </div>
-        </div>
-        <div class="panel-grid two-up">
-          <div class="streak-section" style="margin-bottom:0">
-            <div class="section-header-row">
-              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "सहेजी गई चिंतन" : "Saved Reflections"}</h2>
-              <a href="/saved-reflections/?language=${encodeURIComponent(LANG)}" class="view-all-link">${LANG === "hi" ? "सभी देखें" : "Open journal →"}</a>
-            </div>
-            <p class="empty-copy">${safeCount(data.saved_reflections?.total)
-              ? (LANG === "hi" ? `आपके पास ${data.saved_reflections.total} सहेजी गई चिंतन हैं। वापस पढ़ना भी साधना का हिस्सा है।` : `You have ${data.saved_reflections.total} saved reflections. Re-reading them is part of the practice too.`)
-              : (LANG === "hi" ? "उत्तर सहेजना शुरू करें ताकि आपकी निजी गीता पुस्तक बन सके।" : "Start saving answers so your private Gita journal can begin to take shape.")}</p>
-          </div>
-          <div class="streak-section" style="margin-bottom:0">
-            <div class="section-header-row">
-              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "संवाद में लौटते श्लोक" : "Verses Returning in Dialogue"}</h2>
-            </div>
+            <h3>${LANG === "hi" ? "संवाद में लौटते श्लोक" : "Verses Returning in Dialogue"}</h3>
             ${verseCompanions.length ? `<div class="pill-list">${verseCompanions.map(item => `<a class="pill-link" href="/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(item.reference)}">BG ${escHtml(item.reference)} · ${item.count}</a>`).join("")}</div>` : `<p class="empty-copy">${LANG === "hi" ? "अभी कोई प्रमुख श्लोक पैटर्न नहीं दिख रहा।" : "No recurring verse pattern yet."}</p>`}
           </div>
         </div>`;
@@ -1046,36 +1092,43 @@
       const activeJapa = data.japa?.active_commitments_list ?? [];
       const activeSadhana = data.sadhana?.active_list ?? [];
       document.getElementById("practice-panel").innerHTML = `
-        <div class="stats-grid metric-grid">
-          ${metricCard("🧘", safeCount(data.practice?.meditation_minutes_7d), LANG === "hi" ? "ध्यान मिनट / 7 दिन" : "Meditation min / 7d", `${safeCount(data.practice?.meditation_session_logs_30d)} ${LANG === "hi" ? "सत्र / 30 दिन" : "session logs / 30d"}`)}
-          ${metricCard("📿", safeCount(data.practice?.japa_rounds_7d), LANG === "hi" ? "जप राउंड / 7 दिन" : "Japa rounds / 7d", `${safeCount(data.japa?.completed_sessions_30d)} ${LANG === "hi" ? "पूर्ण सत्र / 30 दिन" : "completed sessions / 30d"}`)}
-          ${metricCard("📖", safeCount(data.practice?.read_minutes_7d), LANG === "hi" ? "रीड मिनट / 7 दिन" : "Read min / 7d", `${safeCount(data.practice?.read_minutes_total)} ${LANG === "hi" ? "कुल" : "total"}`)}
-          ${metricCard("🕉️", safeCount(data.sadhana?.completed_days_last_30d), LANG === "hi" ? "साधना दिन / 30 दिन" : "Sadhana days / 30d", `${safeCount(data.japa?.distinct_practice_days_30d)} ${LANG === "hi" ? "जप दिन / 30 दिन" : "japa days / 30d"}`)}
+        <div class="stats-grid metric-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+          ${metricCard("🧘", safeCount(data.practice?.meditation_minutes_7d), LANG === "hi" ? "ध्यान मिनट (7 दिन)" : "Meditation Min (7d)", LANG === "hi" ? "ध्यान मिनट" : "Meditation minutes")}
+          ${metricCard("📿", safeCount(data.practice?.japa_rounds_7d), LANG === "hi" ? "जप राउंड (7 दिन)" : "Japa Rounds (7d)", LANG === "hi" ? "जप राउंड" : "Japa rounds")}
         </div>
+        <div class="streak-section" style="margin-bottom:16px">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "साधना का पदचिह्न (30 दिन)" : "Sādhana Footprint (30d)"}</h2>
+          </div>
+          <div class="detail-list">
+            <div class="detail-item" style="cursor:pointer" onclick="window.location='/japa/?language=${encodeURIComponent(LANG)}'">
+              <strong>${LANG === "hi" ? "सक्रिय अभ्यास दिन" : "Active Practice Days"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(data.japa?.distinct_practice_days_30d)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+            <div class="detail-item" style="cursor:pointer" onclick="window.location='/japa/?language=${encodeURIComponent(LANG)}'">
+              <strong>${LANG === "hi" ? "सक्रिय जप ट्रैक" : "Active Japa Tracks"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(data.japa?.active_commitments)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+            <div class="detail-item" style="cursor:pointer" onclick="window.location='/japa/?language=${encodeURIComponent(LANG)}'">
+              <strong>${LANG === "hi" ? "लॉग की गई माला" : "Malas Logged"}</strong>
+              <span style="display:flex;align-items:center;gap:6px">${safeCount(data.japa?.malas_logged_via_tracks_30d)} <span style="opacity:0.4;font-size:11px">›</span></span>
+            </div>
+          </div>
+        </div>
+        <a class="signal-cta" href="/meditation/?language=${encodeURIComponent(LANG)}" style="display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:20px">✨ ${LANG === "hi" ? "एक गाइडेड सत्र शुरू करें" : "Start a Guided Session"} →</a>
         <div class="panel-grid two-up">
           ${signalCard(signal.title, signal.body, signal.href, signal.cta)}
           <div class="signal-card">
             <h3>${LANG === "hi" ? "जप सारांश" : "Japa Snapshot"}</h3>
-            ${renderList(activeJapa, LANG === "hi" ? "अभी कोई सक्रिय जप प्रतिबद्धता नहीं।" : "No active japa commitment yet.", item => `<div class="detail-item"><a href="/japa/?language=${encodeURIComponent(LANG)}">${escHtml(item.title)}</a><span>${escHtml(item.mantra_label)} · ${item.completed_malas_30d} ${LANG === "hi" ? "माला / 30 दिन" : "malas / 30d"}</span></div>`)}
+            ${renderList(activeJapa, LANG === "hi" ? "अभी कोई सक्रिय जप प्रतिबद्धता नहीं।" : "No active japa commitment yet.", item => `<div class="detail-item"><a href="/japa/?language=${encodeURIComponent(LANG)}">${escHtml(item.title)}</a><span>${escHtml(item.mantra_label || "")} · ${item.completed_malas_30d} ${LANG === "hi" ? "माला / 30 दिन" : "malas / 30d"} · ${item.distinct_days_30d} ${LANG === "hi" ? "दिन" : "days"}</span></div>`)}
           </div>
         </div>
-        <div class="panel-grid two-up">
-          <div class="streak-section" style="margin-bottom:0">
-            <div class="section-header-row">
-              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "सक्रिय साधना" : "Active Sadhana"}</h2>
-            </div>
-            ${renderList(activeSadhana, LANG === "hi" ? "अभी कोई सक्रिय साधना कार्यक्रम नहीं।" : "No active sadhana program yet.", item => `<div class="detail-item"><a href="/sadhana/?language=${encodeURIComponent(LANG)}">${escHtml(item.title)}</a><span>${LANG === "hi" ? `30 दिनों में ${safeCount(data.sadhana?.completed_days_last_30d)} दिन पूरे` : `${safeCount(data.sadhana?.completed_days_last_30d)} completed days in 30d`}</span></div>`)}
+        ${activeSadhana.length ? `<div class="streak-section" style="margin-bottom:0">
+          <div class="section-header-row">
+            <h2 class="section-title" style="margin:0">${LANG === "hi" ? "सक्रिय साधना" : "Active Sadhana"}</h2>
           </div>
-          <div class="streak-section" style="margin-bottom:0">
-            <div class="section-header-row">
-              <h2 class="section-title" style="margin:0">${LANG === "hi" ? "अगला अभ्यास" : "Next Practice Move"}</h2>
-            </div>
-            <p class="empty-copy">${safeCount(data.practice?.meditation_minutes_7d) || safeCount(data.practice?.japa_rounds_7d)
-              ? (LANG === "hi" ? "आज एक छोटा लेकिन सचेत सत्र चुनें। मात्रा से पहले नियमितता आए।" : "Choose one short but conscious sit today. Consistency matters before intensity.")
-              : (LANG === "hi" ? "पहला 10-मिनट सत्र ही आपकी साधना की धुरी बना सकता है।" : "The first ten-minute sit can become the axle of your practice.")}</p>
-            <a class="signal-cta" href="/meditation/?language=${encodeURIComponent(LANG)}">${LANG === "hi" ? "अभ्यास खोलें" : "Open Practice"} →</a>
-          </div>
-        </div>`;
+          ${renderList(activeSadhana, "", item => `<div class="detail-item"><a href="/sadhana/?language=${encodeURIComponent(LANG)}">${escHtml(item.title)}</a><span>${LANG === "hi" ? `30 दिनों में ${safeCount(data.sadhana?.completed_days_last_30d)} दिन पूरे` : `${safeCount(data.sadhana?.completed_days_last_30d)} completed days in 30d`}</span></div>`)}
+        </div>` : ""}`;
     }
 
     function renderInsights(data) {
