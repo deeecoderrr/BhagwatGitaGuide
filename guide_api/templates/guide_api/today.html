@@ -289,6 +289,139 @@
     @media (max-width: 500px) {
       .verse-hero { padding: 24px 18px; }
     }
+
+    /* ── Signal header row ───────────────────────────────────── */
+    .signal-header-row {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .signal-left-row { display: flex; align-items: center; gap: 8px; }
+    .signal-live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--gold); display: inline-block;
+      animation: livePulse 1.8s ease-in-out infinite;
+    }
+    @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
+    .signal-label-text {
+      font-size: 10px; font-weight: 700; letter-spacing: 2.6px;
+      color: var(--gold); text-transform: uppercase;
+    }
+    .signal-actions-row { display: flex; align-items: center; gap: 6px; }
+    .signal-action-btn {
+      padding: 7px 9px; border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.25);
+      background: rgba(18,22,38,0.4); cursor: pointer;
+      font-size: 15px; line-height: 1; transition: all 0.2s;
+    }
+    .signal-action-btn:hover { border-color:rgba(232,184,109,0.5); background:rgba(232,184,109,0.1); }
+
+    /* ── Synthesis / Wisdom Overview ─────────────────────────── */
+    .synthesis-card {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.16);
+      border-left: 3px solid rgba(232,184,109,0.5);
+      border-radius: 16px; padding: 20px 22px; margin-bottom: 20px;
+    }
+    .synthesis-eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 10px;
+    }
+    .synthesis-text { font-size: 14px; line-height: 1.75; color: rgba(240,230,210,0.85); }
+    .synthesis-loading { font-size: 12px; color: var(--muted); font-style: italic; }
+
+    /* ── Reflect prompt ──────────────────────────────────────── */
+    .reflect-prompt-card {
+      border-left: 3px solid rgba(232,184,109,0.45);
+      padding-left: 14px; margin-bottom: 20px;
+    }
+    .reflect-prompt-text { font-size: 13px; color: rgba(240,230,210,0.7); font-style: italic; line-height: 1.65; }
+
+    /* ── Audio bar ───────────────────────────────────────────── */
+    .audio-bar {
+      background: var(--panel); border: 1px solid rgba(232,184,109,0.18);
+      border-radius: 12px; padding: 10px 14px; margin-bottom: 16px;
+    }
+    .audio-bar audio { width: 100%; height: 36px; accent-color: var(--gold); }
+
+    /* ── Greeting bar ────────────────────────────────────────── */
+    .greeting-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .greeting-name { font-size: 22px; font-weight: 800; color: rgba(250,240,220,0.96); line-height: 1.2; }
+    .greeting-sub { font-size: 11px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.8px; }
+
+    /* ── Pillar row ──────────────────────────────────────────── */
+    .pillar-row { display: flex; gap: 8px; margin-bottom: 20px; }
+    .pillar-btn {
+      flex: 1; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 6px; padding: 12px 8px;
+      border-radius: 14px; border: 1px solid rgba(232,184,109,0.2);
+      background: rgba(7,4,10,0.5); cursor: pointer; text-decoration: none;
+      transition: all 0.2s;
+    }
+    .pillar-btn:hover { border-color: rgba(232,184,109,0.42); background: rgba(232,184,109,0.08); }
+    .pillar-btn-icon { font-size: 18px; }
+    .pillar-btn-text {
+      font-size: 9px; font-weight: 900; letter-spacing: 1.1px;
+      text-transform: uppercase; color: rgba(232,184,109,0.9); text-align: center;
+    }
+
+    /* ── Adaptive primary action ─────────────────────────────── */
+    .primary-action-card {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 18px; border-radius: 16px;
+      background: rgba(232,184,109,0.14); border: 1px solid rgba(232,184,109,0.35);
+      text-decoration: none; margin-bottom: 16px; transition: all 0.2s;
+    }
+    .primary-action-card:hover { background: rgba(232,184,109,0.2); border-color: rgba(232,184,109,0.5); }
+    .primary-action-icon {
+      font-size: 22px; width: 44px; height: 44px; border-radius: 22px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(7,4,10,0.5); border: 1px solid rgba(232,184,109,0.3);
+      flex-shrink: 0;
+    }
+    .primary-action-copy { flex: 1; }
+    .primary-action-title { font-size: 17px; font-weight: 800; color: rgba(250,240,220,0.96); }
+    .primary-action-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
+
+    /* ── Japa home section ───────────────────────────────────── */
+    .japa-home-section {
+      background: var(--panel); border: 1px solid rgba(152,111,230,0.22);
+      border-radius: 16px; padding: 22px; margin-bottom: 20px;
+    }
+    .japa-home-title {
+      font-family: "Cormorant Garamond", serif; font-size: 18px; font-weight: 600;
+      color: rgba(245,217,160,0.95); margin: 0 0 4px;
+    }
+    .japa-home-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+    .japa-today-row {
+      align-items: center; justify-content: space-between;
+      background: rgba(152,111,230,0.1); border: 1px solid rgba(152,111,230,0.22);
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+    }
+    .japa-today-label { font-size: 13px; color: rgba(240,230,210,0.8); font-weight: 600; }
+    .japa-today-count { font-size: 20px; font-weight: 800; color: #B89AF0; }
+    .japa-open-btn {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 12px;
+      font-weight: 600; padding: 8px 14px; border-radius: 999px;
+      background: rgba(152,111,230,0.12); border: 1px solid rgba(152,111,230,0.3);
+      color: #B89AF0; text-decoration: none; transition: all 0.2s;
+    }
+    .japa-open-btn:hover { background: rgba(152,111,230,0.22); border-color: rgba(152,111,230,0.5); }
+
+    /* ── Mood note ───────────────────────────────────────────── */
+    .mood-note-input {
+      width: 100%; box-sizing: border-box; background: rgba(18,22,38,0.6);
+      border: 1px solid rgba(232,184,109,0.2); border-radius: 8px;
+      color: var(--text); font-size: 12px; padding: 8px 10px;
+      resize: none; height: 50px; font-family: inherit; margin-top: 6px;
+    }
+    .mood-note-input::placeholder { color: var(--muted); }
+    .mood-note-input:focus { outline: none; border-color: rgba(232,184,109,0.45); }
+
+    /* ── Bottom mantra ───────────────────────────────────────── */
+    .web-mantra {
+      text-align: center; font-style: italic; font-size: 13px;
+      color: var(--gold); letter-spacing: 0.4px; padding: 28px 0 8px; opacity: 0.75;
+    }
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
@@ -302,10 +435,35 @@
 
 
 <main>
+  <!-- Greeting (shown when logged in) -->
+  <div id="greeting-bar" class="greeting-bar" style="display:none">
+    <div>
+      <div class="greeting-name" id="greeting-name"></div>
+      <div class="greeting-sub">{% if language == "hi" %}आपका दैनिक संकेत{% else %}Your daily signal{% endif %}</div>
+    </div>
+  </div>
+
   <div id="verse-hero" class="verse-hero" style="min-height:300px">
     <div style="text-align:center;padding:48px 0;color:var(--muted)">
       <div id="hero-loader" style="font-size:13px">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading today's verse…{% endif %}</div>
     </div>
+  </div>
+
+  <!-- Audio bar (shown when audio toggled) -->
+  <div id="audio-bar" class="audio-bar" style="display:none">
+    <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">🎵 {% if language == "hi" %}संस्कृत पाठ{% else %}Sanskrit Recitation{% endif %}</div>
+    <audio id="audio-player" controls preload="none" style="width:100%;height:36px;accent-color:var(--gold)"></audio>
+  </div>
+
+  <!-- Synthesis / Wisdom Overview (loaded after verse) -->
+  <div id="synthesis-card" class="synthesis-card" style="display:none">
+    <div class="synthesis-eyebrow">✨ {% if language == "hi" %}ज्ञान सारांश{% else %}Wisdom Overview{% endif %}</div>
+    <div class="synthesis-text" id="synthesis-text"><span class="synthesis-loading">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</span></div>
+  </div>
+
+  <!-- Reflect prompt (shown when verse has reflection) -->
+  <div id="reflect-prompt-card" class="reflect-prompt-card" style="display:none">
+    <div class="reflect-prompt-text" id="reflect-prompt-text"></div>
   </div>
 
   <!-- Streak -->
@@ -315,6 +473,22 @@
       <div class="streak-count" id="streak-num">0</div>
       <div class="streak-label" id="streak-label">{% if language == "hi" %}दिन की लय{% else %}day streak{% endif %}</div>
     </div>
+  </div>
+
+  <!-- Pillar row (Guidance / Practice / Insights) -->
+  <div class="pillar-row" id="pillar-row" style="display:none">
+    <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="pillar-btn">
+      <span class="pillar-btn-icon">🙏</span>
+      <span class="pillar-btn-text">{% if language == "hi" %}मार्गदर्शन{% else %}Guidance{% endif %}</span>
+    </a>
+    <a href="/meditation/?language={{ language|default:'en' }}" class="pillar-btn">
+      <span class="pillar-btn-icon">✨</span>
+      <span class="pillar-btn-text">{% if language == "hi" %}अभ्यास{% else %}Practice{% endif %}</span>
+    </a>
+    <a href="/insights/?language={{ language|default:'en' }}" class="pillar-btn">
+      <span class="pillar-btn-icon">◉</span>
+      <span class="pillar-btn-text">{% if language == "hi" %}अंतर्दृष्टि{% else %}Insights{% endif %}</span>
+    </a>
   </div>
 
   <!-- Today's Check-in mini-cards (shown only when logged in) -->
@@ -345,6 +519,18 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Quick nav -->
+  <div id="primary-action-section" style="display:none">
+    <a id="primary-action-card" class="primary-action-card" href="#">
+      <div class="primary-action-icon" id="primary-action-icon">🙏</div>
+      <div class="primary-action-copy">
+        <div class="primary-action-title" id="primary-action-title">{% if language == "hi" %}मार्गदर्शन लें{% else %}Ask for Guidance{% endif %}</div>
+        <div class="primary-action-sub" id="primary-action-sub">{% if language == "hi" %}कृष्ण से पूछें{% else %}Receive wisdom from Krishna{% endif %}</div>
+      </div>
+      <span style="font-size:18px;color:rgba(250,240,220,0.7)">→</span>
+    </a>
   </div>
 
   <!-- Quick nav -->
@@ -408,6 +594,17 @@
     </div>
   </div>
 
+  <!-- Japa home section -->
+  <div id="japa-home-section" class="japa-home-section">
+    <div class="japa-home-title">📿 {% if language == "hi" %}नाम जप{% else %}Naam Japa{% endif %}</div>
+    <div class="japa-home-sub">{% if language == "hi" %}माला गणना और जप अभ्यास{% else %}Mala counting & japa practice{% endif %}</div>
+    <div id="japa-today-row" class="japa-today-row" style="display:none">
+      <span class="japa-today-label">{% if language == "hi" %}आज की माला{% else %}Today's Malas{% endif %}</span>
+      <span class="japa-today-count" id="japa-today-count">0</span>
+    </div>
+    <a href="/japa/?language={{ language|default:'en' }}" class="japa-open-btn">📿 {% if language == "hi" %}जप शुरू करें{% else %}Start Japa{% endif %} →</a>
+  </div>
+
   <!-- Recent history -->
   <div class="panel">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
@@ -422,6 +619,8 @@
       {% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}
     </div>
   </div>
+
+  <div class="web-mantra">{% if language == "hi" %}सर्वधर्मान्परित्यज्य मामेकं शरणं व्रज{% else %}Surrender all, seek only Me — Bhagavad Gītā 18.66{% endif %}</div>
 </main>
 
 <script>
@@ -450,19 +649,44 @@ function renderVerse(d) {
   const verseUrl = ref
     ? `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1&open_reader_ref=${encodeURIComponent(ref)}`
     : "#";
+  const audioUrl = ref ? (() => {
+    const parts = ref.split(".");
+    const ch = String(parts[0]).padStart(3,"0"), vs = String(parts[1]).padStart(3,"0");
+    return `https://gita-audio.jkyog.org/audio/sanskrit/gita_audios/${ch}_${vs}.mp3`;
+  })() : null;
   document.getElementById("verse-hero").innerHTML = `
+    <div class="signal-header-row">
+      <div class="signal-left-row">
+        <span class="signal-live-dot"></span>
+        <span class="signal-label-text">${LANG==="hi"?"आज का संकेत":"TODAY'S SIGNAL"}</span>
+      </div>
+      <div class="signal-actions-row">
+        ${audioUrl ? `<button class="signal-action-btn" onclick="toggleAudio('${audioUrl}')" title="${LANG==="hi"?"संस्कृत सुनें":"Play Sanskrit"}">🎵</button>` : ""}
+        ${ref ? `<button class="signal-action-btn" onclick="shareVerse('${escHtml(ref)}')" title="${LANG==="hi"?"साझा करें":"Share"}">📤</button>` : ""}
+        ${ref ? `<a href="/verse/${escHtml(ref)}" class="signal-action-btn" title="${LANG==="hi"?"पूरा श्लोक":"Full verse"}" style="text-decoration:none">📖</a>` : ""}
+      </div>
+    </div>
     <div class="verse-date">${new Date().toLocaleDateString(LANG==="hi"?"hi-IN":"en-IN",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div>
     ${ref ? `<a href="${verseUrl}" class="verse-ref">BG ${ref}</a>` : ""}
     ${d.quote ? `<div class="verse-sanskrit">"${escHtml(d.quote)}"</div>` : ""}
     ${d.meaning ? `<div class="verse-meaning">${escHtml(d.meaning)}</div>` : ""}
     ${d.meaning_plain ? `<div class="verse-meaning-plain">${escHtml(d.meaning_plain)}</div>` : ""}
-    ${d.reflection ? `<div class="verse-reflection">🕊️ ${escHtml(d.reflection)}</div>` : ""}
     <div class="hero-actions">
       <a href="/api/chat-ui/?prefill=${encodeURIComponent(ref ? (LANG==="hi"?`भगवद गीता ${ref} को सरल भाषा में समझाएं`:`Explain Bhagavad Gita ${ref} in simple language`) : "")}"
         class="btn-primary">🙏 ${LANG==="hi"?"मार्गदर्शन लें":"Ask for Guidance"}</a>
       ${ref ? `<a href="${verseUrl}" class="btn-secondary">📖 ${LANG==="hi"?"श्लोक पढ़ें":"Read Verse"}</a>` : ""}
     </div>
   `;
+  // Reflect prompt as separate left-border card
+  if (d.reflection) {
+    const rpc = document.getElementById("reflect-prompt-card");
+    const rpt = document.getElementById("reflect-prompt-text");
+    if (rpc && rpt) { rpt.textContent = "🕊️ " + d.reflection; rpc.style.display = ""; }
+  }
+  if (ref) loadSynthesis(ref);
+  // Store for share
+  window._verseData = d;
+  window._verseRef = ref;
 }
 
 async function loadStreak() {
@@ -479,6 +703,153 @@ async function loadStreak() {
       document.getElementById("streak-banner").style.display = "flex";
     }
   } catch {}
+}
+
+// ── Audio toggle ───────────────────────────────────────────────────────────
+function toggleAudio(url) {
+  const bar = document.getElementById("audio-bar");
+  const player = document.getElementById("audio-player");
+  if (!bar || !player) return;
+  if (!bar.style.display || bar.style.display === "none") {
+    player.src = url;
+    bar.style.display = "";
+    player.play().catch(() => {});
+  } else {
+    player.pause();
+    bar.style.display = "none";
+    player.src = "";
+  }
+}
+
+// ── Synthesis (Wisdom Overview) ────────────────────────────────────────────
+async function loadSynthesis(ref) {
+  const card = document.getElementById("synthesis-card");
+  const el = document.getElementById("synthesis-text");
+  if (!card || !el) return;
+  card.style.display = "";
+  try {
+    const res = await fetch(`/api/v1/verses/${encodeURIComponent(ref)}/?include=synthesis&lang=${encodeURIComponent(LANG)}`);
+    if (!res.ok) { card.style.display = "none"; return; }
+    const d = await res.json();
+    const s = d.synthesis;
+    if (!s) { card.style.display = "none"; return; }
+    const isHi = LANG === "hi";
+    const overview = isHi ? (s.overview_hi || s.overview_en) : (s.overview_en || s.overview_hi);
+    const consensus = isHi ? (s.commentary_consensus_hi || s.commentary_consensus_en) : (s.commentary_consensus_en || s.commentary_consensus_hi);
+    const life = isHi ? (s.life_application_hi || s.life_application_en) : (s.life_application_en || s.life_application_hi);
+    const text = String(overview || consensus || life || "").trim();
+    if (!text) { card.style.display = "none"; return; }
+    el.textContent = text;
+    window._currentSynthesis = text;
+  } catch { card.style.display = "none"; }
+}
+
+// ── Share verse ────────────────────────────────────────────────────────────
+async function shareVerse(ref) {
+  const d = window._verseData ?? {};
+  const quote = d.quote ?? "";
+  const plain = d.meaning_plain?.trim() || d.meaning?.trim() || "";
+  const reflection = d.reflection?.trim() ?? "";
+  const synthesis = window._currentSynthesis ?? "";
+  const chunks = [`Bhagavad Gītā ${ref}`, quote, plain, synthesis, reflection, "— Ask Bhagavad Gita"]
+    .filter(x => x && String(x).trim());
+  const text = chunks.join("\n\n");
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: `Bhagavad Gītā ${ref}`, text });
+    } else {
+      await navigator.clipboard.writeText(text);
+      showToast(LANG==="hi"?"क्लिपबोर्ड पर कॉपी हुआ ✓":"Copied to clipboard ✓");
+    }
+  } catch {}
+}
+
+// ── User meta: greeting + streak + pillar + adaptive primary action ─────────
+async function loadUserMeta() {
+  if (!API_TOKEN) return;
+  try {
+    const res = await fetch("/api/v1/auth/me/", { headers: { Authorization: `Token ${API_TOKEN}` } });
+    if (!res.ok) return;
+    const d = await res.json();
+    // Greeting
+    const username = d.username ?? "";
+    if (username) {
+      const nameEl = document.getElementById("greeting-name");
+      const bar = document.getElementById("greeting-bar");
+      if (nameEl && bar) {
+        nameEl.textContent = LANG==="hi" ? `नमस्ते, ${username}` : `Namaste, ${username}`;
+        bar.style.display = "flex";
+      }
+    }
+    // Streak
+    const streak = d.engagement?.daily_streak ?? 0;
+    if (streak > 0) {
+      document.getElementById("streak-num").textContent = streak;
+      document.getElementById("streak-label").textContent =
+        LANG === "hi" ? `दिन${streak === 1 ? "" : "ों"} की लय` : `day${streak === 1 ? "" : "s"} streak`;
+      document.getElementById("streak-banner").style.display = "flex";
+    }
+    // Pillar row
+    const pillar = document.getElementById("pillar-row");
+    if (pillar) pillar.style.display = "flex";
+    // Adaptive primary action
+    const versesOpened = d.gita?.verses_opened ?? 0;
+    const section = document.getElementById("primary-action-section");
+    const card = document.getElementById("primary-action-card");
+    const iconEl = document.getElementById("primary-action-icon");
+    const titleEl = document.getElementById("primary-action-title");
+    const subEl = document.getElementById("primary-action-sub");
+    if (section && card) {
+      if (versesOpened < 3) {
+        if (iconEl) iconEl.textContent = "📖";
+        if (titleEl) titleEl.textContent = LANG==="hi" ? "गीता पढ़ें" : "Read the Gita";
+        if (subEl) subEl.textContent = LANG==="hi" ? "श्लोक दर श्लोक शुरू करें" : "Begin your verse-by-verse journey";
+        card.href = `/api/chat-ui/?language=${encodeURIComponent(LANG)}&open_reader=1`;
+      } else {
+        if (iconEl) iconEl.textContent = "🙏";
+        if (titleEl) titleEl.textContent = LANG==="hi" ? "मार्गदर्शन लें" : "Ask for Guidance";
+        if (subEl) subEl.textContent = LANG==="hi" ? "कृष्ण से पूछें" : "Receive wisdom from Krishna";
+        card.href = `/api/chat-ui/?language=${encodeURIComponent(LANG)}`;
+      }
+      section.style.display = "";
+    }
+  } catch {}
+}
+
+// ── Japa home section ──────────────────────────────────────────────────────
+async function loadJapa() {
+  if (!API_TOKEN) return;
+  try {
+    const r = await fetch("/api/v1/japa/today-summary/", { headers: { Authorization: "Token "+API_TOKEN } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const malas = d.malas_today ?? d.total_malas_today ?? 0;
+    if (malas > 0) {
+      const row = document.getElementById("japa-today-row");
+      const count = document.getElementById("japa-today-count");
+      if (row && count) { count.textContent = malas; row.style.display = "flex"; }
+    }
+  } catch {}
+}
+
+// ── Toast helper ──────────────────────────────────────────────────────────
+function showToast(msg) {
+  let t = document.getElementById("today-toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "today-toast";
+    Object.assign(t.style, {
+      position:"fixed", bottom:"88px", left:"50%", transform:"translateX(-50%)",
+      background:"rgba(18,22,38,0.96)", border:"1px solid rgba(232,184,109,0.3)",
+      color:"rgba(240,230,210,0.9)", padding:"10px 18px", borderRadius:"999px",
+      fontSize:"13px", fontWeight:"600", zIndex:"9999", transition:"opacity 0.3s",
+      whiteSpace:"nowrap", pointerEvents:"none"
+    });
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = "1";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.opacity = "0"; }, 2500);
 }
 
 function toggleHistory() {
@@ -558,6 +929,7 @@ function renderMoodQuick() {
     <div class="mood-quick-grid" id="mood-quick-grid">
       ${MOOD_QUICK.map(m => `<button class="mood-quick-btn" data-mood-key="${m.key}" onclick="selectMood('${m.key}')" title="${LANG==="hi"?m.labelHi:m.label}">${m.emoji}</button>`).join("")}
     </div>
+    <textarea id="mood-note-input" class="mood-note-input" placeholder="${LANG==="hi"?"एक नोट जोड़ें (वैकल्पिक)…":"Add a note (optional)…"}" style="display:none"></textarea>
     <button id="mood-save-btn" class="mini-save-btn" onclick="saveMood()" style="display:none">
       ${LANG==="hi"?"सहेजें":"Save"}
     </button>`;
@@ -567,19 +939,23 @@ function selectMood(key) {
   selectedMoodEmoji = MOOD_QUICK.find(m => m.key === key) || null;
   document.querySelectorAll(".mood-quick-btn").forEach(b => b.classList.toggle("selected", b.dataset.moodKey === key));
   const saveBtn = document.getElementById("mood-save-btn");
+  const noteInput = document.getElementById("mood-note-input");
   if (saveBtn) saveBtn.style.display = "";
+  if (noteInput) noteInput.style.display = "";
 }
 
 async function saveMood() {
   if (!selectedMoodEmoji || moodSaving || !API_TOKEN) return;
   moodSaving = true;
   const btn = document.getElementById("mood-save-btn");
+  const noteInput = document.getElementById("mood-note-input");
+  const note = noteInput?.value?.trim() ?? "";
   if (btn) { btn.disabled = true; btn.textContent = LANG==="hi"?"…":"Saving…"; }
   try {
     const r = await fetch("/api/v1/mood/", {
       method: "POST",
       headers: { "Content-Type":"application/json", "Authorization":"Token "+API_TOKEN },
-      body: JSON.stringify({ mood: selectedMoodEmoji.key, note: "" })
+      body: JSON.stringify({ mood: selectedMoodEmoji.key, note })
     });
     if (r.ok) {
       renderMoodLogged(selectedMoodEmoji.emoji, selectedMoodEmoji.key);
@@ -673,11 +1049,12 @@ async function loadCommunityPreview() {
 }
 
 loadDailyVerse();
-loadStreak();
 if (API_TOKEN) {
+  loadUserMeta();
   document.getElementById("checkin-section").style.display = "";
   loadMood();
   loadGratitude();
+  loadJapa();
 }
 loadCommunityPreview();
 </script>
