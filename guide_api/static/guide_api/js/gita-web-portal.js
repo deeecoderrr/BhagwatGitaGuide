@@ -14,7 +14,7 @@
     { id: "ask", label: "Ask", icon: "♡", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}`, match: ["/api/chat-ui/"] },
     { id: "read", label: "Read", icon: "☰", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1`, match: ["/read-", "/read/"] },
     { id: "meditate", label: "Practice", icon: "✦", href: `/meditation/?language=${encodeURIComponent(lang)}`, match: ["/meditation/", "/japa/", "/sadhana/", "/practice/"] },
-    { id: "journal", label: "Journal", icon: "◷", href: `/saved-reflections/?language=${encodeURIComponent(lang)}`, match: ["/saved-reflections/", "/gratitude/", "/mood/", "/quote-art/"] },
+    { id: "journal", label: "Journal", icon: "◷", href: `/history/?language=${encodeURIComponent(lang)}`, match: ["/history/", "/saved-reflections/", "/gratitude/", "/mood/", "/quote-art/"] },
     { id: "you", label: "You", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/", "/account/", "/plans/", "/community/", "/support/"] },
   ];
 
@@ -23,6 +23,7 @@
     { title: "Meditation", desc: "Tracked practice and japa", href: `/meditation/?language=${encodeURIComponent(lang)}` },
     { title: "Read Gita", desc: "Chapters, verses, notes", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1` },
     { title: "Insights", desc: "Your journey snapshot", href: `/insights/?language=${encodeURIComponent(lang)}` },
+    { title: "Journal", desc: "Conversation threads", href: `/history/?language=${encodeURIComponent(lang)}` },
     { title: "Saved", desc: "Saved reflections", href: `/saved-reflections/?language=${encodeURIComponent(lang)}` },
     { title: "Community", desc: "Read and share devotion", href: `/community/?language=${encodeURIComponent(lang)}` },
   ];
