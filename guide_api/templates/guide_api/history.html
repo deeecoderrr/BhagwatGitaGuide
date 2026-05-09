@@ -1,0 +1,836 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ language|default:'en' }}">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conversations — Bhagavad Gita Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-app-theme.css' %}" />
+  <link rel="stylesheet" href="{% static 'guide_api/css/gita-web-portal.css' %}" />
+  <style>
+    :root {
+      --gold: rgba(232,184,109,1);
+      --gold-dim: rgba(232,184,109,0.55);
+      --gold-faint: rgba(232,184,109,0.12);
+      --gold-glow: rgba(232,184,109,0.18);
+      --bg: #0b0c1a;
+      --panel: rgba(255,255,255,0.035);
+      --panel-hover: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.07);
+      --muted: #a3a0be;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: #e8e4f0;
+      font-family: 'Manrope', sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── page layout ─────────────────────────────── */
+    .page-wrapper {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 32px 16px 80px;
+    }
+
+    /* ── hero card ───────────────────────────────── */
+    .hero-card {
+      background: linear-gradient(135deg, rgba(232,184,109,0.10) 0%, rgba(80,60,140,0.12) 100%);
+      border: 1px solid rgba(232,184,109,0.22);
+      border-radius: 20px;
+      padding: 28px 28px 24px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(232,184,109,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .hero-eyebrow svg { opacity: 0.85; }
+    .hero-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: clamp(28px, 5vw, 38px);
+      font-weight: 600;
+      color: #f0e9d2;
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+    .hero-sub {
+      font-size: 13.5px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 14px;
+    }
+    .hero-note {
+      font-size: 11.5px;
+      color: rgba(163,160,190,0.65);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* ── stats row ───────────────────────────────── */
+    .stats-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+    .stat-chip {
+      flex: 1;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 12px;
+      text-align: center;
+    }
+    .stat-chip .val {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+      display: block;
+    }
+    .stat-chip .lbl {
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 4px;
+      display: block;
+    }
+
+    /* ── toolbar ─────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 18px;
+      align-items: center;
+    }
+    .search-wrap {
+      flex: 1;
+      position: relative;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 12px; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+    .search-input {
+      width: 100%;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px 10px 36px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13.5px;
+      color: #e8e4f0;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .search-input::placeholder { color: var(--muted); }
+    .search-input:focus { border-color: var(--gold-dim); }
+
+    .sort-btn {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 16px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .sort-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .sort-btn.active { border-color: var(--gold-dim); color: var(--gold); background: var(--gold-faint); }
+
+    /* ── section header ──────────────────────────── */
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 20px 0 10px;
+      padding-left: 2px;
+    }
+
+    /* ── thread card ─────────────────────────────── */
+    .thread-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 10px;
+      overflow: hidden;
+      transition: border-color .2s, background .2s;
+      cursor: pointer;
+    }
+    .thread-card:hover {
+      border-color: rgba(232,184,109,0.28);
+      background: var(--panel-hover);
+    }
+    .thread-card-inner {
+      padding: 16px 16px 0;
+    }
+    .thread-kicker {
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .thread-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 18px;
+      font-weight: 600;
+      color: #f0e9d2;
+      line-height: 1.3;
+      margin-bottom: 5px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .thread-snippet {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .thread-meta {
+      font-size: 11.5px;
+      color: rgba(163,160,190,0.7);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .thread-meta-dot { font-size: 8px; }
+    .thread-hint {
+      font-size: 11.5px;
+      color: rgba(163,160,190,0.5);
+      font-style: italic;
+      padding-bottom: 12px;
+    }
+
+    .thread-footer {
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+    }
+    .thread-cta {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      text-decoration: none;
+    }
+    .thread-cta:hover { opacity: 0.8; }
+    .thread-delete-btn {
+      background: rgba(255,80,80,0.08);
+      border: 1px solid rgba(255,80,80,0.2);
+      border-radius: 7px;
+      color: rgba(255,120,120,0.75);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: 'Manrope', sans-serif;
+    }
+    .thread-delete-btn:hover {
+      background: rgba(255,80,80,0.18);
+      border-color: rgba(255,80,80,0.4);
+      color: #ff8080;
+    }
+    .thread-delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── load more ───────────────────────────────── */
+    .load-more-btn {
+      width: 100%;
+      margin-top: 16px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all .2s;
+    }
+    .load-more-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
+    .load-more-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── empty / auth states ─────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 14px;
+      opacity: 0.5;
+    }
+    .empty-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: #e8e4f0;
+      margin-bottom: 8px;
+    }
+    .empty-sub {
+      font-size: 13.5px;
+      color: var(--muted);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .empty-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.25), rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4);
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gold);
+      text-decoration: none;
+      transition: all .2s;
+    }
+    .empty-cta:hover { background: rgba(232,184,109,0.2); }
+
+    .auth-gate {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 28px;
+      text-align: center;
+      margin-top: 20px;
+    }
+    .auth-gate-icon {
+      width: 56px; height: 56px;
+      background: var(--gold-faint);
+      border: 1px solid rgba(232,184,109,0.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .auth-gate-title {
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: #f0e9d2;
+      margin-bottom: 8px;
+    }
+    .auth-gate-sub {
+      font-size: 13.5px;
+      color: var(--muted);
+      margin-bottom: 22px;
+      line-height: 1.55;
+    }
+    .sign-in-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: linear-gradient(135deg, rgba(232,184,109,0.3), rgba(232,184,109,0.12));
+      border: 1px solid rgba(232,184,109,0.45);
+      border-radius: 12px;
+      padding: 13px 28px;
+      font-family: 'Manrope', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+      text-decoration: none;
+      transition: all .2s;
+      cursor: pointer;
+    }
+    .sign-in-btn:hover { background: rgba(232,184,109,0.25); }
+
+    /* ── loader ──────────────────────────────────── */
+    .skeleton-list { display: flex; flex-direction: column; gap: 10px; }
+    .skeleton-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      animation: shimmer 1.6s infinite ease-in-out;
+    }
+    .skel-line {
+      background: rgba(255,255,255,0.06);
+      border-radius: 6px;
+      height: 12px;
+      margin-bottom: 8px;
+    }
+    .skel-line.w80 { width: 80%; }
+    .skel-line.w55 { width: 55%; }
+    .skel-line.w35 { width: 35%; }
+    @keyframes shimmer {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+
+    /* ── toast ───────────────────────────────────── */
+    #toast {
+      position: fixed;
+      bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(20,18,40,0.95);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 20px;
+      font-size: 13px;
+      color: #e8e4f0;
+      pointer-events: none;
+      opacity: 0;
+      transition: all .3s ease;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+{% include "guide_api/partials/nav.html" ignore missing %}
+
+<div class="page-wrapper">
+
+  <!-- hero -->
+  <div class="hero-card">
+    <div class="hero-eyebrow">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      THREADS
+    </div>
+    <h1 class="hero-title">Conversations</h1>
+    <p class="hero-sub">Revisit your past dialogues with the Gītā.</p>
+    <div class="hero-note">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Only you see these threads. Delete anytime.
+    </div>
+  </div>
+
+  <!-- stats row -->
+  <div class="stats-row" id="statsRow" style="display:none;">
+    <div class="stat-chip">
+      <span class="val" id="statThreads">—</span>
+      <span class="lbl">Threads</span>
+    </div>
+    <div class="stat-chip">
+      <span class="val" id="statMessages">—</span>
+      <span class="lbl">Messages</span>
+    </div>
+    <div class="stat-chip">
+      <span class="val" id="statLatest">—</span>
+      <span class="lbl">Latest</span>
+    </div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="toolbar" id="toolbar" style="display:none;">
+    <div class="search-wrap">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input id="searchInput" class="search-input" type="text" placeholder="Search conversations…" autocomplete="off" />
+    </div>
+    <button class="sort-btn active" id="sortNewest" onclick="setSort('newest')">Newest</button>
+    <button class="sort-btn" id="sortOldest" onclick="setSort('oldest')">Oldest</button>
+  </div>
+
+  <!-- main content area -->
+  <div id="mainContent">
+    <!-- skeleton shown while loading -->
+    <div id="skeletonLoader" class="skeleton-list">
+      <div class="skeleton-card"><div class="skel-line w35"></div><div class="skel-line w80"></div><div class="skel-line w55"></div></div>
+      <div class="skeleton-card"><div class="skel-line w35"></div><div class="skel-line w80"></div><div class="skel-line w55"></div></div>
+      <div class="skeleton-card"><div class="skel-line w35"></div><div class="skel-line w55"></div></div>
+    </div>
+
+    <!-- auth gate (hidden by default) -->
+    <div id="authGate" class="auth-gate" style="display:none;">
+      <div class="auth-gate-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,109,0.85)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="auth-gate-title">Sign in to view your threads</div>
+      <div class="auth-gate-sub">Your past conversations with the Gītā are waiting.</div>
+      <a href="/api/chat-ui/" class="sign-in-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+        Sign In
+      </a>
+    </div>
+
+    <!-- threads list -->
+    <div id="threadsList" style="display:none;"></div>
+
+    <!-- load more -->
+    <button class="load-more-btn" id="loadMoreBtn" style="display:none;" onclick="loadMore()">Load more conversations</button>
+
+    <!-- empty state -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <div class="empty-icon">🕉️</div>
+      <div class="empty-title">Begin Your Dialogue</div>
+      <div class="empty-sub">You have no conversations yet.<br>Ask your first question and the Gītā will answer.</div>
+      <a href="/api/chat-ui/" class="empty-cta">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Ask a Question
+      </a>
+    </div>
+
+    <!-- search empty state -->
+    <div id="searchEmpty" class="empty-state" style="display:none;">
+      <div class="empty-icon">🔍</div>
+      <div class="empty-title">No threads found</div>
+      <div class="empty-sub">No conversations match your search.</div>
+      <button class="empty-cta" onclick="document.getElementById('searchInput').value=''; applyFilter();">
+        Clear search
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── auth token ──────────────────────────────────────────────────────────
+  const API_TOKEN = (() => {
+    const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+  })();
+
+  // ── state ───────────────────────────────────────────────────────────────
+  let allItems = [];         // all fetched conversations (flat)
+  let sortOrder = 'newest';  // 'newest' | 'oldest'
+  let offset = 0;
+  let totalCount = 0;
+  const LIMIT = 20;
+  let loading = false;
+
+  // ── boot ────────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!API_TOKEN) {
+      showAuthGate();
+      return;
+    }
+    fetchConversations(0, true);
+    document.getElementById('searchInput').addEventListener('input', applyFilter);
+  });
+
+  // ── fetch ───────────────────────────────────────────────────────────────
+  async function fetchConversations(off, initial) {
+    if (loading) return;
+    loading = true;
+    if (!initial) {
+      const btn = document.getElementById('loadMoreBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+    }
+    try {
+      const r = await fetch(`/api/v1/conversations/?limit=${LIMIT}&offset=${off}`, {
+        headers: { Authorization: `Token ${API_TOKEN}` }
+      });
+      if (r.status === 401) { showAuthGate(); return; }
+      if (!r.ok) { showError(); return; }
+      const data = await r.json();
+      if (initial) {
+        allItems = data.results || [];
+        totalCount = data.count || 0;
+        offset = data.results ? data.results.length : 0;
+        renderStats();
+        if (initial) {
+          document.getElementById('skeletonLoader').style.display = 'none';
+          document.getElementById('statsRow').style.display = '';
+          document.getElementById('toolbar').style.display = '';
+        }
+        if (allItems.length === 0) {
+          showEmpty();
+        } else {
+          document.getElementById('threadsList').style.display = '';
+          applyFilter();
+        }
+      } else {
+        const newItems = data.results || [];
+        allItems = allItems.concat(newItems);
+        offset += newItems.length;
+        applyFilter();
+      }
+      // update load more
+      const btn = document.getElementById('loadMoreBtn');
+      if (offset < totalCount) {
+        btn.style.display = '';
+        btn.disabled = false;
+        btn.textContent = `Load more conversations (${totalCount - offset} remaining)`;
+      } else {
+        btn.style.display = 'none';
+      }
+    } catch (e) {
+      showError();
+    } finally {
+      loading = false;
+    }
+  }
+
+  // ── stats ───────────────────────────────────────────────────────────────
+  function renderStats() {
+    document.getElementById('statThreads').textContent = totalCount || allItems.length || '0';
+    const totalMsgs = allItems.reduce((s, c) => s + (c.message_count || 0), 0);
+    document.getElementById('statMessages').textContent = totalMsgs;
+    if (allItems.length > 0) {
+      const sorted = [...allItems].sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      const d = new Date(sorted[0].updated_at);
+      document.getElementById('statLatest').textContent = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    }
+  }
+
+  // ── sort ────────────────────────────────────────────────────────────────
+  function setSort(order) {
+    sortOrder = order;
+    document.getElementById('sortNewest').classList.toggle('active', order === 'newest');
+    document.getElementById('sortOldest').classList.toggle('active', order === 'oldest');
+    applyFilter();
+  }
+
+  // ── filter + render ─────────────────────────────────────────────────────
+  function applyFilter() {
+    const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+    let items = [...allItems];
+    // sort
+    items.sort((a, b) => {
+      const da = new Date(a.updated_at), db = new Date(b.updated_at);
+      return sortOrder === 'newest' ? db - da : da - db;
+    });
+    // filter
+    if (q) items = items.filter(c => (c.title || '').toLowerCase().includes(q));
+
+    const list = document.getElementById('threadsList');
+    const empty = document.getElementById('emptyState');
+    const searchEmpty = document.getElementById('searchEmpty');
+
+    if (allItems.length === 0) {
+      list.style.display = 'none';
+      empty.style.display = '';
+      searchEmpty.style.display = 'none';
+      return;
+    }
+    if (items.length === 0 && q) {
+      list.style.display = 'none';
+      empty.style.display = 'none';
+      searchEmpty.style.display = '';
+      return;
+    }
+    list.style.display = '';
+    empty.style.display = 'none';
+    searchEmpty.style.display = 'none';
+    renderSections(items);
+  }
+
+  // ── grouping ─────────────────────────────────────────────────────────────
+  function groupByRecency(items) {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
+    const sections = [
+      { key: 'today', label: 'Today', items: [] },
+      { key: 'week', label: 'This Week', items: [] },
+      { key: 'earlier', label: 'Earlier', items: [] },
+    ];
+    for (const item of items) {
+      const d = new Date(item.updated_at);
+      if (d >= todayStart) sections[0].items.push(item);
+      else if (d >= weekStart) sections[1].items.push(item);
+      else sections[2].items.push(item);
+    }
+    return sections.filter(s => s.items.length > 0);
+  }
+
+  // ── render sections ──────────────────────────────────────────────────────
+  function renderSections(items) {
+    const sections = groupByRecency(items);
+    const list = document.getElementById('threadsList');
+    list.innerHTML = '';
+    for (const sec of sections) {
+      const labelEl = document.createElement('div');
+      labelEl.className = 'section-label';
+      labelEl.textContent = sec.label;
+      list.appendChild(labelEl);
+      for (const conv of sec.items) {
+        list.appendChild(buildCard(conv));
+      }
+    }
+  }
+
+  // ── build card ────────────────────────────────────────────────────────────
+  function buildCard(conv) {
+    const wrap = document.createElement('div');
+    wrap.className = 'thread-card';
+    wrap.dataset.id = conv.id;
+
+    const dateStr = formatRelative(conv.updated_at);
+    const msgLabel = conv.message_count === 1 ? '1 message' : `${conv.message_count || 0} messages`;
+    const threadUrl = `/api/chat-ui/?conversation_id=${conv.id}&mode=simple&language={{ language|default:'en' }}`;
+    const title = (conv.title || 'Untitled conversation').trim();
+
+    wrap.innerHTML = `
+      <div class="thread-card-inner">
+        <div class="thread-kicker">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          REFLECTION THREAD
+        </div>
+        <div class="thread-title">${escHtml(title)}</div>
+        <div class="thread-meta">
+          <span>${dateStr}</span>
+          <span class="thread-meta-dot">•</span>
+          <span>${msgLabel}</span>
+        </div>
+        <div class="thread-hint">Tap to continue your dialogue</div>
+      </div>
+      <div class="thread-footer">
+        <a class="thread-cta" href="${threadUrl}">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Revisit and continue
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </a>
+        <button class="thread-delete-btn" onclick="deleteConversation(event, ${conv.id})">Delete</button>
+      </div>
+    `;
+
+    // whole card click → open thread (but not if delete btn clicked)
+    wrap.addEventListener('click', (e) => {
+      if (e.target.closest('.thread-delete-btn') || e.target.closest('.thread-cta')) return;
+      window.location.href = threadUrl;
+    });
+
+    return wrap;
+  }
+
+  // ── delete ────────────────────────────────────────────────────────────────
+  async function deleteConversation(e, id) {
+    e.stopPropagation();
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const r = await fetch(`/api/v1/conversations/${id}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Token ${API_TOKEN}` }
+      });
+      if (r.ok || r.status === 204) {
+        allItems = allItems.filter(c => c.id !== id);
+        totalCount = Math.max(0, totalCount - 1);
+        renderStats();
+        applyFilter();
+        showToast('Conversation deleted');
+      } else {
+        btn.disabled = false;
+        btn.textContent = 'Delete';
+        showToast('Could not delete — try again');
+      }
+    } catch {
+      btn.disabled = false;
+      btn.textContent = 'Delete';
+      showToast('Could not delete — try again');
+    }
+  }
+
+  // ── load more ─────────────────────────────────────────────────────────────
+  function loadMore() {
+    fetchConversations(offset, false);
+  }
+
+  // ── helpers ───────────────────────────────────────────────────────────────
+  function showAuthGate() {
+    document.getElementById('skeletonLoader').style.display = 'none';
+    document.getElementById('authGate').style.display = '';
+  }
+  function showEmpty() {
+    document.getElementById('threadsList').style.display = 'none';
+    document.getElementById('emptyState').style.display = '';
+  }
+  function showError() {
+    document.getElementById('skeletonLoader').style.display = 'none';
+    document.getElementById('threadsList').innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-title">Could not load threads</div>
+        <div class="empty-sub">Please try refreshing the page.</div>
+      </div>`;
+    document.getElementById('threadsList').style.display = '';
+  }
+
+  function formatRelative(isoStr) {
+    const d = new Date(isoStr);
+    const now = new Date();
+    const diffMs = now - d;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH = Math.floor(diffMs / 3600000);
+    const diffD = Math.floor(diffMs / 86400000);
+    if (diffMin < 1) return 'just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffH < 24) return `${diffH}h ago`;
+    if (diffD === 1) return 'yesterday';
+    if (diffD < 7) return `${diffD} days ago`;
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2800);
+  }
+</script>
+
+</body>
+</html>

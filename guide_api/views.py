@@ -10225,3 +10225,14 @@ class NotificationsPageView(_WebPageTokenMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context["language"] = _safe_lang(self.request)
         return context
+
+
+class HistoryPageView(_WebPageTokenMixin, TemplateView):
+    """Browser page for browsing and managing conversation history."""
+
+    template_name = "guide_api/history.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["language"] = _safe_lang(self.request)
+        return context
