@@ -195,6 +195,96 @@
 
     .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.08),rgba(255,255,255,0.04)); background-size:200% 100%; animation:shimmer 1.8s infinite; border-radius:8px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── mindful days stats ──────────────────────────────────────────── */
+    .mindful-card {
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.18);
+      border-radius: 16px;
+      padding: 20px 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.2), 0 20px 48px rgba(2,6,16,0.45);
+    }
+    .mindful-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .mindful-kicker {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 2px;
+    }
+    .mindful-title {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 20px;
+      font-weight: 600;
+      color: rgba(245,217,160,0.95);
+      margin: 0;
+    }
+    .share-stats-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      border: 1px solid rgba(232,184,109,0.3);
+      background: rgba(232,184,109,0.07);
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .share-stats-btn:hover { background: rgba(232,184,109,0.14); }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    @media (max-width: 480px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+    .stat-tile {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px;
+      padding: 14px 8px;
+      text-align: center;
+    }
+    .stat-tile-icon { font-size: 16px; margin-bottom: 6px; }
+    .stat-tile-val {
+      font-family: "Cormorant Garamond", serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gold);
+      line-height: 1;
+      display: block;
+    }
+    .stat-tile-lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-top: 4px;
+      display: block;
+    }
+    .sadhana-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: rgba(232,184,109,0.06);
+      border: 1px solid rgba(232,184,109,0.15);
+      border-radius: 10px;
+      font-size: 13px;
+      color: rgba(245,217,160,0.85);
+      margin-top: 4px;
+    }
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
@@ -231,6 +321,44 @@
         <div>
           <div class="profile-name" id="display-name">—</div>
           <span class="profile-sub-badge free" id="plan-badge">Free</span>
+        </div>
+      </div>
+
+      <!-- Mindful Days / Journey Stats -->
+      <div class="mindful-card" id="mindful-card" style="display:none">
+        <div class="mindful-top">
+          <div>
+            <div class="mindful-kicker">{% if language == "hi" %}आपकी साधना{% else %}YOUR PRACTICE{% endif %}</div>
+            <h2 class="mindful-title">{% if language == "hi" %}माइंडफुल दिन{% else %}Mindful Days{% endif %}</h2>
+          </div>
+          <button class="share-stats-btn" id="share-stats-btn" onclick="shareJourney()">
+            ↗ {% if language == "hi" %}शेयर{% else %}Share{% endif %}
+          </button>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-tile">
+            <div class="stat-tile-icon">🔥</div>
+            <span class="stat-tile-val" id="stat-streak">—</span>
+            <span class="stat-tile-lbl">{% if language == "hi" %}स्ट्रीक{% else %}Streak{% endif %}</span>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile-icon">💬</div>
+            <span class="stat-tile-val" id="stat-sessions">—</span>
+            <span class="stat-tile-lbl">{% if language == "hi" %}संवाद{% else %}Sessions{% endif %}</span>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile-icon">📖</div>
+            <span class="stat-tile-val" id="stat-verses">—</span>
+            <span class="stat-tile-lbl">{% if language == "hi" %}श्लोक{% else %}Verses{% endif %}</span>
+          </div>
+          <div class="stat-tile">
+            <div class="stat-tile-icon">🧘</div>
+            <span class="stat-tile-val" id="stat-med-mins">—</span>
+            <span class="stat-tile-lbl">{% if language == "hi" %}मिनट/सप्ताह{% else %}Min/week{% endif %}</span>
+          </div>
+        </div>
+        <div class="sadhana-row" id="sadhana-row" style="display:none">
+          ✨ <span id="sadhana-text"></span>
         </div>
       </div>
 
@@ -412,8 +540,9 @@
     // Load profile
     Promise.all([
       apiFetch("/auth/me/").then(r => r.ok ? r.json() : null),
-      apiFetch("/subscription/status/").then(r => r.ok ? r.json() : null)
-    ]).then(([me, sub]) => {
+      apiFetch("/subscription/status/").then(r => r.ok ? r.json() : null),
+      apiFetch("/insights/me/").then(r => r.ok ? r.json() : null),
+    ]).then(([me, sub, insights]) => {
       if (me) {
         const username = me.username ?? "";
         const firstName = me.first_name ?? "";
@@ -435,6 +564,25 @@
         document.getElementById("sub-details").textContent =
           (LANG === "hi" ? "योजना: " : "Plan: ") + plan.charAt(0).toUpperCase() + plan.slice(1) +
           (endDate ? (LANG === "hi" ? " · समाप्ति: " : " · Renews: ") + endDate : "");
+      }
+      if (insights) {
+        const streak = insights.engagement?.daily_streak ?? 0;
+        const sessions = insights.conversations?.total ?? 0;
+        const verses = insights.gita?.verses_opened ?? 0;
+        const medMins = insights.practice?.meditation_minutes_7d ?? 0;
+        const sadhana = insights.sadhana?.completed_days_last_30d ?? 0;
+        document.getElementById("stat-streak").textContent = streak;
+        document.getElementById("stat-sessions").textContent = sessions;
+        document.getElementById("stat-verses").textContent = verses;
+        document.getElementById("stat-med-mins").textContent = medMins;
+        document.getElementById("mindful-card").style.display = "";
+        if (sadhana > 0) {
+          document.getElementById("sadhana-row").style.display = "";
+          document.getElementById("sadhana-text").textContent =
+            LANG === "hi" ? `इस महीने ${sadhana} साधना दिन` : `${sadhana} sadhana days this month`;
+        }
+        // store for share
+        window._insightsData = { streak, sessions, verses, medMins, sadhana };
       }
     }).catch(() => {});
 
@@ -480,6 +628,28 @@
       }
     });
   })();
+
+  window.shareJourney = async function() {
+    const d = window._insightsData || {};
+    const name = document.getElementById("display-name")?.textContent || "";
+    const lines = [
+      `🔥 ${d.streak || 0}-day streak on BhagavadGita Guide`,
+      `📖 ${d.verses || 0} verses explored`,
+      `💬 ${d.sessions || 0} guidance sessions`,
+      d.medMins > 0 ? `🧘 ${d.medMins} mindful minutes this week` : null,
+      d.sadhana > 0 ? `✨ ${d.sadhana} sadhana days this month` : null,
+      `\n"Do your work, offering it to Me." — Gita 9.27`,
+    ].filter(Boolean).join("\n");
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "My Gita Journey", text: lines });
+      } else {
+        await navigator.clipboard.writeText(lines);
+        const btn = document.getElementById("share-stats-btn");
+        if (btn) { btn.textContent = "✓ Copied!"; setTimeout(() => { btn.textContent = "↗ Share"; }, 2000); }
+      }
+    } catch { /* user cancelled */ }
+  };
   </script>
 </body>
 </html>

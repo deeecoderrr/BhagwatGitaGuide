@@ -130,6 +130,28 @@
     .tab-panel.active { display: block; }
     .loading-state { text-align:center; padding:48px 0; color:var(--muted); font-size:14px; }
 
+    /* Study Note */
+    .note-area {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: rgba(240,230,210,0.9);
+      font-family: "Manrope", system-ui, sans-serif;
+      font-size: 14px; line-height: 1.7;
+      padding: 12px 14px; resize: vertical;
+      transition: border-color 0.2s;
+    }
+    .note-area:focus { outline: none; border-color: rgba(232,184,109,0.4); }
+    .note-area::placeholder { color: var(--muted); }
+    .note-save-btn {
+      padding: 8px 20px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .note-save-btn:hover { background: rgba(232,184,109,0.2); }
+
     @media (max-width:500px) {
       .verse-hero { padding: 22px 16px; }
     }
@@ -170,6 +192,24 @@
     </div>
     <div id="synthesis-content" style="padding:20px 22px">
       <div class="loading-state">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</div>
+    </div>
+  </div>
+
+  <!-- Personal Study Note -->
+  <div class="panel" id="note-panel" style="display:none">
+    <div class="panel-header">
+      <div class="section-title">📝 {% if language == "hi" %}मेरा अध्ययन नोट{% else %}My Study Note{% endif %}</div>
+    </div>
+    <div style="padding:20px 22px">
+      <textarea id="note-textarea" class="note-area"
+        placeholder="{% if language == 'hi' %}इस श्लोक पर अपने विचार लिखें…{% else %}Write your reflections on this verse…{% endif %}"
+        rows="4"></textarea>
+      <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+        <button class="note-save-btn" id="note-save-btn" onclick="saveNote()">
+          {% if language == "hi" %}नोट सहेजें{% else %}Save Note{% endif %}
+        </button>
+        <span id="note-msg" style="font-size:12px;color:rgba(100,220,140,0.85)"></span>
+      </div>
     </div>
   </div>
 </main>
@@ -297,6 +337,50 @@ function setupNavArrows(v) {
 }
 
 loadVerse();
+
+// ── Study Note ──────────────────────────────────────────────────────────────
+if (API_TOKEN) {
+  const notePanel = document.getElementById("note-panel");
+  const noteArea = document.getElementById("note-textarea");
+  notePanel.style.display = "";
+
+  fetch(`/api/v1/verses/${CHAPTER}.${VERSE}/note/`, {
+    headers: { "Authorization": "Token " + API_TOKEN }
+  }).then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && data.body) noteArea.value = data.body;
+    }).catch(() => {});
+}
+
+window.saveNote = async function() {
+  if (!API_TOKEN) return;
+  const noteArea = document.getElementById("note-textarea");
+  const btn = document.getElementById("note-save-btn");
+  const msg = document.getElementById("note-msg");
+  const body = noteArea.value;
+  btn.disabled = true;
+  try {
+    const r = await fetch(`/api/v1/verses/${CHAPTER}.${VERSE}/note/`, {
+      method: "PUT",
+      headers: { "Authorization": "Token " + API_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({ body })
+    });
+    if (r.ok) {
+      msg.textContent = LANG === "hi" ? "✓ नोट सहेजा गया" : "✓ Note saved";
+      setTimeout(() => { msg.textContent = ""; }, 3000);
+    } else {
+      msg.style.color = "rgba(255,100,100,0.85)";
+      msg.textContent = LANG === "hi" ? "सहेजने में विफल" : "Failed to save";
+      setTimeout(() => { msg.textContent = ""; msg.style.color = "rgba(100,220,140,0.85)"; }, 3000);
+    }
+  } catch {
+    msg.style.color = "rgba(255,100,100,0.85)";
+    msg.textContent = LANG === "hi" ? "नेटवर्क त्रुटि" : "Network error";
+    setTimeout(() => { msg.textContent = ""; msg.style.color = "rgba(100,220,140,0.85)"; }, 3000);
+  } finally {
+    btn.disabled = false;
+  }
+};
 </script>
 </body>
 </html>

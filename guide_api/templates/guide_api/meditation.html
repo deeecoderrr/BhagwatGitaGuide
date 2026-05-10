@@ -885,6 +885,61 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
     }
+
+    /* ── Practice Journal ──────────────────────────────────────────── */
+    .journal-toggle {
+      width: 100%; display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; background: transparent; border: none;
+      cursor: pointer; color: rgba(245,217,160,0.9);
+      font-family: "Cormorant Garamond", serif; font-size: 20px; font-weight: 600;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .journal-toggle[aria-expanded="true"] .journal-chevron { transform: rotate(180deg); }
+    .journal-chevron { font-size: 11px; color: var(--gold); transition: transform 0.25s; }
+    .journal-section {
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding: 16px 20px;
+    }
+    .journal-section-title {
+      font-size: 14px; font-weight: 700; color: var(--gold);
+      margin-bottom: 12px; letter-spacing: 0.02em;
+    }
+    .journal-row { display: flex; gap: 10px; align-items: flex-end; margin-bottom: 10px; }
+    .journal-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 4px; }
+    .journal-input {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; color: rgba(240,230,210,0.9);
+      font-family: "Manrope", system-ui, sans-serif; font-size: 14px;
+      padding: 9px 12px; transition: border-color 0.2s;
+    }
+    .journal-input:focus { outline: none; border-color: rgba(232,184,109,0.4); }
+    .journal-input::placeholder { color: var(--muted); }
+    .journal-presets { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 4px; }
+    .preset-chip {
+      padding: 5px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      border: 1px solid rgba(232,184,109,0.3); color: var(--gold);
+      background: rgba(232,184,109,0.06); cursor: pointer; transition: all 0.15s;
+    }
+    .preset-chip:hover, .preset-chip.active { background: rgba(232,184,109,0.18); }
+    .journal-mood-row { display: flex; gap: 16px; margin-bottom: 10px; flex-wrap: wrap; }
+    .journal-mood-group { flex: 1; min-width: 120px; }
+    .mood-chips { display: flex; gap: 6px; margin-top: 4px; }
+    .mood-chip {
+      flex: 1; padding: 6px 0; border-radius: 8px; font-size: 13px; font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.12); color: var(--muted);
+      background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.15s;
+    }
+    .mood-chip.active { border-color: rgba(232,184,109,0.45); color: var(--gold); background: rgba(232,184,109,0.12); }
+    .journal-submit-btn {
+      padding: 9px 22px; border-radius: 999px;
+      background: linear-gradient(135deg,rgba(232,184,109,0.22),rgba(232,184,109,0.1));
+      border: 1px solid rgba(232,184,109,0.4); color: var(--gold);
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .journal-submit-btn:hover { background: rgba(232,184,109,0.22); }
+    .journal-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .journal-msg { font-size: 12px; margin-left: 10px; color: rgba(100,220,140,0.85); }
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
@@ -952,6 +1007,142 @@
       <div class="glass-card stat-card">
         <div class="stat-value" id="stat-presence">-</div>
         <div class="stat-label">Presence score</div>
+      </div>
+    </section>
+
+    <section class="stats-grid" id="stats-grid" aria-label="Practice insights">
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-practice">-</div>
+        <div class="stat-label">Practice sessions</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-learn">-</div>
+        <div class="stat-label">Learning sessions</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-minutes">-</div>
+        <div class="stat-label">Tracked minutes</div>
+      </div>
+      <div class="glass-card stat-card">
+        <div class="stat-value" id="stat-presence">-</div>
+        <div class="stat-label">Presence score</div>
+      </div>
+    </section>
+
+    <!-- ── Practice Journal ────────────────────────────────────────────── -->
+    <section class="glass-card" id="practice-journal" style="padding:0;margin-bottom:20px;display:none">
+      <button class="journal-toggle" id="journal-toggle" onclick="toggleJournal()" aria-expanded="false">
+        <span>📓 {% if language == "hi" %}अभ्यास जर्नल{% else %}Practice Journal{% endif %}</span>
+        <span class="journal-chevron">▼</span>
+      </button>
+      <div id="journal-body" style="display:none">
+        <!-- Sit Log -->
+        <div class="journal-section">
+          <div class="journal-section-title">🧘 {% if language == "hi" %}ध्यान लॉग{% else %}Sit Log{% endif %}</div>
+          <div class="journal-row">
+            <label class="journal-label">{% if language == "hi" %}अवधि (मिनट){% else %}Duration (min){% endif %}</label>
+            <input type="number" id="sit-duration" class="journal-input" min="0" max="300" placeholder="0">
+            <div class="journal-presets">
+              <button class="preset-chip" onclick="setDuration(5)">5</button>
+              <button class="preset-chip" onclick="setDuration(10)">10</button>
+              <button class="preset-chip" onclick="setDuration(15)">15</button>
+              <button class="preset-chip" onclick="setDuration(20)">20</button>
+              <button class="preset-chip" onclick="setDuration(30)">30</button>
+            </div>
+          </div>
+          <div class="journal-mood-row">
+            <div class="journal-mood-group">
+              <label class="journal-label">{% if language == "hi" %}पूर्व-मनोदशा{% else %}Pre-Mood{% endif %}</label>
+              <div class="mood-chips" id="pre-mood-chips">
+                <button class="mood-chip" onclick="selectMood('pre_mood',1,this)">1</button>
+                <button class="mood-chip" onclick="selectMood('pre_mood',2,this)">2</button>
+                <button class="mood-chip" onclick="selectMood('pre_mood',3,this)">3</button>
+                <button class="mood-chip" onclick="selectMood('pre_mood',4,this)">4</button>
+                <button class="mood-chip" onclick="selectMood('pre_mood',5,this)">5</button>
+              </div>
+            </div>
+            <div class="journal-mood-group">
+              <label class="journal-label">{% if language == "hi" %}उत्तर-मनोदशा{% else %}Post-Mood{% endif %}</label>
+              <div class="mood-chips" id="post-mood-chips">
+                <button class="mood-chip" onclick="selectMood('post_mood',1,this)">1</button>
+                <button class="mood-chip" onclick="selectMood('post_mood',2,this)">2</button>
+                <button class="mood-chip" onclick="selectMood('post_mood',3,this)">3</button>
+                <button class="mood-chip" onclick="selectMood('post_mood',4,this)">4</button>
+                <button class="mood-chip" onclick="selectMood('post_mood',5,this)">5</button>
+              </div>
+            </div>
+          </div>
+          <div class="journal-mood-row">
+            <div class="journal-mood-group">
+              <label class="journal-label">{% if language == "hi" %}पूर्व-तनाव{% else %}Pre-Stress{% endif %}</label>
+              <div class="mood-chips" id="pre-stress-chips">
+                <button class="mood-chip" onclick="selectMood('pre_stress',1,this)">1</button>
+                <button class="mood-chip" onclick="selectMood('pre_stress',2,this)">2</button>
+                <button class="mood-chip" onclick="selectMood('pre_stress',3,this)">3</button>
+                <button class="mood-chip" onclick="selectMood('pre_stress',4,this)">4</button>
+                <button class="mood-chip" onclick="selectMood('pre_stress',5,this)">5</button>
+              </div>
+            </div>
+            <div class="journal-mood-group">
+              <label class="journal-label">{% if language == "hi" %}उत्तर-तनाव{% else %}Post-Stress{% endif %}</label>
+              <div class="mood-chips" id="post-stress-chips">
+                <button class="mood-chip" onclick="selectMood('post_stress',1,this)">1</button>
+                <button class="mood-chip" onclick="selectMood('post_stress',2,this)">2</button>
+                <button class="mood-chip" onclick="selectMood('post_stress',3,this)">3</button>
+                <button class="mood-chip" onclick="selectMood('post_stress',4,this)">4</button>
+                <button class="mood-chip" onclick="selectMood('post_stress',5,this)">5</button>
+              </div>
+            </div>
+          </div>
+          <div class="journal-row" style="flex-direction:column;gap:6px">
+            <input type="text" id="sit-pre-note" class="journal-input" placeholder="{% if language == 'hi' %}ध्यान से पहले (वैकल्पिक){% else %}Before the sit (optional){% endif %}">
+            <input type="text" id="sit-post-note" class="journal-input" placeholder="{% if language == 'hi' %}ध्यान के बाद (वैकल्पिक){% else %}After the sit (optional){% endif %}">
+          </div>
+          <div style="padding:0 20px 16px">
+            <button class="journal-submit-btn" onclick="submitSitLog()">
+              {% if language == "hi" %}ध्यान लॉग करें{% else %}Log Sit{% endif %}
+            </button>
+            <span id="sit-msg" class="journal-msg"></span>
+          </div>
+        </div>
+
+        <!-- Japa Log -->
+        <div class="journal-section">
+          <div class="journal-section-title">📿 {% if language == "hi" %}जप लॉग{% else %}Japa Log{% endif %}</div>
+          <div class="journal-row">
+            <div style="flex:1">
+              <label class="journal-label">{% if language == "hi" %}माला की संख्या{% else %}Rounds{% endif %}</label>
+              <input type="number" id="japa-rounds" class="journal-input" min="0" max="999" placeholder="0">
+            </div>
+            <div style="flex:2">
+              <label class="journal-label">{% if language == "hi" %}मंत्र{% else %}Mantra{% endif %}</label>
+              <input type="text" id="japa-mantra" class="journal-input" placeholder="{% if language == 'hi' %}हरे कृष्ण{% else %}Hare Krishna{% endif %}">
+            </div>
+          </div>
+          <div style="padding:0 20px 16px">
+            <button class="journal-submit-btn" onclick="submitJapaLog()">
+              {% if language == "hi" %}जप लॉग करें{% else %}Log Japa{% endif %}
+            </button>
+            <span id="japa-msg" class="journal-msg"></span>
+          </div>
+        </div>
+
+        <!-- Read Log -->
+        <div class="journal-section" style="border-bottom:none">
+          <div class="journal-section-title">📖 {% if language == "hi" %}पाठ लॉग{% else %}Read Log{% endif %}</div>
+          <div class="journal-row">
+            <div style="flex:1">
+              <label class="journal-label">{% if language == "hi" %}मिनट{% else %}Minutes{% endif %}</label>
+              <input type="number" id="read-mins" class="journal-input" min="0" max="480" placeholder="0">
+            </div>
+          </div>
+          <div style="padding:0 20px 16px">
+            <button class="journal-submit-btn" onclick="submitReadLog()">
+              {% if language == "hi" %}पाठ लॉग करें{% else %}Log Reading{% endif %}
+            </button>
+            <span id="read-msg" class="journal-msg"></span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1775,6 +1966,142 @@ window.addEventListener("hashchange", () => {
 loadPractices();
 loadInsights();
 loadRecent();
+
+// ── Practice Journal ─────────────────────────────────────────────────────────
+(function initPracticeJournal() {
+  const token = getCookie("chat_token") || localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "";
+  if (!token) return;
+  const API_BASE = "/api/v1";
+  document.getElementById("practice-journal").style.display = "";
+
+  const _state = { pre_mood: null, post_mood: null, pre_stress: null, post_stress: null };
+
+  window.toggleJournal = function() {
+    const body = document.getElementById("journal-body");
+    const btn = document.getElementById("journal-toggle");
+    const open = body.style.display !== "none";
+    body.style.display = open ? "none" : "";
+    btn.setAttribute("aria-expanded", (!open).toString());
+  };
+
+  window.setDuration = function(mins) {
+    document.getElementById("sit-duration").value = mins;
+    document.querySelectorAll(".preset-chip").forEach(c => {
+      c.classList.toggle("active", parseInt(c.textContent) === mins);
+    });
+  };
+
+  window.selectMood = function(field, val, btn) {
+    _state[field] = val;
+    const groupId = field === "pre_mood" ? "pre-mood-chips" :
+                    field === "post_mood" ? "post-mood-chips" :
+                    field === "pre_stress" ? "pre-stress-chips" : "post-stress-chips";
+    document.querySelectorAll(`#${groupId} .mood-chip`).forEach(c => c.classList.remove("active"));
+    btn.classList.add("active");
+  };
+
+  function showMsg(id, text, isError) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.style.color = isError ? "rgba(255,100,100,0.85)" : "rgba(100,220,140,0.85)";
+    setTimeout(() => { el.textContent = ""; }, 3500);
+  }
+
+  function todayYmd() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  async function apiFetch(path, body) {
+    const r = await fetch(API_BASE + path, {
+      method: "POST",
+      headers: { "Authorization": "Token " + token, "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    return r;
+  }
+
+  window.submitSitLog = async function() {
+    const btn = document.querySelector(".journal-section:nth-child(1) .journal-submit-btn");
+    const durationMins = parseInt(document.getElementById("sit-duration").value || "0", 10);
+    const preNote = document.getElementById("sit-pre-note").value.trim();
+    const postNote = document.getElementById("sit-post-note").value.trim();
+    btn.disabled = true;
+    try {
+      const sessionBody = {
+        pre_mood: _state.pre_mood || null,
+        post_mood: _state.post_mood || null,
+        pre_stress: _state.pre_stress || null,
+        post_stress: _state.post_stress || null,
+        pre_note: preNote || null,
+        post_note: postNote || null,
+        duration_seconds: durationMins * 60,
+        program_slug: ""
+      };
+      const r1 = await apiFetch("/practice/meditation-sessions/", sessionBody);
+      if (durationMins > 0) {
+        await apiFetch("/practice/log/", {
+          logged_on: todayYmd(),
+          entry_type: "meditation_minutes",
+          quantity: durationMins
+        });
+      }
+      if (r1.ok) {
+        showMsg("sit-msg", "✓ " + (document.documentElement.lang === "hi" ? "ध्यान लॉग हुआ" : "Sit logged"), false);
+        document.getElementById("sit-duration").value = "";
+        document.getElementById("sit-pre-note").value = "";
+        document.getElementById("sit-post-note").value = "";
+        document.querySelectorAll(".mood-chip, .preset-chip").forEach(c => c.classList.remove("active"));
+        _state.pre_mood = _state.post_mood = _state.pre_stress = _state.post_stress = null;
+        loadInsights();
+      } else {
+        showMsg("sit-msg", document.documentElement.lang === "hi" ? "लॉग में विफल" : "Failed to log", true);
+      }
+    } catch { showMsg("sit-msg", "Network error", true); }
+    finally { btn.disabled = false; }
+  };
+
+  window.submitJapaLog = async function() {
+    const btn = document.querySelector(".journal-section:nth-child(2) .journal-submit-btn");
+    const rounds = parseInt(document.getElementById("japa-rounds").value || "0", 10);
+    const mantra = document.getElementById("japa-mantra").value.trim() || "Japa";
+    if (!rounds) { showMsg("japa-msg", document.documentElement.lang === "hi" ? "माला की संख्या दर्ज करें" : "Enter round count", true); return; }
+    btn.disabled = true;
+    try {
+      const r = await apiFetch("/practice/log/", {
+        logged_on: todayYmd(), entry_type: "japa_rounds", quantity: rounds, mantra_label: mantra
+      });
+      if (r.ok) {
+        showMsg("japa-msg", "✓ " + (document.documentElement.lang === "hi" ? "जप लॉग हुआ" : "Japa logged"), false);
+        document.getElementById("japa-rounds").value = "";
+        document.getElementById("japa-mantra").value = "";
+        loadInsights();
+      } else {
+        showMsg("japa-msg", document.documentElement.lang === "hi" ? "लॉग में विफल" : "Failed to log", true);
+      }
+    } catch { showMsg("japa-msg", "Network error", true); }
+    finally { btn.disabled = false; }
+  };
+
+  window.submitReadLog = async function() {
+    const btn = document.querySelector(".journal-section:nth-child(3) .journal-submit-btn");
+    const mins = parseInt(document.getElementById("read-mins").value || "0", 10);
+    if (!mins) { showMsg("read-msg", document.documentElement.lang === "hi" ? "मिनट दर्ज करें" : "Enter minutes", true); return; }
+    btn.disabled = true;
+    try {
+      const r = await apiFetch("/practice/log/", {
+        logged_on: todayYmd(), entry_type: "read_minutes", quantity: mins
+      });
+      if (r.ok) {
+        showMsg("read-msg", "✓ " + (document.documentElement.lang === "hi" ? "पाठ लॉग हुआ" : "Reading logged"), false);
+        document.getElementById("read-mins").value = "";
+        loadInsights();
+      } else {
+        showMsg("read-msg", document.documentElement.lang === "hi" ? "लॉग में विफल" : "Failed to log", true);
+      }
+    } catch { showMsg("read-msg", "Network error", true); }
+    finally { btn.disabled = false; }
+  };
+})();
 </script>
 </body>
 </html>
