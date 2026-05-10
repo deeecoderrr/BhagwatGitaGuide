@@ -480,8 +480,12 @@
             ✦ ${LANG==="hi"?"अभी नामांकन करें":"Enroll Now"}
           </button>` : `<a href="/api/chat-ui/?language=${LANG}#guest-auth-target" class="btn-enroll" style="display:block;text-align:center;text-decoration:none">${LANG==="hi"?"साइन इन करके नामांकन करें":"Sign in to Enroll"}</a>`}
         </div>` : ""}
-        ${enrolled ? `<div class="enroll-section" style="text-align:center;color:rgba(121,217,239,0.8);font-size:14px">
-          ✓ ${LANG==="hi"?"आप नामांकित हैं। मोबाइल ऐप में अभ्यास जारी रखें।":"You are enrolled. Continue your practice in the mobile app."}
+        ${enrolled ? `<div class="enroll-section" style="text-align:center">
+          <p style="color:rgba(121,217,239,0.88);font-size:15px;margin:0 0 8px">✓ ${LANG==="hi"?"आप नामांकित हैं।":"You are enrolled."}</p>
+          <p style="color:var(--muted);font-size:13px;margin:0 0 14px">${LANG==="hi"?"ऊपर कोई भी अनलॉक्ड दिन चुनें और अभ्यास जारी रखें।":"Select any unlocked day above to continue your practice."}</p>
+          <a href="/practice/?language=${LANG}" style="display:inline-block;padding:10px 22px;border-radius:999px;background:linear-gradient(130deg,rgba(232,200,114,0.88),rgba(178,140,72,0.8));color:#161008;font-size:13px;font-weight:700;text-decoration:none">
+            ${LANG==="hi"?"अभ्यास केंद्र खोलें →":"Open Practice Hub →"}
+          </a>
         </div>` : ""}
       `;
     };

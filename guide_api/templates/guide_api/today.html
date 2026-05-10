@@ -425,7 +425,7 @@
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
-<body>
+<body data-lang="{{ language|default:'en' }}">
 <header>
   <div class="header-left">
     <h1>🌅 {% if language == "hi" %}आज का संकेत{% else %}Today's Signal{% endif %}</h1>

@@ -439,8 +439,9 @@
       transform: translateX(-50%) translateY(0);
     }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
-<body>
+<body data-lang="{{ language|default:'en' }}">
 
 <div class="page-wrapper">
 

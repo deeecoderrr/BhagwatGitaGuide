@@ -3,11 +3,36 @@
 
   const doc = document;
   const path = window.location.pathname;
+  const LANG_KEY = "gita.lang";
+
+  /* ── Language resolution: URL param > data-lang > localStorage > "en" ── */
+  const _urlLang = new URLSearchParams(window.location.search).get("language");
+  const _storedLang = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
   const lang =
+    (_urlLang === "hi" || _urlLang === "en" ? _urlLang : null) ||
     doc.body?.dataset?.lang ||
     doc.body?.dataset?.language ||
     doc.documentElement.getAttribute("lang") ||
-    "en";
+    (_storedLang === "hi" ? "hi" : "en");
+
+  /* Save to localStorage whenever URL explicitly specifies a language */
+  if (_urlLang === "hi" || _urlLang === "en") {
+    try { localStorage.setItem(LANG_KEY, _urlLang); } catch { /* noop */ }
+  }
+
+  /* Auto-redirect: if no lang in URL but stored pref is "hi", reload with it */
+  if (!_urlLang && _storedLang === "hi" && typeof window !== "undefined") {
+    const _u = new URL(window.location.href);
+    _u.searchParams.set("language", "hi");
+    window.location.replace(_u.toString());
+  }
+
+  function _setLang(newLang) {
+    try { localStorage.setItem(LANG_KEY, newLang); } catch { /* noop */ }
+    const _u = new URL(window.location.href);
+    _u.searchParams.set("language", newLang);
+    window.location.assign(_u.toString());
+  }
 
   const navItems = [
     { id: "today", label: "Today", icon: "⌂", href: "/today/", match: ["/today/"] },
@@ -120,9 +145,17 @@
           </span>
         </a>
         <div class="portal-topnav">${navMarkup(navItems, false)}</div>
+        <div class="portal-lang-toggle" aria-label="Change language">
+          <button type="button" class="portal-lang-btn${lang === "en" ? " portal-lang-btn-on" : ""}" data-portal-lang="en">EN</button>
+          <button type="button" class="portal-lang-btn${lang === "hi" ? " portal-lang-btn-on" : ""}" data-portal-lang="hi">हि</button>
+        </div>
         <button type="button" class="portal-command-trigger" data-portal-command>Menu</button>
       `,
     );
+    topbar.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-portal-lang]");
+      if (btn) _setLang(btn.dataset.portalLang);
+    });
     doc.body.prepend(topbar);
   }
 

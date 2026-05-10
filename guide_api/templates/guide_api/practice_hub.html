@@ -186,6 +186,35 @@
       font-size: 11px;
       border-radius: 999px;
     }
+    /* ── Guided Practice Workflows ── */
+    .wf-tag-strip { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .wf-chip {
+      padding:6px 14px; border-radius:999px; font-size:12px; font-weight:600;
+      font-family:inherit; cursor:pointer;
+      background:rgba(255,255,255,0.04); border:1px solid rgba(232,184,109,0.22);
+      color:var(--muted); transition:background 0.18s, color 0.18s, border-color 0.18s;
+    }
+    .wf-chip.on, .wf-chip:hover {
+      background:rgba(232,184,109,0.14); border-color:rgba(232,184,109,0.55);
+      color:rgba(245,217,160,0.96);
+    }
+    .wf-grid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); }
+    article.wf-card {
+      border-radius:14px; border:1px solid rgba(255,255,255,0.08); padding:16px;
+      background:rgba(6,12,22,0.55); display:flex; flex-direction:column; gap:8px;
+      cursor:pointer; transition:border-color 0.18s;
+    }
+    article.wf-card:hover { border-color:rgba(232,184,109,0.35); }
+    article.wf-card h3 { margin:0; font-size:16px; }
+    .wf-desc { margin:0; font-size:13px; color:var(--muted); line-height:1.5; }
+    .wf-meta { font-size:12px; color:var(--muted); display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+    .wf-tag-label { font-size:11px; color:rgba(121,217,239,0.75); }
+    #wf-player { margin-top:16px; }
+    #wf-player h2 { margin:0 0 10px; font-size:18px; }
+    .wf-close-btn {
+      background:transparent; border:1px solid rgba(255,255,255,0.15); color:var(--muted);
+      padding:6px 14px; font-size:12px; border-radius:999px; margin-bottom:12px; cursor:pointer;
+    }
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
@@ -207,6 +236,15 @@
     </a>
   </header>
   <main>
+    <div class="panel" id="guided-practices-panel">
+      <h2 style="margin:0 0 4px;font-size:20px;letter-spacing:-0.02em">{% if language == "hi" %}मार्गदर्शित अभ्यास{% else %}Guided Practices{% endif %}</h2>
+      <p class="muted" style="margin:0 0 14px;font-size:13px">{% if language == "hi" %}एकल सत्र — ध्यान, प्राणायाम, मंत्र, और अधिक।{% else %}Single-session guided flows — meditation, breathwork, mantra, and more.{% endif %}</p>
+      <div id="wf-tag-strip" class="wf-tag-strip"></div>
+      <div id="wf-grid" class="wf-grid" aria-live="polite">
+        <p class="muted">{% if language == "hi" %}लोड हो रहा है…{% else %}Loading…{% endif %}</p>
+      </div>
+      <div id="wf-player" class="panel hidden" aria-live="polite"></div>
+    </div>
     <div class="panel">
       <p class="lead">
         {% if language == "hi" %}
@@ -688,6 +726,139 @@
           }
         }
       };
+
+      // ── Guided Practice Workflows ─────────────────────────────────────────
+      var wfGridEl = document.getElementById("wf-grid");
+      var wfTagStripEl = document.getElementById("wf-tag-strip");
+      var wfPlayerEl = document.getElementById("wf-player");
+
+      function renderWorkflowDetail(data) {
+        wfPlayerEl.classList.remove("hidden");
+        wfPlayerEl.innerHTML = "";
+        var closeBtn = document.createElement("button");
+        closeBtn.className = "wf-close-btn";
+        closeBtn.textContent = langIsHi ? "✕ बंद करें" : "✕ Close";
+        closeBtn.addEventListener("click", function () {
+          wfPlayerEl.classList.add("hidden");
+          wfPlayerEl.innerHTML = "";
+        });
+        wfPlayerEl.appendChild(closeBtn);
+        var title = document.createElement("h2");
+        title.textContent = escapeHtml(data.title || "");
+        wfPlayerEl.appendChild(title);
+        if (data.philosophy_blurb) {
+          var blurb = document.createElement("p");
+          blurb.className = "muted";
+          blurb.style.lineHeight = "1.55";
+          blurb.textContent = data.philosophy_blurb;
+          wfPlayerEl.appendChild(blurb);
+        }
+        (data.steps || []).forEach(function (step) {
+          wfPlayerEl.appendChild(buildStepCard(step));
+        });
+        wfPlayerEl.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+
+      function openWorkflow(slug) {
+        wfPlayerEl.classList.remove("hidden");
+        wfPlayerEl.innerHTML = '<p class="muted">' + (langIsHi ? "लोड हो रहा है…" : "Loading…") + "</p>";
+        fetch(
+          "/api/v1/practice/workflows/" + encodeURIComponent(slug) + "/",
+          { credentials: "same-origin" }
+        )
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.content_unlocked) {
+              wfPlayerEl.innerHTML =
+                '<p class="muted" style="padding:12px 0">' +
+                (langIsHi
+                  ? "यह अभ्यास लॉक है। साइन इन करें या पहुँच खरीदें।"
+                  : "This practice is locked. Please sign in or purchase access to continue.") +
+                "</p>";
+              return;
+            }
+            renderWorkflowDetail(d);
+          })
+          .catch(function () {
+            wfPlayerEl.innerHTML = '<p class="muted">' + (langIsHi ? "लोड नहीं हो सका।" : "Could not load practice.") + "</p>";
+          });
+      }
+
+      function renderWorkflowCards(rows) {
+        if (!rows || !rows.length) {
+          wfGridEl.innerHTML = '<p class="muted">' + (langIsHi ? "कोई अभ्यास नहीं मिला।" : "No guided practices found.") + "</p>";
+          return;
+        }
+        wfGridEl.innerHTML = "";
+        rows.forEach(function (w) {
+          var card = document.createElement("article");
+          card.className = "wf-card";
+          var tags = (w.tags || []).map(function (t) { return escapeHtml(t.label); }).join(" · ");
+          var dur = w.estimated_total_minutes
+            ? "⏱ " + w.estimated_total_minutes + (langIsHi ? " मि" : " min")
+            : "";
+          var lockIcon = w.content_unlocked ? "" : "🔒 ";
+          card.innerHTML =
+            "<h3>" + lockIcon + escapeHtml(w.title || "") + "</h3>" +
+            (w.description
+              ? "<p class=\"wf-desc\">" + escapeHtml(w.description.slice(0, 120)) + (w.description.length > 120 ? "…" : "") + "</p>"
+              : "") +
+            "<div class=\"wf-meta\">" +
+              (tags ? "<span class=\"wf-tag-label\">" + tags + "</span>" : "") +
+              (dur ? "<span>" + dur + "</span>" : "") +
+            "</div>";
+          card.addEventListener("click", function () { openWorkflow(w.slug); });
+          wfGridEl.appendChild(card);
+        });
+      }
+
+      function loadWorkflowsByTag(tag) {
+        wfGridEl.innerHTML = "<p class=\"muted\">…</p>";
+        wfPlayerEl.classList.add("hidden");
+        wfPlayerEl.innerHTML = "";
+        var url = "/api/v1/practice/workflows/" + (tag ? "?tag=" + encodeURIComponent(tag) : "");
+        fetch(url, { credentials: "same-origin" })
+          .then(function (r) { return r.json(); })
+          .then(function (d) { renderWorkflowCards(d.results || []); })
+          .catch(function () {
+            wfGridEl.innerHTML = "<p class=\"muted\">" + (langIsHi ? "अभ्यास लोड नहीं हो सके।" : "Could not load practices.") + "</p>";
+          });
+      }
+
+      function setWfTag(tag) {
+        wfTagStripEl.querySelectorAll(".wf-chip").forEach(function (c) {
+          c.classList.toggle("on", c.getAttribute("data-tag") === (tag || ""));
+        });
+        loadWorkflowsByTag(tag);
+      }
+
+      fetch("/api/v1/practice/tags/", { credentials: "same-origin" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var tags = d.results || [];
+          wfTagStripEl.innerHTML = "";
+          var allBtn = document.createElement("button");
+          allBtn.className = "wf-chip on";
+          allBtn.setAttribute("data-tag", "");
+          allBtn.textContent = langIsHi ? "सभी" : "All";
+          allBtn.addEventListener("click", function () { setWfTag(null); });
+          wfTagStripEl.appendChild(allBtn);
+          tags.forEach(function (t) {
+            var btn = document.createElement("button");
+            btn.className = "wf-chip";
+            btn.setAttribute("data-tag", t.slug);
+            btn.textContent = t.label;
+            btn.addEventListener("click", function () { setWfTag(t.slug); });
+            wfTagStripEl.appendChild(btn);
+          });
+          if (!tags.length) { wfTagStripEl.style.display = "none"; }
+        })
+        .catch(function () {
+          if (wfTagStripEl) { wfTagStripEl.style.display = "none"; }
+        });
+
+      loadWorkflowsByTag(null);
+      // ── End Guided Practice Workflows ──────────────────────────────────────
 
       fetch("/api/sadhana/programs/", { credentials: "same-origin" })
         .then(function (r) {

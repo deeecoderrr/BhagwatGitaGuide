@@ -235,7 +235,7 @@
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
-<body class="gita-ambient">
+<body class="gita-ambient" data-lang="{{ language|default:'en' }}">
   {% csrf_token %}
   <div class="wrap">
     <div class="nav-row">

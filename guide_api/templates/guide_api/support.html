@@ -203,8 +203,9 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+  <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
-<body>
+<body data-lang="{{ language|default:'en' }}">
 <header>
   <div class="header-left">
     <h1>{% if language == "hi" %}🛟 सहायता{% else %}🛟 Support{% endif %}</h1>

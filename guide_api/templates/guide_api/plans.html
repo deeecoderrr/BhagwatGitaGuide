@@ -259,6 +259,31 @@
     .skeleton { background: linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.08),rgba(255,255,255,0.04)); background-size:200% 100%; animation:shimmer 1.8s infinite; border-radius:8px; }
     @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
     #error-msg { color: rgba(240,100,100,0.9); font-size: 13px; margin-top: 8px; min-height: 20px; }
+
+    /* Billing form */
+    #billing-panel { display: none; }
+    .billing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .b-row { display: flex; flex-direction: column; gap: 4px; }
+    .b-label {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted);
+    }
+    .b-input {
+      width: 100%; box-sizing: border-box;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(232,184,109,0.2);
+      border-radius: 10px; padding: 11px 14px;
+      color: rgba(240,230,210,0.9);
+      font-family: "Manrope", sans-serif; font-size: 14px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .b-input:focus { border-color: rgba(232,184,109,0.45); }
+    .b-input::placeholder { color: rgba(163,160,190,0.5); }
+    .billing-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
@@ -287,6 +312,51 @@
       </span>
       <button class="currency-chip active" id="btn-inr" onclick="setCurrency('INR')">₹ INR</button>
       <button class="currency-chip" id="btn-usd" onclick="setCurrency('USD')">$ USD</button>
+    </div>
+
+    <!-- Billing details (shown for logged-in users) -->
+    <div class="panel" id="billing-panel">
+      <h2 class="section-title">
+        {% if language == "hi" %}📌 बिलिंग विवरण{% else %}📌 Billing Details{% endif %}
+      </h2>
+      <div class="billing-grid">
+        <div class="b-row">
+          <label class="b-label" for="b-name">
+            {% if language == "hi" %}पूरा नाम{% else %}Full Name{% endif %} *
+          </label>
+          <input id="b-name" class="b-input" type="text"
+            placeholder="{% if language == 'hi' %}पूरा नाम…{% else %}Your full name{% endif %}">
+        </div>
+        <div class="b-row">
+          <label class="b-label" for="b-email">
+            {% if language == "hi" %}ईमेल{% else %}Email{% endif %} *
+          </label>
+          <input id="b-email" class="b-input" type="email"
+            placeholder="{% if language == 'hi' %}ईमेल…{% else %}you@example.com{% endif %}">
+        </div>
+        <div class="b-row">
+          <label class="b-label" for="b-country">
+            {% if language == "hi" %}देश कोड{% else %}Country Code{% endif %} *
+          </label>
+          <input id="b-country" class="b-input" type="text" maxlength="2"
+            placeholder="IN" value="IN" style="text-transform:uppercase">
+        </div>
+        <div class="b-row">
+          <label class="b-label" for="b-business">
+            {% if language == "hi" %}व्यवसाय नाम{% else %}Business Name{% endif %}
+          </label>
+          <input id="b-business" class="b-input" type="text"
+            placeholder="{% if language == 'hi' %}वैकल्पिक{% else %}Optional{% endif %}">
+        </div>
+        <div class="b-row">
+          <label class="b-label" for="b-gstin">GSTIN</label>
+          <input id="b-gstin" class="b-input" type="text"
+            placeholder="{% if language == 'hi' %}वैकल्पिक — केवल भारत के लिए{% else %}Optional — India GST only{% endif %}">
+        </div>
+      </div>
+      <p class="billing-note">
+        {% if language == "hi" %}* आवश्यक क्षेत्र — आपके भुगतान रसीद पर प्रदर्शित होगा{% else %}* Required — shown on your payment receipt{% endif %}
+      </p>
     </div>
 
     <!-- Plans grid -->
@@ -372,8 +442,8 @@
         renderCurrentSub(null);
         // Re-render plans with current plan known
         if (catalog) renderPlans(catalog);
-      }
-    }).catch(() => {
+      }      // Show billing panel for logged-in users
+      if (token) document.getElementById("billing-panel").style.display = "";    }).catch(() => {
       document.getElementById("plans-grid").innerHTML = `<p style="color:var(--muted);font-size:13px">${LANG === "hi" ? "योजनाएं लोड नहीं हो सकीं" : "Could not load plans"}</p>`;
       renderCurrentSub(null);
     });
@@ -500,10 +570,38 @@
     window.startCheckout = async function(planKey) {
       const errEl = document.getElementById("error-msg");
       errEl.textContent = "";
+      errEl.style.color = "";
+
+      // Validate billing details before proceeding
+      const billingName    = (document.getElementById("b-name")?.value ?? "").trim();
+      const billingEmail   = (document.getElementById("b-email")?.value ?? "").trim();
+      const billingCountry = (document.getElementById("b-country")?.value ?? "").trim().toUpperCase();
+      const businessName   = (document.getElementById("b-business")?.value ?? "").trim();
+      const gstin          = (document.getElementById("b-gstin")?.value ?? "").trim();
+
+      if (!billingName) {
+        errEl.textContent = LANG === "hi" ? "कृपया अपना पूरा नाम दर्ज करें" : "Please enter your full name";
+        document.getElementById("b-name")?.focus(); return;
+      }
+      if (!billingEmail || !/^[^@]+@[^@]+\.[^@]+$/.test(billingEmail)) {
+        errEl.textContent = LANG === "hi" ? "वैध ईमेल दर्ज करें" : "Please enter a valid email address";
+        document.getElementById("b-email")?.focus(); return;
+      }
+      if (!billingCountry || billingCountry.length !== 2) {
+        errEl.textContent = LANG === "hi" ? "देश कोड 2 अक्षर का होना चाहिए (जैसे IN)" : "Country code must be 2 letters (e.g. IN, US)";
+        document.getElementById("b-country")?.focus(); return;
+      }
+
       try {
+        const body = { plan: planKey, currency: currentCurrency,
+          billing_name: billingName, billing_email: billingEmail,
+          billing_country_code: billingCountry };
+        if (businessName) body.business_name = businessName;
+        if (gstin) body.gstin = gstin;
+
         const r = await apiFetch("/payments/create-order/", {
           method: "POST",
-          body: JSON.stringify({ plan: planKey, currency: currentCurrency })
+          body: JSON.stringify(body)
         });
         const d = await r.json();
         if (!r.ok) {

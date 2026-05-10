@@ -377,6 +377,9 @@
             <button class="btn-action" id="btn-share" onclick="shareArt()">
               {% if language == "hi" %}↗ शेयर करें{% else %}↗ Share{% endif %}
             </button>
+            <button class="btn-action" id="btn-export" onclick="exportImage()">
+              {% if language == "hi" %}⬇ PNG डाउनलोड{% else %}⬇ Export PNG{% endif %}
+            </button>
           </div>
         </div>
         <div id="art-spinner" style="display:none;text-align:center;padding:60px 0">
@@ -647,6 +650,90 @@
       } else {
         copyShareText();
       }
+    };
+
+    function wrapTextCanvas(ctx, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(" ");
+      let line = "";
+      for (const word of words) {
+        const test = line ? line + " " + word : word;
+        if (ctx.measureText(test).width > maxWidth && line) {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+          line = word;
+        } else { line = test; }
+      }
+      if (line) { ctx.fillText(line, x, y); y += lineHeight; }
+      return y;
+    }
+
+    window.exportImage = async function() {
+      if (!currentArt) return;
+      const btn = document.getElementById("btn-export");
+      if (btn) btn.textContent = LANG === "hi" ? "बना रहे हैं…" : "Rendering…";
+      await document.fonts.ready;
+      const SIZE = 800;
+      const canvas = document.createElement("canvas");
+      canvas.width = SIZE; canvas.height = SIZE;
+      const ctx = canvas.getContext("2d");
+
+      // Background gradient
+      const style = currentArt.style ?? {};
+      const grads = Array.isArray(style.gradient) && style.gradient.length >= 2
+        ? style.gradient : ["#1a0a2e", "#4a2080"];
+      const grd = ctx.createLinearGradient(0, 0, SIZE, SIZE);
+      grads.forEach((c, i) => grd.addColorStop(i / (grads.length - 1), c));
+      ctx.fillStyle = grd;
+      ctx.fillRect(0, 0, SIZE, SIZE);
+
+      const textC = style.text_color ?? "#f5d9a0";
+      // Strip rgba() from accent for canvas (use fallback gold)
+      const rawAccent = style.accent_color ?? "";
+      const accentC = /^rgba?\(/.test(rawAccent) ? "rgba(245,217,160,0.75)" : rawAccent || "rgba(245,217,160,0.75)";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+
+      // Sparkle icon line
+      ctx.font = "700 18px Manrope, system-ui, sans-serif";
+      ctx.fillStyle = accentC;
+      ctx.fillText("✦", SIZE / 2, 60);
+
+      // Verse reference
+      ctx.font = "700 16px Manrope, system-ui, sans-serif";
+      ctx.fillStyle = accentC;
+      ctx.fillText(currentArt.verse_reference ?? "", SIZE / 2, 100);
+
+      // Sanskrit
+      ctx.font = "italic 22px 'Cormorant Garamond', Georgia, serif";
+      ctx.fillStyle = accentC;
+      let y = wrapTextCanvas(ctx, currentArt.sanskrit_text ?? "", SIZE / 2, 150, SIZE - 140, 34);
+
+      // Quote
+      y += 28;
+      ctx.font = "500 28px 'Cormorant Garamond', Georgia, serif";
+      ctx.fillStyle = textC;
+      y = wrapTextCanvas(ctx, "\u201C" + (currentArt.quote_text ?? "") + "\u201D", SIZE / 2, y, SIZE - 120, 42);
+
+      // Attribution
+      ctx.font = "700 15px Manrope, system-ui, sans-serif";
+      ctx.fillStyle = accentC;
+      ctx.fillText(currentArt.attribution ?? "Bhagavad Gita", SIZE / 2, SIZE - 100);
+
+      // Watermark
+      ctx.font = "600 12px Manrope, system-ui, sans-serif";
+      ctx.fillStyle = "rgba(255,255,255,0.25)";
+      ctx.fillText("askbhagavadgita.fly.dev", SIZE / 2, SIZE - 60);
+
+      canvas.toBlob(function(blob) {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "gita-" + (currentArt.verse_reference ?? "verse").replace(".", "-") + ".png";
+        a.click();
+        URL.revokeObjectURL(url);
+        if (btn) btn.textContent = LANG === "hi" ? "⬇ PNG डाउनलोड" : "⬇ Export PNG";
+      }, "image/png");
     };
 
     function escHtml(s) { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
