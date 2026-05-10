@@ -35,22 +35,22 @@
   }
 
   const navItems = [
-    { id: "today", label: "Today", icon: "⌂", href: "/today/", match: ["/today/"] },
-    { id: "ask", label: "Ask", icon: "♡", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}`, match: ["/api/chat-ui/"] },
-    { id: "read", label: "Read", icon: "☰", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1`, match: ["/read-", "/read/"] },
-    { id: "meditate", label: "Practice", icon: "✦", href: `/meditation/?language=${encodeURIComponent(lang)}`, match: ["/meditation/", "/japa/", "/sadhana/", "/practice/"] },
-    { id: "journal", label: "Journal", icon: "◷", href: `/history/?language=${encodeURIComponent(lang)}`, match: ["/history/", "/saved-reflections/", "/gratitude/", "/mood/", "/quote-art/"] },
-    { id: "you", label: "Insights", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/", "/account/", "/plans/", "/community/", "/support/"] },
+    { id: "today", label: lang === "hi" ? "आज" : "Today", icon: "⌂", href: `/today/?language=${encodeURIComponent(lang)}`, match: ["/today/"] },
+    { id: "ask", label: lang === "hi" ? "पूछें" : "Ask", icon: "♡", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}`, match: ["/api/chat-ui/"] },
+    { id: "read", label: lang === "hi" ? "पढ़ें" : "Read", icon: "☰", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1`, match: ["/read-", "/read/"] },
+    { id: "meditate", label: lang === "hi" ? "अभ्यास" : "Practice", icon: "✦", href: `/meditation/?language=${encodeURIComponent(lang)}`, match: ["/meditation/", "/japa/", "/sadhana/", "/practice/"] },
+    { id: "journal", label: lang === "hi" ? "डायरी" : "Journal", icon: "◷", href: `/history/?language=${encodeURIComponent(lang)}`, match: ["/history/", "/saved-reflections/", "/gratitude/", "/mood/", "/quote-art/"] },
+    { id: "you", label: lang === "hi" ? "अंतर्दृष्टि" : "Insights", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/", "/account/", "/plans/", "/community/", "/support/"] },
   ];
 
   const quickActions = [
-    { title: "Ask Krishna", desc: "Guidance from Gita wisdom", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}` },
-    { title: "Meditation", desc: "Tracked practice and japa", href: `/meditation/?language=${encodeURIComponent(lang)}` },
-    { title: "Read Gita", desc: "Chapters, verses, notes", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1` },
-    { title: "Insights", desc: "Your journey snapshot", href: `/insights/?language=${encodeURIComponent(lang)}` },
-    { title: "Journal", desc: "Conversation threads", href: `/history/?language=${encodeURIComponent(lang)}` },
-    { title: "Saved", desc: "Saved reflections", href: `/saved-reflections/?language=${encodeURIComponent(lang)}` },
-    { title: "Community", desc: "Read and share devotion", href: `/community/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "कृष्ण से पूछें" : "Ask Krishna", desc: lang === "hi" ? "गीता ज्ञान से मार्गदर्शन" : "Guidance from Gita wisdom", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "ध्यान" : "Meditation", desc: lang === "hi" ? "अभ्यास और जप" : "Tracked practice and japa", href: `/meditation/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "गीता पढ़ें" : "Read Gita", desc: lang === "hi" ? "अध्याय, श्लोक, टिप्पणियां" : "Chapters, verses, notes", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1` },
+    { title: lang === "hi" ? "अंतर्दृष्टि" : "Insights", desc: lang === "hi" ? "आपकी यात्रा का संक्षिप्त विवरण" : "Your journey snapshot", href: `/insights/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "डायरी" : "Journal", desc: lang === "hi" ? "वार्तालाप सूत्र" : "Conversation threads", href: `/history/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "सहेजे गए" : "Saved", desc: lang === "hi" ? "सहेजे गए विचार" : "Saved reflections", href: `/saved-reflections/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "समुदाय" : "Community", desc: lang === "hi" ? "भक्ति पढ़ें और साझा करें" : "Read and share devotion", href: `/community/?language=${encodeURIComponent(lang)}` },
   ];
 
   function isActive(item) {
@@ -109,6 +109,8 @@
     node._timer = setTimeout(() => node.classList.remove("open"), 2600);
   }
 
+  function _localizedToast(en, hi) { toast(lang === "hi" ? hi : en); }
+
   function injectAtmosphere() {
     if (doc.querySelector("[data-portal-vfx]")) return;
     const vfx = createEl(
@@ -140,8 +142,8 @@
         <a class="portal-brand" href="/today/?language=${encodeURIComponent(lang)}">
           <span class="portal-brand-mark" aria-hidden="true"></span>
           <span>
-            <span class="portal-brand-kicker">Ask · Meditate · Heal</span>
-            <span class="portal-brand-title">Bhagavad Gita Guide</span>
+            <span class="portal-brand-kicker">${lang === "hi" ? "पूछें · ध्यान करें · स्वस्थ हों" : "Ask · Meditate · Heal"}</span>
+            <span class="portal-brand-title">${lang === "hi" ? "भगवद्गीता मार्गदर्शन" : "Bhagavad Gita Guide"}</span>
           </span>
         </a>
         <div class="portal-topnav">${navMarkup(navItems, false)}</div>
@@ -149,7 +151,7 @@
           <button type="button" class="portal-lang-btn${lang === "en" ? " portal-lang-btn-on" : ""}" data-portal-lang="en">EN</button>
           <button type="button" class="portal-lang-btn${lang === "hi" ? " portal-lang-btn-on" : ""}" data-portal-lang="hi">हि</button>
         </div>
-        <button type="button" class="portal-command-trigger" data-portal-command>Menu</button>
+        <button type="button" class="portal-command-trigger" data-portal-command>${lang === "hi" ? "मेनू" : "Menu"}</button>
       `,
     );
     topbar.addEventListener("click", (e) => {
@@ -175,8 +177,8 @@
       "aside",
       { class: "portal-drawer", "data-portal-drawer": "", "aria-label": "Quick actions" },
       `
-        <h2>What do you need?</h2>
-        <p>Move between guidance, practice, reading, journaling, and insights just like the mobile app.</p>
+        <h2>${lang === "hi" ? "आपको क्या चाहिए?" : "What do you need?"}</h2>
+        <p>${lang === "hi" ? "मार्गदर्शन, अभ्यास, गीता पठन, डायरी, और अंतर्दृष्टि के बीच आसानी से नेविगेट करें — ठीक मोबाइल एप की तरह।" : "Move between guidance, practice, reading, journaling, and insights just like the mobile app."}</p>
         <div class="portal-action-grid">
           ${quickActions
             .map(
@@ -226,7 +228,7 @@
             await navigator.share({ title: doc.title, url: window.location.href });
           } else {
             await navigator.clipboard.writeText(window.location.href);
-            toast("Link copied");
+            toast(lang === "hi" ? "लिंक कॉपी किया गया" : "Link copied");
           }
         } catch {
           /* user cancelled */
@@ -269,7 +271,7 @@
       doc.body.dataset.portalAuth = "signed-in";
       if (data.username) doc.body.dataset.portalUsername = data.username;
       const brandKicker = doc.querySelector(".portal-brand-kicker");
-      if (brandKicker && data.username) brandKicker.textContent = `Welcome back · ${data.username}`;
+      if (brandKicker && data.username) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${data.username}` : `Welcome back · ${data.username}`;
     } catch {
       doc.body.dataset.portalAuth = "signed-out";
     }

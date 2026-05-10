@@ -6277,3 +6277,68 @@ class StaffFeedbackReviewWebTests(TestCase):
             {"review_status": "reviewed"},  # no entry_id
         )
         self.assertEqual(response.status_code, 302)
+
+
+class WebPageSmokeTests(TestCase):
+    """Smoke tests: all signed-in web page views return HTTP 200."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username="smoketest", password="pass")
+
+    def _get(self, path):
+        c = Client()
+        c.force_login(self.user)
+        return c.get(path)
+
+    def test_today_en(self):
+        self.assertEqual(self._get("/today/?language=en").status_code, 200)
+
+    def test_today_hi(self):
+        self.assertEqual(self._get("/today/?language=hi").status_code, 200)
+
+    def test_insights(self):
+        self.assertEqual(self._get("/insights/?language=en").status_code, 200)
+
+    def test_history(self):
+        self.assertEqual(self._get("/history/?language=en").status_code, 200)
+
+    def test_meditation(self):
+        self.assertEqual(self._get("/meditation/?language=en").status_code, 200)
+
+    def test_plans(self):
+        self.assertEqual(self._get("/plans/?language=en").status_code, 200)
+
+    def test_account(self):
+        self.assertEqual(self._get("/account/?language=en").status_code, 200)
+
+    def test_read_journey(self):
+        self.assertEqual(self._get("/read-journey/?language=en").status_code, 200)
+
+    def test_mood(self):
+        self.assertEqual(self._get("/mood/?language=en").status_code, 200)
+
+    def test_gratitude(self):
+        self.assertEqual(self._get("/gratitude/?language=en").status_code, 200)
+
+    def test_japa(self):
+        self.assertEqual(self._get("/japa/?language=en").status_code, 200)
+
+    def test_support(self):
+        self.assertEqual(self._get("/support/?language=en").status_code, 200)
+
+    def test_notifications(self):
+        self.assertEqual(self._get("/notifications/?language=en").status_code, 200)
+
+    def test_community_anonymous(self):
+        # Community page is accessible without login
+        r = Client().get("/community/?language=en")
+        self.assertEqual(r.status_code, 200)
+
+    def test_saved_reflections(self):
+        self.assertEqual(self._get("/saved-reflections/?language=en").status_code, 200)
+
+    def test_sadhana(self):
+        self.assertEqual(self._get("/sadhana/?language=en").status_code, 200)
+
+    def test_quote_art(self):
+        self.assertEqual(self._get("/quote-art/?language=en").status_code, 200)

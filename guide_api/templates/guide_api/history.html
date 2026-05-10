@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Conversations — Bhagavad Gita Guide</title>
+  <title>{% if language == "hi" %}वार्तालाप{% else %}Conversations{% endif %} — Bhagavad Gita Guide</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
@@ -286,6 +286,20 @@
       color: #ff8080;
     }
     .thread-delete-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .thread-rename-btn {
+      background: transparent;
+      border: 1px solid rgba(232,184,109,0.2);
+      border-radius: 7px;
+      color: rgba(232,184,109,0.7);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: 'Manrope', sans-serif;
+    }
+    .thread-rename-btn:hover { border-color: rgba(232,184,109,0.45); color: var(--gold); background: rgba(232,184,109,0.07); }
+    .thread-rename-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── load more ───────────────────────────────── */
     .load-more-btn {
@@ -449,13 +463,13 @@
   <div class="hero-card">
     <div class="hero-eyebrow">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      THREADS
+      {% if language == "hi" %}सूत्र{% else %}THREADS{% endif %}
     </div>
-    <h1 class="hero-title">Conversations</h1>
-    <p class="hero-sub">Revisit your past dialogues with the Gītā.</p>
+    <h1 class="hero-title">{% if language == "hi" %}वार्तालाप{% else %}Conversations{% endif %}</h1>
+    <p class="hero-sub">{% if language == "hi" %}गीता के साथ अपने पुराने संवाद फिर से देखें।{% else %}Revisit your past dialogues with the Gītā.{% endif %}</p>
     <div class="hero-note">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-      Only you see these threads. Delete anytime.
+      {% if language == "hi" %}केवल आप इन सूत्रों को देख सकते हैं। कभी भी हटाएं।{% else %}Only you see these threads. Delete anytime.{% endif %}
     </div>
   </div>
 
@@ -463,15 +477,15 @@
   <div class="stats-row" id="statsRow" style="display:none;">
     <div class="stat-chip">
       <span class="val" id="statThreads">—</span>
-      <span class="lbl">Threads</span>
+      <span class="lbl">{% if language == "hi" %}सूत्र{% else %}Threads{% endif %}</span>
     </div>
     <div class="stat-chip">
       <span class="val" id="statMessages">—</span>
-      <span class="lbl">Messages</span>
+      <span class="lbl">{% if language == "hi" %}संदेश{% else %}Messages{% endif %}</span>
     </div>
     <div class="stat-chip">
       <span class="val" id="statLatest">—</span>
-      <span class="lbl">Latest</span>
+      <span class="lbl">{% if language == "hi" %}नवीनतम{% else %}Latest{% endif %}</span>
     </div>
   </div>
 
@@ -479,10 +493,10 @@
   <div class="toolbar" id="toolbar" style="display:none;">
     <div class="search-wrap">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input id="searchInput" class="search-input" type="text" placeholder="Search conversations…" autocomplete="off" />
+      <input id="searchInput" class="search-input" type="text" placeholder="{% if language == 'hi' %}वार्तालाप खोजें…{% else %}Search conversations…{% endif %}" autocomplete="off" />
     </div>
-    <button class="sort-btn active" id="sortNewest" onclick="setSort('newest')">Newest</button>
-    <button class="sort-btn" id="sortOldest" onclick="setSort('oldest')">Oldest</button>
+    <button class="sort-btn active" id="sortNewest" onclick="setSort('newest')">{% if language == "hi" %}नवीनतम{% else %}Newest{% endif %}</button>
+    <button class="sort-btn" id="sortOldest" onclick="setSort('oldest')">{% if language == "hi" %}पुराने{% else %}Oldest{% endif %}</button>
   </div>
 
   <!-- main content area -->
@@ -499,11 +513,11 @@
       <div class="auth-gate-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(232,184,109,0.85)" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </div>
-      <div class="auth-gate-title">Sign in to view your threads</div>
-      <div class="auth-gate-sub">Your past conversations with the Gītā are waiting.</div>
-      <a href="/api/chat-ui/" class="sign-in-btn">
+      <div class="auth-gate-title">{% if language == "hi" %}अपने सूत्र देखने के लिए साइन इन करें{% else %}Sign in to view your threads{% endif %}</div>
+      <div class="auth-gate-sub">{% if language == "hi" %}गीता के साथ आपके पुराने संवाद प्रतीक्षा कर रहे हैं।{% else %}Your past conversations with the Gītā are waiting.{% endif %}</div>
+      <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="sign-in-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
-        Sign In
+        {% if language == "hi" %}साइन इन{% else %}Sign In{% endif %}
       </a>
     </div>
 
@@ -511,26 +525,26 @@
     <div id="threadsList" style="display:none;"></div>
 
     <!-- load more -->
-    <button class="load-more-btn" id="loadMoreBtn" style="display:none;" onclick="loadMore()">Load more conversations</button>
+    <button class="load-more-btn" id="loadMoreBtn" style="display:none;" onclick="loadMore()">{% if language == "hi" %}और वार्तालाप लोड करें{% else %}Load more conversations{% endif %}</button>
 
     <!-- empty state -->
     <div id="emptyState" class="empty-state" style="display:none;">
       <div class="empty-icon">🕉️</div>
-      <div class="empty-title">Begin Your Dialogue</div>
-      <div class="empty-sub">You have no conversations yet.<br>Ask your first question and the Gītā will answer.</div>
-      <a href="/api/chat-ui/" class="empty-cta">
+      <div class="empty-title">{% if language == "hi" %}अपना संवाद शुरू करें{% else %}Begin Your Dialogue{% endif %}</div>
+      <div class="empty-sub">{% if language == "hi" %}अभी तक कोई वार्तालाप नहीं।<br>अपना पहला प्रश्न पूछें और गीता उत्तर देगी।{% else %}You have no conversations yet.<br>Ask your first question and the Gītā will answer.{% endif %}</div>
+      <a href="/api/chat-ui/?language={{ language|default:'en' }}" class="empty-cta">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Ask a Question
+        {% if language == "hi" %}प्रश्न पूछें{% else %}Ask a Question{% endif %}
       </a>
     </div>
 
     <!-- search empty state -->
     <div id="searchEmpty" class="empty-state" style="display:none;">
       <div class="empty-icon">🔍</div>
-      <div class="empty-title">No threads found</div>
-      <div class="empty-sub">No conversations match your search.</div>
+      <div class="empty-title">{% if language == "hi" %}कोई सूत्र नहीं मिला{% else %}No threads found{% endif %}</div>
+      <div class="empty-sub">{% if language == "hi" %}आपकी खोज से कोई वार्तालाप नहीं मिला।{% else %}No conversations match your search.{% endif %}</div>
       <button class="empty-cta" onclick="document.getElementById('searchInput').value=''; applyFilter();">
-        Clear search
+        {% if language == "hi" %}खोज साफ़ करें{% else %}Clear search{% endif %}
       </button>
     </div>
   </div>
@@ -541,6 +555,8 @@
 
 <script>
   // ── auth token ──────────────────────────────────────────────────────────
+  const LANG = '{{ language|default:"en" }}';
+
   const API_TOKEN = (() => {
     const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
@@ -570,7 +586,7 @@
     loading = true;
     if (!initial) {
       const btn = document.getElementById('loadMoreBtn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+      if (btn) { btn.disabled = true; btn.textContent = LANG === 'hi' ? 'लोड हो रहा है…' : 'Loading…'; }
     }
     try {
       const r = await fetch(`/api/v1/conversations/?limit=${LIMIT}&offset=${off}`, {
@@ -606,7 +622,9 @@
       if (offset < totalCount) {
         btn.style.display = '';
         btn.disabled = false;
-        btn.textContent = `Load more conversations (${totalCount - offset} remaining)`;
+        btn.textContent = LANG === 'hi'
+          ? `और वार्तालाप लोड करें (${totalCount - offset} शेष)`
+          : `Load more conversations (${totalCount - offset} remaining)`;
       } else {
         btn.style.display = 'none';
       }
@@ -677,9 +695,9 @@
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 6);
     const sections = [
-      { key: 'today', label: 'Today', items: [] },
-      { key: 'week', label: 'This Week', items: [] },
-      { key: 'earlier', label: 'Earlier', items: [] },
+      { key: 'today', label: LANG === 'hi' ? 'आज' : 'Today', items: [] },
+      { key: 'week', label: LANG === 'hi' ? 'इस सप्ताह' : 'This Week', items: [] },
+      { key: 'earlier', label: LANG === 'hi' ? 'पहले' : 'Earlier', items: [] },
     ];
     for (const item of items) {
       const d = new Date(item.updated_at);
@@ -713,15 +731,17 @@
     wrap.dataset.id = conv.id;
 
     const dateStr = formatRelative(conv.updated_at);
-    const msgLabel = conv.message_count === 1 ? '1 message' : `${conv.message_count || 0} messages`;
+    const msgLabel = LANG === 'hi'
+      ? (conv.message_count === 1 ? '1 संदेश' : `${conv.message_count || 0} संदेश`)
+      : (conv.message_count === 1 ? '1 message' : `${conv.message_count || 0} messages`);
     const threadUrl = `/api/chat-ui/?conversation_id=${conv.id}&mode=simple&language={{ language|default:'en' }}`;
-    const title = (conv.title || 'Untitled conversation').trim();
+    const title = (conv.title || (LANG === 'hi' ? 'अनाम वार्तालाप' : 'Untitled conversation')).trim();
 
     wrap.innerHTML = `
       <div class="thread-card-inner">
         <div class="thread-kicker">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          REFLECTION THREAD
+          ${LANG === 'hi' ? 'चिंतन सूत्र' : 'REFLECTION THREAD'}
         </div>
         <div class="thread-title">${escHtml(title)}</div>
         <div class="thread-meta">
@@ -729,30 +749,68 @@
           <span class="thread-meta-dot">•</span>
           <span>${msgLabel}</span>
         </div>
-        <div class="thread-hint">Tap to continue your dialogue</div>
+        <div class="thread-hint">${LANG === 'hi' ? 'संवाद जारी रखने के लिए टैप करें' : 'Tap to continue your dialogue'}</div>
       </div>
       <div class="thread-footer">
         <a class="thread-cta" href="${threadUrl}">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          Revisit and continue
+          ${LANG === 'hi' ? 'फिर से देखें और जारी रखें' : 'Revisit and continue'}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
         </a>
-        <button class="thread-delete-btn" onclick="deleteConversation(event, ${conv.id})">Delete</button>
+        <div style="display:flex;gap:6px;">
+          <button class="thread-rename-btn" onclick="renameConversation(event, ${conv.id})">${LANG === 'hi' ? 'नाम बदलें' : 'Rename'}</button>
+          <button class="thread-delete-btn" onclick="deleteConversation(event, ${conv.id})">${LANG === 'hi' ? 'हटाएं' : 'Delete'}</button>
+        </div>
       </div>
     `;
 
-    // whole card click → open thread (but not if delete btn clicked)
+    // whole card click → open thread (but not if action buttons clicked)
     wrap.addEventListener('click', (e) => {
-      if (e.target.closest('.thread-delete-btn') || e.target.closest('.thread-cta')) return;
+      if (e.target.closest('.thread-delete-btn') || e.target.closest('.thread-rename-btn') || e.target.closest('.thread-cta')) return;
       window.location.href = threadUrl;
     });
 
     return wrap;
   }
 
+  // ── rename ────────────────────────────────────────────────────────────────
+  async function renameConversation(e, id) {
+    e.stopPropagation();
+    const item = allItems.find(c => c.id === id);
+    const current = item ? item.title : '';
+    const newTitle = window.prompt(LANG === 'hi' ? 'इस वार्तालाप का नाम बदलें:' : 'Rename this conversation:', current);
+    if (newTitle === null) return;  // cancelled
+    const trimmed = newTitle.trim();
+    if (!trimmed) { showToast(LANG === 'hi' ? 'शीर्षक खाली नहीं हो सकता' : 'Title cannot be empty'); return; }
+    if (trimmed.length > 200) { showToast(LANG === 'hi' ? 'शीर्षक बहुत लंबा है (अधिकतम 200 अक्षर)' : 'Title too long (max 200 chars)'); return; }
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    btn.textContent = '…';
+    try {
+      const r = await fetch(`/api/v1/conversations/${id}/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Token ${API_TOKEN}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: trimmed })
+      });
+      if (r.ok) {
+        if (item) item.title = trimmed;
+        applyFilter();
+        showToast(LANG === 'hi' ? 'वार्तालाप का नाम बदला' : 'Conversation renamed');
+      } else {
+        showToast(LANG === 'hi' ? 'नाम नहीं बदल सका — पुनः प्रयास करें' : 'Could not rename — try again');
+      }
+    } catch {
+      showToast(LANG === 'hi' ? 'नाम नहीं बदल सका — पुनः प्रयास करें' : 'Could not rename — try again');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = LANG === 'hi' ? 'नाम बदलें' : 'Rename';
+    }
+  }
+
   // ── delete ────────────────────────────────────────────────────────────────
   async function deleteConversation(e, id) {
     e.stopPropagation();
+    if (!window.confirm(LANG === 'hi' ? 'इस वार्तालाप को हटाएं? यह क्रिया पूर्ववत नहीं हो सकती।' : 'Delete this conversation? This cannot be undone.')) return;
     const btn = e.currentTarget;
     btn.disabled = true;
     btn.textContent = '…';
@@ -766,16 +824,16 @@
         totalCount = Math.max(0, totalCount - 1);
         renderStats();
         applyFilter();
-        showToast('Conversation deleted');
+        showToast(LANG === 'hi' ? 'वार्तालाप हटाया गया' : 'Conversation deleted');
       } else {
         btn.disabled = false;
-        btn.textContent = 'Delete';
-        showToast('Could not delete — try again');
+        btn.textContent = LANG === 'hi' ? 'हटाएं' : 'Delete';
+        showToast(LANG === 'hi' ? 'हटाया नहीं जा सका — पुनः प्रयास करें' : 'Could not delete — try again');
       }
     } catch {
       btn.disabled = false;
-      btn.textContent = 'Delete';
-      showToast('Could not delete — try again');
+      btn.textContent = LANG === 'hi' ? 'हटाएं' : 'Delete';
+      showToast(LANG === 'hi' ? 'हटाया नहीं जा सका — पुनः प्रयास करें' : 'Could not delete — try again');
     }
   }
 
@@ -798,8 +856,8 @@
     document.getElementById('threadsList').innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
-        <div class="empty-title">Could not load threads</div>
-        <div class="empty-sub">Please try refreshing the page.</div>
+        <div class="empty-title">${LANG === 'hi' ? 'सूत्र लोड नहीं हो सके' : 'Could not load threads'}</div>
+        <div class="empty-sub">${LANG === 'hi' ? 'कृपया पृष्ठ ताज़ा करें।' : 'Please try refreshing the page.'}</div>
       </div>`;
     document.getElementById('threadsList').style.display = '';
   }
@@ -811,12 +869,12 @@
     const diffMin = Math.floor(diffMs / 60000);
     const diffH = Math.floor(diffMs / 3600000);
     const diffD = Math.floor(diffMs / 86400000);
-    if (diffMin < 1) return 'just now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    if (diffH < 24) return `${diffH}h ago`;
-    if (diffD === 1) return 'yesterday';
-    if (diffD < 7) return `${diffD} days ago`;
-    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    if (diffMin < 1) return LANG === 'hi' ? 'अभी' : 'just now';
+    if (diffMin < 60) return LANG === 'hi' ? `${diffMin} मिनट पहले` : `${diffMin}m ago`;
+    if (diffH < 24) return LANG === 'hi' ? `${diffH} घंटे पहले` : `${diffH}h ago`;
+    if (diffD === 1) return LANG === 'hi' ? 'कल' : 'yesterday';
+    if (diffD < 7) return LANG === 'hi' ? `${diffD} दिन पहले` : `${diffD} days ago`;
+    return d.toLocaleDateString(LANG === 'hi' ? 'hi-IN' : 'en-GB', { day: 'numeric', month: 'short' });
   }
 
   function escHtml(s) {

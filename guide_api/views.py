@@ -4806,8 +4806,11 @@ def _conversation_preview_title(conversation: Conversation) -> str:
     """Generate short title from first user message in a conversation.
 
     When called after prefetch_related with to_attr='_user_messages_cache',
-    uses the cached list to avoid extra DB queries.
+    uses the cached list to avoid extra DB queries. If the conversation has a
+    custom_title set by the user, that takes precedence.
     """
+    if getattr(conversation, "custom_title", ""):
+        return conversation.custom_title
     prefetched = getattr(conversation, "_user_messages_cache", None)
     if prefetched is not None:
         first_user = prefetched[0] if prefetched else None
@@ -4935,9 +4938,43 @@ class ConversationMessagesView(APIView):
 
 
 class ConversationDetailView(APIView):
-    """Delete a conversation owned by the authenticated user."""
+    """Rename (PATCH) or delete (DELETE) a conversation owned by the authenticated user."""
 
     permission_classes = [IsAuthenticated]
+
+    def patch(self, request, conversation_id: int):
+        conversation = Conversation.objects.filter(
+            id=conversation_id,
+            user_id=request.user.get_username(),
+        ).first()
+        if conversation is None:
+            return _error_response(
+                message="Conversation not found.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                code="conversation_not_found",
+            )
+        new_title = str(request.data.get("title", "") or "").strip()
+        if not new_title:
+            return _error_response(
+                message="title is required and cannot be empty.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="validation_error",
+            )
+        if len(new_title) > 200:
+            return _error_response(
+                message="title cannot exceed 200 characters.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+                code="validation_error",
+            )
+        conversation.custom_title = new_title
+        conversation.save(update_fields=["custom_title"])
+        return Response(
+            {
+                "id": conversation.id,
+                "title": conversation.custom_title,
+                "updated_at": conversation.updated_at.isoformat(),
+            }
+        )
 
     def delete(self, request, conversation_id: int):
         conversation = Conversation.objects.filter(
