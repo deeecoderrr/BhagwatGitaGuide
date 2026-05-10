@@ -76,6 +76,7 @@ class Conversation(models.Model):
     """Logical chat session grouped by external user identifier."""
 
     user_id = models.CharField(max_length=64, db_index=True)
+    custom_title = models.CharField(max_length=200, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
