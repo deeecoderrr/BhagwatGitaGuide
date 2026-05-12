@@ -317,10 +317,11 @@
       const res = await portalFetch("/api/v1/auth/me/");
       if (!res.ok) throw new Error("auth");
       const data = await res.json();
+      const _label = data.full_name || data.first_name || data.username || "";
       doc.body.dataset.portalAuth = "signed-in";
-      if (data.username) doc.body.dataset.portalUsername = data.username;
+      if (_label) doc.body.dataset.portalUsername = _label;
       const brandKicker = doc.querySelector(".portal-brand-kicker");
-      if (brandKicker && data.username) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${data.username}` : `Welcome back · ${data.username}`;
+      if (brandKicker && _label) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${_label}` : `Welcome back · ${_label}`;
       slot.innerHTML = `<button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
     } catch {
       doc.body.dataset.portalAuth = "signed-out";

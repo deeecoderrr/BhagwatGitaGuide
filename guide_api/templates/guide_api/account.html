@@ -288,7 +288,8 @@
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
-<body data-lang="{{ language|default:'en' }}">
+<body data-lang="{{ language|default:'en' }}"
+  {% if portal_signed_in %}data-portal-auth-hint="signed-in" data-portal-auth-user="{{ portal_display_name|default:'' }}"{% else %}data-portal-auth-hint="signed-out"{% endif %}>
   <header>
     <div class="header-left">
       <h1>{% if language == "hi" %}मेरा खाता{% else %}My Account{% endif %}</h1>
@@ -394,8 +395,7 @@
       </div>
 
       <!-- Change password -->
-      <div class="panel">
-        <h2 class="section-title">{% if language == "hi" %}पासवर्ड बदलें{% else %}Change Password{% endif %}</h2>
+      <div class="panel" id="change-password-panel">
         <div class="form-grid">
           <div class="form-field">
             <label>{% if language == "hi" %}वर्तमान पासवर्ड{% else %}Current Password{% endif %}</label>
@@ -554,6 +554,17 @@
         document.getElementById("f-firstname").value = firstName;
         document.getElementById("f-lastname").value = lastName;
         document.getElementById("f-email").value = me.email ?? "";
+
+        // Google OAuth users have an auto-generated username and no password.
+        const isGoogleUser = username.startsWith("google_");
+        if (isGoogleUser) {
+          const uInput = document.getElementById("f-username");
+          uInput.readOnly = true;
+          uInput.style.cssText += "; opacity:0.5; cursor:not-allowed;";
+          uInput.title = LANG === "hi" ? "Google के माध्यम से प्रबंधित — ऊपर नाम बदलें" : "Managed via Google — update your name above instead";
+          const passPanel = document.getElementById("change-password-panel");
+          if (passPanel) passPanel.style.display = "none";
+        }
       }
       if (sub) {
         const plan = sub.plan ?? "free";

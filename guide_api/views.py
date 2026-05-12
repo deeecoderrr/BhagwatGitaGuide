@@ -10104,10 +10104,18 @@ class _WebPageTokenMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)  # type: ignore[misc]
-        context["portal_signed_in"] = (
-            getattr(self.request, "user", None) is not None
-            and self.request.user.is_authenticated
-        )
+        user = getattr(self.request, "user", None)
+        is_signed_in = user is not None and user.is_authenticated
+        context["portal_signed_in"] = is_signed_in
+        if is_signed_in:
+            display = (
+                user.get_full_name().strip()
+                or (user.email or "").strip()
+                or user.username
+            )
+            context["portal_display_name"] = display
+        else:
+            context["portal_display_name"] = ""
         return context
 
     def _attach_token_cookie(self, request, response) -> None:
