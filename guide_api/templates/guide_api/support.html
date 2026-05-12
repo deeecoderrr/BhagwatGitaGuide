@@ -265,9 +265,11 @@
 const LANG = "{{ language|default:'en' }}";
 const SUPPORT_EMAIL = "{{ support_email }}";
 
+const _PORTAL_SIGNED_IN = {% if portal_signed_in %}true{% else %}false{% endif %};
 const API_TOKEN = (() => {
   const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+  const fromCookie = m ? decodeURIComponent(m[1]) : "";
+  return fromCookie || localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "";
 })();
 
 let selectedIssue = "payment";

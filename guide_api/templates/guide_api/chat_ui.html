@@ -6008,6 +6008,8 @@
   class="gita-sanctum"
   data-google-client-id="{{ google_oauth_client_id|default:'' }}"
   data-ui-language="{{ language|default:'en' }}"
+  data-portal-auth-hint="{% if chat_ui_signed_in %}signed-in{% else %}signed-out{% endif %}"
+  {% if chat_ui_signed_in %}data-portal-auth-user="{{ chat_ui_auth_display_name|default:'' }}"{% endif %}
 >
   <div class="page-progress" data-page-progress></div>
   <div class="aurora-veils"></div>
@@ -7889,6 +7891,79 @@
             </details>
           </div>
         {% else %}
+          {% if not chat_ui_signed_in %}
+            <div class="panel panel-secondary guest-access-panel" id="guest-auth-target" data-aos="fade-left" data-aos-delay="80">
+              <div class="panel-kicker">
+                <span class="asset-icon" aria-hidden="true">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 7v14" />
+                    <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
+                  </svg>
+                </span>
+                {% if language == "hi" %}यात्रा सहेजें{% else %}Save Your Journey{% endif %}
+              </div>
+              <h2>
+                {% if guest_quota_snapshot and guest_quota_snapshot.limit_reached %}
+                  {% if language == "hi" %}गेस्ट सीमा पूरी हो गई{% else %}Guest limit reached{% endif %}
+                {% else %}
+                  {% if language == "hi" %}गेस्ट मोड अस्थायी है{% else %}Guest mode is temporary{% endif %}
+                {% endif %}
+              </h2>
+              <p class="hint">
+                {% if guest_quota_snapshot and guest_quota_snapshot.limit_reached %}
+                  {% if language == "hi" %}
+                    आपने इस ब्राउज़र में {{ guest_quota_snapshot.ask_limit }} गेस्ट प्रश्न पूरे कर लिए हैं। आगे बढ़ने के लिए अकाउंट बनाएं या लॉगिन करें।
+                  {% else %}
+                    You have used all {{ guest_quota_snapshot.ask_limit }} guest questions in this browser. Create an account or log in to continue.
+                  {% endif %}
+                {% else %}
+                  {% if guest_quota_snapshot and guest_quota_snapshot.limit_enabled %}
+                    {% if language == "hi" %}
+                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अकाउंट बनाने या लॉगिन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो जाएगा और भविष्य की बातचीत, सेव किए गए चिंतन व थ्रेड इतिहास सुरक्षित रहेंगे। अभी {{ guest_quota_snapshot.remaining_asks|default:3 }} में से {{ guest_quota_snapshot.ask_limit|default:3 }} गेस्ट प्रश्न उपलब्ध हैं।
+                    {% else %}
+                      Guest mode keeps your chat only in this browser session. Register or log in to continue your latest question in a new saved thread and keep future conversations, saved reflections, and history with you. You currently have {{ guest_quota_snapshot.remaining_asks|default:3 }} of {{ guest_quota_snapshot.ask_limit|default:3 }} guest questions left.
+                    {% endif %}
+                  {% else %}
+                    {% if language == "hi" %}
+                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अभी गेस्ट प्रश्नों पर कोई सीमा लागू नहीं है, लेकिन अकाउंट बनाने या लॉगिन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो सकता है और आपकी बातचीत व सेव चिंतन आपके साथ सुरक्षित रहेंगे।
+                    {% else %}
+                      Guest mode keeps your chat only in this browser session. Guest asks are currently unlimited, but creating an account or logging in will continue your latest question in a new saved thread and keep future conversations and reflections with you.
+                    {% endif %}
+                  {% endif %}
+                {% endif %}
+              </p>
+              <div class="split">
+                <form method="post" class="quick-submit">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="register">
+                  <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                  <input type="hidden" name="continue_guest_chat" value="1">
+                  <label for="guest_register_username">{% if language == "hi" %}रजिस्टर यूज़रनेम{% else %}Register username{% endif %}</label>
+                  <input id="guest_register_username" name="register_username" placeholder="{% if language == 'hi' %}नया यूज़रनेम{% else %}new username{% endif %}" />
+                  <label for="guest_register_password">{% if language == "hi" %}रजिस्टर पासवर्ड{% else %}Register password{% endif %}</label>
+                  <input id="guest_register_password" name="register_password" type="password" placeholder="{% if language == 'hi' %}कम से कम 8 अक्षर{% else %}min 8 chars{% endif %}" />
+                  <button type="submit">{% if language == "hi" %}रजिस्टर{% else %}Register{% endif %}</button>
+                </form>
+                <form method="post" class="quick-submit">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="login">
+                  <input type="hidden" name="language" value="{{ language|default:'en' }}">
+                  <input type="hidden" name="continue_guest_chat" value="1">
+                  <label for="guest_login_username">{% if language == "hi" %}लॉगिन यूज़रनेम{% else %}Login username{% endif %}</label>
+                  <input id="guest_login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
+                  <label for="guest_login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
+                  <input id="guest_login_password" name="login_password" type="password" placeholder="{% if language == 'hi' %}पासवर्ड{% else %}password{% endif %}" />
+                  <p class="chat-auth-forgot">
+                    <a href="{% url 'account_reset_password' %}" target="_blank" rel="noopener noreferrer">
+                      {% if language == "hi" %}पासवर्ड भूल गए?{% else %}Forgot password?{% endif %}
+                    </a>
+                  </p>
+                  <button type="submit" class="btn-secondary">{% if language == "hi" %}लॉगिन{% else %}Login{% endif %}</button>
+                </form>
+              </div>
+            </div>
+          {% endif %}
+
           <div class="panel panel-secondary" data-aos="fade-left" data-aos-delay="60">
             <div class="panel-kicker">
               <span class="asset-icon" aria-hidden="true">
@@ -7970,78 +8045,7 @@
             </div>
           </div>
 
-          {% if not chat_ui_signed_in %}
-            <div class="panel panel-secondary guest-access-panel" id="guest-auth-target" data-aos="fade-left" data-aos-delay="80">
-              <div class="panel-kicker">
-                <span class="asset-icon" aria-hidden="true">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 7v14" />
-                    <path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z" />
-                  </svg>
-                </span>
-                {% if language == "hi" %}यात्रा सहेजें{% else %}Save Your Journey{% endif %}
-              </div>
-              <h2>
-                {% if guest_quota_snapshot and guest_quota_snapshot.limit_reached %}
-                  {% if language == "hi" %}गेस्ट सीमा पूरी हो गई{% else %}Guest limit reached{% endif %}
-                {% else %}
-                  {% if language == "hi" %}गेस्ट मोड अस्थायी है{% else %}Guest mode is temporary{% endif %}
-                {% endif %}
-              </h2>
-              <p class="hint">
-                {% if guest_quota_snapshot and guest_quota_snapshot.limit_reached %}
-                  {% if language == "hi" %}
-                    आपने इस ब्राउज़र में {{ guest_quota_snapshot.ask_limit }} गेस्ट प्रश्न पूरे कर लिए हैं। आगे बढ़ने के लिए अकाउंट बनाएं या लॉगिन करें।
-                  {% else %}
-                    You have used all {{ guest_quota_snapshot.ask_limit }} guest questions in this browser. Create an account or log in to continue.
-                  {% endif %}
-                {% else %}
-                  {% if guest_quota_snapshot and guest_quota_snapshot.limit_enabled %}
-                    {% if language == "hi" %}
-                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अकाउंट बनाने या लॉगिन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो जाएगा और भविष्य की बातचीत, सेव किए गए चिंतन व थ्रेड इतिहास सुरक्षित रहेंगे। अभी {{ guest_quota_snapshot.remaining_asks|default:3 }} में से {{ guest_quota_snapshot.ask_limit|default:3 }} गेस्ट प्रश्न उपलब्ध हैं।
-                    {% else %}
-                      Guest mode keeps your chat only in this browser session. Register or log in to continue your latest question in a new saved thread and keep future conversations, saved reflections, and history with you. You currently have {{ guest_quota_snapshot.remaining_asks|default:3 }} of {{ guest_quota_snapshot.ask_limit|default:3 }} guest questions left.
-                    {% endif %}
-                  {% else %}
-                    {% if language == "hi" %}
-                      गेस्ट मोड में आपकी चैट केवल इसी ब्राउज़र सत्र में रहती है। अभी गेस्ट प्रश्नों पर कोई सीमा लागू नहीं है, लेकिन अकाउंट बनाने या लॉगिन करने पर आपका नवीनतम प्रश्न नए सेव्ड थ्रेड में जारी हो सकता है और आपकी बातचीत व सेव चिंतन आपके साथ सुरक्षित रहेंगे।
-                    {% else %}
-                      Guest mode keeps your chat only in this browser session. Guest asks are currently unlimited, but creating an account or logging in will continue your latest question in a new saved thread and keep future conversations and reflections with you.
-                    {% endif %}
-                  {% endif %}
-                {% endif %}
-              </p>
-              <div class="split">
-                <form method="post" class="quick-submit">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="register">
-                  <input type="hidden" name="language" value="{{ language|default:'en' }}">
-                  <input type="hidden" name="continue_guest_chat" value="1">
-                  <label for="guest_register_username">{% if language == "hi" %}रजिस्टर यूज़रनेम{% else %}Register username{% endif %}</label>
-                  <input id="guest_register_username" name="register_username" placeholder="{% if language == 'hi' %}नया यूज़रनेम{% else %}new username{% endif %}" />
-                  <label for="guest_register_password">{% if language == "hi" %}रजिस्टर पासवर्ड{% else %}Register password{% endif %}</label>
-                  <input id="guest_register_password" name="register_password" type="password" placeholder="{% if language == 'hi' %}कम से कम 8 अक्षर{% else %}min 8 chars{% endif %}" />
-                  <button type="submit">{% if language == "hi" %}रजिस्टर{% else %}Register{% endif %}</button>
-                </form>
-                <form method="post" class="quick-submit">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="login">
-                  <input type="hidden" name="language" value="{{ language|default:'en' }}">
-                  <input type="hidden" name="continue_guest_chat" value="1">
-                  <label for="guest_login_username">{% if language == "hi" %}लॉगिन यूज़रनेम{% else %}Login username{% endif %}</label>
-                  <input id="guest_login_username" name="login_username" placeholder="{% if language == 'hi' %}यूज़रनेम{% else %}username{% endif %}" />
-                  <label for="guest_login_password">{% if language == "hi" %}लॉगिन पासवर्ड{% else %}Login password{% endif %}</label>
-                  <input id="guest_login_password" name="login_password" type="password" placeholder="{% if language == 'hi' %}पासवर्ड{% else %}password{% endif %}" />
-                  <p class="chat-auth-forgot">
-                    <a href="{% url 'account_reset_password' %}" target="_blank" rel="noopener noreferrer">
-                      {% if language == "hi" %}पासवर्ड भूल गए?{% else %}Forgot password?{% endif %}
-                    </a>
-                  </p>
-                  <button type="submit" class="btn-secondary">{% if language == "hi" %}लॉगिन{% else %}Login{% endif %}</button>
-                </form>
-              </div>
-            </div>
-          {% endif %}
+
         {% endif %}
 
         {% if response_data %}
@@ -8423,6 +8427,9 @@
     referrerpolicy="no-referrer"
   ></script>
   <script>
+    // Server-side auth signal — JS can rely on this without waiting for the cookie.
+    window.__chatUiSignedIn = {% if chat_ui_signed_in %}true{% else %}false{% endif %};
+
     window.initChatUi = function initChatUi() {
       function initAos() {
         if (!window.AOS) {
@@ -10380,7 +10387,7 @@
 
           // Reflection note panel
           const chatToken = getChatTokenCookie();
-          const hasToken = !!chatToken;
+          const hasToken = !!chatToken || window.__chatUiSignedIn === true;
           const _verseRefLabel = `BG ${verse.chapter}.${verse.verse}`;
           const _askText = lang === 'hi'
             ? `${_verseRefLabel} के बारे में पूछें`
@@ -11548,14 +11555,13 @@
       }
 
       function initGuestNavAuth() {
-        const authLinks = document.querySelectorAll('[data-nav-auth-target]');
         const overlay = document.querySelector('[data-auth-modal-overlay]');
         const modal = document.querySelector('[data-auth-modal]');
         const closeBtn = document.querySelector('[data-close-auth-modal]');
         const tabs = document.querySelectorAll('[data-auth-tab]');
         const panels = document.querySelectorAll('[data-auth-panel]');
 
-        if (!authLinks.length || !overlay || !modal) {
+        if (!overlay || !modal) {
           return;
         }
 
@@ -11591,11 +11597,12 @@
           document.body.style.overflow = '';
         }
 
-        authLinks.forEach(link => {
-          link.addEventListener('click', (event) => {
-            event.preventDefault();
-            openAuthModal(link.dataset.navAuthTarget || 'register');
-          });
+        // Event delegation — catches static links AND dynamically injected portal buttons
+        document.addEventListener('click', (event) => {
+          const link = event.target.closest('[data-nav-auth-target]');
+          if (!link) return;
+          event.preventDefault();
+          openAuthModal(link.dataset.navAuthTarget || 'register');
         });
 
         tabs.forEach(tab => {

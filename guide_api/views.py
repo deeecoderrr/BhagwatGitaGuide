@@ -535,6 +535,51 @@ def _attach_web_audience_cookie(request, response) -> None:
     )
 
 
+_CHAT_TOKEN_COOKIE = "chat_token"
+_CHAT_TOKEN_COOKIE_AGE = 60 * 60 * 24 * 30  # 30 days
+
+
+def _attach_chat_token_cookie(request, response, *, clear: bool = False) -> None:
+    """Keep the JS-readable chat_token cookie in sync with the session.
+
+    Called from every _render_chat_ui path so the portal JS can detect
+    auth state via getToken() without relying solely on session-based auth.
+
+    - clear=True  → user just logged out; delete the cookie.
+    - clear=False → look for a token in the session or Django auth and
+                    set/refresh the cookie when one is found.
+    """
+    if clear:
+        response.delete_cookie(
+            _CHAT_TOKEN_COOKIE,
+            path="/",
+            samesite="Lax",
+        )
+        return
+    # 1. Token stored by ChatUIView login/register handlers.
+    token_key = str(request.session.get("chat_ui_auth_token", "")).strip()
+    # 2. Fallback: authenticated Django session user — create token if missing.
+    if not token_key and getattr(request, "user", None) and request.user.is_authenticated:
+        try:
+            token_obj, _ = Token.objects.get_or_create(user=request.user)
+            token_key = token_obj.key
+        except Exception:
+            pass
+    if not token_key:
+        return
+    # Avoid a redundant Set-Cookie header when the cookie is already current.
+    if request.COOKIES.get(_CHAT_TOKEN_COOKIE) == token_key:
+        return
+    response.set_cookie(
+        _CHAT_TOKEN_COOKIE,
+        token_key,
+        max_age=_CHAT_TOKEN_COOKIE_AGE,
+        httponly=False,   # Must be readable by the portal JS IIFE.
+        samesite="Lax",
+        secure=not settings.DEBUG,
+    )
+
+
 def _apply_verse_anchor_to_message(
     raw_message: str,
     *,
@@ -3045,14 +3090,20 @@ class GoogleAuthView(APIView):
 
 
 class LogoutView(APIView):
-    """Logout by deleting the caller's current token."""
+    """Logout by deleting the caller's current token and clearing the browser cookie."""
 
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        """Invalidate active API token for authenticated user."""
+        """Invalidate active API token for authenticated user and clear chat_token cookie."""
         Token.objects.filter(user=request.user).delete()
-        return Response({"status": "logged_out"})
+        # Also log out the Django session so session-based auth is cleared.
+        auth_logout(request)
+        response = Response({"status": "logged_out"})
+        # Delete the JS-readable chat_token cookie so the portal topbar
+        # immediately flips to 'signed out' on the next page load.
+        response.delete_cookie(_CHAT_TOKEN_COOKIE, path="/", samesite="Lax")
+        return response
 
 
 class MeView(APIView):
@@ -6249,6 +6300,13 @@ class ChatUIView(View):
         context.setdefault("today_gratitude", self._get_today_gratitude(request))
         response = render(request, self.template_name, context)
         _attach_web_audience_cookie(request, response)
+        # Keep chat_token cookie in sync so portal JS auth detection works.
+        # clear=True when the user just logged out (no token in session).
+        _attach_chat_token_cookie(
+            request,
+            response,
+            clear=not chat_ui_signed_in,
+        )
         return response
 
     def _chat_ui_analytics_user_id(self, request, authenticated_username: str) -> str:
@@ -10034,6 +10092,14 @@ class _WebPageTokenMixin:
         self._attach_token_cookie(request, response)
         return response
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)  # type: ignore[misc]
+        context["portal_signed_in"] = (
+            getattr(self.request, "user", None) is not None
+            and self.request.user.is_authenticated
+        )
+        return context
+
     def _attach_token_cookie(self, request, response) -> None:
         """Set (or refresh) the chat_token cookie from the current session token.
 
@@ -10045,11 +10111,12 @@ class _WebPageTokenMixin:
         # Try session token (set by ChatUIView login handler).
         token_key = request.session.get("chat_ui_auth_token", "")
 
-        # Fallback: authenticated Django user → look up their DRF token.
+        # Fallback: authenticated Django user — create token if missing.
         if not token_key and getattr(request, "user", None) and request.user.is_authenticated:
             try:
-                token_key = Token.objects.get(user=request.user).key
-            except Token.DoesNotExist:
+                token_obj, _ = Token.objects.get_or_create(user=request.user)
+                token_key = token_obj.key
+            except Exception:
                 pass
 
         if not token_key:

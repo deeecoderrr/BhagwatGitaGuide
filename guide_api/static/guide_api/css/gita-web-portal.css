@@ -624,6 +624,64 @@ body.gita-web-app textarea::placeholder {
   border: 1px solid rgba(232, 184, 109, 0.38);
 }
 
+/* ── Portal Auth Slot (topbar sign-in / sign-out) ─────────────── */
+.portal-auth-slot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.portal-auth-register {
+  background: transparent;
+  color: rgba(245, 217, 160, 0.7);
+  border: 1px solid rgba(232, 184, 109, 0.25);
+}
+.portal-auth-register:hover {
+  background: rgba(232, 184, 109, 0.12);
+  color: rgba(245, 217, 160, 0.96);
+}
+.portal-auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  height: 30px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.18s, opacity 0.18s, box-shadow 0.18s;
+  font-family: inherit;
+  text-decoration: none;
+}
+.portal-auth-sign-in {
+  background: rgba(232, 184, 109, 0.2);
+  color: rgba(245, 217, 160, 0.96);
+  border: 1px solid rgba(232, 184, 109, 0.4);
+}
+.portal-auth-sign-in:hover {
+  background: rgba(232, 184, 109, 0.32);
+  box-shadow: 0 0 10px rgba(232, 184, 109, 0.25);
+}
+.portal-auth-sign-out {
+  background: transparent;
+  color: rgba(245, 239, 224, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.portal-auth-sign-out:hover {
+  color: rgba(245, 239, 224, 0.85);
+  background: rgba(255, 255, 255, 0.06);
+}
+@media (max-width: 720px) {
+  .portal-auth-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    height: 27px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   body.gita-web-app::before,
   .portal-vfx *,

@@ -202,9 +202,11 @@
 
 <script>
 const LANG = "{{ language|default:'en' }}";
+const _PORTAL_SIGNED_IN = {% if portal_signed_in %}true{% else %}false{% endif %};
 const API_TOKEN = (() => {
   const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+  const fromCookie = m ? decodeURIComponent(m[1]) : "";
+  return fromCookie || localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "";
 })();
 
 const MOODS = [
@@ -232,7 +234,7 @@ const greetings = LANG === "hi"
 document.getElementById("greeting").textContent = greetings;
 
 async function init() {
-  if (!API_TOKEN) {
+  if (!API_TOKEN && !_PORTAL_SIGNED_IN) {
     document.getElementById("main-panel").innerHTML = `
       <div class="sign-in-hint">
         <p>${LANG==="hi"?"अपनी मनोदशा ट्रैक करने के लिए साइन इन करें":"Sign in to track your daily mood"}</p>

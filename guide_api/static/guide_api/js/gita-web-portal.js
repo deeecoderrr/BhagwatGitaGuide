@@ -151,6 +151,7 @@
           <button type="button" class="portal-lang-btn${lang === "en" ? " portal-lang-btn-on" : ""}" data-portal-lang="en">EN</button>
           <button type="button" class="portal-lang-btn${lang === "hi" ? " portal-lang-btn-on" : ""}" data-portal-lang="hi">हि</button>
         </div>
+        ${doc.body.hasAttribute("data-portal-no-auth-slot") ? "" : `<div class="portal-auth-slot" data-portal-auth-slot="" aria-label="Account"></div>`}
         <button type="button" class="portal-command-trigger" data-portal-command>${lang === "hi" ? "मेनू" : "Menu"}</button>
       `,
     );
@@ -237,8 +238,34 @@
     });
   }
 
+  function _clearAllAuthTokens() {
+    // Clear every storage location where an auth token might live.
+    try { localStorage.removeItem("gita.auth.token"); } catch { /* noop */ }
+    try { localStorage.removeItem("gita_token"); } catch { /* noop */ }
+    // chat_token is httponly=false so JS can clear it directly.
+    try { document.cookie = "chat_token=; Max-Age=0; path=/; SameSite=Lax"; } catch { /* noop */ }
+  }
+
   function wireGlobalEvents() {
     doc.addEventListener("click", (event) => {
+      // Sign-out from topbar
+      if (event.target.closest("[data-portal-sign-out]")) {
+        _clearAllAuthTokens();
+        // Optimistically flip slot to signed-out immediately (no flash after redirect).
+        doc.body.dataset.portalAuth = "signed-out";
+        const slot = doc.querySelector("[data-portal-auth-slot]");
+        if (slot) slot.innerHTML = _authSlotSignedOut();
+        // POST to Django's token logout endpoint (clears DB token + session + sets delete-cookie header).
+        const csrf = getCookie("csrftoken");
+        portalFetch("/api/auth/logout/", {
+          method: "POST",
+          headers: { "X-CSRFToken": csrf, "Content-Type": "application/json" },
+        }).finally(() => {
+          window.location.assign(`/api/chat-ui/?language=${encodeURIComponent(lang)}`);
+        });
+        return;
+      }
+
       const trigger = event.target.closest("[data-portal-fab], [data-portal-command]");
       if (trigger) {
         doc.querySelector("[data-portal-drawer]")?.classList.toggle("open");
@@ -261,9 +288,31 @@
   }
 
   async function hydrateAuthState() {
-    const token = getToken();
-    doc.body.dataset.portalAuth = token ? "token" : "unknown";
-    if (!token) return;
+    const slot = doc.querySelector("[data-portal-auth-slot]");
+    if (!slot) return;
+
+    // ── Instant render from server-injected hint ──────────────────────────
+    // The template sets data-portal-auth-hint="signed-in|signed-out" on <body>
+    // so we can paint the correct button immediately without an API round-trip.
+    const hint = doc.body.dataset.portalAuthHint;
+    if (hint === "signed-in") {
+      const username = doc.body.dataset.portalAuthUser || "";
+      doc.body.dataset.portalAuth = "signed-in";
+      if (username) doc.body.dataset.portalUsername = username;
+      const brandKicker = doc.querySelector(".portal-brand-kicker");
+      if (brandKicker && username) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${username}` : `Welcome back · ${username}`;
+      slot.innerHTML = `<button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
+      // Still fire API call in background to validate (token could be revoked).
+      _validateAuthInBackground(slot, username);
+      return;
+    }
+    if (hint === "signed-out") {
+      doc.body.dataset.portalAuth = "signed-out";
+      slot.innerHTML = _authSlotSignedOut();
+      return;
+    }
+
+    // ── No hint: fall back to API call (portal pages without template hint) ─
     try {
       const res = await portalFetch("/api/v1/auth/me/");
       if (!res.ok) throw new Error("auth");
@@ -272,9 +321,36 @@
       if (data.username) doc.body.dataset.portalUsername = data.username;
       const brandKicker = doc.querySelector(".portal-brand-kicker");
       if (brandKicker && data.username) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${data.username}` : `Welcome back · ${data.username}`;
+      slot.innerHTML = `<button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
     } catch {
       doc.body.dataset.portalAuth = "signed-out";
+      slot.innerHTML = _authSlotSignedOut();
     }
+  }
+
+  async function _validateAuthInBackground(slot, hintUsername) {
+    // Silently validate a hint-rendered signed-in state.
+    // If the token was revoked server-side, flip to signed-out.
+    try {
+      const res = await portalFetch("/api/v1/auth/me/");
+      if (!res.ok) throw new Error("revoked");
+      // Token still valid — nothing to update.
+    } catch {
+      // Token revoked or network issue after hint was rendered.
+      _clearAllAuthTokens();
+      doc.body.dataset.portalAuth = "signed-out";
+      delete doc.body.dataset.portalUsername;
+      if (slot) slot.innerHTML = _authSlotSignedOut();
+    }
+  }
+
+  function _authSlotSignedOut() {
+    const chatUrl = `/api/chat-ui/?language=${encodeURIComponent(lang)}#guest-auth-target`;
+    const registerLabel = lang === "hi" ? "रजिस्टर" : "Register";
+    const signInLabel = lang === "hi" ? "साइन इन" : "Sign In";
+    // data-nav-auth-target wires into the chat-ui modal; href is the fallback on other pages
+    return `<a class="portal-auth-btn portal-auth-register" data-nav-auth-target="register" href="${chatUrl}">${registerLabel}</a>` +
+           `<a class="portal-auth-btn portal-auth-sign-in" data-nav-auth-target="login" href="${chatUrl}">${signInLabel}</a>`;
   }
 
   function markReady() {
