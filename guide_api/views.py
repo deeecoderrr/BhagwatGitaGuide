@@ -3038,9 +3038,19 @@ class LoginView(APIView):
 
 
 class GoogleAuthView(APIView):
-    """Sign in or register using a Google Identity Services ID token (JWT)."""
+    """Sign in or register using a Google Identity Services ID token (JWT).
+
+    ``authentication_classes = []`` prevents DRF's SessionAuthentication from
+    running on this endpoint.  SessionAuthentication enforces Django's CSRF check
+    when the caller has an active session cookie (e.g. after a previous login that
+    was not properly logged out on the server side).  Since this view validates the
+    Google credential directly and creates its own session, server-side session
+    state is irrelevant here, so we skip authentication entirely and rely solely on
+    the Google JWT verification.
+    """
 
     permission_classes = [AllowAny]
+    authentication_classes = []  # No SessionAuthentication → no stale-session CSRF
 
     def post(self, request):
         """Verify credential, create or load user, session-login, return API token."""
