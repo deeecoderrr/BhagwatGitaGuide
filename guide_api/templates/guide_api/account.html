@@ -430,65 +430,16 @@
       </div>
 
       <!-- Quick links -->
-      <div class="panel">
-        <h2 class="section-title">{% if language == "hi" %}त्वरित लिंक{% else %}Quick Links{% endif %}</h2>
-        <div class="link-row">
-          <span>{% if language == "hi" %}योजनाएं{% else %}Plans{% endif %}</span>
-          <a href="/plans/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}खोलें{% else %}Open{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}सहेजी गई चिंतन{% else %}Saved Reflections{% endif %}</span>
-          <a href="/saved-reflections/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}देखें{% else %}View{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}मेरी अंतर्दृष्टि{% else %}My Insights{% endif %}</span>
-          <a href="/insights/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}देखें{% else %}View{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}समुदाय{% else %}Community{% endif %}</span>
-          <a href="/community/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}जुड़ें{% else %}Join{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}नाम जप{% else %}Naam Japa{% endif %}</span>
-          <a href="/japa/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}अभ्यास करें{% else %}Practice{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}मूड चेक-इन{% else %}Mood Check-in{% endif %}</span>
-          <a href="/mood/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}लॉग करें{% else %}Log{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}कृतज्ञता{% else %}Gratitude{% endif %}</span>
-          <a href="/gratitude/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}लिखें{% else %}Write{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}क्वोट आर्ट{% else %}Quote Art{% endif %}</span>
-          <a href="/quote-art/?language={{ language|default:'en' }}">
-            {% if language == "hi" %}बनाएं{% else %}Create{% endif %} →
-          </a>
-        </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}समर्थन{% else %}Support{% endif %}</span>
-          <a href="/api/chat-ui/?language={{ language|default:'en' }}#support-section">
+      <div class="panel" style="padding: 16px 20px;">
+        <div class="link-row" style="border-bottom: none; padding-bottom: 0;">
+          <span style="font-size:13px; color: var(--muted);">{% if language == "hi" %}सहायता{% else %}Support{% endif %}</span>
+          <a href="/api/chat-ui/?language={{ language|default:'en' }}#support-section" style="font-size:13px;">
             {% if language == "hi" %}संपर्क करें{% else %}Contact{% endif %} →
           </a>
         </div>
-        <div class="link-row">
-          <span>{% if language == "hi" %}गोपनीयता नीति{% else %}Privacy Policy{% endif %}</span>
-          <a href="/privacy-policy/">{% if language == "hi" %}पढ़ें{% else %}Read{% endif %} →</a>
+        <div class="link-row" style="border-bottom: none; padding-bottom: 0; margin-top: 10px;">
+          <span style="font-size:13px; color: var(--muted);">{% if language == "hi" %}गोपनीयता नीति{% else %}Privacy Policy{% endif %}</span>
+          <a href="/privacy-policy/" style="font-size:13px;">{% if language == "hi" %}पढ़ें{% else %}Read{% endif %} →</a>
         </div>
       </div>
 

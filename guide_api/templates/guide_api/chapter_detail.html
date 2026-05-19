@@ -152,15 +152,11 @@ function escHtml(s) {
 
 async function loadChapter() {
   try {
-    const [chapRes, versesRes] = await Promise.all([
-      fetch(`/api/v1/chapters/${CHAPTER}/?language=${LANG}`),
-      fetch(`/api/v1/verses/chapter/${CHAPTER}/?language=${LANG}&page_size=100`),
-    ]);
+    const chapRes = await fetch(`/api/v1/chapters/${CHAPTER}/?language=${LANG}`);
     const chap = chapRes.ok ? await chapRes.json() : null;
-    const versesData = versesRes.ok ? await versesRes.json() : null;
 
     if (chap) renderChapterHero(chap);
-    if (versesData) renderVerses(versesData.results || versesData);
+    if (chap?.verses) renderVerses(chap.verses);
   } catch {
     document.getElementById("chapter-hero").innerHTML =
       `<div style="color:var(--muted);text-align:center;padding:40px">${LANG==="hi"?"लोड नहीं हो सका":"Could not load"}</div>`;

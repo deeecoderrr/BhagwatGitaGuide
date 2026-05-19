@@ -237,6 +237,7 @@
     }
     .commitment-card.active {
       border-color: rgba(121,217,239,0.3);
+      background: rgba(121,217,239,0.08);
     }
     .commitment-icon {
       font-size: 24px;
@@ -433,16 +434,17 @@
           <div class="add-form" id="commitment-form">
             <div class="form-row">
               <div class="form-field">
-                <label>{% if language == "hi" %}मंत्र{% else %}Mantra Name{% endif %}</label>
+                <label>{% if language == "hi" %}मंत्र{% else %}Mantra / Track Name{% endif %}</label>
                 <input type="text" id="f-mantra" placeholder="{% if language == 'hi' %}ॐ नमः शिवाय{% else %}Hare Krishna{% endif %}">
               </div>
               <div class="form-field">
-                <label>{% if language == "hi" %}दैनिक लक्ष्य{% else %}Daily Target{% endif %}</label>
+                <label>{% if language == "hi" %}दैनिक माला लक्ष्य{% else %}Daily Mala Target{% endif %}</label>
                 <select id="f-target">
-                  <option value="108">108 times</option>
-                  <option value="216">216 times</option>
-                  <option value="324">324 times</option>
-                  <option value="1000">1000 times</option>
+                  <option value="1">1 mala</option>
+                  <option value="2">2 malas</option>
+                  <option value="3">3 malas</option>
+                  <option value="5">5 malas</option>
+                  <option value="10">10 malas</option>
                 </select>
               </div>
             </div>
@@ -477,8 +479,8 @@
   (function() {
     const LANG = "{{ language|default:'en' }}";
     const token = (() => {
-      const _m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
-      return _m ? decodeURIComponent(_m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
+      const m = document.cookie.match(/(?:^|;\s*)chat_token=([^;]+)/);
+      return m ? decodeURIComponent(m[1]) : (localStorage.getItem("gita_token") || localStorage.getItem("gita.auth.token") || "");
     })();
     const API = "/api/v1";
 
@@ -491,11 +493,18 @@
     function apiFetch(path, opts = {}) {
       return fetch(API + path, {
         ...opts,
-        headers: { "Authorization": "Token " + token, "Content-Type": "application/json", ...(opts.headers||{}) }
+        headers: {
+          "Authorization": "Token " + token,
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          ...(opts.headers || {}),
+        },
       });
     }
 
-    // ---- Timer ----
+    let commitments = [];
+    let selectedCommitmentId = null;
+    let selectedCommitment = null;
     let sessionId = null;
     let timerInterval = null;
     let totalSecs = 10 * 60;
@@ -504,7 +513,7 @@
     let selectedMins = 10;
 
     const ring = document.getElementById("timer-progress-ring");
-    const circumference = 2 * Math.PI * 90; // r=90 → ~565.5
+    const circumference = 2 * Math.PI * 90;
     ring.style.strokeDasharray = circumference;
     ring.style.strokeDashoffset = circumference;
 
@@ -513,37 +522,36 @@
         if (running) return;
         document.querySelectorAll(".duration-chip").forEach(c => c.classList.remove("selected"));
         chip.classList.add("selected");
-        selectedMins = parseInt(chip.dataset.mins);
+        selectedMins = parseInt(chip.dataset.mins, 10);
         totalSecs = selectedMins * 60;
         elapsed = 0;
         updateTimerDisplay();
       });
     });
 
-    function updateTimerDisplay() {
-      const remaining = Math.max(0, totalSecs - elapsed);
-      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
-      const s = String(remaining % 60).padStart(2, "0");
-      document.getElementById("timer-display-time").textContent = m + ":" + s;
-      const progress = elapsed / totalSecs;
-      ring.style.strokeDashoffset = circumference * (1 - progress);
-    }
-
     document.getElementById("btn-start").addEventListener("click", async () => {
-      totalSecs = selectedMins * 60;
-      elapsed = 0;
-      // Start API session
+      const commitment = getSelectedCommitment();
+      if (!commitment) {
+        setTimerMessage(LANG === "hi" ? "पहले एक जप प्रतिज्ञा बनाएं या चुनें।" : "Create or select a japa commitment first.", "error");
+        document.getElementById("add-commitment-form").classList.add("open");
+        return;
+      }
+      if (commitment.status !== "active") {
+        setTimerMessage(LANG === "hi" ? "यह प्रतिज्ञा सक्रिय नहीं है। पहले इसे सक्रिय करें।" : "This commitment is not active. Activate it before starting.", "error");
+        return;
+      }
       try {
-        const activeCommitment = getActiveCommitmentId();
-        const body = { duration_minutes: selectedMins };
-        if (activeCommitment) body.commitment_id = activeCommitment;
-        const r = await apiFetch("/japa/sessions/start/", { method: "POST", body: JSON.stringify(body) });
-        if (r.ok) {
-          const d = await r.json();
-          sessionId = d.id ?? d.session_id ?? null;
-        }
-      } catch(e) {}
-      startTimer();
+        totalSecs = selectedMins * 60;
+        if (!sessionId) elapsed = 0;
+        const res = await apiFetch(`/japa/commitments/${commitment.id}/sessions/start/`, { method: "POST", body: "{}" });
+        if (!res.ok) throw new Error("start_failed");
+        const data = await res.json();
+        sessionId = data.id;
+        startTimer();
+        setTimerMessage(LANG === "hi" ? "जप आरंभ हुआ। मन को मंत्र पर टिकाएं।" : "Japa started. Let the mind rest on the mantra.");
+      } catch {
+        setTimerMessage(LANG === "hi" ? "जप शुरू नहीं हो सका।" : "Could not start japa.", "error");
+      }
     });
 
     document.getElementById("btn-pause").addEventListener("click", async () => {
@@ -552,15 +560,16 @@
       document.getElementById("btn-pause").style.display = "none";
       document.getElementById("btn-resume").style.display = "";
       if (sessionId) {
-        await apiFetch(`/japa/sessions/${sessionId}/pause/`, { method: "POST", body: "{}" }).catch(() => {});
+        await apiFetch(`/japa/sessions/${sessionId}/pause/`, { method: "POST", body: "{}" }).catch(() => null);
       }
+      setTimerMessage(LANG === "hi" ? "जप रोका गया। तैयार हों तो जारी रखें।" : "Paused. Continue when you are ready.");
     });
 
     document.getElementById("btn-resume").addEventListener("click", async () => {
       document.getElementById("btn-resume").style.display = "none";
       document.getElementById("btn-pause").style.display = "";
       if (sessionId) {
-        await apiFetch(`/japa/sessions/${sessionId}/resume/`, { method: "POST", body: "{}" }).catch(() => {});
+        await apiFetch(`/japa/sessions/${sessionId}/resume/`, { method: "POST", body: "{}" }).catch(() => null);
       }
       startTimerLoop();
     });
@@ -573,121 +582,99 @@
       document.getElementById("btn-resume").style.display = "none";
       document.getElementById("btn-stop").style.display = "none";
       if (sessionId) {
-        const body = { elapsed_seconds: elapsed, status: "completed" };
-        await apiFetch(`/japa/sessions/${sessionId}/finish-day/`, { method: "POST", body: JSON.stringify(body) }).catch(() => {});
+        const defaultMalas = selectedCommitment?.daily_target_malas || 1;
+        const answer = window.prompt(
+          LANG === "hi" ? "आज कितनी माला पूरी हुई?" : "How many malas did you complete?",
+          String(defaultMalas)
+        );
+        if (answer == null) {
+          document.getElementById("btn-stop").style.display = "";
+          document.getElementById("btn-pause").style.display = "";
+          setTimerMessage(LANG === "hi" ? "सत्र खुला है। पूरा करने के लिए फिर समाप्त दबाएं।" : "Session is still open. Press Finish again when ready.");
+          return;
+        }
+        const malas = Math.max(1, parseInt(answer, 10) || defaultMalas || 1);
+        const body = { local_date: localDateYmd(), malas_completed: malas };
+        const res = await apiFetch(`/japa/sessions/${sessionId}/finish-day/`, { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+        if (!res || !res.ok) {
+          setTimerMessage(LANG === "hi" ? "सत्र सेव नहीं हो सका।" : "Could not save this session.", "error");
+          return;
+        }
         sessionId = null;
       }
-      const msg = document.getElementById("timer-msg");
-      msg.textContent = LANG === "hi" ? "🙏 जप पूर्ण हुआ। धन्यवाद।" : "🙏 Session complete. Blessings.";
+      setTimerMessage(LANG === "hi" ? "जप पूर्ण हुआ। आपकी साधना सुरक्षित है।" : "Session complete. Your practice has been saved.");
       elapsed = 0;
       updateTimerDisplay();
       loadCommitments();
     });
 
-    function startTimer() {
-      document.getElementById("btn-start").style.display = "none";
-      document.getElementById("btn-stop").style.display = "";
-      document.getElementById("btn-pause").style.display = "";
-      running = true;
-      startTimerLoop();
-    }
-
-    function startTimerLoop() {
-      running = true;
-      timerInterval = setInterval(() => {
-        if (!running) return;
-        elapsed++;
-        updateTimerDisplay();
-        if (elapsed >= totalSecs) {
-          clearInterval(timerInterval);
-          document.getElementById("btn-stop").click();
-        }
-      }, 1000);
-    }
-
-    function getActiveCommitmentId() {
-      const el = document.querySelector(".commitment-card.active");
-      return el ? el.dataset.commitmentId : null;
-    }
-
-    updateTimerDisplay();
-
-    // ---- Commitments ----
-    async function loadCommitments() {
-      const r = await apiFetch("/japa/commitments/").catch(() => null);
-      const list = document.getElementById("commitment-list");
-      if (!r || !r.ok) {
-        list.innerHTML = `<li class="empty-state"><div class="empty-icon">🪷</div>${LANG === "hi" ? "कोई प्रतिज्ञा नहीं मिली" : "No commitments found"}</li>`;
+    document.getElementById("commitment-list").addEventListener("click", async event => {
+      const status = event.target.closest("[data-status]");
+      const archive = event.target.closest("[data-archive]");
+      const fulfill = event.target.closest("[data-fulfill]");
+      const select = event.target.closest("[data-select]");
+      if (status) {
+        event.stopPropagation();
+        await apiFetch(`/japa/commitments/${status.dataset.id}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: status.dataset.status }),
+        }).catch(() => null);
+        loadCommitments();
         return;
       }
-      const data = await r.json();
-      const items = Array.isArray(data) ? data : (data.results ?? []);
-      if (!items.length) {
-        list.innerHTML = `<li class="empty-state"><div class="empty-icon">🪷</div>${LANG === "hi" ? "अभी तक कोई प्रतिज्ञा नहीं — ऊपर नई प्रतिज्ञा जोड़ें" : "No commitments yet — add one above"}</li>`;
+      if (archive) {
+        event.stopPropagation();
+        if (!confirm(LANG === "hi" ? "इस प्रतिज्ञा को आर्काइव करें?" : "Archive this commitment?")) return;
+        await apiFetch(`/japa/commitments/${archive.dataset.archive}/`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "archived" }),
+        }).catch(() => null);
+        if (String(selectedCommitmentId) === String(archive.dataset.archive)) selectedCommitmentId = null;
+        loadCommitments();
         return;
       }
-      list.innerHTML = items.map(c => {
-        const pct = c.daily_target ? Math.min(100, Math.round((c.today_count ?? 0) / c.daily_target * 100)) : 0;
-        return `<li class="commitment-card ${c.is_active ? 'active' : ''}" data-commitment-id="${c.id}">
-          <div class="commitment-icon">📿</div>
-          <div class="commitment-body">
-            <div class="commitment-name">${escHtml(c.mantra_name ?? c.name ?? "Mantra")}</div>
-            <div class="commitment-meta">
-              ${LANG === "hi" ? "दैनिक लक्ष्य:" : "Daily target:"} ${c.daily_target ?? "—"}
-              &nbsp;·&nbsp; ${LANG === "hi" ? "कुल:" : "Total:"} ${c.total_count ?? 0}
-              ${c.intention ? "<br>" + escHtml(c.intention.slice(0, 80)) : ""}
-            </div>
-            <div class="commitment-progress">
-              <div class="commitment-progress-fill" style="width:${pct}%"></div>
-            </div>
-          </div>
-          <div class="commitment-actions">
-            <button class="btn btn-danger" onclick="deleteCommitment(${c.id})">✕</button>
-          </div>
-        </li>`;
-      }).join("");
-
-      // Update timer mantra + mala count display
-      const active = items.find(c => c.is_active) ?? items[0];
-      if (active) {
-        const mantraEl = document.getElementById("timer-mantra-display");
-        mantraEl.textContent = "॥ " + (active.mantra_name ?? "Mantra") + " ॥";
-        // Mala count = today's beads / 108 (one mala = 108)
-        const todayCount = active.today_count ?? 0;
-        const malas = Math.floor(todayCount / 108);
-        const remainder = todayCount % 108;
-        const malaEl = document.getElementById("timer-mala-info");
-        if (malaEl) {
-          malaEl.textContent = malas > 0
-            ? malas + (LANG === "hi" ? " माला" : " mala" + (malas > 1 ? "s" : "")) + (remainder > 0 ? " + " + remainder : "")
-            : (todayCount > 0 ? todayCount + " / 108" : (LANG === "hi" ? "— माला" : "— mala"));
-        }
+      if (fulfill) {
+        event.stopPropagation();
+        if (!confirm(LANG === "hi" ? "क्या यह संकल्प पूर्ण हो गया है?" : "Mark this sankalpa as fulfilled?")) return;
+        await apiFetch(`/japa/commitments/${fulfill.dataset.fulfill}/fulfill/`, { method: "POST", body: "{}" }).catch(() => null);
+        loadCommitments();
+        return;
       }
-    }
+      if (select) {
+        selectedCommitmentId = select.dataset.select;
+        selectedCommitment = commitments.find(c => String(c.id) === String(selectedCommitmentId)) || null;
+        renderCommitments();
+        syncTimerWithSelection();
+      }
+    });
 
-    window.deleteCommitment = async function(id) {
-      if (!confirm(LANG === "hi" ? "इस प्रतिज्ञा को हटाएं?" : "Delete this commitment?")) return;
-      await apiFetch(`/japa/commitments/${id}/`, { method: "DELETE" }).catch(() => {});
-      loadCommitments();
-    };
-
-    // Add commitment
     document.getElementById("add-commitment-toggle").addEventListener("click", () => {
-      const body = document.getElementById("add-commitment-form");
-      body.classList.toggle("open");
+      document.getElementById("add-commitment-form").classList.toggle("open");
     });
 
     document.getElementById("btn-add-commitment").addEventListener("click", async () => {
       const mantra = document.getElementById("f-mantra").value.trim();
-      const target = parseInt(document.getElementById("f-target").value);
+      const target = parseInt(document.getElementById("f-target").value, 10) || 1;
       const intention = document.getElementById("f-intention").value.trim();
       const msg = document.getElementById("commitment-form-msg");
-      if (!mantra) { msg.className = "error-msg"; msg.textContent = LANG === "hi" ? "मंत्र दर्ज करें" : "Enter a mantra name"; return; }
-      msg.textContent = "…";
-      const body = { mantra_name: mantra, daily_target: target };
-      if (intention) body.intention = intention;
-      const r = await apiFetch("/japa/commitments/", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
-      if (r && r.ok) {
+      if (!mantra) {
+        msg.className = "error-msg";
+        msg.textContent = LANG === "hi" ? "मंत्र दर्ज करें" : "Enter a mantra name";
+        return;
+      }
+      msg.className = "";
+      msg.textContent = "...";
+      const body = {
+        title: mantra,
+        focus_label: intention,
+        mantra_label: mantra,
+        daily_target_malas: target,
+        started_on: localDateYmd(),
+      };
+      const res = await apiFetch("/japa/commitments/", { method: "POST", body: JSON.stringify(body) }).catch(() => null);
+      if (res && res.ok) {
+        const created = await res.json();
+        selectedCommitmentId = created.id;
         msg.className = "success-msg";
         msg.textContent = LANG === "hi" ? "✓ जोड़ा गया" : "✓ Added";
         document.getElementById("f-mantra").value = "";
@@ -700,10 +687,163 @@
       }
     });
 
-    function escHtml(str) {
-      return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    window.addEventListener("pagehide", () => {
+      if (!sessionId || !running) return;
+      try {
+        fetch(API + `/japa/sessions/${sessionId}/abandon/`, {
+          method: "POST",
+          keepalive: true,
+          headers: {
+            "Authorization": "Token " + token,
+            "Content-Type": "application/json",
+          },
+          body: "{}",
+        });
+      } catch {}
+    });
+
+    function startTimer() {
+      document.getElementById("btn-start").style.display = "none";
+      document.getElementById("btn-stop").style.display = "";
+      document.getElementById("btn-pause").style.display = "";
+      running = true;
+      startTimerLoop();
     }
 
+    function startTimerLoop() {
+      running = true;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        if (!running) return;
+        elapsed++;
+        updateTimerDisplay();
+        if (elapsed >= totalSecs) {
+          clearInterval(timerInterval);
+          document.getElementById("btn-stop").click();
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const remaining = Math.max(0, totalSecs - elapsed);
+      const m = String(Math.floor(remaining / 60)).padStart(2, "0");
+      const s = String(remaining % 60).padStart(2, "0");
+      document.getElementById("timer-display-time").textContent = m + ":" + s;
+      const progress = totalSecs > 0 ? elapsed / totalSecs : 0;
+      ring.style.strokeDashoffset = circumference * (1 - progress);
+    }
+
+    async function loadCommitments() {
+      const res = await apiFetch("/japa/commitments/").catch(() => null);
+      const list = document.getElementById("commitment-list");
+      if (!res || !res.ok) {
+        list.innerHTML = `<li class="empty-state"><div class="empty-icon">🪷</div>${LANG === "hi" ? "कोई प्रतिज्ञा नहीं मिली" : "No commitments found"}</li>`;
+        return;
+      }
+      const data = await res.json();
+      const rows = Array.isArray(data) ? data : (data.results || []);
+      commitments = await Promise.all(rows.map(async row => {
+        const detail = await apiFetch(`/japa/commitments/${row.id}/`).catch(() => null);
+        return detail && detail.ok ? detail.json() : row;
+      }));
+      if (!commitments.length) {
+        list.innerHTML = `<li class="empty-state"><div class="empty-icon">🪷</div>${LANG === "hi" ? "अभी तक कोई प्रतिज्ञा नहीं — ऊपर नई प्रतिज्ञा जोड़ें" : "No commitments yet - add one above"}</li>`;
+        selectedCommitmentId = null;
+        selectedCommitment = null;
+        document.getElementById("timer-mantra-display").textContent = LANG === "hi" ? "॥ अपना पहला मंत्र जोड़ें ॥" : "॥ Add your first mantra ॥";
+        document.getElementById("timer-mala-info").textContent = LANG === "hi" ? "— माला" : "— mala";
+        return;
+      }
+      if (!selectedCommitmentId || !commitments.some(c => String(c.id) === String(selectedCommitmentId))) {
+        selectedCommitmentId = (commitments.find(c => c.status === "active") || commitments[0]).id;
+      }
+      selectedCommitment = getSelectedCommitment();
+      renderCommitments();
+      syncTimerWithSelection();
+    }
+
+    function renderCommitments() {
+      const list = document.getElementById("commitment-list");
+      list.innerHTML = commitments.map(c => {
+        const todayMalas = c.today?.malas_completed || 0;
+        const target = c.daily_target_malas || 1;
+        const pct = Math.min(100, Math.round((todayMalas / target) * 100));
+        const selected = String(c.id) === String(selectedCommitmentId);
+        const statusAction = c.status === "active"
+          ? `<button class="btn btn-secondary" data-status="paused" data-id="${c.id}">${LANG === "hi" ? "रोकें" : "Pause Track"}</button>`
+          : c.status === "paused"
+            ? `<button class="btn btn-secondary" data-status="active" data-id="${c.id}">${LANG === "hi" ? "सक्रिय" : "Activate"}</button>`
+            : "";
+        const fulfillAction = (c.status === "active" || c.status === "paused")
+          ? `<button class="btn btn-gold" data-fulfill="${c.id}">${LANG === "hi" ? "पूर्ण" : "Fulfill"}</button>`
+          : "";
+        return `<li class="commitment-card ${selected ? "active" : ""}" data-select="${c.id}">
+          <div class="commitment-icon">📿</div>
+          <div class="commitment-body">
+            <div class="commitment-name">${escHtml(c.title || c.mantra_label || "Mantra")}</div>
+            <div class="commitment-meta">
+              ${escHtml(c.mantra_label || "")}
+              ${c.focus_label ? "<br>" + escHtml(c.focus_label.slice(0, 100)) : ""}
+              <br>${LANG === "hi" ? "आज:" : "Today:"} ${todayMalas}/${target} ${LANG === "hi" ? "माला" : "malas"}
+              &nbsp;·&nbsp; ${escHtml(c.status || "")}
+            </div>
+            <div class="commitment-progress"><div class="commitment-progress-fill" style="width:${pct}%"></div></div>
+          </div>
+          <div class="commitment-actions">
+            <button class="btn btn-secondary" data-select="${c.id}">${selected ? (LANG === "hi" ? "चुना" : "Selected") : (LANG === "hi" ? "चुनें" : "Select")}</button>
+            ${statusAction}
+            ${fulfillAction}
+            <button class="btn btn-danger" data-archive="${c.id}">${LANG === "hi" ? "आर्काइव" : "Archive"}</button>
+          </div>
+        </li>`;
+      }).join("");
+    }
+
+    function syncTimerWithSelection() {
+      selectedCommitment = getSelectedCommitment();
+      if (!selectedCommitment) return;
+      document.getElementById("timer-mantra-display").textContent = "॥ " + (selectedCommitment.mantra_label || selectedCommitment.title || "Mantra") + " ॥";
+      const todayMalas = selectedCommitment.today?.malas_completed || 0;
+      const target = selectedCommitment.daily_target_malas || 1;
+      document.getElementById("timer-mala-info").textContent = `${todayMalas}/${target} ${LANG === "hi" ? "माला आज" : "malas today"}`;
+      if (!running && selectedCommitment.active_session?.id) {
+        sessionId = selectedCommitment.active_session.id;
+        elapsed = Math.max(0, Math.min(secondsSince(selectedCommitment.active_session.started_at) - (selectedCommitment.active_session.paused_seconds || 0), totalSecs - 1));
+        document.getElementById("btn-start").textContent = LANG === "hi" ? "▶ जारी रखें" : "▶ Continue";
+        setTimerMessage(LANG === "hi" ? "एक खुला जप सत्र मिला।" : "An open japa session was found.");
+      } else if (!running) {
+        sessionId = null;
+        elapsed = 0;
+        document.getElementById("btn-start").textContent = LANG === "hi" ? "▶ शुरू करें" : "▶ Start";
+      }
+      updateTimerDisplay();
+    }
+
+    function getSelectedCommitment() {
+      return commitments.find(c => String(c.id) === String(selectedCommitmentId)) || null;
+    }
+
+    function localDateYmd() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function secondsSince(iso) {
+      const ms = Date.parse(iso || "");
+      return Number.isFinite(ms) ? Math.floor((Date.now() - ms) / 1000) : 0;
+    }
+
+    function setTimerMessage(text, kind) {
+      const msg = document.getElementById("timer-msg");
+      msg.textContent = text || "";
+      msg.style.color = kind === "error" ? "rgba(240,120,120,0.9)" : "var(--muted)";
+    }
+
+    function escHtml(str) {
+      return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+    }
+
+    updateTimerDisplay();
     loadCommitments();
   })();
   </script>

@@ -1415,6 +1415,16 @@ At the end of each coding session:
 - Expanded the web account hub quick links so signed-in users can jump directly to plans, saved reflections, community, japa, mood, gratitude, quote art, support, and privacy from one page.
 - Verification: 23 web routes rendered successfully with Django test client, `node --check guide_api/static/guide_api/js/gita-web-portal.js` passed, meditation inline JS syntax passed, `.venv/bin/python manage.py check` passed, and `git diff --check` passed.
 
+## 2026-05-17
+
+- Re-audited the changed mobile app and web portal functionality end to end and documented the workflow/UI/API map in `docs/WEB_MOBILE_FUNCTIONALITY_AUDIT_2026-05-17.md`.
+- Confirmed the web now includes additional parity pages for History, Notifications, and Support, and targeted page shells for Today, History, Read chapter, Read verse, Japa, Meditation, Notifications, and Support returned HTTP 200.
+- Found concrete web/mobile parity breaks to fix next: web Japa still calls stale endpoints/payloads, web chapter detail fetches a missing verse-list endpoint, web verse detail uses slash verse URLs instead of dot URLs, and Today calls a missing Japa summary endpoint.
+- Updated the recommended next work: fix web API contract drift first, then align web bottom navigation and shared API/auth helpers with the mobile canonical flow.
+- Fixed the web contract drift found in the audit: Japa now uses the backend/mobile commitment-first API flow, chapter detail reads verses from the chapter detail payload, verse detail uses the dot verse route, and Today reads Japa progress from `/api/v1/insights/me/`.
+- Aligned the shared web bottom nav closer to mobile: Today, Ask, Practice, History, Insights, You; Read remains available as a quick action via `/read-gita/`.
+- Verification: shared web shell syntax passed, inline scripts for Japa/Today/Chapter detail/Verse detail parsed successfully, targeted web pages returned HTTP 200, `python manage.py check` passed, and authenticated Japa API smoke passed for create/detail/start/pause/resume/finish-day.
+
 ## 2026-04-15
 
 - Synced documentation for ITR OAuth and WeasyPrint: **`AGENTS.md`**, **`README.md`**,

@@ -67,8 +67,8 @@ def validate_document_for_export(
         issues.append(
             ValidationIssue(
                 "review_incomplete",
-                "Mark review as complete (approve) before export.",
-                Severity.BLOCK,
+                "Fields have not been reviewed — you can still generate the PDF, but reviewing first reduces errors.",
+                Severity.WARN,
             )
         )
 

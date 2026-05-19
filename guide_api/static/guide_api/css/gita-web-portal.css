@@ -426,6 +426,9 @@ body.gita-web-app textarea::placeholder {
   bottom: max(174px, calc(env(safe-area-inset-bottom) + 174px));
   z-index: 79;
   width: min(390px, calc(100vw - 28px));
+  max-height: calc(100vh - 90px);
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 16px;
   border-radius: 28px;
   border: 1px solid rgba(232, 184, 109, 0.24);
@@ -437,6 +440,10 @@ body.gita-web-app textarea::placeholder {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
+  scrollbar-width: none;
+}
+.portal-drawer::-webkit-scrollbar {
+  display: none;
 }
 
 .portal-drawer.open {
@@ -582,6 +589,7 @@ body.gita-web-app textarea::placeholder {
     right: 10px;
     left: 10px;
     width: auto;
+    max-height: calc(100dvh - 80px);
   }
 }
 
@@ -673,6 +681,19 @@ body.gita-web-app textarea::placeholder {
 .portal-auth-sign-out:hover {
   color: rgba(245, 239, 224, 0.85);
   background: rgba(255, 255, 255, 0.06);
+}
+.portal-auth-account {
+  background: transparent;
+  color: rgba(245, 239, 224, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0;
+  width: 30px;
+  height: 30px;
+}
+.portal-auth-account:hover {
+  color: rgba(232, 184, 109, 0.9);
+  border-color: rgba(232, 184, 109, 0.35);
+  background: rgba(232, 184, 109, 0.08);
 }
 @media (max-width: 720px) {
   .portal-auth-btn {

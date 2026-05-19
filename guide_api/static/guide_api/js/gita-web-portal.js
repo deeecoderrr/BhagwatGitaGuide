@@ -37,20 +37,25 @@
   const navItems = [
     { id: "today", label: lang === "hi" ? "आज" : "Today", icon: "⌂", href: `/today/?language=${encodeURIComponent(lang)}`, match: ["/today/"] },
     { id: "ask", label: lang === "hi" ? "पूछें" : "Ask", icon: "♡", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}`, match: ["/api/chat-ui/"] },
-    { id: "read", label: lang === "hi" ? "पढ़ें" : "Read", icon: "☰", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1`, match: ["/read-", "/read/"] },
-    { id: "meditate", label: lang === "hi" ? "अभ्यास" : "Practice", icon: "✦", href: `/meditation/?language=${encodeURIComponent(lang)}`, match: ["/meditation/", "/japa/", "/sadhana/", "/practice/"] },
-    { id: "journal", label: lang === "hi" ? "डायरी" : "Journal", icon: "◷", href: `/history/?language=${encodeURIComponent(lang)}`, match: ["/history/", "/saved-reflections/", "/gratitude/", "/mood/", "/quote-art/"] },
-    { id: "you", label: lang === "hi" ? "अंतर्दृष्टि" : "Insights", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/", "/account/", "/plans/", "/community/", "/support/"] },
+    { id: "practice", label: lang === "hi" ? "अभ्यास" : "Practice", icon: "✦", href: `/meditation/?language=${encodeURIComponent(lang)}`, match: ["/meditation/", "/japa/", "/sadhana/", "/practice/"] },
+    { id: "history", label: lang === "hi" ? "इतिहास" : "History", icon: "◷", href: `/history/?language=${encodeURIComponent(lang)}`, match: ["/history/", "/saved-reflections/"] },
+    { id: "insights", label: lang === "hi" ? "अंतर्दृष्टि" : "Insights", icon: "◉", href: `/insights/?language=${encodeURIComponent(lang)}`, match: ["/insights/"] },
+    { id: "you", label: lang === "hi" ? "आप" : "You", icon: "♙", href: `/account/?language=${encodeURIComponent(lang)}`, match: ["/account/", "/plans/", "/community/", "/support/", "/notifications/", "/mood/", "/gratitude/", "/quote-art/"] },
   ];
 
   const quickActions = [
     { title: lang === "hi" ? "कृष्ण से पूछें" : "Ask Krishna", desc: lang === "hi" ? "गीता ज्ञान से मार्गदर्शन" : "Guidance from Gita wisdom", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}` },
     { title: lang === "hi" ? "ध्यान" : "Meditation", desc: lang === "hi" ? "अभ्यास और जप" : "Tracked practice and japa", href: `/meditation/?language=${encodeURIComponent(lang)}` },
-    { title: lang === "hi" ? "गीता पढ़ें" : "Read Gita", desc: lang === "hi" ? "अध्याय, श्लोक, टिप्पणियां" : "Chapters, verses, notes", href: `/api/chat-ui/?language=${encodeURIComponent(lang)}&open_reader=1` },
+    { title: lang === "hi" ? "गीता पढ़ें" : "Read Gita", desc: lang === "hi" ? "अध्याय, श्लोक, टिप्पणियां" : "Chapters, verses, notes", href: `/read-gita/?language=${encodeURIComponent(lang)}` },
     { title: lang === "hi" ? "अंतर्दृष्टि" : "Insights", desc: lang === "hi" ? "आपकी यात्रा का संक्षिप्त विवरण" : "Your journey snapshot", href: `/insights/?language=${encodeURIComponent(lang)}` },
-    { title: lang === "hi" ? "डायरी" : "Journal", desc: lang === "hi" ? "वार्तालाप सूत्र" : "Conversation threads", href: `/history/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "इतिहास" : "History", desc: lang === "hi" ? "वार्तालाप सूत्र" : "Conversation threads", href: `/history/?language=${encodeURIComponent(lang)}` },
     { title: lang === "hi" ? "सहेजे गए" : "Saved", desc: lang === "hi" ? "सहेजे गए विचार" : "Saved reflections", href: `/saved-reflections/?language=${encodeURIComponent(lang)}` },
     { title: lang === "hi" ? "समुदाय" : "Community", desc: lang === "hi" ? "भक्ति पढ़ें और साझा करें" : "Read and share devotion", href: `/community/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "नाम जप" : "Naam Japa", desc: lang === "hi" ? "दैनिक जप अभ्यास" : "Daily japa practice", href: `/japa/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "मूड चेक-इन" : "Mood Check-in", desc: lang === "hi" ? "अपनी भावना लॉग करें" : "Log your emotional state", href: `/mood/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "कृतज्ञता" : "Gratitude", desc: lang === "hi" ? "आभार व्यक्त करें" : "Express gratitude", href: `/gratitude/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "क्वोट आर्ट" : "Quote Art", desc: lang === "hi" ? "गीता उद्धरण से चित्र बनाएं" : "Create art from Gita verses", href: `/quote-art/?language=${encodeURIComponent(lang)}` },
+    { title: lang === "hi" ? "योजनाएं" : "Plans", desc: lang === "hi" ? "सदस्यता और प्रीमियम" : "Subscription & premium access", href: `/plans/?language=${encodeURIComponent(lang)}` },
   ];
 
   function isActive(item) {
@@ -301,7 +306,7 @@
       if (username) doc.body.dataset.portalUsername = username;
       const brandKicker = doc.querySelector(".portal-brand-kicker");
       if (brandKicker && username) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${username}` : `Welcome back · ${username}`;
-      slot.innerHTML = `<button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
+      slot.innerHTML = `<a class="portal-auth-btn portal-auth-account" href="/account/?language=${encodeURIComponent(lang)}" title="${lang === "hi" ? "मेरा खाता" : "My account"}" aria-label="${lang === "hi" ? "मेरा खाता" : "My account"}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;vertical-align:middle"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></a><button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
       // Still fire API call in background to validate (token could be revoked).
       _validateAuthInBackground(slot, username);
       return;
@@ -322,7 +327,7 @@
       if (_label) doc.body.dataset.portalUsername = _label;
       const brandKicker = doc.querySelector(".portal-brand-kicker");
       if (brandKicker && _label) brandKicker.textContent = lang === "hi" ? `नमस्कार · ${_label}` : `Welcome back · ${_label}`;
-      slot.innerHTML = `<button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
+      slot.innerHTML = `<a class="portal-auth-btn portal-auth-account" href="/account/?language=${encodeURIComponent(lang)}" title="${lang === "hi" ? "मेरा खाता" : "My account"}" aria-label="${lang === "hi" ? "मेरा खाता" : "My account"}"><svg viewBox="0 0 24 24" aria-hidden="true" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.9;vertical-align:middle"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></a><button type="button" class="portal-auth-btn portal-auth-sign-out" data-portal-sign-out title="${lang === "hi" ? "साइन आउट" : "Sign Out"}">${lang === "hi" ? "साइन आउट" : "Sign Out"}</button>`;
     } catch {
       doc.body.dataset.portalAuth = "signed-out";
       slot.innerHTML = _authSlotSignedOut();

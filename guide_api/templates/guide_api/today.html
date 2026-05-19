@@ -820,10 +820,10 @@ async function loadUserMeta() {
 async function loadJapa() {
   if (!API_TOKEN) return;
   try {
-    const r = await fetch("/api/v1/japa/today-summary/", { headers: { Authorization: "Token "+API_TOKEN } });
+    const r = await fetch("/api/v1/insights/me/", { headers: { Authorization: "Token "+API_TOKEN } });
     if (!r.ok) return;
     const d = await r.json();
-    const malas = d.malas_today ?? d.total_malas_today ?? 0;
+    const malas = d.japa?.malas_logged_via_tracks_30d ?? 0;
     if (malas > 0) {
       const row = document.getElementById("japa-today-row");
       const count = document.getElementById("japa-today-count");

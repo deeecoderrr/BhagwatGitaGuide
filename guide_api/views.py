@@ -2333,6 +2333,7 @@ class PrivacyPolicyPageView(TemplateView):
             {
                 "effective_date": "2026-04-27",
                 "support_email": support_email,
+                "language": _safe_lang(self.request),
             }
         )
         return context

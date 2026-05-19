@@ -230,6 +230,11 @@ Deployment/ops snapshot:
 
 **See `PROGRESS.md` for the authoritative checklist** and “Next 3 Tasks” before large new scope.
 
+Latest cross-platform audit:
+- `docs/WEB_MOBILE_FUNCTIONALITY_AUDIT_2026-05-17.md` maps current mobile and web workflows, UI pages, backend APIs, parity gaps, and recommended improvements.
+- Same-day follow-up fixed the highest-priority drift from that audit: web Japa API contract, web chapter/verse endpoint drift, Today's missing Japa summary source, and shared web nav alignment.
+- Next recommended follow-up: add automated web route/API contract tests and extract a shared web API/auth helper so template-level endpoint drift does not return.
+
 ---
 
 ## Session checklist for agents

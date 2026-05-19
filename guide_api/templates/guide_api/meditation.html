@@ -163,6 +163,14 @@
       flex-wrap: wrap;
       justify-content: flex-end;
     }
+    .nav-pill[aria-current="page"] {
+      background: rgba(232,184,109,0.14);
+      border-color: rgba(232,184,109,0.44);
+      color: #f7d99c;
+    }
+    .nav-user-btn {
+      display: none; /* profile icon moved to main nav header */
+    }
     .nav-pill,
     .ghost-btn,
     .gold-btn {
@@ -958,13 +966,10 @@
           <p>{% if language == "hi" %}गीता के ज्ञान को केवल पढ़ें नहीं, उसे श्वास, जप और ध्यान में जिएं।{% else %}Do not only read Gita wisdom. Breathe it, chant it, and live it as practice.{% endif %}</p>
         </div>
       </div>
-      <nav class="portal-nav" aria-label="Bhagavad Gita web app">
-        <a class="nav-pill" href="/today/">Today</a>
-        <a class="nav-pill" href="/api/chat-ui/">Ask</a>
-        <a class="nav-pill" href="/api/chat-ui/?language={{ language|default:'en' }}&open_reader=1">Read</a>
-        <a class="nav-pill" href="/japa/">Japa</a>
-        <a class="nav-pill" href="/insights/">Insights</a>
-        <a class="nav-pill" href="/account/">You</a>
+      <nav class="portal-nav" aria-label="Practice sub-navigation">
+        <a class="nav-pill" href="/japa/?language={{ language|default:'en' }}">{% if language == "hi" %}जप{% else %}Japa{% endif %}</a>
+        <a class="nav-pill" href="/sadhana/?language={{ language|default:'en' }}">{% if language == "hi" %}साधना{% else %}Sadhana{% endif %}</a>
+        <a class="nav-pill" aria-current="page" href="/meditation/?language={{ language|default:'en' }}">{% if language == "hi" %}ध्यान{% else %}Meditate{% endif %}</a>
       </nav>
     </header>
 

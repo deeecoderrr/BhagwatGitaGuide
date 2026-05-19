@@ -229,7 +229,7 @@ function escHtml(s) {
 
 async function loadVerse() {
   try {
-    const res = await fetch(`/api/v1/verses/${CHAPTER}/${VERSE}/?language=${LANG}`);
+    const res = await fetch(`/api/v1/verses/${CHAPTER}.${VERSE}/?language=${LANG}`);
     if (!res.ok) throw new Error();
     const v = await res.json();
     renderVerse(v);

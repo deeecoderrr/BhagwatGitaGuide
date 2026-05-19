@@ -164,10 +164,19 @@ def download_export(request, pk: int, export_id: int):
         )
         return redirect("documents:detail", pk=pk)
     if not exp.pdf_file:
-        messages.error(request, "File missing.")
+        messages.error(request, "File missing. Please generate a new PDF.")
         return redirect("documents:detail", pk=pk)
+    try:
+        file_obj = exp.pdf_file.open("rb")
+    except (FileNotFoundError, OSError):
+        messages.error(
+            request,
+            "PDF file no longer available on the server (this can happen after a server restart). "
+            "Please generate a new PDF.",
+        )
+        return redirect("exports:create", pk=pk)
     return FileResponse(
-        exp.pdf_file.open("rb"),
+        file_obj,
         as_attachment=True,
         filename=exp.pdf_file.name.split("/")[-1],
     )
