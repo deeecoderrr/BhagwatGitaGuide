@@ -65,7 +65,7 @@
           <span class="price-card__name">Pay-as-you-go</span>
         </div>
         <div class="price-card__amount">
-          <span class="price-card__price">₹5</span>
+          <span class="price-card__price">₹50</span>
           <span class="price-card__unit muted">/&nbsp;export</span>
         </div>
         <ul class="price-card__features muted small">
@@ -74,9 +74,9 @@
           <li>Per-file when you need it</li>
         </ul>
         {% if user.is_authenticated %}
-          <a class="btn price-card__cta" href="{% url 'billing:checkout_bundle' 'payg' %}">Buy 1 export — ₹5</a>
+          <a class="btn price-card__cta" href="{% url 'billing:checkout_bundle' 'payg' %}">Buy 1 export — ₹50</a>
         {% else %}
-          <a class="btn btn-primary price-card__cta" href="{% url 'billing:guest_checkout' %}">Pay ₹5 — no login needed</a>
+          <a class="btn btn-primary price-card__cta" href="{% url 'billing:guest_checkout' %}">Pay ₹50 — no login needed</a>
           <a class="btn price-card__cta--secondary muted small" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'payg' %}" style="display:block;margin-top:0.5rem;text-align:center;">Log in for more options</a>
         {% endif %}
       </div>
@@ -88,7 +88,7 @@
           <span class="price-card__badge">Popular</span>
         </div>
         <div class="price-card__amount">
-          <span class="price-card__price">₹10</span>
+          <span class="price-card__price">₹1,000</span>
           <span class="price-card__unit muted">/ year</span>
         </div>
         <p class="price-card__saving">40 exports/year</p>
@@ -111,7 +111,7 @@
           <span class="price-card__badge price-card__badge--alt">Best value</span>
         </div>
         <div class="price-card__amount">
-          <span class="price-card__price">₹11</span>
+          <span class="price-card__price">₹2,000</span>
           <span class="price-card__unit muted">/ year</span>
         </div>
         <p class="price-card__saving">100 exports/year</p>

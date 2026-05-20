@@ -4,7 +4,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.core.files.base import ContentFile
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.db.models import Avg
@@ -137,8 +137,11 @@ def export_pdf(request, pk: int):
         else:
             record_export_anonymous(request)
         delete_document_upload_after_export(document)
-        messages.success(request, "Summary PDF generated (WeasyPrint layout).")
-        return redirect("exports:download", pk=document.pk, export_id=exp.pk)
+        # Serve PDF bytes directly — avoids cross-machine FileNotFoundError
+        # (Fly.io round-robin can route the redirect to a different machine).
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{name}"'
+        return response
 
     plan_status = None
     if profile is not None:

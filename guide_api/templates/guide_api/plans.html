@@ -438,9 +438,10 @@
       if (sub) {
         currentPlan = sub.plan ?? "free";
         renderCurrentSub(sub);
+        // Re-render plans now that currentPlan is known
+        if (catalogData) renderPlans(catalogData);
       } else {
         renderCurrentSub(null);
-        // Re-render plans with current plan known
         if (catalog) renderPlans(catalog);
       }      // Show billing panel for logged-in users
       if (token) document.getElementById("billing-panel").style.display = "";    }).catch(() => {
@@ -502,7 +503,7 @@
       const html = [
         `<div class="plan-card">
           <span class="plan-pill free">Free</span>
-          <div class="plan-name">Seekhak</div>
+          <div class="plan-name">Free</div>
           <div class="plan-price"><strong>${price(plans.free ?? {})}</strong>/mo</div>
           <ul class="plan-features">
             <li class="highlight"><span class="feat-check">✓</span>${plans.free?.daily_limit ?? 3} ${LANG==="hi"?"प्रश्न/दिन":"questions/day"}</li>
@@ -516,7 +517,7 @@
 
         `<div class="plan-card">
           <span class="plan-pill plus">Plus</span>
-          <div class="plan-name">Sadhak</div>
+          <div class="plan-name">Plus</div>
           <div class="plan-price"><strong>${price(plans.plus ?? {})}</strong>/mo</div>
           <ul class="plan-features">
             <li class="highlight"><span class="feat-check">✓</span>${plans.plus?.daily_limit ?? 25} ${LANG==="hi"?"प्रश्न/दिन":"questions/day"}</li>
@@ -530,7 +531,7 @@
 
         `<div class="plan-card featured">
           <span class="plan-pill pro">Pro</span>
-          <div class="plan-name">Yogi</div>
+          <div class="plan-name">Pro</div>
           <div class="plan-price"><strong>${price(plans.pro ?? {})}</strong>/mo</div>
           <ul class="plan-features">
             <li class="highlight"><span class="feat-gold">✦</span>${LANG==="hi"?"असीमित प्रश्न":"Unlimited questions"}</li>

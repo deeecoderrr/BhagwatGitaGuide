@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from datetime import timedelta
 import logging
 
 from django.conf import settings
@@ -10,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
@@ -29,9 +30,9 @@ ITR_BUNDLES: dict[str, dict] = {
         "label": "Pay-as-you-go",
         "credits": 1,
         "annual": False,
-        "amount_paise": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 500)),
-        "amount_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 500)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 500)) // 100,
+        "amount_paise": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 5000)),
+        "amount_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 5000)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 5000)) // 100,
         "description": "One PDF export — pay only when you need it",
         "badge": None,
     },
@@ -40,9 +41,9 @@ ITR_BUNDLES: dict[str, dict] = {
         "label": "Essentials",
         "credits": 40,
         "annual": True,
-        "amount_paise": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 1000)),
-        "amount_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 1000)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 1000)) // 100 // 40,
+        "amount_paise": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 100000)),
+        "amount_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 100000)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 100000)) // 100 // 40,
         "description": "40 PDF exports per year — great for tax professionals",
         "badge": "Popular",
     },
@@ -51,9 +52,9 @@ ITR_BUNDLES: dict[str, dict] = {
         "label": "Professional",
         "credits": 100,
         "annual": True,
-        "amount_paise": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 1100)),
-        "amount_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 1100)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 1100)) // 100 // 100,
+        "amount_paise": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 200000)),
+        "amount_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 200000)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 200000)) // 100 // 100,
         "description": "100 PDF exports per year — for busy CA offices",
         "badge": "Best value",
     },
@@ -133,8 +134,28 @@ def checkout_bundle(request, bundle: str):
 @require_http_methods(["POST"])
 def payment_success(request):
     """Verify Razorpay signature and grant export credits / activate annual plan."""
-    from datetime import timedelta
+    try:
+        return _payment_success_inner(request)
+    except Exception as exc:
+        rzp_order_id = request.POST.get("razorpay_order_id", "?")
+        logger.critical(
+            "UNHANDLED EXCEPTION in payment_success — user=%s order=%s error=%s",
+            getattr(request.user, "pk", "?"),
+            rzp_order_id,
+            exc,
+            exc_info=True,
+        )
+        messages.warning(
+            request,
+            "Your payment was received by Razorpay, but a server error occurred "
+            "while applying your credits. Your money is safe. "
+            f"Please contact support with reference: {rzp_order_id}",
+        )
+        return redirect("marketing:pricing")
 
+
+def _payment_success_inner(request):
+    """Core logic for payment_success — wrapped in a top-level try/except by the caller."""
     client = _razorpay_client()
     if not client:
         messages.error(request, "Payments are not configured.")
@@ -194,9 +215,9 @@ def payment_success(request):
         bundle_label = info.get("label", "credit bundle")
 
     if order and credits_to_add > 0:
-        profile, _ = UserProfile.objects.get_or_create(user=request.user)
         bundle_key = order.bundle_key
         try:
+            profile, _ = UserProfile.objects.get_or_create(user=request.user)
             if bundle_key in (RazorpayOrder.BUNDLE_ESSENTIALS, RazorpayOrder.BUNDLE_PROFESSIONAL):
                 # Annual plan — activate / renew
                 profile.itr_plan = bundle_key
@@ -243,7 +264,7 @@ def payment_success(request):
     if doc_pk:
         try:
             return redirect("exports:create", pk=int(doc_pk))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, NoReverseMatch):
             pass
 
     return redirect("documents:list")
@@ -442,7 +463,7 @@ def guest_checkout(request):
 
         if not errors:
             if not client:
-                errors["__all__"] = (
+                errors["form_error"] = (
                     "Online payments are not configured on this deployment. "
                     "Contact support to purchase."
                 )
@@ -471,7 +492,7 @@ def guest_checkout(request):
                     )
                 except Exception:
                     logger.exception("Guest checkout: Razorpay order create failed")
-                    errors["__all__"] = (
+                    errors["form_error"] = (
                         "Payment setup failed. Please try again or contact support."
                     )
 
@@ -689,8 +710,8 @@ def checkout_pro(request):
 
 @login_required
 @require_http_methods(["POST"])
-def payment_success(request):
-    """Verify Razorpay signature and activate Pro."""
+def _pro_payment_success(request):  # noqa: unused — shadowed by ITR payment_success above
+    """Verify Razorpay signature and activate Pro (legacy/dead-code path)."""
     client = _razorpay_client()
     if not client:
         messages.error(request, "Payments are not configured.")
