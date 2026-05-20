@@ -284,6 +284,53 @@
     .b-input:focus { border-color: rgba(232,184,109,0.45); }
     .b-input::placeholder { color: rgba(163,160,190,0.5); }
     .billing-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+    /* Checkout modal */
+    #checkout-modal {
+      position: fixed; inset: 0; z-index: 9000;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    #checkout-modal.open { display: flex; }
+    .modal-backdrop {
+      position: absolute; inset: 0;
+      background: rgba(2,6,16,0.88);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .modal-box {
+      position: relative; z-index: 1;
+      background: var(--panel);
+      border: 1px solid rgba(232,184,109,0.3);
+      border-radius: 24px; padding: 32px 28px;
+      max-width: 460px; width: 100%;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 40px 80px rgba(2,6,16,0.7);
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-close {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      color: var(--muted); border-radius: 999px; width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 18px; line-height: 1; padding: 0;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.1); }
+    .modal-plan-header {
+      margin-bottom: 22px; padding-bottom: 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .modal-plan-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 5px; }
+    #modal-plan-name { font-family: "Cormorant Garamond", serif; font-size: 26px; font-weight: 600; color: var(--gold); }
+    #modal-plan-price { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .modal-form { display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px; }
+    .modal-form details summary {
+      font-size: 12px; color: var(--muted); cursor: pointer;
+      padding: 4px 0; user-select: none; list-style: none;
+    }
+    .modal-form details summary::-webkit-details-marker { display: none; }
+    .modal-form details summary::before { content: "▶  "; font-size: 9px; }
+    .modal-form details[open] summary::before { content: "▼  "; }
+    .modal-optional-fields { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
+    #modal-error { color: rgba(240,100,100,0.9); font-size: 13px; margin: 0 0 12px; min-height: 18px; }
+    .modal-secure-note { text-align: center; font-size: 11px; color: var(--muted); margin: 10px 0 0; }
   </style>
   <script src="{% static 'guide_api/js/gita-web-portal.js' %}" defer></script>
 </head>
@@ -312,51 +359,6 @@
       </span>
       <button class="currency-chip active" id="btn-inr" onclick="setCurrency('INR')">₹ INR</button>
       <button class="currency-chip" id="btn-usd" onclick="setCurrency('USD')">$ USD</button>
-    </div>
-
-    <!-- Billing details (shown for logged-in users) -->
-    <div class="panel" id="billing-panel">
-      <h2 class="section-title">
-        {% if language == "hi" %}📌 बिलिंग विवरण{% else %}📌 Billing Details{% endif %}
-      </h2>
-      <div class="billing-grid">
-        <div class="b-row">
-          <label class="b-label" for="b-name">
-            {% if language == "hi" %}पूरा नाम{% else %}Full Name{% endif %} *
-          </label>
-          <input id="b-name" class="b-input" type="text"
-            placeholder="{% if language == 'hi' %}पूरा नाम…{% else %}Your full name{% endif %}">
-        </div>
-        <div class="b-row">
-          <label class="b-label" for="b-email">
-            {% if language == "hi" %}ईमेल{% else %}Email{% endif %} *
-          </label>
-          <input id="b-email" class="b-input" type="email"
-            placeholder="{% if language == 'hi' %}ईमेल…{% else %}you@example.com{% endif %}">
-        </div>
-        <div class="b-row">
-          <label class="b-label" for="b-country">
-            {% if language == "hi" %}देश कोड{% else %}Country Code{% endif %} *
-          </label>
-          <input id="b-country" class="b-input" type="text" maxlength="2"
-            placeholder="IN" value="IN" style="text-transform:uppercase">
-        </div>
-        <div class="b-row">
-          <label class="b-label" for="b-business">
-            {% if language == "hi" %}व्यवसाय नाम{% else %}Business Name{% endif %}
-          </label>
-          <input id="b-business" class="b-input" type="text"
-            placeholder="{% if language == 'hi' %}वैकल्पिक{% else %}Optional{% endif %}">
-        </div>
-        <div class="b-row">
-          <label class="b-label" for="b-gstin">GSTIN</label>
-          <input id="b-gstin" class="b-input" type="text"
-            placeholder="{% if language == 'hi' %}वैकल्पिक — केवल भारत के लिए{% else %}Optional — India GST only{% endif %}">
-        </div>
-      </div>
-      <p class="billing-note">
-        {% if language == "hi" %}* आवश्यक क्षेत्र — आपके भुगतान रसीद पर प्रदर्शित होगा{% else %}* Required — shown on your payment receipt{% endif %}
-      </p>
     </div>
 
     <!-- Plans grid -->
@@ -405,6 +407,8 @@
     let currentCurrency = document.body.dataset.currency || "INR";
     let catalogData = null;
     let currentPlan = "free";
+    let pendingPlanKey = null;
+    let userProfile = null;
 
     function apiFetch(path, opts = {}) {
       const headers = { "Content-Type": "application/json", ...(opts.headers||{}) };
@@ -443,8 +447,14 @@
       } else {
         renderCurrentSub(null);
         if (catalog) renderPlans(catalog);
-      }      // Show billing panel for logged-in users
-      if (token) document.getElementById("billing-panel").style.display = "";    }).catch(() => {
+      }
+      // Pre-fetch user profile to pre-fill checkout modal
+      if (token) {
+        apiFetch("/auth/me/").then(r => r.ok ? r.json() : null).then(me => {
+          if (me) userProfile = me;
+        }).catch(() => {});
+      }
+    }).catch(() => {
       document.getElementById("plans-grid").innerHTML = `<p style="color:var(--muted);font-size:13px">${LANG === "hi" ? "योजनाएं लोड नहीं हो सकीं" : "Could not load plans"}</p>`;
       renderCurrentSub(null);
     });
@@ -568,35 +578,86 @@
       return false;
     }
 
-    window.startCheckout = async function(planKey) {
-      const errEl = document.getElementById("error-msg");
+    window.startCheckout = function(planKey) {
+      if (!token) {
+        window.location.href = `/api/chat-ui/?language=${LANG}#guest-auth-target`;
+        return;
+      }
+      pendingPlanKey = planKey;
+
+      // Populate modal plan info
+      const planDisplayName = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+      const planPriceMinor = catalogData?.plans?.[planKey]?.prices_minor?.[currentCurrency];
+      const sym = currentCurrency === "INR" ? "₹" : "$";
+      const priceDisplay = planPriceMinor
+        ? sym + (planPriceMinor / 100).toLocaleString("en-IN") + "/mo"
+        : "";
+      document.getElementById("modal-plan-name").textContent =
+        planDisplayName + " " + (LANG === "hi" ? "योजना" : "Plan");
+      document.getElementById("modal-plan-price").textContent = priceDisplay;
+
+      // Pre-fill from profile if available
+      if (userProfile) {
+        const nameEl = document.getElementById("modal-name");
+        const emailEl = document.getElementById("modal-email");
+        if (nameEl && !nameEl.value)
+          nameEl.value = userProfile.full_name || userProfile.first_name || "";
+        if (emailEl && !emailEl.value)
+          emailEl.value = userProfile.email || "";
+      }
+
+      // Reset error + submit button
+      const errEl = document.getElementById("modal-error");
+      if (errEl) { errEl.textContent = ""; errEl.style.color = ""; }
+      const submitBtn = document.getElementById("modal-submit");
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = LANG === "hi" ? "भुगतान जारी रखें →" : "Continue to Payment →";
+      }
+
+      document.getElementById("checkout-modal").classList.add("open");
+      setTimeout(() => document.getElementById("modal-name")?.focus(), 60);
+    };
+
+    window.closeCheckoutModal = function() {
+      document.getElementById("checkout-modal").classList.remove("open");
+      pendingPlanKey = null;
+    };
+
+    window.submitCheckout = async function() {
+      const errEl = document.getElementById("modal-error");
       errEl.textContent = "";
       errEl.style.color = "";
 
-      // Validate billing details before proceeding
-      const billingName    = (document.getElementById("b-name")?.value ?? "").trim();
-      const billingEmail   = (document.getElementById("b-email")?.value ?? "").trim();
-      const billingCountry = (document.getElementById("b-country")?.value ?? "").trim().toUpperCase();
-      const businessName   = (document.getElementById("b-business")?.value ?? "").trim();
-      const gstin          = (document.getElementById("b-gstin")?.value ?? "").trim();
+      const billingName    = (document.getElementById("modal-name")?.value ?? "").trim();
+      const billingEmail   = (document.getElementById("modal-email")?.value ?? "").trim();
+      const billingCountry = (document.getElementById("modal-country")?.value ?? "").trim().toUpperCase();
+      const businessName   = (document.getElementById("modal-business")?.value ?? "").trim();
+      const gstin          = (document.getElementById("modal-gstin")?.value ?? "").trim();
 
       if (!billingName) {
         errEl.textContent = LANG === "hi" ? "कृपया अपना पूरा नाम दर्ज करें" : "Please enter your full name";
-        document.getElementById("b-name")?.focus(); return;
+        document.getElementById("modal-name")?.focus(); return;
       }
       if (!billingEmail || !/^[^@]+@[^@]+\.[^@]+$/.test(billingEmail)) {
         errEl.textContent = LANG === "hi" ? "वैध ईमेल दर्ज करें" : "Please enter a valid email address";
-        document.getElementById("b-email")?.focus(); return;
+        document.getElementById("modal-email")?.focus(); return;
       }
       if (!billingCountry || billingCountry.length !== 2) {
         errEl.textContent = LANG === "hi" ? "देश कोड 2 अक्षर का होना चाहिए (जैसे IN)" : "Country code must be 2 letters (e.g. IN, US)";
-        document.getElementById("b-country")?.focus(); return;
+        document.getElementById("modal-country")?.focus(); return;
       }
 
+      const submitBtn = document.getElementById("modal-submit");
+      submitBtn.disabled = true;
+      submitBtn.textContent = LANG === "hi" ? "प्रतीक्षा करें…" : "Please wait…";
+
       try {
-        const body = { plan: planKey, currency: currentCurrency,
+        const body = {
+          plan: pendingPlanKey, currency: currentCurrency,
           billing_name: billingName, billing_email: billingEmail,
-          billing_country_code: billingCountry };
+          billing_country_code: billingCountry
+        };
         if (businessName) body.business_name = businessName;
         if (gstin) body.gstin = gstin;
 
@@ -607,15 +668,23 @@
         const d = await r.json();
         if (!r.ok) {
           errEl.textContent = d.message ?? d.error ?? (LANG === "hi" ? "त्रुटि हुई" : "Error creating order");
+          submitBtn.disabled = false;
+          submitBtn.textContent = LANG === "hi" ? "भुगतान जारी रखें →" : "Continue to Payment →";
           return;
         }
+
+        // Close modal before opening Razorpay
+        document.getElementById("checkout-modal").classList.remove("open");
+        const pageErrEl = document.getElementById("error-msg");
+
         const options = {
           key: d.razorpay_key_id ?? d.key_id,
           order_id: d.order_id ?? d.razorpay_order_id,
           amount: d.amount,
           currency: d.currency ?? currentCurrency,
           name: "Bhagavad Gita Guide",
-          description: `${planKey.charAt(0).toUpperCase()+planKey.slice(1)} Plan`,
+          description: `${pendingPlanKey.charAt(0).toUpperCase()+pendingPlanKey.slice(1)} Plan`,
+          prefill: { name: billingName, email: billingEmail },
           handler: async function(resp) {
             const vr = await apiFetch("/payments/verify/", {
               method: "POST",
@@ -626,32 +695,37 @@
               })
             });
             if (vr.ok) {
-              // Payment verified — poll until subscription status confirms upgrade
-              errEl.style.color = "rgba(100,220,140,0.9)";
-              errEl.textContent = LANG === "hi" ? "✓ भुगतान सफल — सदस्यता सक्रिय हो रही है…" : "✓ Payment successful — activating subscription…";
+              pageErrEl.style.color = "rgba(100,220,140,0.9)";
+              pageErrEl.textContent = LANG === "hi" ? "✓ भुगतान सफल — सदस्यता सक्रिय हो रही है…" : "✓ Payment successful — activating subscription…";
               const upgraded = await reconcileSubscription(6);
               if (upgraded) {
-                errEl.textContent = LANG === "hi" ? "✓ सदस्यता सक्रिय हो गई!" : "✓ Subscription activated!";
+                pageErrEl.textContent = LANG === "hi" ? "✓ सदस्यता सक्रिय हो गई!" : "✓ Subscription activated!";
               } else {
-                errEl.style.color = "";
-                errEl.textContent = LANG === "hi" ? "भुगतान हो गया। पृष्ठ रिफ्रेश करें।" : "Payment received. Please refresh the page.";
+                pageErrEl.style.color = "";
+                pageErrEl.textContent = LANG === "hi" ? "भुगतान हो गया। पृष्ठ रिफ्रेश करें।" : "Payment received. Please refresh the page.";
                 setTimeout(() => location.reload(), 2000);
               }
             } else {
               const ve = await vr.json().catch(() => ({}));
-              errEl.style.color = "";
-              errEl.textContent = ve.message ?? (LANG === "hi" ? "भुगतान सत्यापन विफल" : "Payment verification failed");
+              pageErrEl.style.color = "";
+              pageErrEl.textContent = ve.message ?? (LANG === "hi" ? "भुगतान सत्यापन विफल" : "Payment verification failed");
             }
           },
-          prefill: {},
           theme: { color: "#e8b86d" }
         };
         const rzp = new Razorpay(options);
         rzp.open();
       } catch(e) {
         errEl.textContent = LANG === "hi" ? "भुगतान शुरू करने में त्रुटि" : "Error initiating payment";
+        submitBtn.disabled = false;
+        submitBtn.textContent = LANG === "hi" ? "भुगतान जारी रखें →" : "Continue to Payment →";
       }
     };
+
+    // Close modal on Escape key
+    document.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") closeCheckoutModal();
+    });
 
     // Payment history
     if (token) {
@@ -680,5 +754,64 @@
     }
   })();
   </script>
+  <!-- Checkout modal -->
+  <div id="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="modal-plan-name">
+    <div class="modal-backdrop" onclick="closeCheckoutModal()"></div>
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeCheckoutModal()" aria-label="Close">&#x2715;</button>
+      <div class="modal-plan-header">
+        <div class="modal-plan-label">{% if language == "hi" %}सदस्यता लें{% else %}Subscribing to{% endif %}</div>
+        <div id="modal-plan-name"></div>
+        <div id="modal-plan-price"></div>
+      </div>
+      <div class="modal-form">
+        <div class="b-row">
+          <label class="b-label" for="modal-name">
+            {% if language == "hi" %}पूरा नाम{% else %}Full Name{% endif %} *
+          </label>
+          <input id="modal-name" class="b-input" type="text"
+            placeholder="{% if language == 'hi' %}पूरा नाम…{% else %}Your full name{% endif %}"
+            autocomplete="name">
+        </div>
+        <div class="b-row">
+          <label class="b-label" for="modal-email">
+            {% if language == "hi" %}ईमेल{% else %}Email{% endif %} *
+          </label>
+          <input id="modal-email" class="b-input" type="email"
+            placeholder="{% if language == 'hi' %}ईमेल…{% else %}you@example.com{% endif %}"
+            autocomplete="email">
+        </div>
+        <div class="b-row">
+          <label class="b-label" for="modal-country">
+            {% if language == "hi" %}देश कोड{% else %}Country Code{% endif %} *
+          </label>
+          <input id="modal-country" class="b-input" type="text" maxlength="2"
+            placeholder="IN" value="IN" style="text-transform:uppercase" autocomplete="country">
+        </div>
+        <details>
+          <summary>{% if language == "hi" %}व्यापार बिलिंग (वैकल्पिक){% else %}For business invoicing (optional){% endif %}</summary>
+          <div class="modal-optional-fields">
+            <div class="b-row">
+              <label class="b-label" for="modal-business">
+                {% if language == "hi" %}व्यवसाय नाम{% else %}Business Name{% endif %}
+              </label>
+              <input id="modal-business" class="b-input" type="text"
+                placeholder="{% if language == 'hi' %}वैकल्पिक{% else %}Optional{% endif %}">
+            </div>
+            <div class="b-row">
+              <label class="b-label" for="modal-gstin">GSTIN</label>
+              <input id="modal-gstin" class="b-input" type="text"
+                placeholder="{% if language == 'hi' %}वैकल्पिक — केवल भारत के लिए{% else %}Optional — India GST only{% endif %}">
+            </div>
+          </div>
+        </details>
+      </div>
+      <p id="modal-error"></p>
+      <button id="modal-submit" class="btn btn-gold" onclick="submitCheckout()">
+        {% if language == "hi" %}भुगतान जारी रखें →{% else %}Continue to Payment →{% endif %}
+      </button>
+      <p class="modal-secure-note">🔒 {% if language == "hi" %}Razorpay द्वारा सुरक्षित भुगतान{% else %}Secure payment via Razorpay{% endif %}</p>
+    </div>
+  </div>
 </body>
 </html>
