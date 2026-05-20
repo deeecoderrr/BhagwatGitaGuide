@@ -537,16 +537,58 @@ h2 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; }
   margin-top: 0.25rem;
 }
 
+/* ── Google OAuth button ───────────────────────────────────────────── */
 .oauth-google {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
   width: 100%;
-  text-align: center;
   box-sizing: border-box;
+  padding: 0.625rem 1rem;
+  background: #fff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-family: 'Google Sans', 'Roboto', sans-serif;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
+}
+.oauth-google:hover {
+  background: #f8f9fa;
+  box-shadow: 0 2px 6px rgba(0,0,0,.14);
+  color: #3c4043;
+  text-decoration: none;
+}
+.oauth-google:active {
+  background: #f1f3f4;
+  box-shadow: 0 1px 2px rgba(0,0,0,.1);
+}
+.oauth-google__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .oauth-or {
-  text-align: center;
-  margin: 0.75rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.125rem 0;
+  color: var(--muted, #6b7280);
+  font-size: 0.8125rem;
+}
+.oauth-or::before,
+.oauth-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border, #e5e7eb);
 }
 
 /* Pricing */

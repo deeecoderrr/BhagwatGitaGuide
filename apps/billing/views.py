@@ -132,7 +132,9 @@ def checkout_bundle(request, bundle: str):
 @login_required
 @require_http_methods(["POST"])
 def payment_success(request):
-    """Verify Razorpay signature and add export credits to user's wallet."""
+    """Verify Razorpay signature and grant export credits / activate annual plan."""
+    from datetime import timedelta
+
     client = _razorpay_client()
     if not client:
         messages.error(request, "Payments are not configured.")
@@ -155,9 +157,28 @@ def payment_success(request):
         )
         return redirect("marketing:pricing")
 
+    rzp_order_id = params["razorpay_order_id"]
+
+    # Idempotency: check if this order was already processed (e.g. page refresh)
+    already_paid = RazorpayOrder.objects.filter(
+        user=request.user,
+        razorpay_order_id=rzp_order_id,
+        status=RazorpayOrder.STATUS_PAID,
+    ).first()
+    if already_paid:
+        info = ITR_BUNDLES.get(already_paid.bundle_key, {})
+        bundle_label = info.get("label", "credit bundle")
+        messages.success(request, f"Payment already confirmed — {bundle_label} applied to your account.")
+        if doc_pk:
+            try:
+                return redirect("exports:create", pk=int(doc_pk))
+            except (ValueError, TypeError):
+                pass
+        return redirect("documents:list")
+
     order = RazorpayOrder.objects.filter(
         user=request.user,
-        razorpay_order_id=params["razorpay_order_id"],
+        razorpay_order_id=rzp_order_id,
         status=RazorpayOrder.STATUS_CREATED,
     ).first()
 
@@ -173,35 +194,52 @@ def payment_success(request):
         bundle_label = info.get("label", "credit bundle")
 
     if order and credits_to_add > 0:
-        from datetime import timedelta
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         bundle_key = order.bundle_key
-        if bundle_key in (RazorpayOrder.BUNDLE_ESSENTIALS, RazorpayOrder.BUNDLE_PROFESSIONAL):
-            # Annual plan — activate / renew
-            profile.itr_plan = bundle_key
-            profile.itr_plan_until = timezone.now() + timedelta(days=365)
-            profile.itr_annual_exports_used = 0
-            profile.save(update_fields=["itr_plan", "itr_plan_until", "itr_annual_exports_used"])
-            messages.success(
-                request,
-                f"Payment confirmed — {bundle_label} annual plan activated. "
-                f"You have {credits_to_add} exports available for the next 12 months.",
+        try:
+            if bundle_key in (RazorpayOrder.BUNDLE_ESSENTIALS, RazorpayOrder.BUNDLE_PROFESSIONAL):
+                # Annual plan — activate / renew
+                profile.itr_plan = bundle_key
+                profile.itr_plan_until = timezone.now() + timedelta(days=365)
+                profile.itr_annual_exports_used = 0
+                profile.save(update_fields=["itr_plan", "itr_plan_until", "itr_annual_exports_used"])
+                messages.success(
+                    request,
+                    f"Payment confirmed — {bundle_label} annual plan activated. "
+                    f"You have {credits_to_add} exports available for the next 12 months.",
+                )
+            else:
+                # PAYG — add to credit wallet
+                profile.itr_export_credits = (profile.itr_export_credits or 0) + credits_to_add
+                profile.save(update_fields=["itr_export_credits"])
+                messages.success(
+                    request,
+                    f"Payment confirmed — {credits_to_add} export credit added. You can now generate your PDF.",
+                )
+        except Exception as exc:
+            logger.critical(
+                "PAYMENT CREDIT SAVE FAILED — user=%s order=%s payment=%s bundle=%s credits=%s error=%s",
+                request.user.pk,
+                order.razorpay_order_id,
+                order.razorpay_payment_id,
+                bundle_key,
+                credits_to_add,
+                exc,
+                exc_info=True,
             )
-        else:
-            # PAYG — add to credit wallet
-            profile.itr_export_credits = (profile.itr_export_credits or 0) + credits_to_add
-            profile.save(update_fields=["itr_export_credits"])
-            messages.success(
+            messages.warning(
                 request,
-                f"Payment confirmed — {credits_to_add} export credit added. You can now generate your PDF.",
+                "Your payment was captured successfully, but there was a temporary error "
+                "applying your credits. Your account will be updated within 24 hours. "
+                f"Please contact support with reference: {order.razorpay_order_id}",
             )
     elif not order:
         messages.warning(
             request,
-            "Payment recorded but order not found. Please contact support.",
+            "Payment recorded but order not found. Please contact support with your Razorpay receipt.",
         )
 
-    # For PAYG: redirect back to the export page
+    # Redirect back to the export page when coming from a specific document
     if doc_pk:
         try:
             return redirect("exports:create", pk=int(doc_pk))
