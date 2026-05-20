@@ -131,6 +131,22 @@
             Output uses a CA-style HTML layout rendered with <strong>WeasyPrint</strong>
             (section headers, slab table, annexures where applicable). The server must have WeasyPrint OS libraries installed.
           </p>
+          {% if plan_status %}
+            {% if plan_status.type == "annual_active" %}
+              <p class="export-quota-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+                <strong>{{ plan_status.plan_label }}:</strong>
+                {{ plan_status.remaining }} of {{ plan_status.limit }} exports remaining
+                <span class="muted">&nbsp;·&nbsp; expires {{ plan_status.expires|date:"d M Y" }}</span>
+              </p>
+            {% elif plan_status.type == "payg" %}
+              <p class="export-quota-note">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+                <strong>Pay-as-you-go:</strong>
+                {{ plan_status.credits }} credit{{ plan_status.credits|pluralize }} remaining
+              </p>
+            {% endif %}
+          {% endif %}
           <form method="post" class="export-form">
             {% csrf_token %}
             <div class="export-form-actions">

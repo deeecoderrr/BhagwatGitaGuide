@@ -769,6 +769,49 @@ h2 { font-size: 1.2rem; margin: 1.5rem 0 0.75rem; }
   max-width: fit-content;
 }
 
+/* ── Plan status bar (documents workspace) ───────────────────── */
+.plan-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.plan-status-bar__icon { flex-shrink: 0; line-height: 1; }
+.plan-status-bar__action { margin-left: auto; }
+.plan-status-bar--active {
+  background: rgba(13, 148, 136, 0.08);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  color: #0f766e;
+}
+.plan-status-bar--expired {
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.22);
+  color: #b91c1c;
+}
+.plan-status-bar--payg {
+  background: rgba(99, 102, 241, 0.07);
+  border: 1px solid rgba(99, 102, 241, 0.22);
+  color: #4338ca;
+}
+
+/* Export quota note inside "Ready to generate" card */
+.export-quota-note {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #0f766e;
+  margin-bottom: 1rem;
+  padding: 0.45rem 0.75rem;
+  background: rgba(13, 148, 136, 0.07);
+  border-radius: 6px;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+}
+
 /* Export pay-wall */
 .export-pay-wall {
   border-radius: var(--radius);

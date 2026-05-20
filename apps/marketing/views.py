@@ -74,7 +74,14 @@ def pricing(request):
     contact_email = getattr(settings, "ITR_CONTACT_EMAIL", "support@askbhagavadgita.in")
     # Keep pro_inr for SEO structured-data (use Professional bundle price)
     pro_inr = ITR_BUNDLES["professional"]["amount_inr"]
+    plan_status = None
+    if request.user.is_authenticated:
+        from apps.accounts.models import UserProfile
+        from apps.accounts.services import get_plan_status
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        plan_status = get_plan_status(profile)
     ctx = {
+        "plan_status": plan_status,
         "page_title": (
             "ITR Computation PDF Pricing — Income Tax Summary Exports | India"
         ),

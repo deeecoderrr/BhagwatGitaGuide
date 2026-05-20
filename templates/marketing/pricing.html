@@ -151,20 +151,26 @@
       All payments via Razorpay (UPI, card, netbanking). Credits are added immediately on payment confirmation.
     </p>
 
-    <!-- Credit balance reminder for logged-in users -->
-    {% if user.is_authenticated %}
-      {% with profile=user.itr_profile %}
-        {% if profile and profile.itr_export_credits > 0 %}
-          <div class="pricing-credit-balance">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
-              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-            You have <strong>{{ profile.itr_export_credits }} export credit{{ profile.itr_export_credits|pluralize }}</strong> remaining.
-            <a href="{% url 'documents:list' %}">Go to workspace</a>
-          </div>
+    <!-- Plan / credit status for logged-in users -->
+    {% if plan_status and plan_status.type != "none" %}
+      <div class="pricing-credit-balance">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+        {% if plan_status.type == "annual_active" %}
+          <strong>{{ plan_status.plan_label }} plan active</strong>
+          &mdash; {{ plan_status.remaining }} of {{ plan_status.limit }} exports remaining
+          &nbsp;<span class="muted small">· expires {{ plan_status.expires|date:"d M Y" }}</span>
+        {% elif plan_status.type == "annual_expired" %}
+          <strong>{{ plan_status.plan_label }} plan expired</strong>
+          <span class="muted small">on {{ plan_status.expires|date:"d M Y" }}</span>
+          &mdash; renew below to continue exporting.
+        {% elif plan_status.type == "payg" %}
+          You have <strong>{{ plan_status.credits }} Pay-as-you-go credit{{ plan_status.credits|pluralize }}</strong> remaining.
         {% endif %}
-      {% endwith %}
+        <a href="{% url 'documents:list' %}">Go to workspace</a>
+      </div>
     {% endif %}
 
   </div>

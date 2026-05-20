@@ -9,6 +9,8 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 
+from apps.accounts.models import UserProfile
+from apps.accounts.services import get_plan_status
 from apps.documents.access import document_for_request, document_for_user
 from apps.documents.forms import DocumentReprocessForm, ItrUploadForm
 from apps.documents.models import Document
@@ -47,7 +49,12 @@ def document_list(request):
             queryset=ExportedSummary.objects.order_by("-created_at"),
         ),
     )
-    return render(request, "documents/list.html", {"documents": docs})
+    profile = None
+    plan_status = None
+    if request.user.is_authenticated:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        plan_status = get_plan_status(profile)
+    return render(request, "documents/list.html", {"documents": docs, "plan_status": plan_status})
 
 
 @login_required

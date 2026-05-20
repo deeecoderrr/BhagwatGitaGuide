@@ -70,6 +70,42 @@ def record_export(profile: UserProfile) -> None:
         profile.save(update_fields=["itr_export_credits"])
 
 
+def get_plan_status(profile: UserProfile) -> dict:
+    """Return a display-ready dict describing the user's current export allowance.
+
+    Keys always present:
+      type: 'annual_active' | 'annual_expired' | 'payg' | 'none'
+    Extra keys per type:
+      annual_active  -> plan_label, limit, used, remaining, expires
+      annual_expired -> plan_label, expires
+      payg           -> credits
+    """
+    active, limit = _annual_plan_active(profile)
+    if active:
+        used = profile.itr_annual_exports_used
+        remaining = max(limit - used, 0)
+        return {
+            "type": "annual_active",
+            "plan_label": profile.itr_plan.title(),
+            "limit": limit,
+            "used": used,
+            "remaining": remaining,
+            "expires": profile.itr_plan_until,
+        }
+    if profile.itr_plan and profile.itr_plan_until:
+        return {
+            "type": "annual_expired",
+            "plan_label": profile.itr_plan.title(),
+            "expires": profile.itr_plan_until,
+        }
+    if profile.itr_export_credits > 0:
+        return {
+            "type": "payg",
+            "credits": profile.itr_export_credits,
+        }
+    return {"type": "none"}
+
+
 def can_export_pdf_anonymous(request) -> tuple[bool, str]:
     """Anonymous users must create an account and purchase a plan."""
     return (

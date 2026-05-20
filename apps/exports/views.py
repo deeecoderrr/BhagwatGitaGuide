@@ -14,6 +14,7 @@ from apps.accounts.models import UserProfile
 from apps.accounts.services import (
     can_export_pdf,
     can_export_pdf_anonymous,
+    get_plan_status,
     record_export,
     record_export_anonymous,
 )
@@ -139,6 +140,10 @@ def export_pdf(request, pk: int):
         messages.success(request, "Summary PDF generated (WeasyPrint layout).")
         return redirect("exports:download", pk=document.pk, export_id=exp.pk)
 
+    plan_status = None
+    if profile is not None:
+        plan_status = get_plan_status(profile)
+
     return render(
         request,
         "exports/export_confirm.html",
@@ -148,6 +153,7 @@ def export_pdf(request, pk: int):
             "warnings": [i for i in issues if i not in blocks],
             "export_blocked": not allowed_export,
             "export_block_reason": export_reason,
+            "plan_status": plan_status,
             "contact_email": getattr(
                 __import__("django.conf", fromlist=["settings"]).settings,
                 "ITR_CONTACT_EMAIL",

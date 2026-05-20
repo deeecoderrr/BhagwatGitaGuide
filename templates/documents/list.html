@@ -2,6 +2,47 @@
 {% block title %}Workspace{% endblock %}
 {% block content %}
 <div class="wrap">
+
+{% if plan_status %}
+  {% if plan_status.type == "annual_active" %}
+    <div class="plan-status-bar plan-status-bar--active">
+      <span class="plan-status-bar__icon" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" focusable="false"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+      </span>
+      <span>
+        <strong>{{ plan_status.plan_label }} plan</strong>
+        &nbsp;—&nbsp;
+        <strong>{{ plan_status.remaining }}</strong> of {{ plan_status.limit }} exports remaining
+        <span class="muted small">&nbsp;·&nbsp; expires {{ plan_status.expires|date:"d M Y" }}</span>
+      </span>
+      {% if plan_status.remaining == 0 %}
+        <a href="{% url 'marketing:pricing' %}" class="plan-status-bar__action btn btn-sm btn-primary">Renew plan</a>
+      {% endif %}
+    </div>
+  {% elif plan_status.type == "annual_expired" %}
+    <div class="plan-status-bar plan-status-bar--expired">
+      <span class="plan-status-bar__icon" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" focusable="false"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4m0 4h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </span>
+      <span>
+        <strong>{{ plan_status.plan_label }} plan expired</strong>
+        <span class="muted small">&nbsp;·&nbsp; {{ plan_status.expires|date:"d M Y" }}</span>
+      </span>
+      <a href="{% url 'marketing:pricing' %}" class="plan-status-bar__action btn btn-sm btn-primary">Renew plan</a>
+    </div>
+  {% elif plan_status.type == "payg" %}
+    <div class="plan-status-bar plan-status-bar--payg">
+      <span class="plan-status-bar__icon" aria-hidden="true">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" focusable="false"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </span>
+      <span>
+        <strong>{{ plan_status.credits }} Pay-as-you-go credit{{ plan_status.credits|pluralize }}</strong> remaining
+      </span>
+      <a href="{% url 'marketing:pricing' %}" class="plan-status-bar__action btn btn-sm">Buy more</a>
+    </div>
+  {% endif %}
+{% endif %}
+
 <h1>Documents</h1>
 <p><a class="btn btn-primary" href="{% url 'documents:upload' %}">Upload ITR JSON</a></p>
 <table class="data-table">
