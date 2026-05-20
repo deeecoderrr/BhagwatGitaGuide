@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Checkout — {{ bundle.label }}{% endblock %}
+{% block content %}
+<div class="wrap" style="max-width:520px;margin:2.5rem auto;">
+  <nav class="muted small" aria-label="Breadcrumb" style="margin-bottom:1.25rem;">
+    <a href="{% url 'marketing:pricing' %}">Pricing</a>
+    <span aria-hidden="true"> · </span>
+    <span>{{ bundle.label }}</span>
+  </nav>
+
+  <div class="card checkout-card">
+    <!-- Bundle summary -->
+    <div class="checkout-bundle-summary">
+      <div class="checkout-bundle-summary__left">
+        <span class="checkout-bundle-summary__name">{{ bundle.label }}</span>
+        {% if bundle.badge %}
+          <span class="checkout-bundle-summary__badge">{{ bundle.badge }}</span>
+        {% endif %}
+        <p class="muted small checkout-bundle-summary__desc">{{ bundle.description }}</p>
+      </div>
+      <div class="checkout-bundle-summary__right">
+        <span class="checkout-bundle-summary__price">₹{{ bundle.amount_inr }}</span>
+        <span class="muted small">₹{{ bundle.per_export_inr }}/export</span>
+      </div>
+    </div>
+
+    <hr class="checkout-divider">
+
+    {% if order_id and key_id %}
+      <h1 class="checkout-title">Complete your payment</h1>
+      <p class="muted small" style="margin-bottom:1.5rem;">
+        Secure checkout via Razorpay.{% if bundle.annual %} Annual plan active for 12 months from purchase — exports reset on renewal.{% else %} Credit added to your account immediately on confirmation.{% endif %}
+      </p>
+      <button type="button" id="rzp-btn" class="btn btn-primary checkout-pay-btn">
+        Pay ₹{{ bundle.amount_inr }} securely
+      </button>
+
+      <form id="pay-form" method="post" action="{% url 'billing:payment_success' %}">
+        {% csrf_token %}
+        <input type="hidden" name="razorpay_order_id" id="rzp_oid">
+        <input type="hidden" name="razorpay_payment_id" id="rzp_pid">
+        <input type="hidden" name="razorpay_signature" id="rzp_sig">
+        {% if doc_pk %}
+          <input type="hidden" name="doc" value="{{ doc_pk }}">
+        {% endif %}
+      </form>
+
+      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+      <script>
+        (function () {
+          var btn = document.getElementById('rzp-btn');
+          btn.addEventListener('click', function () {
+            var options = {
+              key: "{{ key_id|escapejs }}",
+              amount: "{{ bundle.amount_paise }}",
+              currency: "INR",
+              name: "ITR Summary Generator",
+              description: "{{ bundle.label|escapejs }} — {{ bundle.description|escapejs }}",
+              order_id: "{{ order_id|escapejs }}",
+              prefill: {
+                email: "{{ user_email|escapejs }}"
+              },
+              handler: function (response) {
+                document.getElementById('rzp_oid').value = response.razorpay_order_id;
+                document.getElementById('rzp_pid').value = response.razorpay_payment_id;
+                document.getElementById('rzp_sig').value = response.razorpay_signature;
+                document.getElementById('pay-form').submit();
+              },
+            };
+            var rzp = new Razorpay(options);
+            rzp.open();
+          });
+        })();
+      </script>
+
+    {% else %}
+      <h1 class="checkout-title">Buy {{ bundle.label }}</h1>
+      <p class="muted small" style="margin-bottom:1.5rem;">
+        {{ bundle.credits }} export credit{{ bundle.credits|pluralize }} &mdash; ₹{{ bundle.per_export_inr }}/export.
+        Credits are added immediately after payment and never expire.
+      </p>
+      {% if not client_available %}
+        <p class="error">
+          Payments are not configured on this deployment.
+          Contact <a href="mailto:{{ contact_email|default:'support@askbhagavadgita.in' }}">support</a> to purchase.
+        </p>
+        <p><a class="btn" href="{% url 'marketing:pricing' %}">Back to pricing</a></p>
+      {% else %}
+        <form method="post">
+          {% csrf_token %}
+          {% if doc_pk %}
+            <input type="hidden" name="doc" value="{{ doc_pk }}">
+          {% endif %}
+          <button type="submit" class="btn btn-primary checkout-pay-btn">
+            Proceed to payment — ₹{{ bundle.amount_inr }}
+          </button>
+        </form>
+      {% endif %}
+    {% endif %}
+
+    <p class="muted small checkout-back-link">
+      <a href="{% url 'marketing:pricing' %}">← Back to pricing</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

@@ -148,6 +148,11 @@ def export_pdf(request, pk: int):
             "warnings": [i for i in issues if i not in blocks],
             "export_blocked": not allowed_export,
             "export_block_reason": export_reason,
+            "contact_email": getattr(
+                __import__("django.conf", fromlist=["settings"]).settings,
+                "ITR_CONTACT_EMAIL",
+                "support@askbhagavadgita.in",
+            ),
         },
     )
 

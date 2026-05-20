@@ -101,12 +101,16 @@ def register_itr_settings(g: dict[str, Any]) -> None:
         _email_verification = "none"
     g["ACCOUNT_EMAIL_VERIFICATION"] = _email_verification
 
+    # ITR credit bundle amounts (paise) — separate from Gita app plans
+    g["ITR_PAYG_AMOUNT_PAISE"] = int(os.getenv("ITR_PAYG_AMOUNT_PAISE", "5000"))       # ₹50
+    g["ITR_ESSENTIALS_AMOUNT_PAISE"] = int(os.getenv("ITR_ESSENTIALS_AMOUNT_PAISE", "100000"))  # ₹1,000
+    g["ITR_PROFESSIONAL_AMOUNT_PAISE"] = int(os.getenv("ITR_PROFESSIONAL_AMOUNT_PAISE", "200000"))  # ₹2,000
+    g["ITR_CONTACT_EMAIL"] = os.getenv("ITR_CONTACT_EMAIL", "support@askbhagavadgita.in").strip()
+    # Keep for backward compat (unused by new credit system)
     g["PRO_PLAN_AMOUNT_PAISE"] = int(
         os.getenv("PRO_PLAN_AMOUNT_PAISE", "49900"),
     )
-    g["FREE_EXPORT_LIMIT_PER_MONTH"] = int(
-        os.getenv("FREE_EXPORT_LIMIT_PER_MONTH", "5"),
-    )
+    g["FREE_EXPORT_LIMIT_PER_MONTH"] = 0  # No free tier — purchase required
     g["ITR_RAZORPAY_WEBHOOK_SECRET"] = os.getenv(
         "ITR_RAZORPAY_WEBHOOK_SECRET",
         "",

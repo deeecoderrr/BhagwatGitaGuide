@@ -1,26 +1,106 @@
 {% extends "base.html" %}
 {% load itr_export %}
-{% block title %}Upload{% endblock %}
+{% block title %}Upload JSON{% endblock %}
+
 {% block content %}
-<h1>Upload filed ITR JSON</h1>
-<p>Upload <strong>filed ITR JSON</strong> from the income-tax portal (acknowledgment or utility export). Supported: <strong>ITR-1</strong> (Sahaj), <strong>ITR-3</strong> (business/profession), <strong>ITR-4</strong> (Sugam). Review and computation PDF export use the same flow.</p>
-<p class="muted small" style="max-width:42rem;">
-  <strong>Summary PDF:</strong> each export stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong>, then we remove the file from our servers (save a local copy if you need it longer).<br>
-  {% itr_delete_input_after_export as itr_del_upload %}
-  {% if itr_del_upload %}
-  <strong>Original JSON upload:</strong> by default we may delete your uploaded file from our servers <em>right after</em> a successful export—that is separate from the PDF timer above. Upload again if you need to re-import.
-  {% else %}
-  <strong>Original JSON upload:</strong> your file is kept on our servers after export unless you delete the document.
-  {% endif %}
-</p>
-<form method="post" enctype="multipart/form-data" class="stack">
-  {% csrf_token %}
-  {{ form.non_field_errors }}
-  <div>
-    {{ form.file.label_tag }}
-    {{ form.file }}
-    {{ form.file.errors }}
+<div class="upload-page-shell">
+
+  <!-- Step progress -->
+  <nav class="upload-steps-bar" aria-label="Upload progress">
+    <div class="wrap">
+      <ol class="upload-steps" role="list">
+        <li class="upload-steps__step upload-steps__step--active" aria-current="step">
+          <span class="upload-steps__num" aria-hidden="true">1</span>
+          <span class="upload-steps__label">Upload JSON</span>
+        </li>
+        <li class="upload-steps__step upload-steps__step--upcoming">
+          <span class="upload-steps__num" aria-hidden="true">2</span>
+          <span class="upload-steps__label">Review fields</span>
+        </li>
+        <li class="upload-steps__step upload-steps__step--upcoming">
+          <span class="upload-steps__num" aria-hidden="true">3</span>
+          <span class="upload-steps__label">Download PDF</span>
+        </li>
+      </ol>
+    </div>
+  </nav>
+
+  <div class="wrap upload-wrap">
+
+    <!-- Main upload card -->
+    <div class="upload-card card">
+      <div class="upload-card__header">
+        <div class="upload-card__icon" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+            <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" fill="rgba(255,255,255,0.18)"/>
+            <path d="M14 3v5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 13h8M8 17h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.9"/>
+          </svg>
+        </div>
+        <div class="upload-card__heading">
+          <h1 class="upload-card__title">Upload your ITR JSON</h1>
+          <p class="upload-card__subtitle muted small">Acknowledgment or utility export from <strong>incometaxindia.gov.in</strong></p>
+        </div>
+      </div>
+
+      <!-- Format support pills -->
+      <div class="upload-formats" role="list" aria-label="Supported ITR forms">
+        <span class="upload-format-pill" role="listitem">ITR-1 &nbsp;<span class="upload-format-pill__note">Sahaj</span></span>
+        <span class="upload-format-pill" role="listitem">ITR-3 &nbsp;<span class="upload-format-pill__note">Business / Profession</span></span>
+        <span class="upload-format-pill" role="listitem">ITR-4 &nbsp;<span class="upload-format-pill__note">Sugam</span></span>
+      </div>
+
+      <!-- Upload form -->
+      <form method="post" enctype="multipart/form-data" class="stack upload-form">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+        <div class="beta-upload-field">
+          {{ form.file.label_tag }}
+          {{ form.file }}
+          {{ form.file.errors }}
+        </div>
+        <button type="submit" class="btn btn-primary upload-submit-btn">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false" style="margin-right:0.45rem;flex-shrink:0;">
+            <path d="M12 16V4m0 0-4 4m4-4 4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          Upload &amp; import
+        </button>
+      </form>
+    </div>
+
+    <!-- Privacy / retention notes -->
+    <div class="upload-info-strip">
+      {% load itr_export %}
+      {% itr_delete_input_after_export as itr_del_upload %}
+      <div class="upload-info-item">
+        <span class="upload-info-item__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" focusable="false">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M12 8v4l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <p>
+          <strong>Summary PDF</strong> stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong>, then removed from our servers. Save a local copy before the window closes.
+        </p>
+      </div>
+      <div class="upload-info-item">
+        <span class="upload-info-item__icon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" focusable="false">
+            <path d="M12 2a5 5 0 0 1 5 5v2h1a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h1V7a5 5 0 0 1 5-5z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            <circle cx="12" cy="15" r="1.5" fill="currentColor"/>
+          </svg>
+        </span>
+        <p>
+          {% if itr_del_upload %}
+            <strong>Uploaded JSON</strong> may be deleted immediately after a successful export — separate from the PDF window.
+          {% else %}
+            <strong>Uploaded JSON</strong> is kept on our servers after export unless you delete the document yourself.
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
   </div>
-  <button type="submit" class="btn btn-primary">Upload JSON &amp; import</button>
-</form>
+</div>
 {% endblock %}

@@ -5,11 +5,11 @@
   <div class="beta-spotlight__inner">
     <p class="beta-spotlight__eyebrow">
       <span class="beta-spotlight__eyebrow-dot" aria-hidden="true"></span>
-      Beta · Try instantly · No account
+      Free · No account needed · Try instantly
     </p>
-    <h1 id="beta-spotlight-heading">Filed ITR JSON → computation PDF</h1>
+    <h1 id="beta-spotlight-heading">Your ITR, ready for CA review in minutes</h1>
     <p class="beta-spotlight__lead">
-      Upload your portal JSON, <strong>review imported fields</strong>, approve when ready, then generate your CA-style PDF—the same human review gate as a full account.
+      Upload your Income Tax portal JSON, review the imported fields, and download a CA-style computation PDF. Supports <strong>ITR-1</strong>, <strong>ITR-3</strong>, and <strong>ITR-4</strong>.
     </p>
 
     <div class="beta-spotlight__card">
@@ -22,10 +22,10 @@
           </svg>
         </div>
         <div class="beta-spotlight__card-intro">
-          <h2 class="beta-spotlight__card-title">Start with your JSON</h2>
+          <h2 class="beta-spotlight__card-title">Upload your portal JSON</h2>
           <p class="muted small beta-spotlight__card-desc">
-            <strong>ITR-1</strong>, <strong>ITR-3</strong>, or <strong>ITR-4</strong> acknowledgment or utility export (.json).
-            After import you’ll edit and <strong>approve</strong> in review, then export.
+            Acknowledgment or utility export (.json) from <strong>incometaxindia.gov.in</strong>.
+            Fields are mapped automatically — review before downloading your PDF.
             Want a saved workspace? <a href="{% url 'account_signup' %}">Create a free account</a>.
           </p>
         </div>
@@ -39,11 +39,12 @@
             <p class="error">{{ beta_try_form.file.errors }}</p>
           {% endif %}
         </div>
-        <button type="submit" class="btn btn-primary beta-spotlight__submit">Upload &amp; go to review</button>
+        <button type="submit" class="btn btn-primary beta-spotlight__submit">Upload &amp; get your PDF</button>
       </form>
       <ul class="beta-spotlight__trust" aria-label="Privacy notes">
-        <li><span aria-hidden="true">✓</span> Same review + validation as account users</li>
-        <li><span aria-hidden="true">✓</span> Tied to this browser session until you export</li>
+        <li><span aria-hidden="true">✓</span> ITR-1, ITR-3, ITR-4 supported</li>
+        <li><span aria-hidden="true">✓</span> PDF ready in under a minute</li>
+        <li><span aria-hidden="true">✓</span> Session-only — nothing stored after you close</li>
       </ul>
     </div>
 

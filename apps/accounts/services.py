@@ -1,32 +1,13 @@
-"""Usage limits for PDF export (free tier vs Pro)."""
+"""Export quota logic — annual plans (Essentials / Professional) + Pay-as-you-go credits."""
 from __future__ import annotations
 
-from django.conf import settings
 from django.utils import timezone
 
 from apps.accounts.models import UserProfile
 
 
-def ensure_profile_month(profile: UserProfile) -> None:
-    """Reset monthly export counter when calendar month changes."""
-    today = timezone.now().date()
-    if (
-        profile.export_cycle_year != today.year
-        or profile.export_cycle_month != today.month
-    ):
-        profile.exports_this_month = 0
-        profile.export_cycle_year = today.year
-        profile.export_cycle_month = today.month
-        profile.save(
-            update_fields=[
-                "exports_this_month",
-                "export_cycle_year",
-                "export_cycle_month",
-            ]
-        )
-
-
 def is_pro_active(profile: UserProfile) -> bool:
+    """Legacy helper - kept for backward compat."""
     if profile.plan != UserProfile.PLAN_PRO:
         return False
     if not profile.subscription_until:
@@ -34,74 +15,69 @@ def is_pro_active(profile: UserProfile) -> bool:
     return profile.subscription_until > timezone.now()
 
 
-def _monthly_free_export_limit() -> int:
-    try:
-        from apps.accounts.models import QuotaSettings
-
-        return int(QuotaSettings.get_solo().free_exports_per_month)
-    except Exception:
-        return int(getattr(settings, "FREE_EXPORT_LIMIT_PER_MONTH", 5))
+def _annual_plan_active(profile: UserProfile) -> tuple[bool, int]:
+    """Return (is_active, export_limit) for the user's current annual plan."""
+    if not profile.itr_plan or not profile.itr_plan_until:
+        return False, 0
+    if profile.itr_plan_until <= timezone.now():
+        return False, 0
+    limit = UserProfile.ANNUAL_EXPORT_LIMITS.get(profile.itr_plan, 0)
+    return True, limit
 
 
 def can_export_pdf(profile: UserProfile) -> tuple[bool, str]:
-    """Return (allowed, reason_if_blocked)."""
-    ensure_profile_month(profile)
-    if is_pro_active(profile):
-        return True, ""
-    limit = _monthly_free_export_limit()
-    if profile.exports_this_month >= limit:
+    """Return (allowed, reason_if_blocked).
+
+    Priority:
+      1. Active annual plan with remaining exports -> allowed.
+      2. Pay-as-you-go credit balance -> allowed.
+      3. Blocked - must purchase.
+    """
+    active, limit = _annual_plan_active(profile)
+    if active:
+        if profile.itr_annual_exports_used < limit:
+            return True, ""
+        label = profile.itr_plan.title()
         return (
             False,
-            f"Free plan allows {limit} computation PDF exports per month. "
-            "Upgrade to Pro for unlimited exports.",
+            f"You've used all {limit} exports on your {label} annual plan. "
+            "Renew your plan or top up with Pay-as-you-go.",
         )
-    return True, ""
+
+    # Expired annual plan message
+    if profile.itr_plan and profile.itr_plan_until and profile.itr_plan_until <= timezone.now():
+        label = profile.itr_plan.title()
+        return (
+            False,
+            f"Your {label} annual plan expired. Renew to continue exporting.",
+        )
+
+    # PAYG credit wallet
+    if profile.itr_export_credits > 0:
+        return True, ""
+
+    return False, "Purchase a plan to generate PDF exports."
 
 
 def record_export(profile: UserProfile) -> None:
-    ensure_profile_month(profile)
-    if is_pro_active(profile):
-        return
-    profile.exports_this_month += 1
-    profile.save(update_fields=["exports_this_month"])
-
-
-# Anonymous session: monthly free export counter (mirrors UserProfile).
-SESSION_ANON_EXPORT_Y = "itr_anon_ex_y"
-SESSION_ANON_EXPORT_M = "itr_anon_ex_m"
-SESSION_ANON_EXPORT_N = "itr_anon_ex_n"
-
-
-def ensure_anonymous_export_cycle(request) -> None:
-    """Reset monthly anonymous export counter when calendar month changes."""
-    today = timezone.now().date()
-    y = request.session.get(SESSION_ANON_EXPORT_Y)
-    m = request.session.get(SESSION_ANON_EXPORT_M)
-    if y != today.year or m != today.month:
-        request.session[SESSION_ANON_EXPORT_Y] = today.year
-        request.session[SESSION_ANON_EXPORT_M] = today.month
-        request.session[SESSION_ANON_EXPORT_N] = 0
-        request.session.modified = True
+    """Consume one export - deducts from annual plan first, then PAYG credits."""
+    active, _ = _annual_plan_active(profile)
+    if active:
+        profile.itr_annual_exports_used += 1
+        profile.save(update_fields=["itr_annual_exports_used"])
+    elif profile.itr_export_credits > 0:
+        profile.itr_export_credits -= 1
+        profile.save(update_fields=["itr_export_credits"])
 
 
 def can_export_pdf_anonymous(request) -> tuple[bool, str]:
-    """Free-tier limit for anonymous exports (session-scoped)."""
-    ensure_anonymous_export_cycle(request)
-    n = int(request.session.get(SESSION_ANON_EXPORT_N, 0))
-    limit = _monthly_free_export_limit()
-    if n >= limit:
-        return (
-            False,
-            f"This browser’s free trial allows {limit} PDF exports per month. "
-            "Create a free account for a workspace, or see Pro for unlimited "
-            "exports.",
-        )
-    return True, ""
+    """Anonymous users must create an account and purchase a plan."""
+    return (
+        False,
+        "Create an account and purchase a plan to generate PDF exports.",
+    )
 
 
 def record_export_anonymous(request) -> None:
-    ensure_anonymous_export_cycle(request)
-    request.session[SESSION_ANON_EXPORT_N] = (
-        int(request.session.get(SESSION_ANON_EXPORT_N, 0)) + 1
-    )
-    request.session.modified = True
+    """No-op - anonymous users cannot export."""
+    pass

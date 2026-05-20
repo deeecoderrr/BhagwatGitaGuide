@@ -49,24 +49,62 @@ class UserProfile(models.Model):
         (PLAN_PRO, "Pro"),
     ]
 
+    # Annual plan keys
+    ITR_PLAN_NONE = ""
+    ITR_PLAN_ESSENTIALS = "essentials"
+    ITR_PLAN_PROFESSIONAL = "professional"
+    ITR_ANNUAL_PLAN_CHOICES = [
+        ("", "None"),
+        ("essentials", "Essentials — 40 exports/yr"),
+        ("professional", "Professional — 100 exports/yr"),
+    ]
+    ANNUAL_EXPORT_LIMITS: dict[str, int] = {
+        "essentials": 40,
+        "professional": 100,
+    }
+
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="itr_profile",
     )
+    # Legacy fields (kept for migration safety, no longer used for quota)
     plan = models.CharField(max_length=16, choices=PLAN_CHOICES, default=PLAN_FREE)
     subscription_until = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Pro access valid until this instant (UTC).",
+        help_text="(Legacy) Pro access valid until this instant (UTC).",
     )
     exports_this_month = models.PositiveSmallIntegerField(default=0)
     export_cycle_year = models.PositiveSmallIntegerField(default=0)
     export_cycle_month = models.PositiveSmallIntegerField(default=0)
+
+    # Active billing fields
+    itr_export_credits = models.PositiveIntegerField(
+        default=0,
+        help_text="Pay-as-you-go credits remaining (1 credit = 1 export, never expire).",
+    )
+    itr_plan = models.CharField(
+        max_length=16,
+        choices=ITR_ANNUAL_PLAN_CHOICES,
+        default="",
+        blank=True,
+        help_text="Active annual plan: essentials (40/yr) or professional (100/yr).",
+    )
+    itr_plan_until = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Annual plan valid until this instant (UTC).",
+    )
+    itr_annual_exports_used = models.PositiveIntegerField(
+        default=0,
+        help_text="Exports consumed in the current annual plan cycle.",
+    )
 
     class Meta:
         verbose_name = "User profile"
         verbose_name_plural = "User profiles"
 
     def __str__(self) -> str:
-        return f"{self.user.username} ({self.plan})"
+        plan_display = self.itr_plan or "none"
+        return f"{self.user.username} (itr_plan={plan_display}, credits={self.itr_export_credits})"

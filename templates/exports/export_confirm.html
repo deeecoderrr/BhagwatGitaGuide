@@ -43,17 +43,74 @@
           </p>
         </div>
       {% elif export_blocked %}
-        <div class="warn-block export-status-block">
-          <p class="export-status-title"><strong>Export limit reached</strong></p>
-          <p>{{ export_block_reason }}</p>
-          <p class="export-status-actions">
-            {% if user.is_authenticated %}
-              <a class="btn btn-primary" href="{% url 'marketing:pricing' %}">View pricing / Pro</a>
-            {% else %}
-              <a class="btn btn-primary" href="{% url 'account_signup' %}">Create free account</a>
-              <a class="btn" href="{% url 'marketing:pricing' %}">Pricing</a>
-            {% endif %}
-            <a class="btn btn-ghost" href="{% url 'documents:detail' document.pk %}">Back</a>
+        <div class="export-pay-wall">
+          <p class="export-status-title">
+            <strong>Export limit reached</strong>
+            <span class="muted small"> — purchase credits to continue</span>
+          </p>
+          <p class="muted small" style="margin-bottom:1.25rem;">{{ export_block_reason }}</p>
+
+          {% if user.is_authenticated %}
+            <div class="export-plan-options">
+
+              <!-- Pay-as-you-go -->
+              <div class="export-plan-card">
+                <div class="export-plan-card__top">
+                  <span class="export-plan-card__name">Pay-as-you-go</span>
+                </div>
+                <div class="export-plan-card__price">₹50</div>
+                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
+                <a class="btn btn-primary export-plan-card__btn"
+                   href="{% url 'billing:checkout_bundle' 'payg' %}?doc={{ document.pk }}">
+                  Pay ₹50 &amp; generate
+                </a>
+              </div>
+
+              <!-- Essentials -->
+              <div class="export-plan-card export-plan-card--featured">
+                <div class="export-plan-card__top">
+                  <span class="export-plan-card__name">Essentials</span>
+                  <span class="export-plan-card__badge">Popular</span>
+                </div>
+                <div class="export-plan-card__price">₹1,000</div>
+                <div class="export-plan-card__desc muted small">40 exports/year &nbsp;·&nbsp; ₹25/file</div>
+                <a class="btn btn-primary export-plan-card__btn"
+                   href="{% url 'billing:checkout_bundle' 'essentials' %}">
+                  Buy Essentials — Annual
+                </a>
+              </div>
+
+              <!-- Professional -->
+              <div class="export-plan-card">
+                <div class="export-plan-card__top">
+                  <span class="export-plan-card__name">Professional</span>
+                  <span class="export-plan-card__badge export-plan-card__badge--alt">Best value</span>
+                </div>
+                <div class="export-plan-card__price">₹2,000</div>
+                <div class="export-plan-card__desc muted small">100 exports/year &nbsp;·&nbsp; ₹20/file</div>
+                <a class="btn export-plan-card__btn"
+                   href="{% url 'billing:checkout_bundle' 'professional' %}">
+                  Buy Professional — Annual
+                </a>
+              </div>
+
+            </div>
+
+            <p class="muted small" style="margin-top:1.25rem;text-align:center;">
+              Need more than 100 exports?
+              <a href="mailto:{{ contact_email|default:'support@askbhagavadgita.in' }}">Contact us</a>
+              for bulk pricing.
+            </p>
+
+          {% else %}
+            <p class="export-status-actions">
+              <a class="btn btn-primary" href="{% url 'account_signup' %}">Create free account to purchase</a>
+              <a class="btn" href="{% url 'account_login' %}">Log in</a>
+            </p>
+          {% endif %}
+
+          <p class="export-status-actions" style="margin-top:1rem;">
+            <a class="btn btn-ghost" href="{% url 'documents:detail' document.pk %}">Back to document</a>
           </p>
         </div>
       {% else %}

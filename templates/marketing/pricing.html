@@ -24,6 +24,175 @@
 {% endblock %}
 
 {% block content %}
+<div class="pricing-page">
+
+  <div class="wrap" style="padding-top:2rem;">
+    <nav class="muted small" aria-label="Breadcrumb" style="margin-bottom:1rem;">
+      <a href="{% url 'marketing:home' %}">Home</a>
+      <span aria-hidden="true"> · </span>
+      <span>Pricing</span>
+    </nav>
+
+    <div class="pricing-hero">
+      <h1 class="pricing-hero__title">Simple, transparent pricing</h1>
+      <p class="pricing-hero__lead muted">
+        Buy export credits once &mdash; use them whenever you need.
+        No subscriptions, no monthly charges.
+        Credits never expire.
+      </p>
+      <p class="muted small pricing-hero__note">
+        PDF stays downloadable for <strong>{% itr_output_retention_hours %} hours</strong> after generation — save a copy locally before the window closes.
+      </p>
+    </div>
+
+    <!-- Free tier note -->
+    <div class="pricing-free-note">
+      <span class="pricing-free-note__icon" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" focusable="false">
+          <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </span>
+      All PDF exports require a plan. Choose Pay-as-you-go for occasional use or an annual plan for ongoing work.
+    </div>
+
+    <!-- Paid tiers -->
+    <div class="pricing-grid pricing-grid--4col" style="margin-top:2rem;">
+
+      <!-- Pay-as-you-go -->
+      <div class="price-card price-card--payg">
+        <div class="price-card__header">
+          <span class="price-card__name">Pay-as-you-go</span>
+        </div>
+        <div class="price-card__amount">
+          <span class="price-card__price">₹50</span>
+          <span class="price-card__unit muted">/&nbsp;export</span>
+        </div>
+        <ul class="price-card__features muted small">
+          <li>1 PDF export credit</li>
+          <li>No commitment</li>
+          <li>Per-file when you need it</li>
+        </ul>
+        {% if user.is_authenticated %}
+          <a class="btn price-card__cta" href="{% url 'billing:checkout_bundle' 'payg' %}">Buy 1 export — ₹50</a>
+        {% else %}
+          <a class="btn price-card__cta" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'payg' %}">Log in to buy</a>
+        {% endif %}
+      </div>
+
+      <!-- Essentials -->
+      <div class="price-card price-card--essentials">
+        <div class="price-card__header">
+          <span class="price-card__name">Essentials</span>
+          <span class="price-card__badge">Popular</span>
+        </div>
+        <div class="price-card__amount">
+          <span class="price-card__price">₹1,000</span>
+          <span class="price-card__unit muted">/ year</span>
+        </div>
+        <p class="price-card__saving">40 exports/year &mdash; ₹25 per export</p>
+        <ul class="price-card__features muted small">
+          <li>40 PDF exports per year</li>
+          <li>Resets on annual renewal</li>
+          <li>Great for freelance tax professionals</li>
+        </ul>
+        {% if user.is_authenticated %}
+          <a class="btn btn-primary price-card__cta" href="{% url 'billing:checkout_bundle' 'essentials' %}">Get Essentials — Annual</a>
+        {% else %}
+          <a class="btn btn-primary price-card__cta" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'essentials' %}">Log in to buy</a>
+        {% endif %}
+      </div>
+
+      <!-- Professional -->
+      <div class="price-card price-card--pro">
+        <div class="price-card__header">
+          <span class="price-card__name">Professional</span>
+          <span class="price-card__badge price-card__badge--alt">Best value</span>
+        </div>
+        <div class="price-card__amount">
+          <span class="price-card__price">₹2,000</span>
+          <span class="price-card__unit muted">/ year</span>
+        </div>
+        <p class="price-card__saving">100 exports/year &mdash; ₹20 per export</p>
+        <ul class="price-card__features muted small">
+          <li>100 PDF exports per year</li>
+          <li>Resets on annual renewal</li>
+          <li>Designed for busy CA offices</li>
+        </ul>
+        {% if user.is_authenticated %}
+          <a class="btn btn-primary price-card__cta" href="{% url 'billing:checkout_bundle' 'professional' %}">Get Professional — Annual</a>
+        {% else %}
+          <a class="btn btn-primary price-card__cta" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'professional' %}">Log in to buy</a>
+        {% endif %}
+      </div>
+
+      <!-- Enterprise -->
+      <div class="price-card price-card--enterprise">
+        <div class="price-card__header">
+          <span class="price-card__name">Enterprise</span>
+        </div>
+        <div class="price-card__amount">
+          <span class="price-card__price" style="font-size:1.5rem;">Contact us</span>
+        </div>
+        <p class="price-card__saving" style="visibility:hidden;">—</p>
+        <ul class="price-card__features muted small">
+          <li>100+ exports</li>
+          <li>Bulk / team pricing</li>
+          <li>Custom requirements</li>
+        </ul>
+        <a class="btn price-card__cta" href="mailto:{{ contact_email }}">
+          Email {{ contact_email }}
+        </a>
+      </div>
+
+    </div>
+
+    <p class="muted small" style="text-align:center;margin-top:1.5rem;">
+      All payments via Razorpay (UPI, card, netbanking). Credits are added immediately on payment confirmation.
+    </p>
+
+    <!-- Credit balance reminder for logged-in users -->
+    {% if user.is_authenticated %}
+      {% with profile=user.itr_profile %}
+        {% if profile and profile.itr_export_credits > 0 %}
+          <div class="pricing-credit-balance">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+              <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            You have <strong>{{ profile.itr_export_credits }} export credit{{ profile.itr_export_credits|pluralize }}</strong> remaining.
+            <a href="{% url 'documents:list' %}">Go to workspace</a>
+          </div>
+        {% endif %}
+      {% endwith %}
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}
+
+{% block meta %}
+  <meta name="description" content="{{ meta_description }}">
+  <meta name="keywords" content="{{ meta_keywords }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <link rel="alternate" hreflang="en-IN" href="{{ canonical_url }}">
+  <link rel="alternate" hreflang="x-default" href="{{ canonical_url }}">
+  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="{{ page_title }}">
+  <meta property="og:description" content="{{ meta_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:site_name" content="ITR Summary Generator">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{{ page_title }}">
+  <meta name="twitter:description" content="{{ meta_description }}">
+  {% if structured_data %}
+  <script type="application/ld+json">{{ structured_data|safe }}</script>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
 <div class="wrap" style="padding-top:2rem;">
   <nav class="muted small" aria-label="Breadcrumb" style="margin-bottom:1rem;">
     <a href="{% url 'marketing:home' %}">Home</a>

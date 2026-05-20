@@ -5,7 +5,7 @@ from django.db import models
 
 
 class RazorpayOrder(models.Model):
-    """Recorded Razorpay orders for Pro subscription (audit)."""
+    """Recorded Razorpay orders for ITR export credit bundle purchases (audit)."""
 
     STATUS_CREATED = "created"
     STATUS_PAID = "paid"
@@ -16,6 +16,11 @@ class RazorpayOrder(models.Model):
         (STATUS_FAILED, "Failed"),
     ]
 
+    # ITR credit bundle keys
+    BUNDLE_PAYG = "payg"
+    BUNDLE_ESSENTIALS = "essentials"
+    BUNDLE_PROFESSIONAL = "professional"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -24,6 +29,16 @@ class RazorpayOrder(models.Model):
     razorpay_order_id = models.CharField(max_length=64, db_index=True)
     amount_paise = models.PositiveIntegerField()
     currency = models.CharField(max_length=8, default="INR")
+    bundle_key = models.CharField(
+        max_length=32,
+        blank=True,
+        default="",
+        help_text="ITR credit bundle: payg / essentials / professional",
+    )
+    credits_granted = models.PositiveIntegerField(
+        default=0,
+        help_text="Number of export credits added on payment success.",
+    )
     status = models.CharField(
         max_length=16, choices=STATUS_CHOICES, default=STATUS_CREATED
     )
@@ -35,4 +50,4 @@ class RazorpayOrder(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self) -> str:
-        return f"{self.razorpay_order_id} ({self.status})"
+        return f"{self.razorpay_order_id} [{self.bundle_key}] ({self.status})"

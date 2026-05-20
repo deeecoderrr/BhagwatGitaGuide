@@ -70,20 +70,24 @@ def pricing(request):
     site_url = request.build_absolute_uri("/").rstrip("/")
     canonical = request.build_absolute_uri(request.path)
     itr_home_abs = request.build_absolute_uri(reverse("marketing:home"))
-    paise = int(getattr(settings, "PRO_PLAN_AMOUNT_PAISE", 49900))
-    pro_inr = paise // 100
+    from apps.billing.views import ITR_BUNDLES
+    contact_email = getattr(settings, "ITR_CONTACT_EMAIL", "support@askbhagavadgita.in")
+    # Keep pro_inr for SEO structured-data (use Professional bundle price)
+    pro_inr = ITR_BUNDLES["professional"]["amount_inr"]
     ctx = {
         "page_title": (
             "ITR Computation PDF Pricing — Income Tax Summary Exports | India"
         ),
         "meta_description": (
-            "Compare Free vs Pro for ITR computation PDF exports from filed ITR JSON "
+            "Compare Free vs Essentials vs Professional for ITR computation PDF exports from filed ITR JSON "
             "(ITR-1, ITR-3, ITR-4). "
             "Income tax computation summary downloads for assessment-year workflows — Razorpay checkout."
         ),
         "meta_keywords": SEO_META_KEYWORDS,
         "canonical_url": canonical,
         "pro_inr": pro_inr,
+        "itr_bundles": ITR_BUNDLES,
+        "contact_email": contact_email,
         "structured_data": structured_data_pricing_json_ld(
             site_url=site_url,
             page_url=canonical,
