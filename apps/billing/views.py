@@ -252,7 +252,12 @@ def payment_success(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def razorpay_webhook(request):
-    """Optional webhook for async payment capture (verify with signing secret)."""
+    """Webhook fallback — activates credits when payment.captured fires.
+
+    Handles the case where a user closes the tab before the payment_success
+    redirect fires, so the payment is captured but credits are never granted.
+    All logic is idempotent: if the order is already STATUS_PAID, it is skipped.
+    """
     secret = getattr(settings, "ITR_RAZORPAY_WEBHOOK_SECRET", "").strip() or getattr(
         settings, "RAZORPAY_WEBHOOK_SECRET", "",
     ).strip()
@@ -272,11 +277,346 @@ def razorpay_webhook(request):
     except (UnicodeDecodeError, json.JSONDecodeError):
         return HttpResponseBadRequest("bad json")
 
-    logger.info("Razorpay webhook event: %s", payload.get("event"))
+    event = payload.get("event")
+    logger.info("Razorpay ITR webhook event: %s", event)
+
+    if event == "payment.captured":
+        try:
+            _webhook_activate_payment(payload)
+        except Exception as exc:
+            logger.exception("Razorpay webhook activation failed: %s", exc)
+            # Return 200 so Razorpay does not retry endlessly;
+            # the CRITICAL log above will alert on-call.
+
     return HttpResponse(status=200)
 
 
+def _webhook_activate_payment(payload: dict) -> None:
+    """Activate credits for an authenticated or guest captured payment (idempotent)."""
+    from datetime import timedelta
+
+    from apps.billing.models import GuestOrder
+
+    payment_entity = (
+        payload.get("payload", {}).get("payment", {}).get("entity", {})
+    )
+    rzp_order_id = payment_entity.get("order_id", "").strip()
+    rzp_payment_id = payment_entity.get("id", "").strip()
+
+    if not rzp_order_id:
+        logger.warning("Razorpay webhook: no order_id in payment.captured payload")
+        return
+
+    # ── Authenticated order ──────────────────────────────────────────────────
+    order = (
+        RazorpayOrder.objects.filter(
+            razorpay_order_id=rzp_order_id,
+            status=RazorpayOrder.STATUS_CREATED,
+        )
+        .select_related("user")
+        .first()
+    )
+
+    if order:
+        logger.info(
+            "Razorpay webhook activating authenticated order=%s user=%s bundle=%s",
+            rzp_order_id,
+            order.user_id,
+            order.bundle_key,
+        )
+        order.status = RazorpayOrder.STATUS_PAID
+        order.razorpay_payment_id = rzp_payment_id
+        order.save(update_fields=["status", "razorpay_payment_id"])
+
+        if order.credits_granted > 0:
+            profile, _ = UserProfile.objects.get_or_create(user=order.user)
+            bundle_key = order.bundle_key
+            if bundle_key in (
+                RazorpayOrder.BUNDLE_ESSENTIALS,
+                RazorpayOrder.BUNDLE_PROFESSIONAL,
+            ):
+                profile.itr_plan = bundle_key
+                profile.itr_plan_until = timezone.now() + timedelta(days=365)
+                profile.itr_annual_exports_used = 0
+                profile.save(
+                    update_fields=["itr_plan", "itr_plan_until", "itr_annual_exports_used"]
+                )
+            else:
+                profile.itr_export_credits = (
+                    profile.itr_export_credits or 0
+                ) + order.credits_granted
+                profile.save(update_fields=["itr_export_credits"])
+        return
+
+    # ── Already paid (idempotency guard) ────────────────────────────────────
+    if RazorpayOrder.objects.filter(
+        razorpay_order_id=rzp_order_id,
+        status=RazorpayOrder.STATUS_PAID,
+    ).exists():
+        logger.info(
+            "Razorpay webhook: authenticated order=%s already paid, skipping",
+            rzp_order_id,
+        )
+        return
+
+    # ── Guest order ──────────────────────────────────────────────────────────
+    guest_order = GuestOrder.objects.filter(
+        razorpay_order_id=rzp_order_id,
+        status=GuestOrder.STATUS_CREATED,
+    ).first()
+    if guest_order:
+        logger.info(
+            "Razorpay webhook activating guest order=%s email=%s",
+            rzp_order_id,
+            guest_order.guest_email,
+        )
+        guest_order.status = GuestOrder.STATUS_PAID
+        guest_order.razorpay_payment_id = rzp_payment_id
+        guest_order.save(update_fields=["status", "razorpay_payment_id"])
+        return
+
+    if GuestOrder.objects.filter(
+        razorpay_order_id=rzp_order_id,
+        status=GuestOrder.STATUS_PAID,
+    ).exists():
+        logger.info(
+            "Razorpay webhook: guest order=%s already paid, skipping",
+            rzp_order_id,
+        )
+        return
+
+    logger.warning(
+        "Razorpay webhook: no pending order found for order_id=%s", rzp_order_id
+    )
+
+
+# ── Guest PAYG checkout (no login required) ──────────────────────────────────
+
+# Session key used to track a guest's paid export credits.
+SESSION_GUEST_CREDITS = "itr_guest_credits"
+
+_PHONE_RE = __import__("re").compile(r"^\+?[\d\s\-]{7,15}$")
+
+
+@require_http_methods(["GET", "POST"])
+def guest_checkout(request):
+    """PAYG ₹50 checkout for unauthenticated guests.
+
+    GET  — show name/email/phone form.
+    POST (step 1) — validate form, create Razorpay order, render payment page.
+    POST (step 2 — from Razorpay JS) — handled by guest_payment_success.
+    """
+    from apps.billing.models import GuestOrder
+
+    # Logged-in users go through the normal checkout.
+    if request.user.is_authenticated:
+        doc_pk = (request.GET.get("doc") or "").strip()
+        url = reverse("billing:checkout_bundle", kwargs={"bundle": "payg"})
+        if doc_pk:
+            url = f"{url}?doc={doc_pk}"
+        return redirect(url)
+
+    bundle_info = ITR_BUNDLES["payg"]
+    client = _razorpay_client()
+    key_id = getattr(settings, "RAZORPAY_KEY_ID", "").strip()
+    doc_pk = (request.GET.get("doc") or request.POST.get("doc", "")).strip()
+
+    if request.method == "POST":
+        guest_name = request.POST.get("guest_name", "").strip()
+        guest_email = request.POST.get("guest_email", "").strip().lower()
+        guest_phone = request.POST.get("guest_phone", "").strip()
+
+        errors: dict[str, str] = {}
+        if not guest_name:
+            errors["guest_name"] = "Name is required."
+        if not guest_email or "@" not in guest_email or "." not in guest_email.split("@")[-1]:
+            errors["guest_email"] = "A valid email address is required."
+        if guest_phone and not _PHONE_RE.match(guest_phone):
+            errors["guest_phone"] = "Enter a valid phone number."
+
+        form_data = {
+            "guest_name": guest_name,
+            "guest_email": guest_email,
+            "guest_phone": guest_phone,
+        }
+
+        if not errors:
+            if not client:
+                errors["__all__"] = (
+                    "Online payments are not configured on this deployment. "
+                    "Contact support to purchase."
+                )
+            else:
+                receipt = f"itr_g_{int(timezone.now().timestamp())}"
+                try:
+                    order_data = client.order.create(
+                        {
+                            "amount": bundle_info["amount_paise"],
+                            "currency": "INR",
+                            "receipt": receipt[:40],
+                            "notes": {
+                                "guest_email": guest_email,
+                                "bundle": "payg",
+                            },
+                        }
+                    )
+                    GuestOrder.objects.create(
+                        guest_name=guest_name,
+                        guest_email=guest_email,
+                        guest_phone=guest_phone,
+                        razorpay_order_id=order_data["id"],
+                        amount_paise=bundle_info["amount_paise"],
+                        credits_granted=1,
+                        raw_payload=dict(order_data),
+                    )
+                except Exception:
+                    logger.exception("Guest checkout: Razorpay order create failed")
+                    errors["__all__"] = (
+                        "Payment setup failed. Please try again or contact support."
+                    )
+
+        if not errors:
+            # Render payment page (Razorpay modal).
+            return render(
+                request,
+                "billing/guest_checkout.html",
+                {
+                    "key_id": key_id,
+                    "order_id": order_data["id"],
+                    "bundle": bundle_info,
+                    "guest_email": guest_email,
+                    "guest_name": guest_name,
+                    "doc_pk": doc_pk,
+                },
+            )
+
+        return render(
+            request,
+            "billing/guest_checkout.html",
+            {
+                "key_id": key_id,
+                "order_id": None,
+                "bundle": bundle_info,
+                "doc_pk": doc_pk,
+                "errors": errors,
+                "form": form_data,
+                "client_available": client is not None,
+            },
+        )
+
+    # GET
+    return render(
+        request,
+        "billing/guest_checkout.html",
+        {
+            "key_id": key_id,
+            "order_id": None,
+            "bundle": bundle_info,
+            "doc_pk": doc_pk,
+            "errors": {},
+            "form": {},
+            "client_available": client is not None,
+        },
+    )
+
+
+@require_http_methods(["POST"])
+def guest_payment_success(request):
+    """Verify guest Razorpay signature and grant one session export credit."""
+    from apps.billing.models import GuestOrder
+
+    client = _razorpay_client()
+    if not client:
+        messages.error(request, "Payments are not configured.")
+        return redirect("marketing:pricing")
+
+    params = {
+        "razorpay_order_id": request.POST.get("razorpay_order_id", ""),
+        "razorpay_payment_id": request.POST.get("razorpay_payment_id", ""),
+        "razorpay_signature": request.POST.get("razorpay_signature", ""),
+    }
+    doc_pk = request.POST.get("doc", "").strip()
+
+    try:
+        client.utility.verify_payment_signature(params)
+    except Exception as exc:
+        logger.warning("Guest payment signature verify failed: %s", exc)
+        messages.error(
+            request,
+            "Payment verification failed. Contact support with your Razorpay receipt.",
+        )
+        return redirect("marketing:pricing")
+
+    rzp_order_id = params["razorpay_order_id"]
+
+    # Idempotency: already processed (e.g. page refresh after success).
+    already = GuestOrder.objects.filter(
+        razorpay_order_id=rzp_order_id,
+        status=GuestOrder.STATUS_PAID,
+    ).first()
+    if already:
+        request.session[SESSION_GUEST_CREDITS] = max(
+            request.session.get(SESSION_GUEST_CREDITS, 0), 1
+        )
+        request.session.modified = True
+        messages.success(request, "Payment already confirmed — your export credit is ready.")
+        if doc_pk:
+            try:
+                return redirect("exports:create", pk=int(doc_pk))
+            except (ValueError, TypeError):
+                pass
+        return redirect("documents:list")
+
+    guest_order = GuestOrder.objects.filter(
+        razorpay_order_id=rzp_order_id,
+        status=GuestOrder.STATUS_CREATED,
+    ).first()
+
+    if guest_order:
+        try:
+            guest_order.status = GuestOrder.STATUS_PAID
+            guest_order.razorpay_payment_id = params["razorpay_payment_id"]
+            guest_order.save(update_fields=["status", "razorpay_payment_id"])
+        except Exception as exc:
+            logger.critical(
+                "GUEST PAYMENT SAVE FAILED — order=%s payment=%s error=%s",
+                rzp_order_id,
+                params["razorpay_payment_id"],
+                exc,
+                exc_info=True,
+            )
+            messages.warning(
+                request,
+                "Your payment was captured but there was a temporary error. "
+                f"Contact support with reference: {rzp_order_id}",
+            )
+            return redirect("marketing:pricing")
+
+        # Grant session credit.
+        request.session[SESSION_GUEST_CREDITS] = (
+            request.session.get(SESSION_GUEST_CREDITS, 0) + guest_order.credits_granted
+        )
+        request.session.modified = True
+        messages.success(
+            request,
+            "Payment confirmed — your export credit is ready. Generate your PDF now.",
+        )
+    else:
+        messages.warning(
+            request,
+            "Payment recorded but order not found. Contact support with your Razorpay receipt.",
+        )
+
+    if doc_pk:
+        try:
+            return redirect("exports:create", pk=int(doc_pk))
+        except (ValueError, TypeError):
+            pass
+    return redirect("documents:list")
+
+
 logger = logging.getLogger(__name__)
+
 
 
 def _razorpay_client():

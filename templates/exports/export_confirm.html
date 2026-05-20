@@ -103,9 +103,25 @@
             </p>
 
           {% else %}
-            <p class="export-status-actions">
-              <a class="btn btn-primary" href="{% url 'account_signup' %}">Create free account to purchase</a>
-              <a class="btn" href="{% url 'account_login' %}">Log in</a>
+            <!-- Guest: offer PAYG without login, plus sign-up options -->
+            <div class="export-plan-options">
+              <div class="export-plan-card">
+                <div class="export-plan-card__top">
+                  <span class="export-plan-card__name">Pay-as-you-go</span>
+                  <span class="export-plan-card__badge">No login needed</span>
+                </div>
+                <div class="export-plan-card__price">₹50</div>
+                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
+                <a class="btn btn-primary export-plan-card__btn"
+                   href="{% url 'billing:guest_checkout' %}?doc={{ document.pk }}">
+                  Pay ₹50 &amp; generate
+                </a>
+              </div>
+            </div>
+            <p class="muted small" style="margin-top:1.25rem;text-align:center;">
+              Want annual plans or more credits?
+              <a href="{% url 'account_signup' %}">Create a free account</a>
+              or <a href="{% url 'account_login' %}">log in</a>.
             </p>
           {% endif %}
 

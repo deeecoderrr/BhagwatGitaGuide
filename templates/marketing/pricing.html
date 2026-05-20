@@ -76,7 +76,8 @@
         {% if user.is_authenticated %}
           <a class="btn price-card__cta" href="{% url 'billing:checkout_bundle' 'payg' %}">Buy 1 export — ₹50</a>
         {% else %}
-          <a class="btn price-card__cta" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'payg' %}">Log in to buy</a>
+          <a class="btn btn-primary price-card__cta" href="{% url 'billing:guest_checkout' %}">Pay ₹50 — no login needed</a>
+          <a class="btn price-card__cta--secondary muted small" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'payg' %}" style="display:block;margin-top:0.5rem;text-align:center;">Log in for more options</a>
         {% endif %}
       </div>
 

@@ -106,14 +106,25 @@ def get_plan_status(profile: UserProfile) -> dict:
     return {"type": "none"}
 
 
+# Session key shared with apps.billing.views.SESSION_GUEST_CREDITS.
+_SESSION_GUEST_CREDITS = "itr_guest_credits"
+
+
 def can_export_pdf_anonymous(request) -> tuple[bool, str]:
-    """Anonymous users must create an account and purchase a plan."""
+    """Guest users with a paid session credit may export once."""
+    credits = request.session.get(_SESSION_GUEST_CREDITS, 0)
+    if credits > 0:
+        return True, ""
     return (
         False,
-        "Create an account and purchase a plan to generate PDF exports.",
+        "Purchase a ₹50 Pay-as-you-go credit to generate your PDF export.",
     )
 
 
 def record_export_anonymous(request) -> None:
-    """No-op - anonymous users cannot export."""
-    pass
+    """Deduct one guest session export credit."""
+    credits = request.session.get(_SESSION_GUEST_CREDITS, 0)
+    if credits > 0:
+        request.session[_SESSION_GUEST_CREDITS] = credits - 1
+        request.session.modified = True
+
