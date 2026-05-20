@@ -73,7 +73,7 @@ class GuestOrder(models.Model):
     guest_phone = models.CharField(max_length=20, blank=True)
     razorpay_order_id = models.CharField(max_length=64, db_index=True)
     razorpay_payment_id = models.CharField(max_length=64, blank=True)
-    amount_paise = models.PositiveIntegerField(default=5000)
+    amount_paise = models.PositiveIntegerField(default=500)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_CREATED)
     credits_granted = models.PositiveIntegerField(default=1)
     raw_payload = models.JSONField(null=True, blank=True)

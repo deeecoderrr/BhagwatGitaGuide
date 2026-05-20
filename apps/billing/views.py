@@ -29,9 +29,9 @@ ITR_BUNDLES: dict[str, dict] = {
         "label": "Pay-as-you-go",
         "credits": 1,
         "annual": False,
-        "amount_paise": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 5000)),
-        "amount_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 5000)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 5000)) // 100,
+        "amount_paise": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 500)),
+        "amount_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 500)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 500)) // 100,
         "description": "One PDF export — pay only when you need it",
         "badge": None,
     },
@@ -40,9 +40,9 @@ ITR_BUNDLES: dict[str, dict] = {
         "label": "Essentials",
         "credits": 40,
         "annual": True,
-        "amount_paise": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 100000)),
-        "amount_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 100000)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 100000)) // 100 // 40,
+        "amount_paise": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 1000)),
+        "amount_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 1000)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_ESSENTIALS_AMOUNT_PAISE", 1000)) // 100 // 40,
         "description": "40 PDF exports per year — great for tax professionals",
         "badge": "Popular",
     },
@@ -51,9 +51,9 @@ ITR_BUNDLES: dict[str, dict] = {
         "label": "Professional",
         "credits": 100,
         "annual": True,
-        "amount_paise": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 200000)),
-        "amount_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 200000)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 200000)) // 100 // 100,
+        "amount_paise": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 1100)),
+        "amount_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 1100)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 1100)) // 100 // 100,
         "description": "100 PDF exports per year — for busy CA offices",
         "badge": "Best value",
     },
@@ -400,7 +400,7 @@ _PHONE_RE = __import__("re").compile(r"^\+?[\d\s\-]{7,15}$")
 
 @require_http_methods(["GET", "POST"])
 def guest_checkout(request):
-    """PAYG ₹50 checkout for unauthenticated guests.
+    """PAYG ₹5 checkout for unauthenticated guests.
 
     GET  — show name/email/phone form.
     POST (step 1) — validate form, create Razorpay order, render payment page.

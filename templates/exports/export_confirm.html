@@ -58,11 +58,11 @@
                 <div class="export-plan-card__top">
                   <span class="export-plan-card__name">Pay-as-you-go</span>
                 </div>
-                <div class="export-plan-card__price">₹50</div>
-                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
+                <div class="export-plan-card__price">₹5</div>
+                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹5/file</div>
                 <a class="btn btn-primary export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'payg' %}?doc={{ document.pk }}">
-                  Pay ₹50 &amp; generate
+                  Pay ₹5 &amp; generate
                 </a>
               </div>
 
@@ -72,8 +72,8 @@
                   <span class="export-plan-card__name">Essentials</span>
                   <span class="export-plan-card__badge">Popular</span>
                 </div>
-                <div class="export-plan-card__price">₹1,000</div>
-                <div class="export-plan-card__desc muted small">40 exports/year &nbsp;·&nbsp; ₹25/file</div>
+                <div class="export-plan-card__price">₹10</div>
+                <div class="export-plan-card__desc muted small">40 exports/year</div>
                 <a class="btn btn-primary export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'essentials' %}">
                   Buy Essentials — Annual
@@ -86,8 +86,8 @@
                   <span class="export-plan-card__name">Professional</span>
                   <span class="export-plan-card__badge export-plan-card__badge--alt">Best value</span>
                 </div>
-                <div class="export-plan-card__price">₹2,000</div>
-                <div class="export-plan-card__desc muted small">100 exports/year &nbsp;·&nbsp; ₹20/file</div>
+                <div class="export-plan-card__price">₹11</div>
+                <div class="export-plan-card__desc muted small">100 exports/year</div>
                 <a class="btn export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'professional' %}">
                   Buy Professional — Annual
@@ -110,11 +110,11 @@
                   <span class="export-plan-card__name">Pay-as-you-go</span>
                   <span class="export-plan-card__badge">No login needed</span>
                 </div>
-                <div class="export-plan-card__price">₹50</div>
-                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
+                <div class="export-plan-card__price">₹5</div>
+                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹5/file</div>
                 <a class="btn btn-primary export-plan-card__btn"
                    href="{% url 'billing:guest_checkout' %}?doc={{ document.pk }}">
-                  Pay ₹50 &amp; generate
+                  Pay ₹5 &amp; generate
                 </a>
               </div>
             </div>
