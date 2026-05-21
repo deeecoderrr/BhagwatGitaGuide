@@ -541,7 +541,14 @@ def guest_payment_success(request):
         messages.success(request, "Payment already confirmed — your export credit is ready.")
         if doc_pk:
             try:
-                return redirect("exports:create", pk=int(doc_pk))
+                from django.core import signing as _signing
+                _token = _signing.dumps(
+                    {"go": already.pk, "doc": int(doc_pk)},
+                    salt="itr-guest-export",
+                )
+                return redirect(
+                    reverse("exports:create", args=[int(doc_pk)]) + "?guest_token=" + _token
+                )
             except (ValueError, TypeError):
                 pass
         return redirect("documents:list")
@@ -627,7 +634,14 @@ def guest_payment_success(request):
 
     if doc_pk:
         try:
-            return redirect("exports:create", pk=int(doc_pk))
+            from django.core import signing as _signing
+            _token = _signing.dumps(
+                {"go": guest_order.pk, "doc": int(doc_pk)},
+                salt="itr-guest-export",
+            )
+            return redirect(
+                reverse("exports:create", args=[int(doc_pk)]) + "?guest_token=" + _token
+            )
         except (ValueError, TypeError):
             pass
     return redirect("documents:list")

@@ -76,6 +76,7 @@ class GuestOrder(models.Model):
     amount_paise = models.PositiveIntegerField(default=500)
     status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_CREATED)
     credits_granted = models.PositiveIntegerField(default=1)
+    export_used = models.BooleanField(default=False)
     raw_payload = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

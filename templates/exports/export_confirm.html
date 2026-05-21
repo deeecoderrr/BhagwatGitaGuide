@@ -165,6 +165,7 @@
           {% endif %}
           <form method="post" class="export-form">
             {% csrf_token %}
+            {% if guest_token %}<input type="hidden" name="guest_token" value="{{ guest_token }}">{% endif %}
             <div class="export-form-actions">
               <button type="submit" class="btn btn-primary btn-export-primary">Generate PDF</button>
               <a class="btn" href="{% url 'documents:detail' document.pk %}">Cancel</a>

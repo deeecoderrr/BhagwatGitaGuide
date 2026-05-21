@@ -43,6 +43,23 @@ def _field_map(document: Document) -> dict[str, str]:
     }
 
 
+def _validate_guest_token(token: str, pk: int):
+    """Return the unused GuestOrder if the token is valid and for this doc, else None."""
+    from django.core import signing
+    from apps.billing.models import GuestOrder
+    try:
+        data = signing.loads(token, salt="itr-guest-export", max_age=86400)
+        if str(data.get("doc")) != str(pk):
+            return None
+        return GuestOrder.objects.filter(
+            pk=data.get("go"),
+            status=GuestOrder.STATUS_PAID,
+            export_used=False,
+        ).first()
+    except Exception:
+        return None
+
+
 def _single_line(s: str) -> str:
     """Collapse internal newlines/tabs so PDF cells don’t break names across lines."""
     return " ".join(s.split())
@@ -97,6 +114,16 @@ def export_pdf(request, pk: int):
     else:
         allowed_export, export_reason = can_export_pdf_anonymous(request)
 
+    # Guest token: valid signed URL grants access for 24 h regardless of session.
+    guest_token = request.GET.get("guest_token", "") or request.POST.get("guest_token", "")
+    guest_order_from_token = None
+    if not allowed_export and not request.user.is_authenticated and guest_token:
+        go = _validate_guest_token(guest_token, pk)
+        if go:
+            guest_order_from_token = go
+            allowed_export = True
+            export_reason = ""
+
     if request.method == "POST":
         if blocks:
             for b in blocks:
@@ -136,6 +163,10 @@ def export_pdf(request, pk: int):
             record_export(profile)
         else:
             record_export_anonymous(request)
+            # If access was granted via a signed token, mark the order as used.
+            if guest_order_from_token:
+                guest_order_from_token.export_used = True
+                guest_order_from_token.save(update_fields=["export_used"])
         delete_document_upload_after_export(document)
         # Serve PDF bytes directly — avoids cross-machine FileNotFoundError
         # (Fly.io round-robin can route the redirect to a different machine).
@@ -169,6 +200,7 @@ def export_pdf(request, pk: int):
             ),
             "razorpay_available": razorpay_available,
             "user_email": user_email,
+            "guest_token": request.GET.get("guest_token", ""),
             "guest_init_url": reverse("billing:guest_checkout_init"),
             "guest_success_url": reverse("billing:guest_payment_success"),
             "auth_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": "payg"}),
