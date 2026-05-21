@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Pay ₹50 — Quick Export{% endblock %}
+{% block title %}Pay ₹{{ bundle.amount_inr }} — Quick Export{% endblock %}
 {% block content %}
-<div class="wrap" style="max-width:520px;margin:2.5rem auto;">
+<div class="wrap" style="max-width:480px;margin:2.5rem auto;">
   <nav class="muted small" aria-label="Breadcrumb" style="margin-bottom:1.25rem;">
     <a href="{% url 'marketing:pricing' %}">Pricing</a>
     <span aria-hidden="true"> · </span>
@@ -26,18 +26,26 @@
 
     <hr class="checkout-divider">
 
-    {% if order_id and key_id %}
-      {# ── Payment step — Razorpay modal ── #}
-      <h1 class="checkout-title">Complete your payment</h1>
-      <p class="muted small" style="margin-bottom:1.5rem;">
-        Secure checkout via Razorpay. Your export credit is activated instantly on confirmation.
-      </p>
+    <h1 class="checkout-title">Pay ₹{{ bundle.amount_inr }} — no sign-up needed</h1>
+    <p class="muted small" style="margin-bottom:1.5rem;">
+      One PDF export credit. Activated instantly after payment.
+    </p>
 
-      <button type="button" id="rzp-btn" class="btn btn-primary checkout-pay-btn">
-        Pay ₹{{ bundle.amount_inr }} securely
+    {% if not client_available %}
+      <p class="error">
+        Payments are not configured on this deployment.
+        Contact <a href="mailto:support@askbhagavadgita.in">support</a> to purchase.
+      </p>
+      <p><a class="btn" href="{% url 'marketing:pricing' %}">Back to pricing</a></p>
+    {% else %}
+      <div id="pay-error" class="error" style="display:none;margin-bottom:1rem;"></div>
+
+      <button type="button" id="pay-btn" class="btn btn-primary checkout-pay-btn">
+        Pay ₹{{ bundle.amount_inr }} securely →
       </button>
 
-      <form id="pay-form" method="post" action="{% url 'billing:guest_payment_success' %}">
+      <!-- Hidden form submitted to guest_payment_success after Razorpay confirms -->
+      <form id="pay-form" method="post" action="{{ guest_success_url }}">
         {% csrf_token %}
         <input type="hidden" name="razorpay_order_id" id="rzp_oid">
         <input type="hidden" name="razorpay_payment_id" id="rzp_pid">
@@ -47,124 +55,12 @@
         {% endif %}
       </form>
 
-      <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-      <script>
-        (function () {
-          var btn = document.getElementById('rzp-btn');
-          btn.addEventListener('click', function () {
-            var options = {
-              key: "{{ key_id|escapejs }}",
-              amount: "{{ bundle.amount_paise }}",
-              currency: "INR",
-              name: "ITR Summary Generator",
-              description: "Pay-as-you-go — one PDF export",
-              order_id: "{{ order_id|escapejs }}",
-              prefill: {
-                name: "{{ guest_name|escapejs }}",
-                email: "{{ guest_email|escapejs }}"
-              },
-              handler: function (response) {
-                document.getElementById('rzp_oid').value = response.razorpay_order_id;
-                document.getElementById('rzp_pid').value = response.razorpay_payment_id;
-                document.getElementById('rzp_sig').value = response.razorpay_signature;
-                document.getElementById('pay-form').submit();
-              },
-            };
-            var rzp = new Razorpay(options);
-            rzp.open();
-          });
-        })();
-      </script>
-
-    {% else %}
-      {# ── Details form ── #}
-      <h1 class="checkout-title">Quick export — ₹{{ bundle.amount_inr }}</h1>
-      <p class="muted small" style="margin-bottom:1.5rem;">
-        No account required. Enter your details to proceed to secure payment.
-        Your export credit is activated immediately after confirmation.
+      <p class="muted small" style="margin-top:1.25rem;text-align:center;">
+        Already have an account?
+        <a href="{% url 'account_login' %}{% if doc_pk %}?next={% url 'billing:checkout_bundle' 'payg' %}%3Fdoc={{ doc_pk }}{% endif %}">
+          Log in for more options
+        </a>
       </p>
-
-      {% if errors.form_error %}
-        <p class="error" style="margin-bottom:1rem;">{{ errors.form_error }}</p>
-      {% endif %}
-
-      {% if not client_available %}
-        <p class="error">
-          Payments are not configured on this deployment.
-          Contact <a href="mailto:{{ contact_email|default:'support@askbhagavadgita.in' }}">support</a> to purchase.
-        </p>
-        <p><a class="btn" href="{% url 'marketing:pricing' %}">Back to pricing</a></p>
-      {% else %}
-        <form method="post" novalidate>
-          {% csrf_token %}
-          {% if doc_pk %}
-            <input type="hidden" name="doc" value="{{ doc_pk }}">
-          {% endif %}
-
-          <div class="form-field{% if errors.guest_name %} form-field--error{% endif %}" style="margin-bottom:1rem;">
-            <label class="form-label" for="id_guest_name">Full name</label>
-            <input
-              class="form-control"
-              type="text"
-              id="id_guest_name"
-              name="guest_name"
-              value="{{ form.guest_name|default:'' }}"
-              autocomplete="name"
-              placeholder="Your name"
-              required
-            >
-            {% if errors.guest_name %}
-              <span class="form-error small">{{ errors.guest_name }}</span>
-            {% endif %}
-          </div>
-
-          <div class="form-field{% if errors.guest_email %} form-field--error{% endif %}" style="margin-bottom:1rem;">
-            <label class="form-label" for="id_guest_email">Email address</label>
-            <input
-              class="form-control"
-              type="email"
-              id="id_guest_email"
-              name="guest_email"
-              value="{{ form.guest_email|default:'' }}"
-              autocomplete="email"
-              placeholder="you@example.com"
-              required
-            >
-            {% if errors.guest_email %}
-              <span class="form-error small">{{ errors.guest_email }}</span>
-            {% endif %}
-          </div>
-
-          <div class="form-field{% if errors.guest_phone %} form-field--error{% endif %}" style="margin-bottom:1.5rem;">
-            <label class="form-label" for="id_guest_phone">
-              Phone number <span class="muted small">(optional)</span>
-            </label>
-            <input
-              class="form-control"
-              type="tel"
-              id="id_guest_phone"
-              name="guest_phone"
-              value="{{ form.guest_phone|default:'' }}"
-              autocomplete="tel"
-              placeholder="+91 98765 43210"
-            >
-            {% if errors.guest_phone %}
-              <span class="form-error small">{{ errors.guest_phone }}</span>
-            {% endif %}
-          </div>
-
-          <button type="submit" class="btn btn-primary checkout-pay-btn">
-            Continue to payment — ₹{{ bundle.amount_inr }}
-          </button>
-        </form>
-
-        <p class="muted small" style="margin-top:1.25rem;text-align:center;">
-          Already have an account?
-          <a href="{% url 'account_login' %}{% if doc_pk %}?next={% url 'billing:checkout_bundle' 'payg' %}%3Fdoc={{ doc_pk }}{% endif %}">
-            Log in for more options
-          </a>
-        </p>
-      {% endif %}
     {% endif %}
 
     <p class="muted small checkout-back-link">
@@ -172,4 +68,64 @@
     </p>
   </div>
 </div>
+
+{% if client_available %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  var initUrl = "{{ guest_init_url|escapejs }}";
+  var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+  var payBtn   = document.getElementById('pay-btn');
+  var payError = document.getElementById('pay-error');
+
+  payBtn.addEventListener('click', function () {
+    payError.style.display = 'none';
+    payBtn.disabled = true;
+    payBtn.textContent = 'Setting up payment…';
+
+    fetch(initUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+      body: JSON.stringify({}),
+    })
+    .then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error(data.error || 'Payment setup failed.');
+        return data;
+      });
+    })
+    .then(function (data) {
+      var options = {
+        key: data.key_id,
+        amount: String(data.amount_paise),
+        currency: 'INR',
+        name: 'ITR Summary Generator',
+        description: 'Pay-as-you-go — one PDF export',
+        order_id: data.order_id,
+        handler: function (response) {
+          document.getElementById('rzp_oid').value = response.razorpay_order_id;
+          document.getElementById('rzp_pid').value = response.razorpay_payment_id;
+          document.getElementById('rzp_sig').value = response.razorpay_signature;
+          document.getElementById('pay-form').submit();
+        },
+        modal: {
+          ondismiss: function () {
+            payBtn.disabled = false;
+            payBtn.textContent = 'Pay ₹' + data.amount_inr + ' securely →';
+          },
+        },
+      };
+      new Razorpay(options).open();
+    })
+    .catch(function (err) {
+      payError.textContent = err.message || 'Something went wrong. Please try again.';
+      payError.style.display = 'block';
+      payBtn.disabled = false;
+      payBtn.textContent = 'Pay ₹{{ bundle.amount_inr }} securely →';
+    });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

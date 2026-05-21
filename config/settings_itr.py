@@ -186,3 +186,8 @@ def register_itr_settings(g: dict[str, Any]) -> None:
 
     # Used by templates/account/*.html to show "Continue with Google"
     g["GOOGLE_OAUTH_CONFIGURED"] = bool(google_id and google_secret)
+
+    # Allow existing email/password accounts to sign in via Google OAuth directly
+    # (allauth 65+: matches Google email to existing account instead of blocking)
+    g["SOCIALACCOUNT_EMAIL_AUTHENTICATION"] = True
+    g["SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT"] = True

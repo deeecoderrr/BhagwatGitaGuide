@@ -61,7 +61,7 @@
                 <div class="export-plan-card__price">₹50</div>
                 <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
                 <a class="btn btn-primary export-plan-card__btn"
-                   href="{% url 'billing:checkout_bundle' 'payg' %}?doc={{ document.pk }}">
+                   data-pay-btn data-init-url="{{ auth_init_url }}" data-doc="{{ document.pk }}" data-user-email="{{ user_email|escapejs }}">
                   Pay ₹50 &amp; generate
                 </a>
               </div>
@@ -113,7 +113,7 @@
                 <div class="export-plan-card__price">₹50</div>
                 <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
                 <a class="btn btn-primary export-plan-card__btn"
-                   href="{% url 'billing:guest_checkout' %}?doc={{ document.pk }}">
+                   data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
                   Pay ₹50 &amp; generate
                 </a>
               </div>
@@ -175,4 +175,91 @@
     </div>
   </section>
 </div>
+
+{% if razorpay_available and export_blocked %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') &&
+                  document.querySelector('[name=csrfmiddlewaretoken]').value || '';
+  var guestSuccessUrl = "{{ guest_success_url|escapejs }}";
+  var authSuccessUrl  = "{{ auth_success_url|escapejs }}";
+
+  document.querySelectorAll('[data-pay-btn]').forEach(function (btn) {
+    btn.style.cursor = 'pointer';
+    btn.addEventListener('click', function () {
+      var initUrl   = btn.getAttribute('data-init-url');
+      var docPk     = btn.getAttribute('data-doc');
+      var userEmail = btn.getAttribute('data-user-email') || '';
+      var isGuest   = (initUrl === "{{ guest_init_url|escapejs }}");
+      var successUrl = isGuest ? guestSuccessUrl : authSuccessUrl;
+
+      btn.textContent = 'Setting up payment…';
+      btn.style.pointerEvents = 'none';
+
+      fetch(initUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({}),
+      })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok) throw new Error(data.error || 'Payment setup failed.');
+          return data;
+        });
+      })
+      .then(function (data) {
+        // Build a hidden form for the success POST
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = successUrl;
+        form.style.display = 'none';
+        var fields = {
+          csrfmiddlewaretoken: csrfToken,
+          razorpay_order_id: '',
+          razorpay_payment_id: '',
+          razorpay_signature: '',
+          doc: docPk,
+        };
+        Object.keys(fields).forEach(function (k) {
+          var inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
+          form.appendChild(inp);
+        });
+        document.body.appendChild(form);
+
+        var options = {
+          key: data.key_id,
+          amount: String(data.amount_paise),
+          currency: 'INR',
+          name: 'ITR Summary Generator',
+          description: 'Pay-as-you-go — one PDF export',
+          order_id: data.order_id,
+          prefill: { email: userEmail },
+          handler: function (response) {
+            form.querySelector('[name=razorpay_order_id]').value   = response.razorpay_order_id;
+            form.querySelector('[name=razorpay_payment_id]').value = response.razorpay_payment_id;
+            form.querySelector('[name=razorpay_signature]').value  = response.razorpay_signature;
+            form.submit();
+          },
+          modal: {
+            ondismiss: function () {
+              btn.textContent = 'Pay ₹50 & generate';
+              btn.style.pointerEvents = '';
+              document.body.removeChild(form);
+            },
+          },
+        };
+        new Razorpay(options).open();
+      })
+      .catch(function (err) {
+        btn.textContent = 'Pay ₹50 & generate';
+        btn.style.pointerEvents = '';
+        alert(err.message || 'Something went wrong. Please try again.');
+      });
+    });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

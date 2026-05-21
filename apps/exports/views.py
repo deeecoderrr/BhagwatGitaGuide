@@ -147,6 +147,11 @@ def export_pdf(request, pk: int):
     if profile is not None:
         plan_status = get_plan_status(profile)
 
+    from apps.billing.views import _razorpay_client
+    from django.urls import reverse
+    razorpay_available = _razorpay_client() is not None
+    user_email = request.user.email if request.user.is_authenticated else ""
+
     return render(
         request,
         "exports/export_confirm.html",
@@ -162,6 +167,12 @@ def export_pdf(request, pk: int):
                 "ITR_CONTACT_EMAIL",
                 "support@askbhagavadgita.in",
             ),
+            "razorpay_available": razorpay_available,
+            "user_email": user_email,
+            "guest_init_url": reverse("billing:guest_checkout_init"),
+            "guest_success_url": reverse("billing:guest_payment_success"),
+            "auth_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": "payg"}),
+            "auth_success_url": reverse("billing:payment_success"),
         },
     )
 

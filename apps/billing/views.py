@@ -9,7 +9,7 @@ import logging
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
@@ -71,62 +71,72 @@ def _razorpay_client():
 
 
 @login_required
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
 def checkout_bundle(request, bundle: str):
-    """Create Razorpay order for an ITR credit bundle (payg / essentials / professional)."""
+    """Show the single-page checkout for an ITR credit bundle (AJAX order creation)."""
     bundle_info = ITR_BUNDLES.get(bundle)
     if not bundle_info:
         messages.error(request, "Invalid plan selected.")
         return redirect("marketing:pricing")
 
-    doc_pk = (request.GET.get("doc") or request.POST.get("doc", "")).strip()
+    doc_pk = (request.GET.get("doc") or "").strip()
+    return render(request, "billing/checkout_bundle.html", {
+        "bundle": bundle_info,
+        "client_available": _razorpay_client() is not None,
+        "doc_pk": doc_pk,
+        "user_email": request.user.email or "",
+        "bundle_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": bundle}),
+        "success_url": reverse("billing:payment_success"),
+    })
+
+
+@login_required
+@require_http_methods(["POST"])
+def checkout_bundle_init(request, bundle: str):
+    """AJAX: create Razorpay order for a logged-in user and return JSON."""
+    bundle_info = ITR_BUNDLES.get(bundle)
+    if not bundle_info:
+        return JsonResponse({"error": "Invalid plan."}, status=400)
+
     client = _razorpay_client()
+    if not client:
+        return JsonResponse({"error": "Payments are not configured."}, status=503)
+
     key_id = getattr(settings, "RAZORPAY_KEY_ID", "").strip()
     amount_paise = bundle_info["amount_paise"]
+    receipt = f"itr_{bundle}_{request.user.pk}_{int(timezone.now().timestamp())}"
 
-    if request.method == "POST" and client:
-        receipt = f"itr_{bundle}_{request.user.pk}_{int(timezone.now().timestamp())}"
-        try:
-            order_data = client.order.create({
-                "amount": amount_paise,
-                "currency": "INR",
-                "receipt": receipt[:40],
-                "notes": {
-                    "user_id": str(request.user.pk),
-                    "bundle": bundle,
-                    "credits": str(bundle_info["credits"]),
-                },
-            })
-            RazorpayOrder.objects.create(
-                user=request.user,
-                razorpay_order_id=order_data["id"],
-                amount_paise=amount_paise,
-                currency="INR",
-                bundle_key=bundle,
-                credits_granted=bundle_info["credits"],
-                raw_payload=dict(order_data),
-            )
-        except Exception as exc:
-            logger.exception("Razorpay bundle order create failed")
-            messages.error(request, f"Payment setup failed: {exc}")
-            return redirect("marketing:pricing")
-
-        return render(request, "billing/checkout_bundle.html", {
-            "key_id": key_id,
-            "order_id": order_data["id"],
-            "amount_paise": amount_paise,
-            "bundle": bundle_info,
-            "user_email": request.user.email or "",
-            "doc_pk": doc_pk,
-            "success_url": request.build_absolute_uri(reverse("billing:payment_success")),
+    try:
+        order_data = client.order.create({
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": receipt[:40],
+            "notes": {
+                "user_id": str(request.user.pk),
+                "bundle": bundle,
+                "credits": str(bundle_info["credits"]),
+            },
         })
+        RazorpayOrder.objects.create(
+            user=request.user,
+            razorpay_order_id=order_data["id"],
+            amount_paise=amount_paise,
+            currency="INR",
+            bundle_key=bundle,
+            credits_granted=bundle_info["credits"],
+            raw_payload=dict(order_data),
+        )
+    except Exception:
+        logger.exception("Razorpay bundle order create failed")
+        return JsonResponse({"error": "Payment setup failed. Please try again."}, status=500)
 
-    return render(request, "billing/checkout_bundle.html", {
+    return JsonResponse({
+        "order_id": order_data["id"],
         "key_id": key_id,
-        "order_id": None,
-        "bundle": bundle_info,
-        "client_available": client is not None,
-        "doc_pk": doc_pk,
+        "amount_paise": amount_paise,
+        "amount_inr": bundle_info["amount_inr"],
+        "label": bundle_info["label"],
+        "description": bundle_info["description"],
     })
 
 
@@ -416,19 +426,10 @@ def _webhook_activate_payment(payload: dict) -> None:
 # Session key used to track a guest's paid export credits.
 SESSION_GUEST_CREDITS = "itr_guest_credits"
 
-_PHONE_RE = __import__("re").compile(r"^\+?[\d\s\-]{7,15}$")
 
-
-@require_http_methods(["GET", "POST"])
+@require_http_methods(["GET"])
 def guest_checkout(request):
-    """PAYG ₹5 checkout for unauthenticated guests.
-
-    GET  — show name/email/phone form.
-    POST (step 1) — validate form, create Razorpay order, render payment page.
-    POST (step 2 — from Razorpay JS) — handled by guest_payment_success.
-    """
-    from apps.billing.models import GuestOrder
-
+    """PAYG ₹50 checkout for unauthenticated guests — email-only, AJAX flow."""
     # Logged-in users go through the normal checkout.
     if request.user.is_authenticated:
         doc_pk = (request.GET.get("doc") or "").strip()
@@ -438,106 +439,63 @@ def guest_checkout(request):
         return redirect(url)
 
     bundle_info = ITR_BUNDLES["payg"]
-    client = _razorpay_client()
-    key_id = getattr(settings, "RAZORPAY_KEY_ID", "").strip()
-    doc_pk = (request.GET.get("doc") or request.POST.get("doc", "")).strip()
-
-    if request.method == "POST":
-        guest_name = request.POST.get("guest_name", "").strip()
-        guest_email = request.POST.get("guest_email", "").strip().lower()
-        guest_phone = request.POST.get("guest_phone", "").strip()
-
-        errors: dict[str, str] = {}
-        if not guest_name:
-            errors["guest_name"] = "Name is required."
-        if not guest_email or "@" not in guest_email or "." not in guest_email.split("@")[-1]:
-            errors["guest_email"] = "A valid email address is required."
-        if guest_phone and not _PHONE_RE.match(guest_phone):
-            errors["guest_phone"] = "Enter a valid phone number."
-
-        form_data = {
-            "guest_name": guest_name,
-            "guest_email": guest_email,
-            "guest_phone": guest_phone,
-        }
-
-        if not errors:
-            if not client:
-                errors["form_error"] = (
-                    "Online payments are not configured on this deployment. "
-                    "Contact support to purchase."
-                )
-            else:
-                receipt = f"itr_g_{int(timezone.now().timestamp())}"
-                try:
-                    order_data = client.order.create(
-                        {
-                            "amount": bundle_info["amount_paise"],
-                            "currency": "INR",
-                            "receipt": receipt[:40],
-                            "notes": {
-                                "guest_email": guest_email,
-                                "bundle": "payg",
-                            },
-                        }
-                    )
-                    GuestOrder.objects.create(
-                        guest_name=guest_name,
-                        guest_email=guest_email,
-                        guest_phone=guest_phone,
-                        razorpay_order_id=order_data["id"],
-                        amount_paise=bundle_info["amount_paise"],
-                        credits_granted=1,
-                        raw_payload=dict(order_data),
-                    )
-                except Exception:
-                    logger.exception("Guest checkout: Razorpay order create failed")
-                    errors["form_error"] = (
-                        "Payment setup failed. Please try again or contact support."
-                    )
-
-        if not errors:
-            # Render payment page (Razorpay modal).
-            return render(
-                request,
-                "billing/guest_checkout.html",
-                {
-                    "key_id": key_id,
-                    "order_id": order_data["id"],
-                    "bundle": bundle_info,
-                    "guest_email": guest_email,
-                    "guest_name": guest_name,
-                    "doc_pk": doc_pk,
-                },
-            )
-
-        return render(
-            request,
-            "billing/guest_checkout.html",
-            {
-                "key_id": key_id,
-                "order_id": None,
-                "bundle": bundle_info,
-                "doc_pk": doc_pk,
-                "errors": errors,
-                "form": form_data,
-                "client_available": client is not None,
-            },
-        )
-
-    # GET
+    doc_pk = (request.GET.get("doc") or "").strip()
     return render(
         request,
         "billing/guest_checkout.html",
         {
-            "key_id": key_id,
-            "order_id": None,
             "bundle": bundle_info,
             "doc_pk": doc_pk,
-            "errors": {},
-            "form": {},
-            "client_available": client is not None,
+            "client_available": _razorpay_client() is not None,
+            "guest_init_url": reverse("billing:guest_checkout_init"),
+            "guest_success_url": reverse("billing:guest_payment_success"),
         },
+    )
+
+
+@require_http_methods(["POST"])
+def guest_checkout_init(request):
+    """AJAX: create Razorpay order and return JSON (no email required from user).
+
+    GuestOrder is created later in guest_payment_success once we have the
+    email the user typed inside the Razorpay modal.
+
+    Response: {"order_id": ..., "key_id": ..., "amount_paise": ..., "amount_inr": ...}
+    """
+    client = _razorpay_client()
+    if not client:
+        return JsonResponse(
+            {"error": "Payments are not configured. Contact support."},
+            status=503,
+        )
+
+    bundle_info = ITR_BUNDLES["payg"]
+    key_id = getattr(settings, "RAZORPAY_KEY_ID", "").strip()
+    receipt = f"itr_g_{int(timezone.now().timestamp())}"
+
+    try:
+        order_data = client.order.create(
+            {
+                "amount": bundle_info["amount_paise"],
+                "currency": "INR",
+                "receipt": receipt[:40],
+                "notes": {"bundle": "payg"},
+            }
+        )
+    except Exception:
+        logger.exception("Guest checkout init: Razorpay order create failed")
+        return JsonResponse(
+            {"error": "Payment setup failed. Please try again or contact support."},
+            status=500,
+        )
+
+    return JsonResponse(
+        {
+            "order_id": order_data["id"],
+            "key_id": key_id,
+            "amount_paise": bundle_info["amount_paise"],
+            "amount_inr": bundle_info["amount_inr"],
+        }
     )
 
 
@@ -588,16 +546,39 @@ def guest_payment_success(request):
                 pass
         return redirect("documents:list")
 
+    # No pre-existing GuestOrder (email-free flow): create it now using the
+    # email the user typed inside Razorpay's own checkout modal.
     guest_order = GuestOrder.objects.filter(
         razorpay_order_id=rzp_order_id,
-        status=GuestOrder.STATUS_CREATED,
     ).first()
 
-    if guest_order:
+    if not guest_order:
+        # Fetch payment details from Razorpay to get the customer's email.
         try:
-            guest_order.status = GuestOrder.STATUS_PAID
-            guest_order.razorpay_payment_id = params["razorpay_payment_id"]
-            guest_order.save(update_fields=["status", "razorpay_payment_id"])
+            pay_data = client.payment.fetch(params["razorpay_payment_id"])
+            guest_email = (pay_data.get("email") or "").strip().lower()
+            guest_phone = (pay_data.get("contact") or "").strip()
+        except Exception:
+            logger.exception("Guest checkout: failed to fetch payment details from Razorpay")
+            guest_email = ""
+            guest_phone = ""
+
+        # EmailField is required; fall back to a placeholder if Razorpay gives nothing.
+        if not guest_email:
+            guest_email = f"guest+{rzp_order_id}@razorpay.internal"
+
+        try:
+            guest_order = GuestOrder.objects.create(
+                guest_name="Guest",
+                guest_email=guest_email,
+                guest_phone=guest_phone,
+                razorpay_order_id=rzp_order_id,
+                amount_paise=ITR_BUNDLES["payg"]["amount_paise"],
+                credits_granted=1,
+                status=GuestOrder.STATUS_PAID,
+                razorpay_payment_id=params["razorpay_payment_id"],
+                raw_payload={},
+            )
         except Exception as exc:
             logger.critical(
                 "GUEST PAYMENT SAVE FAILED — order=%s payment=%s error=%s",
@@ -612,21 +593,37 @@ def guest_payment_success(request):
                 f"Contact support with reference: {rzp_order_id}",
             )
             return redirect("marketing:pricing")
-
-        # Grant session credit.
-        request.session[SESSION_GUEST_CREDITS] = (
-            request.session.get(SESSION_GUEST_CREDITS, 0) + guest_order.credits_granted
-        )
-        request.session.modified = True
-        messages.success(
-            request,
-            "Payment confirmed — your export credit is ready. Generate your PDF now.",
-        )
     else:
-        messages.warning(
-            request,
-            "Payment recorded but order not found. Contact support with your Razorpay receipt.",
-        )
+        # Pre-existing order (e.g. created via legacy email flow or webhook).
+        if guest_order.status == GuestOrder.STATUS_CREATED:
+            try:
+                guest_order.status = GuestOrder.STATUS_PAID
+                guest_order.razorpay_payment_id = params["razorpay_payment_id"]
+                guest_order.save(update_fields=["status", "razorpay_payment_id"])
+            except Exception as exc:
+                logger.critical(
+                    "GUEST PAYMENT SAVE FAILED — order=%s payment=%s error=%s",
+                    rzp_order_id,
+                    params["razorpay_payment_id"],
+                    exc,
+                    exc_info=True,
+                )
+                messages.warning(
+                    request,
+                    "Your payment was captured but there was a temporary error. "
+                    f"Contact support with reference: {rzp_order_id}",
+                )
+                return redirect("marketing:pricing")
+
+    # Grant session credit.
+    request.session[SESSION_GUEST_CREDITS] = (
+        request.session.get(SESSION_GUEST_CREDITS, 0) + (guest_order.credits_granted if guest_order else 1)
+    )
+    request.session.modified = True
+    messages.success(
+        request,
+        "Payment confirmed — your export credit is ready. Generate your PDF now.",
+    )
 
     if doc_pk:
         try:
