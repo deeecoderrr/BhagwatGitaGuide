@@ -51,6 +51,9 @@ def register_itr_settings(g: dict[str, Any]) -> None:
     # Post login/signup for allauth (Django default /accounts/profile/ is not routed here).
     _itr_home = g["ITR_URL_PREFIX"].rstrip("/") + "/documents/"
     g["LOGIN_REDIRECT_URL"] = os.getenv("LOGIN_REDIRECT_URL", "").strip() or _itr_home
+    # After logout, redirect to the ITR login page (not the main Gita app root).
+    g["ACCOUNT_LOGOUT_REDIRECT_URL"] = "/accounts/login/"
+    g["LOGOUT_REDIRECT_URL"] = "/accounts/login/"
 
     g["AUTHENTICATION_BACKENDS"] = [
         "django.contrib.auth.backends.ModelBackend",
