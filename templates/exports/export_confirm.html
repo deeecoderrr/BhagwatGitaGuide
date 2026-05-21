@@ -180,8 +180,13 @@
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 (function () {
-  var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') &&
-                  document.querySelector('[name=csrfmiddlewaretoken]').value || '';
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+  var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') &&
+                   document.querySelector('[name=csrfmiddlewaretoken]').value) ||
+                  getCookie('csrftoken');
   var guestSuccessUrl = "{{ guest_success_url|escapejs }}";
   var authSuccessUrl  = "{{ auth_success_url|escapejs }}";
 
