@@ -1598,7 +1598,7 @@ class GuideApiTests(APITestCase):
         self.assertTrue(response.context["chat_ui_signed_in"])
         self.assertFalse(response.context["is_guest_chat"])
         self.assertEqual(response.context["user_id"], self.user.username)
-        self.assertContains(response, "Signed in: demo-user")
+        self.assertContains(response, "Logged in as <strong>demo-user</strong>")
         self.assertContains(response, "Logout")
         self.assertNotContains(response, "Guest mode is temporary")
         self.assertNotContains(response, "Not signed in")

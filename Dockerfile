@@ -31,7 +31,8 @@ RUN set -ex && \
     rm -rf /root/.cache/
 COPY . /code
 
-RUN python manage.py collectstatic --noinput
+# Sync ITR static source → staticfiles so the built image always has fresh CSS/JS.
+RUN cp -r static_itr/. staticfiles/ && python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
