@@ -477,13 +477,46 @@ class GuideApiTests(APITestCase):
 
     def test_auth_google_disabled_without_client_id(self):
         self.client.force_authenticate(user=None)
-        with self.settings(GOOGLE_OAUTH_CLIENT_ID=""):
+        with self.settings(GOOGLE_OAUTH_CLIENT_ID="", GOOGLE_OAUTH_ANDROID_CLIENT_ID=""):
             response = self.client.post(
                 "/api/auth/google/",
                 {"id_token": "x"},
                 format="json",
             )
         self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @patch("guide_api.google_auth.google_id_token.verify_oauth2_token")
+    def test_auth_google_accepts_android_client_id_token(self, mock_verify):
+        """expo-auth-session PKCE exchange on Android returns id_token with
+        aud=androidClientId.  Backend must accept it even though GOOGLE_OAUTH_CLIENT_ID
+        is the web client id."""
+
+        def side_effect(token, request, audience):
+            if audience == "android-cid.apps.googleusercontent.com":
+                return {
+                    "sub": "android-subject-001",
+                    "email": "android_tester@example.com",
+                    "email_verified": True,
+                    "iss": "https://accounts.google.com",
+                    "given_name": "Android",
+                    "family_name": "Tester",
+                }
+            raise ValueError("Token has wrong audience")
+
+        mock_verify.side_effect = side_effect
+        with self.settings(
+            GOOGLE_OAUTH_CLIENT_ID="web-cid.apps.googleusercontent.com",
+            GOOGLE_OAUTH_ANDROID_CLIENT_ID="android-cid.apps.googleusercontent.com",
+        ):
+            self.client.force_authenticate(user=None)
+            response = self.client.post(
+                "/api/auth/google/",
+                {"id_token": "fake.android.jwt"},
+                format="json",
+            )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("token", response.data)
+        self.assertEqual(response.data["username"], "google_android-subject-001")
 
     def test_auth_google_conflict_when_email_registered_elsewhere(self):
         user_model = get_user_model()

@@ -3055,7 +3055,17 @@ class GoogleAuthView(APIView):
 
     def post(self, request):
         """Verify credential, create or load user, session-login, return API token."""
-        if not settings.GOOGLE_OAUTH_CLIENT_ID:
+        # Accept tokens issued against the web client (GIS / web Sign-In) OR the
+        # Android OAuth client (expo-auth-session PKCE exchange returns an
+        # id_token whose `aud` equals the androidClientId, not the webClientId).
+        accepted_audiences = [
+            a for a in [
+                settings.GOOGLE_OAUTH_CLIENT_ID,
+                getattr(settings, "GOOGLE_OAUTH_ANDROID_CLIENT_ID", ""),
+            ]
+            if a
+        ]
+        if not accepted_audiences:
             return _error_response(
                 message="Google sign-in is not enabled on this server.",
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -3064,14 +3074,17 @@ class GoogleAuthView(APIView):
         serializer = GoogleAuthRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         raw = serializer.validated_data["id_token"]
-        try:
-            claims = verify_google_id_token(
-                raw,
-                settings.GOOGLE_OAUTH_CLIENT_ID,
-            )
-        except ValueError as exc:
+        claims = None
+        last_exc: Exception | None = None
+        for audience in accepted_audiences:
+            try:
+                claims = verify_google_id_token(raw, audience)
+                break
+            except ValueError as exc:
+                last_exc = exc
+        if claims is None:
             return _error_response(
-                message=str(exc),
+                message=str(last_exc),
                 status_code=status.HTTP_400_BAD_REQUEST,
                 code="invalid_google_token",
             )

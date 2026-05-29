@@ -476,6 +476,9 @@ else:
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
+# Android OAuth client (expo-auth-session PKCE flow returns id_token with aud=this).
+# Set to the reverse-client-ID app's androidClientId from Google Cloud Console.
+GOOGLE_OAUTH_ANDROID_CLIENT_ID = os.getenv("GOOGLE_OAUTH_ANDROID_CLIENT_ID", "").strip()
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
 REST_FRAMEWORK = {
