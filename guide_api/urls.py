@@ -73,6 +73,8 @@ from guide_api.views import (
     GuestRecentQuestionsView,
     ForgotPasswordView,
     GoogleAuthView,
+    GoogleOAuthInitiateView,
+    GoogleOAuthCallbackView,
     HealthView,
     LoginView,
     LogoutView,
@@ -122,6 +124,11 @@ urlpatterns = [
     path("auth/register/", RegisterView.as_view(), name="auth-register"),
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/google/", GoogleAuthView.as_view(), name="auth-google"),
+    # Server-side OAuth flow for mobile (Chrome Custom Tab / ASWebAuthenticationSession).
+    # Requires: add https://askbhagavadgita.co.in/api/v1/auth/google/callback/ as an
+    # Authorized Redirect URI in GCP → Credentials → your Web Application OAuth client.
+    path("auth/google/initiate/", GoogleOAuthInitiateView.as_view(), name="auth-google-initiate"),
+    path("auth/google/callback/", GoogleOAuthCallbackView.as_view(), name="auth-google-callback"),
     path("auth/logout/", LogoutView.as_view(), name="auth-logout"),
     path("auth/me/", MeView.as_view(), name="auth-me"),
     path("auth/profile/", ProfileUpdateView.as_view(), name="auth-profile"),

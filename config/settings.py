@@ -479,6 +479,12 @@ GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "").strip()
 # Android OAuth client (expo-auth-session PKCE flow returns id_token with aud=this).
 # Set to the reverse-client-ID app's androidClientId from Google Cloud Console.
 GOOGLE_OAUTH_ANDROID_CLIENT_ID = os.getenv("GOOGLE_OAUTH_ANDROID_CLIENT_ID", "").strip()
+# Web Application client secret (used by the server-side mobile OAuth callback flow).
+# Get from GCP → Credentials → your Web Application OAuth client → Client secrets.
+GOOGLE_CLIENT_SECRET = (
+    os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
+    or os.getenv("GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
+)
 GOOGLE_SITE_VERIFICATION = os.getenv("GOOGLE_SITE_VERIFICATION", "")
 
 REST_FRAMEWORK = {

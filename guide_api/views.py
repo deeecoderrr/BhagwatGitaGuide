@@ -3130,6 +3130,189 @@ class LogoutView(APIView):
         return response
 
 
+# ---------------------------------------------------------------------------
+# Server-side Google OAuth flow for mobile app
+# ---------------------------------------------------------------------------
+# Why server-side instead of expo-auth-session?
+#   expo-auth-session uses the *androidClientId* for the redirect URI
+#   (com.googleusercontent.apps.XXX:/oauth2redirect).  That custom scheme is
+#   only auto-allowed for **Android-type** OAuth clients in GCP.  If the
+#   existing client is a Web Application type, Google returns
+#   "Error 400: invalid_request" immediately at the authorization page.
+#   The server-side approach uses the *webClientId* and an HTTPS callback
+#   URL (https://askbhagavadgita.co.in/api/v1/auth/google/callback/) which
+#   CAN be registered for Web Application clients, and is more secure because
+#   client_secret stays on the server.
+#
+# Required one-time GCP change:
+#   In Google Cloud Console → Credentials → your Web OAuth client,
+#   add the following "Authorized redirect URI":
+#   https://askbhagavadgita.co.in/api/v1/auth/google/callback/
+# ---------------------------------------------------------------------------
+
+_GOOGLE_MOBILE_APP_SCHEME = "askbhagavadgita"
+
+
+def _google_oauth_callback_url(request) -> str:
+    """Return the absolute HTTPS callback URL registered in GCP."""
+    canonical = getattr(settings, "CANONICAL_HOST", "").strip()
+    if canonical:
+        return f"https://{canonical}/api/v1/auth/google/callback/"
+    # Fallback for local dev (register http://127.0.0.1:8000/... in GCP too).
+    return request.build_absolute_uri("/api/v1/auth/google/callback/")
+
+
+class GoogleOAuthInitiateView(APIView):
+    """Start the server-side Google OAuth flow for the mobile app.
+
+    Redirects the Chrome Custom Tab / ASWebAuthenticationSession to Google's
+    authorization endpoint with PKCE.  State and code_verifier are stored in
+    the Django session so the callback can verify and exchange them.
+
+    GCP requirement: add the callback URL as an "Authorized redirect URI"
+    for your Web Application OAuth client.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request):
+        client_id = getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "").strip()
+        if not client_id:
+            return HttpResponseBadRequest("Google OAuth is not configured on this server.")
+
+        import hashlib
+        import secrets
+        from urllib.parse import urlencode
+
+        # PKCE
+        code_verifier = secrets.token_urlsafe(48)
+        digest = hashlib.sha256(code_verifier.encode()).digest()
+        import base64
+        code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+
+        state = secrets.token_urlsafe(16)
+        request.session["google_oauth_verifier"] = code_verifier
+        request.session["google_oauth_state"] = state
+
+        params = urlencode({
+            "client_id": client_id,
+            "redirect_uri": _google_oauth_callback_url(request),
+            "response_type": "code",
+            "scope": "openid email profile",
+            "code_challenge": code_challenge,
+            "code_challenge_method": "S256",
+            "state": state,
+            "access_type": "online",
+        })
+        from django.shortcuts import redirect as django_redirect
+        return django_redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
+
+
+class GoogleOAuthCallbackView(APIView):
+    """Handle the Google OAuth authorization callback for the mobile app.
+
+    Exchanges the authorization code for tokens, verifies the ID token,
+    creates or retrieves the user, issues a DRF token, and redirects to
+    the mobile app via the ``askbhagavadgita://`` deep-link scheme so
+    the app can extract the session token without any further API call.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def _error_redirect(self, error_code: str):
+        from django.shortcuts import redirect as django_redirect
+        return django_redirect(
+            f"{_GOOGLE_MOBILE_APP_SCHEME}://oauth?error={error_code}"
+        )
+
+    def get(self, request):
+        from urllib.parse import urlencode
+        import requests as _http
+
+        error = request.GET.get("error")
+        if error:
+            return self._error_redirect(error)
+
+        code = request.GET.get("code")
+        state = request.GET.get("state")
+        stored_state = request.session.get("google_oauth_state")
+        code_verifier = request.session.get("google_oauth_verifier")
+
+        if not code:
+            return self._error_redirect("no_code")
+        if not state or state != stored_state:
+            return self._error_redirect("state_mismatch")
+        if not code_verifier:
+            return self._error_redirect("session_expired")
+
+        # Clean up session entries.
+        request.session.pop("google_oauth_verifier", None)
+        request.session.pop("google_oauth_state", None)
+
+        # --- Token exchange --------------------------------------------------
+        client_id = getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "").strip()
+        client_secret = (
+            getattr(settings, "GOOGLE_CLIENT_SECRET", "").strip()
+            or getattr(settings, "GOOGLE_OAUTH_CLIENT_SECRET", "").strip()
+        )
+
+        token_data = {
+            "code": code,
+            "client_id": client_id,
+            "redirect_uri": _google_oauth_callback_url(request),
+            "grant_type": "authorization_code",
+            "code_verifier": code_verifier,
+        }
+        if client_secret:
+            token_data["client_secret"] = client_secret
+
+        try:
+            token_resp = _http.post(
+                "https://oauth2.googleapis.com/token",
+                data=token_data,
+                timeout=15,
+            )
+            token_json = token_resp.json()
+        except Exception:
+            logger.exception("Google token exchange failed")
+            return self._error_redirect("token_exchange_failed")
+
+        id_token_raw = token_json.get("id_token")
+        if not id_token_raw:
+            logger.warning("Google token response missing id_token: %s", token_json)
+            return self._error_redirect("no_id_token")
+
+        # --- Verify and resolve user -----------------------------------------
+        from guide_api.google_auth import verify_google_id_token, get_or_create_user_from_google_claims
+
+        try:
+            claims = verify_google_id_token(id_token_raw, client_id)
+        except ValueError as exc:
+            logger.warning("Google id_token verification failed: %s", exc)
+            return self._error_redirect("invalid_token")
+
+        user, err = get_or_create_user_from_google_claims(claims)
+        if err == "email_exists_password":
+            return self._error_redirect("email_conflict")
+        if user is None:
+            logger.warning("Google user creation error: %s", err)
+            return self._error_redirect(err or "user_error")
+
+        # --- Issue DRF token + optional session login -----------------------
+        _session_auth_login(request, user)
+        drf_token, _ = Token.objects.get_or_create(user=user)
+
+        from django.shortcuts import redirect as django_redirect
+        from urllib.parse import quote as _quote
+        qs = urlencode({
+            "token": drf_token.key,
+            "username": user.username,
+        })
+        return django_redirect(f"{_GOOGLE_MOBILE_APP_SCHEME}://oauth?{qs}")
+
+
 class MeView(APIView):
     """Return current authenticated user identity."""
 
