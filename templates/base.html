@@ -62,10 +62,15 @@
       <div>
         <strong>ITR Summary Generator</strong>
         <p class="muted small">Computation summaries for review — not legal or tax advice.</p>
+        <p class="muted small" style="margin-top: 0.4rem;">
+          Questions or need help?
+          <a href="mailto:askbhagwatgitasupport@gmail.com" style="color: #059669; font-weight: 500;">askbhagwatgitasupport@gmail.com</a>
+        </p>
       </div>
       <div class="footer-links">
         <a href="{% url 'marketing:home' %}">Home</a>
         <a href="{% url 'marketing:pricing' %}">Pricing</a>
+        <a href="mailto:askbhagwatgitasupport@gmail.com">Contact Us</a>
         {% if not user.is_authenticated %}
           <a href="{% url 'account_signup' %}">Sign up</a>
         {% endif %}

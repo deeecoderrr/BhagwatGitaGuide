@@ -14,7 +14,10 @@ class Comment(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="page_comments",
+        null=True,
+        blank=True,
     )
+    guest_name = models.CharField(max_length=50, blank=True, default="")
     parent = models.ForeignKey(
         "self",
         null=True,
@@ -31,5 +34,11 @@ class Comment(models.Model):
             models.Index(fields=["page_slug", "parent", "-created_at"]),
         ]
 
+    @property
+    def display_name(self) -> str:
+        if self.user_id:
+            return self.user.username
+        return self.guest_name or "Guest"
+
     def __str__(self) -> str:
-        return f"{self.user_id}:{self.page_slug}:{self.pk}"
+        return f"{self.display_name}:{self.page_slug}:{self.pk}"

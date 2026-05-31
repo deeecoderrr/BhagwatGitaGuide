@@ -14,29 +14,24 @@
   </summary>
 
   <div class="comments-panel__body card">
-    {% if user.is_authenticated %}
-      <form method="post" action="{% url 'comments:post' %}" class="comments-form">
-        {% csrf_token %}
-        <input type="hidden" name="page_slug" value="{{ comments_page_slug }}">
-        <label class="comments-label" for="{{ comment_form.body.id_for_label }}">New comment</label>
-        {{ comment_form.body.errors }}
-        {{ comment_form.body }}
-        <button type="submit" class="btn btn-primary comments-post-btn">Post</button>
-      </form>
-    {% else %}
-      <p class="muted small comments-signin-hint">
-        <a href="{% url 'account_login' %}?next={{ request.path|urlencode }}">Sign in</a>
-        or
-        <a href="{% url 'account_signup' %}?next={{ request.path|urlencode }}">create an account</a>
-        to post a comment.
-      </p>
-    {% endif %}
+    <form method="post" action="{% url 'comments:post' %}" class="comments-form">
+      {% csrf_token %}
+      <input type="hidden" name="page_slug" value="{{ comments_page_slug }}">
+      {% if not user.is_authenticated %}
+        <label class="comments-label" for="id_guest_name" style="margin-bottom:0.25rem;">Your name</label>
+        {{ comment_form.guest_name }}
+      {% endif %}
+      <label class="comments-label" for="{{ comment_form.body.id_for_label }}">New comment</label>
+      {{ comment_form.body.errors }}
+      {{ comment_form.body }}
+      <button type="submit" class="btn btn-primary comments-post-btn">Post</button>
+    </form>
 
     <div class="comments-thread">
       {% for comment in comments %}
         <article class="comment">
           <header class="comment__meta muted small">
-            <strong>{{ comment.user.username }}</strong>
+            <strong>{{ comment.display_name }}</strong>
             · {{ comment.created_at|date:"Y-m-d H:i e" }}
           </header>
           <p class="comment__body">{{ comment.body|linebreaksbr }}</p>
@@ -44,22 +39,23 @@
           {% for reply in comment.replies.all %}
             <article class="comment comment--nested">
               <header class="comment__meta muted small">
-                <strong>{{ reply.user.username }}</strong>
+                <strong>{{ reply.display_name }}</strong>
                 · {{ reply.created_at|date:"Y-m-d H:i e" }}
               </header>
               <p class="comment__body">{{ reply.body|linebreaksbr }}</p>
             </article>
           {% endfor %}
 
-          {% if user.is_authenticated %}
-            <form method="post" action="{% url 'comments:post' %}" class="comments-form comments-form--reply">
-              {% csrf_token %}
-              <input type="hidden" name="page_slug" value="{{ comments_page_slug }}">
-              <input type="hidden" name="parent_id" value="{{ comment.id }}">
-              <textarea name="body" rows="2" class="form-input comments-textarea" placeholder="Write a reply…" required></textarea>
-              <button type="submit" class="btn btn-ghost btn-sm">Reply</button>
-            </form>
-          {% endif %}
+          <form method="post" action="{% url 'comments:post' %}" class="comments-form comments-form--reply">
+            {% csrf_token %}
+            <input type="hidden" name="page_slug" value="{{ comments_page_slug }}">
+            <input type="hidden" name="parent_id" value="{{ comment.id }}">
+            {% if not user.is_authenticated %}
+              <input type="text" name="guest_name" class="form-input" placeholder="Your name" required style="margin-bottom:0.4rem;">
+            {% endif %}
+            <textarea name="body" rows="2" class="form-input comments-textarea" placeholder="Write a reply…" required></textarea>
+            <button type="submit" class="btn btn-ghost btn-sm">Reply</button>
+          </form>
         </article>
       {% empty %}
         <p class="muted small comments-empty">No comments yet.</p>

@@ -71,7 +71,7 @@ def pricing(request):
     canonical = request.build_absolute_uri(request.path)
     itr_home_abs = request.build_absolute_uri(reverse("marketing:home"))
     from apps.billing.views import ITR_BUNDLES
-    contact_email = getattr(settings, "ITR_CONTACT_EMAIL", "support@askbhagavadgita.in")
+    contact_email = getattr(settings, "ITR_CONTACT_EMAIL", "askbhagwatgitasupport@gmail.com")
     # Keep pro_inr for SEO structured-data (use Professional bundle price)
     pro_inr = ITR_BUNDLES["professional"]["amount_inr"]
     plan_status = None
