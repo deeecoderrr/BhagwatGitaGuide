@@ -183,6 +183,47 @@ def export_pdf(request, pk: int):
     razorpay_available = _razorpay_client() is not None
     user_email = request.user.email if request.user.is_authenticated else ""
 
+    # Auto-export: if arriving from payment success with auto=1 and valid token,
+    # skip the confirmation page and immediately generate the PDF.
+    auto_export = request.GET.get("auto") == "1"
+    if auto_export and allowed_export and not blocks:
+        # Simulate POST to generate PDF immediately
+        try:
+            ctx = _build_export_context(document, fm)
+            try:
+                from apps.exports.weasy_render import render_computation_weasy_pdf
+            except (ImportError, OSError) as exc:
+                messages.error(
+                    request,
+                    f"WeasyPrint is not available: {exc}",
+                )
+                return redirect("documents:detail", pk=pk)
+            pdf_bytes = render_computation_weasy_pdf(ctx)
+        except Exception as exc:
+            messages.error(request, f"PDF failed: {exc}")
+            return redirect("documents:detail", pk=pk)
+
+        name = f"itr-summary-{document.pk}.pdf"
+        exp = ExportedSummary.objects.create(
+            document=document,
+            expires_at=timezone.now()
+            + timedelta(hours=output_retention_hours()),
+        )
+        exp.pdf_file.save(name, ContentFile(pdf_bytes), save=True)
+        document.status = Document.STATUS_EXPORTED
+        document.save(update_fields=["status", "updated_at"])
+        if profile is not None:
+            record_export(profile)
+        else:
+            record_export_anonymous(request)
+            if guest_order_from_token:
+                guest_order_from_token.export_used = True
+                guest_order_from_token.save(update_fields=["export_used"])
+        delete_document_upload_after_export(document)
+        response = HttpResponse(pdf_bytes, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{name}"'
+        return response
+
     return render(
         request,
         "exports/export_confirm.html",

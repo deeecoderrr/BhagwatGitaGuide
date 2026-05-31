@@ -250,6 +250,7 @@
           order_id: data.order_id,
           prefill: { email: userEmail },
           handler: function (response) {
+            btn.textContent = 'Generating your PDF…';
             form.querySelector('[name=razorpay_order_id]').value   = response.razorpay_order_id;
             form.querySelector('[name=razorpay_payment_id]').value = response.razorpay_payment_id;
             form.querySelector('[name=razorpay_signature]').value  = response.razorpay_signature;

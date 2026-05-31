@@ -627,10 +627,6 @@ def guest_payment_success(request):
         request.session.get(SESSION_GUEST_CREDITS, 0) + (guest_order.credits_granted if guest_order else 1)
     )
     request.session.modified = True
-    messages.success(
-        request,
-        "Payment confirmed — your export credit is ready. Generate your PDF now.",
-    )
 
     if doc_pk:
         try:
@@ -639,8 +635,10 @@ def guest_payment_success(request):
                 {"go": guest_order.pk, "doc": int(doc_pk)},
                 salt="itr-guest-export",
             )
+            # Auto-export: redirect with auto=1 so the export page generates immediately
             return redirect(
-                reverse("exports:create", args=[int(doc_pk)]) + "?guest_token=" + _token
+                reverse("exports:create", args=[int(doc_pk)])
+                + "?guest_token=" + _token + "&auto=1"
             )
         except (ValueError, TypeError):
             pass

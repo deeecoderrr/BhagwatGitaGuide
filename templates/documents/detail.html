@@ -1,103 +1,311 @@
 {% extends "base.html" %}
 {% load itr_export %}
-{% block title %}Document {{ document.pk }}{% endblock %}
+{% block title %}{{ document.get_detected_type_display }} Summary — {{ document.original_filename }}{% endblock %}
 {% block content %}
-<div class="wrap">
+<div class="wrap" style="max-width: 640px; margin: 0 auto; padding-top: 1.5rem; padding-bottom: 3rem;">
 
-<!-- Progress stepper -->
+{# ── Progress stepper ── #}
 {% if not poll_status %}
-<nav class="itr-stepper" aria-label="Progress" style="display: flex; align-items: center; gap: 0; margin: 0.75rem 0 1.5rem; max-width: 36rem;">
-  <div class="itr-step itr-step--done" style="display: flex; align-items: center; gap: 0.4rem;">
-    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #059669; color: white; font-size: 0.75rem; font-weight: 700;">✓</span>
-    <span style="font-size: 0.85rem; font-weight: 500; color: #059669;">Upload</span>
+<nav aria-label="Progress" style="display: flex; align-items: center; margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;">✓</span>
+    <span style="font-size: 0.82rem; font-weight: 500; color: #059669;">Upload</span>
   </div>
-  <span style="flex: 1; height: 2px; background: #059669; margin: 0 0.25rem;"></span>
-  <div class="itr-step itr-step--done" style="display: flex; align-items: center; gap: 0.4rem;">
-    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #059669; color: white; font-size: 0.75rem; font-weight: 700;">✓</span>
-    <span style="font-size: 0.85rem; font-weight: 500; color: #059669;">Extracted</span>
+  <span style="flex: 1; height: 2px; background: #059669; margin: 0 0.5rem;"></span>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;">✓</span>
+    <span style="font-size: 0.82rem; font-weight: 500; color: #059669;">Extracted</span>
   </div>
-  <span style="flex: 1; height: 2px; background: #d1d5db; margin: 0 0.25rem;"></span>
-  <div class="itr-step itr-step--current" style="display: flex; align-items: center; gap: 0.4rem;">
-    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; color: white; font-size: 0.8rem; font-weight: 700;">3</span>
-    <span style="font-size: 0.85rem; font-weight: 600; color: #92400e;">Get PDF</span>
+  <span style="flex: 1; height: 2px; background: linear-gradient(90deg, #059669 0%, #d1d5db 100%); margin: 0 0.5rem;"></span>
+  <div style="display: flex; align-items: center; gap: 0.35rem;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">3</span>
+    <span style="font-size: 0.82rem; font-weight: 600; color: #065f46;">Download</span>
   </div>
 </nav>
 {% endif %}
 
-<h1>{{ document.original_filename }}</h1>
-<p class="muted">Source: {{ document.get_upload_source_display }}{% if document.upload_source == "json" %} (filed ITR JSON){% endif %}</p>
-
-{% if not document.user %}
-<p class="muted small" style="border-left:3px solid var(--accent, #0d9488); padding-left:0.85rem; max-width:44rem;">
-  <strong>Your data is safe.</strong> We'll keep it while your session is active. Review is optional — most users skip straight to generating the PDF.
-</p>
-{% endif %}
-
-{% include "documents/_doc_status.html" %}
+{# ── Document header ── #}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+    <span style="display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 0.78rem; font-weight: 600; color: #065f46; letter-spacing: 0.02em;">{{ document.get_detected_type_display }}</span>
+    <span style="font-size: 0.78rem; color: #9ca3af;">Filed ITR JSON</span>
+  </div>
+  <h1 style="font-size: 1.35rem; font-weight: 600; margin: 0.5rem 0 0; line-height: 1.3; word-break: break-all;">{{ document.original_filename }}</h1>
+</div>
 
 {% if document.error_message %}
-  <p class="error">{{ document.error_message }}</p>
+  <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1.5rem;">
+    <p style="margin: 0; color: #991b1b; font-size: 0.9rem;">{{ document.error_message }}</p>
+  </div>
 {% endif %}
 
+{# ── Extracted data card ── #}
 {% if summary.name or summary.pan %}
-<div class="data-summary-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%); border: 1px solid #a7f3d0; border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.25rem 0; max-width: 32rem;">
-  <p style="margin: 0 0 0.75rem; font-weight: 600; color: #065f46; font-size: 0.9rem;">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: -3px; margin-right: 4px;"><path d="M9 12l2 2 4-4" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#059669" stroke-width="1.5"/></svg>
-    Your {{ document.get_detected_type_display }} data extracted successfully
-  </p>
-  <dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: 0.95rem;">
-    {% if summary.name %}<dt style="color: #6b7280;">Name</dt><dd style="margin: 0; font-weight: 500;">{{ summary.name }}</dd>{% endif %}
-    {% if summary.pan %}<dt style="color: #6b7280;">PAN</dt><dd style="margin: 0; font-family: monospace;">{{ summary.pan }}</dd>{% endif %}
-    {% if summary.ay %}<dt style="color: #6b7280;">Assessment Year</dt><dd style="margin: 0;">{{ summary.ay }}</dd>{% endif %}
-    {% if summary.total_income %}<dt style="color: #6b7280;">Total Income</dt><dd style="margin: 0; font-weight: 600; color: #047857;">₹{{ summary.total_income }}</dd>{% endif %}
-    {% if summary.tax_payable %}<dt style="color: #6b7280;">Tax Payable</dt><dd style="margin: 0;">₹{{ summary.tax_payable }}</dd>{% endif %}
-    {% if summary.refund %}<dt style="color: #6b7280;">Refund Due</dt><dd style="margin: 0; color: #059669; font-weight: 600;">₹{{ summary.refund }}</dd>{% endif %}
-    {% if summary.demand %}<dt style="color: #6b7280;">Demand</dt><dd style="margin: 0; color: #dc2626;">₹{{ summary.demand }}</dd>{% endif %}
-  </dl>
+<div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+  <div style="background: #f0fdf4; padding: 0.75rem 1.25rem; border-bottom: 1px solid #d1fae5;">
+    <p style="margin: 0; font-weight: 600; color: #065f46; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem;">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#059669" stroke-width="1.5"/></svg>
+      Data extracted successfully
+    </p>
+  </div>
+  <div style="padding: 1rem 1.25rem;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.92rem;">
+      {% if summary.name %}
+      <tr>
+        <td style="padding: 0.4rem 0; color: #6b7280; width: 140px;">Name</td>
+        <td style="padding: 0.4rem 0; font-weight: 500;">{{ summary.name }}</td>
+      </tr>
+      {% endif %}
+      {% if summary.pan %}
+      <tr>
+        <td style="padding: 0.4rem 0; color: #6b7280;">PAN</td>
+        <td style="padding: 0.4rem 0; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem; letter-spacing: 0.04em;">{{ summary.pan }}</td>
+      </tr>
+      {% endif %}
+      {% if summary.ay %}
+      <tr>
+        <td style="padding: 0.4rem 0; color: #6b7280;">Assessment Year</td>
+        <td style="padding: 0.4rem 0;">{{ summary.ay }}</td>
+      </tr>
+      {% endif %}
+      {% if summary.total_income %}
+      <tr style="border-top: 1px solid #f3f4f6;">
+        <td style="padding: 0.55rem 0 0.4rem; color: #6b7280;">Total Income</td>
+        <td style="padding: 0.55rem 0 0.4rem; font-weight: 600; color: #065f46; font-size: 1rem;">₹{{ summary.total_income }}</td>
+      </tr>
+      {% endif %}
+      {% if summary.tax_payable %}
+      <tr>
+        <td style="padding: 0.4rem 0; color: #6b7280;">Tax Payable</td>
+        <td style="padding: 0.4rem 0; font-weight: 500;">₹{{ summary.tax_payable }}</td>
+      </tr>
+      {% endif %}
+      {% if summary.refund %}
+      <tr>
+        <td style="padding: 0.4rem 0; color: #6b7280;">Refund Due</td>
+        <td style="padding: 0.4rem 0; font-weight: 600; color: #059669;">₹{{ summary.refund }}</td>
+      </tr>
+      {% endif %}
+      {% if summary.demand %}
+      <tr>
+        <td style="padding: 0.4rem 0; color: #6b7280;">Demand</td>
+        <td style="padding: 0.4rem 0; font-weight: 500; color: #dc2626;">₹{{ summary.demand }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
 </div>
 {% endif %}
 
+{# ── Main action area ── #}
 {% if poll_status %}
-  <p class="muted">Processing your JSON… this page updates automatically.</p>
+  <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 1.5rem; text-align: center;">
+    <p class="muted" style="margin: 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+      <span class="chakra-loader" style="width: 18px; height: 18px;"></span>
+      Processing your JSON… this page updates automatically.
+    </p>
+  </div>
 {% else %}
-  <div class="actions" style="margin: 1.5rem 0;">
+
+  {% if export_blocked and razorpay_available and not user.is_authenticated %}
+  {# ── PAYMENT CARD: Guest user, needs to pay ── #}
+  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
+    <div style="padding: 1.5rem 1.5rem 1.25rem;">
+      <p style="margin: 0 0 0.25rem; font-size: 1.1rem; font-weight: 600; color: #111827;">
+        Download computation PDF
+      </p>
+      <p style="margin: 0 0 1.25rem; font-size: 0.88rem; color: #6b7280; line-height: 1.5;">
+        Professional CA-style computation sheet with head-wise income breakdown,
+        deductions, tax slab calculations, and refund/demand summary.
+      </p>
+
+      <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 1rem;">
+        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹50</span>
+        <span style="font-size: 0.85rem; color: #9ca3af; text-decoration: line-through;">₹500+</span>
+        <span style="font-size: 0.78rem; font-weight: 500; color: #059669; background: #ecfdf5; padding: 0.15rem 0.5rem; border-radius: 99px;">Save 90%</span>
+      </div>
+
+      <button type="button" class="btn btn-primary" id="detail-pay-btn"
+              style="width: 100%; font-size: 1.05rem; padding: 0.9rem 1.5rem; background: #059669; border-color: #059669; border-radius: 10px; font-weight: 600; letter-spacing: 0.01em;"
+              data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
+        Pay ₹50 — Instant PDF Download
+      </button>
+
+      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1rem; font-size: 0.78rem; color: #6b7280;">
+        <span style="display: flex; align-items: center; gap: 0.25rem;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#059669" stroke-width="1.5"/></svg>
+          Razorpay Secure
+        </span>
+        <span style="display: flex; align-items: center; gap: 0.25rem;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" stroke="#059669" stroke-width="1.5"/><path d="M1 10h22" stroke="#059669" stroke-width="1.5"/></svg>
+          UPI · Card · Netbanking
+        </span>
+        <span style="display: flex; align-items: center; gap: 0.25rem;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#059669" stroke-width="1.5"/></svg>
+          Instant download
+        </span>
+      </div>
+    </div>
+
+    <div style="background: #f9fafb; border-top: 1px solid #f3f4f6; padding: 0.85rem 1.5rem;">
+      <p style="margin: 0; font-size: 0.8rem; color: #6b7280; text-align: center; line-height: 1.5;">
+        Chartered Accountants typically charge <strong style="color: #374151;">₹500–1,000</strong> for this computation statement.
+        You save over 90% and get it instantly.
+      </p>
+    </div>
+  </div>
+
+  {% elif not export_blocked %}
+  {# ── User has credits: direct generate ── #}
+  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+    <p style="margin: 0 0 1rem; font-size: 0.92rem; color: #374151;">
+      Your computation PDF is ready to generate.
+    </p>
+    <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">
+      Generate PDF
+    </a>
+  </div>
+
+  {% else %}
+  {# ── Authenticated user without credits ── #}
+  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+    <p style="margin: 0 0 1rem; font-size: 0.92rem; color: #374151;">
+      Purchase an export credit to generate your PDF.
+    </p>
     <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">
       Generate PDF — ₹50
     </a>
-    <a class="btn btn-ghost" href="{% url 'reviews:review' document.pk %}">Review &amp; edit fields (optional)</a>
   </div>
-  <p class="muted small" style="max-width: 28rem;">
-    <strong>Your PDF includes:</strong> CA-style computation sheet with head-wise income, deductions, tax slabs, and refund/demand summary.
-    <br><span style="color: #059669;">CAs typically charge ₹500–1,000 for this.</span>
-  </p>
+  {% endif %}
+
 {% endif %}
 
-<form method="post" action="{% url 'documents:reprocess' document.pk %}" class="inline">
-  {% csrf_token %}
-  <button type="submit" class="btn btn-ghost" {% if poll_status or not document.uploaded_file %}disabled{% endif %}>Re-run import</button>
-</form>
-{% if not document.uploaded_file %}
-  {% itr_delete_input_after_export as itr_del_upload %}
-  <p class="muted small">
-    The original uploaded file is no longer on our servers{% if itr_del_upload %} (uploads may be deleted right after a successful export—separate from the {% itr_output_retention_hours %}‑hour PDF download window){% endif %}. Upload the JSON again to re-import.
+{# ── Secondary actions (collapsed, less visual weight) ── #}
+<div style="border-top: 1px solid #f3f4f6; padding-top: 1.25rem; margin-top: 0.5rem;">
+  <div style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center;">
+    <a href="{% url 'reviews:review' document.pk %}" style="font-size: 0.85rem; color: #6b7280; text-decoration: underline; text-underline-offset: 2px;">Review &amp; edit extracted fields</a>
+    <span style="color: #e5e7eb;">|</span>
+    <form method="post" action="{% url 'documents:reprocess' document.pk %}" style="display: inline; margin: 0;">
+      {% csrf_token %}
+      <button type="submit" style="font-size: 0.85rem; color: #6b7280; background: none; border: none; cursor: pointer; padding: 0; text-decoration: underline; text-underline-offset: 2px;" {% if poll_status or not document.uploaded_file %}disabled{% endif %}>Re-run import</button>
+    </form>
+  </div>
+  {% if not document.uploaded_file %}
+  <p style="margin: 0.75rem 0 0; font-size: 0.8rem; color: #9ca3af;">
+    Original file no longer on server. Upload the JSON again to re-import.
   </p>
-{% endif %}
-
-<h2>Exports</h2>
-<ul>
-  {% for e in document.exports.all %}
-    <li>
-      {% if e.can_download %}
-        <a href="{% url 'exports:download' document.pk e.pk %}">Download export #{{ e.pk }}</a>
-      {% else %}
-        <span>Export #{{ e.pk }}</span>
-        <span class="muted">(expired)</span>
-      {% endif %}
-      <span class="muted">({{ e.created_at }})</span>
-    </li>
-  {% empty %}
-    <li class="muted">No exports yet.</li>
-  {% endfor %}
-</ul>
+  {% endif %}
 </div>
+
+{# ── Previous exports ── #}
+{% with exports=document.exports.all %}
+{% if exports %}
+<div style="border-top: 1px solid #f3f4f6; padding-top: 1.25rem; margin-top: 1.25rem;">
+  <h2 style="font-size: 0.95rem; font-weight: 600; color: #374151; margin: 0 0 0.75rem;">Previous exports</h2>
+  <ul style="list-style: none; padding: 0; margin: 0;">
+    {% for e in exports %}
+    <li style="padding: 0.4rem 0; font-size: 0.88rem; display: flex; align-items: center; gap: 0.5rem;">
+      {% if e.can_download %}
+        <a href="{% url 'exports:download' document.pk e.pk %}" style="font-weight: 500;">Download PDF</a>
+      {% else %}
+        <span style="color: #9ca3af;">Export #{{ e.pk }} (expired)</span>
+      {% endif %}
+      <span style="color: #d1d5db;">·</span>
+      <span style="color: #9ca3af; font-size: 0.8rem;">{{ e.created_at|date:"d M Y, g:i a" }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endwith %}
+
+</div>
+
+{% if razorpay_available and export_blocked and not user.is_authenticated %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  function getCookie(name) {
+    var v = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+    return v ? v.pop() : '';
+  }
+  var csrfToken = (document.querySelector('[name=csrfmiddlewaretoken]') &&
+                   document.querySelector('[name=csrfmiddlewaretoken]').value) ||
+                  getCookie('csrftoken');
+  var successUrl = "{{ guest_success_url|escapejs }}";
+
+  document.querySelectorAll('[data-pay-btn]').forEach(function (btn) {
+    btn.style.cursor = 'pointer';
+    btn.addEventListener('click', function () {
+      var initUrl   = btn.getAttribute('data-init-url');
+      var docPk     = btn.getAttribute('data-doc');
+
+      btn.textContent = 'Setting up payment…';
+      btn.style.pointerEvents = 'none';
+
+      fetch(initUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({}),
+      })
+      .then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok) throw new Error(data.error || 'Payment setup failed.');
+          return data;
+        });
+      })
+      .then(function (data) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = successUrl;
+        form.style.display = 'none';
+        var fields = {
+          csrfmiddlewaretoken: csrfToken,
+          razorpay_order_id: '',
+          razorpay_payment_id: '',
+          razorpay_signature: '',
+          doc: docPk,
+        };
+        Object.keys(fields).forEach(function (k) {
+          var inp = document.createElement('input');
+          inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
+          form.appendChild(inp);
+        });
+        document.body.appendChild(form);
+
+        var options = {
+          key: data.key_id,
+          amount: String(data.amount_paise),
+          currency: 'INR',
+          name: 'ITR Summary Generator',
+          description: 'CA-style computation PDF — one export',
+          order_id: data.order_id,
+          prefill: { email: '' },
+          handler: function(response) {
+            btn.textContent = 'Generating your PDF…';
+            form.querySelector('[name=razorpay_order_id]').value = response.razorpay_order_id;
+            form.querySelector('[name=razorpay_payment_id]').value = response.razorpay_payment_id;
+            form.querySelector('[name=razorpay_signature]').value = response.razorpay_signature;
+            form.submit();
+          },
+          modal: {
+            ondismiss: function() {
+              btn.textContent = 'Pay ₹50 & Download PDF';
+              btn.style.pointerEvents = '';
+            }
+          },
+          theme: { color: '#059669' }
+        };
+        new Razorpay(options).open();
+      })
+      .catch(function (err) {
+        btn.textContent = 'Pay ₹50 & Download PDF';
+        btn.style.pointerEvents = '';
+        alert(err.message || 'Something went wrong. Please try again.');
+      });
+    });
+  });
+})();
+</script>
+{% endif %}
 {% endblock %}

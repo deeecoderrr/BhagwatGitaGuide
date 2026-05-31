@@ -107,6 +107,25 @@ def document_detail(request, pk: int):
         "refund": key_fields.get("refund_amount", "") or key_fields.get("rounded_refund_amount", ""),
         "demand": key_fields.get("demand_amount", ""),
     }
+
+    # Razorpay context for inline payment (skip export_confirm redirect)
+    from apps.billing.views import _razorpay_client
+    razorpay_available = _razorpay_client() is not None
+    export_blocked = False
+    user_email = ""
+    plan_status = None
+    if request.user.is_authenticated:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        plan_status = get_plan_status(profile)
+        user_email = request.user.email or ""
+        from apps.accounts.services import can_export_pdf
+        allowed, _ = can_export_pdf(profile)
+        export_blocked = not allowed
+    else:
+        from apps.accounts.services import can_export_pdf_anonymous
+        allowed, _ = can_export_pdf_anonymous(request)
+        export_blocked = not allowed
+
     return render(
         request,
         "documents/detail.html",
@@ -115,6 +134,14 @@ def document_detail(request, pk: int):
             "reprocess_form": reprocess,
             "poll_status": _should_poll_status(doc),
             "summary": summary,
+            "razorpay_available": razorpay_available,
+            "export_blocked": export_blocked,
+            "user_email": user_email,
+            "plan_status": plan_status,
+            "guest_init_url": reverse("billing:guest_checkout_init"),
+            "guest_success_url": reverse("billing:guest_payment_success"),
+            "auth_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": "payg"}) if request.user.is_authenticated else "",
+            "auth_success_url": reverse("billing:payment_success") if request.user.is_authenticated else "",
         },
     )
 
@@ -189,7 +216,7 @@ def beta_try_upload(request: HttpRequest) -> HttpResponse:
         messages.error(
             request,
             f"Too many open tries in this browser (limit {max_anon}). "
-            "Create a free account for a workspace, or clear old sessions.",
+            "Create an account for a workspace, or clear old sessions.",
         )
         return redirect(beta_home)
 

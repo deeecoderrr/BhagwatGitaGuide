@@ -39,7 +39,9 @@
             <p class="error">{{ beta_try_form.file.errors }}</p>
           {% endif %}
         </div>
-        <button type="submit" class="btn btn-primary beta-spotlight__submit">Upload JSON → Preview &amp; Pay ₹50</button>
+        <button type="submit" class="btn btn-primary beta-spotlight__submit"
+                onclick="this.disabled=true;this.textContent='Uploading…';this.form.submit();">
+          Upload JSON → Preview &amp; Pay ₹50</button>
       </form>
       <ul class="beta-spotlight__trust" aria-label="Features">
         <li><span aria-hidden="true">✓</span> ITR-1, ITR-3, ITR-4 supported</li>
