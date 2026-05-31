@@ -6,7 +6,7 @@
 
 {# ── Progress stepper ── #}
 {% if not poll_status %}
-<nav aria-label="Progress" style="display: flex; align-items: center; margin-bottom: 2rem;">
+<nav id="progress-stepper" aria-label="Progress" style="display: flex; align-items: center; margin-bottom: 2rem;">
   <div style="display: flex; align-items: center; gap: 0.35rem;">
     <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;">✓</span>
     <span style="font-size: 0.82rem; font-weight: 500; color: #059669;">Upload</span>
@@ -16,9 +16,9 @@
     <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;">✓</span>
     <span style="font-size: 0.82rem; font-weight: 500; color: #059669;">Extracted</span>
   </div>
-  <span style="flex: 1; height: 2px; background: linear-gradient(90deg, #059669 0%, #d1d5db 100%); margin: 0 0.5rem;"></span>
+  <span id="stepper-connector" style="flex: 1; height: 2px; background: linear-gradient(90deg, #059669 0%, #d1d5db 100%); margin: 0 0.5rem;"></span>
   <div style="display: flex; align-items: center; gap: 0.35rem;">
-    <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">3</span>
+    <span id="stepper-step3" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">3</span>
     <span style="font-size: 0.82rem; font-weight: 600; color: #065f46;">Download</span>
   </div>
 </nav>
@@ -109,7 +109,7 @@
 
   {% if export_blocked and razorpay_available and not user.is_authenticated %}
   {# ── PAYMENT CARD: Guest user, needs to pay ── #}
-  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
+  <div id="payment-card" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
     <div style="padding: 1.5rem 1.5rem 1.25rem;">
       <p style="margin: 0 0 0.25rem; font-size: 1.1rem; font-weight: 600; color: #111827;">
         Download computation PDF
@@ -283,10 +283,79 @@
           prefill: { email: '' },
           handler: function(response) {
             btn.textContent = 'Generating your PDF…';
-            form.querySelector('[name=razorpay_order_id]').value = response.razorpay_order_id;
-            form.querySelector('[name=razorpay_payment_id]').value = response.razorpay_payment_id;
-            form.querySelector('[name=razorpay_signature]').value = response.razorpay_signature;
-            form.submit();
+            btn.style.opacity = '0.85';
+
+            var formData = new FormData();
+            formData.append('csrfmiddlewaretoken', csrfToken);
+            formData.append('razorpay_order_id', response.razorpay_order_id);
+            formData.append('razorpay_payment_id', response.razorpay_payment_id);
+            formData.append('razorpay_signature', response.razorpay_signature);
+            formData.append('doc', docPk);
+
+            fetch(successUrl, {
+              method: 'POST',
+              body: formData,
+              credentials: 'same-origin',
+              redirect: 'follow',
+            })
+            .then(function (res) {
+              if (!res.ok) throw new Error('Download failed');
+              var cd = res.headers.get('Content-Disposition') || '';
+              var nameMatch = cd.match(/filename="?([^"]+)"?/);
+              var fileName = nameMatch ? nameMatch[1] : 'itr-summary.pdf';
+              return res.blob().then(function (blob) { return { blob: blob, fileName: fileName }; });
+            })
+            .then(function (result) {
+              /* Trigger download */
+              var url = URL.createObjectURL(result.blob);
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = result.fileName;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              /* Don't revoke — keep blob URL alive for "Download again" link */
+
+              /* ── Update entire page to success state ── */
+
+              /* 1. Button → Downloaded */
+              btn.textContent = '✓ PDF Downloaded';
+              btn.style.background = '#047857';
+              btn.style.opacity = '1';
+              btn.style.pointerEvents = 'none';
+
+              /* 2. Progress stepper → all complete */
+              var step3 = document.getElementById('stepper-step3');
+              if (step3) step3.textContent = '✓';
+              var connector = document.getElementById('stepper-connector');
+              if (connector) connector.style.background = '#059669';
+
+              /* 3. Messages banner → success message */
+              var msgWrap = document.querySelector('.messages-wrap');
+              if (msgWrap) {
+                msgWrap.innerHTML = '<ul class="messages"><li class="success" style="background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0;border-radius:8px;padding:0.75rem 1rem;font-size:0.9rem;">✓ Payment successful — your PDF has been downloaded.</li></ul>';
+              }
+
+              /* 4. Payment card → success state with download link */
+              var card = document.getElementById('payment-card');
+              if (card) {
+                card.innerHTML = '<div style="padding:1.5rem;text-align:center;">' +
+                  '<div style="width:52px;height:52px;border-radius:50%;background:#ecfdf5;display:inline-flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#059669" stroke-width="1.5"/></svg></div>' +
+                  '<p style="margin:0 0 0.25rem;font-size:1.1rem;font-weight:600;color:#065f46;">Payment Successful</p>' +
+                  '<p style="margin:0 0 1.25rem;font-size:0.88rem;color:#6b7280;">Your CA-style computation PDF is ready.</p>' +
+                  '<a href="' + url + '" download="' + result.fileName + '" style="display:inline-flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;padding:0.8rem 1.5rem;background:#059669;color:#fff;border-radius:10px;font-size:1rem;font-weight:600;text-decoration:none;">' +
+                  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+                  'Download PDF</a>' +
+                  '<p style="margin:1rem 0 0;font-size:0.8rem;color:#9ca3af;">Didn\u2019t start automatically? Click the button above.</p>' +
+                  '</div>';
+              }
+            })
+            .catch(function (err) {
+              btn.textContent = 'Pay ₹50 & Download PDF';
+              btn.style.pointerEvents = '';
+              btn.style.opacity = '1';
+              alert('Payment succeeded but download failed. Please refresh the page to download your PDF.');
+            });
           },
           modal: {
             ondismiss: function() {

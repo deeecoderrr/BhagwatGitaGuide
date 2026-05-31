@@ -235,12 +235,12 @@ def beta_try_upload(request: HttpRequest) -> HttpResponse:
     if queued:
         messages.info(
             request,
-            "JSON received. Import is running in the background—this page updates when ready. "
-            "Then review fields and approve before generating the PDF.",
+            "JSON received — import is running in the background. "
+            "This page updates automatically when ready.",
         )
     else:
         messages.info(
             request,
-            "JSON imported. Review the extracted fields and approve before generating the PDF.",
+            "Data extracted successfully. Review your details below, then download your PDF.",
         )
     return redirect("documents:detail", pk=doc.pk)
