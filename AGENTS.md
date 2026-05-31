@@ -10,6 +10,7 @@ Any AI assistant working in this repository should treat the following as **mand
 6. **`docs/USER_GUIDE.md`** — End-user behavior when UX or API responses change.
 7. **`PAYMENT_INTEGRATION_ANALYSIS.md`** — Razorpay products, verify/webhook rules, billing ledger, and mobile bridge notes.
 8. **`docs/PAYMENT_AND_CHECKOUT_E2E_WORKFLOWS.md`** — Step-by-step flows from user intent through API, Razorpay, and ledger (when changing checkout behavior).
+9. **`docs/ITR_APP_KNOWLEDGE_BASE.md`** — Complete ITR Summary Generator reference: architecture, data models, JSON parsing, PDF generation, billing, and end-to-end user flows. **Read this before any `apps/*` changes.**
 
 ## Non-negotiables
 
@@ -24,7 +25,7 @@ Any AI assistant working in this repository should treat the following as **mand
 - **Production:** Fly.io app (`askbhagavadgita`) + Neon PostgreSQL via `DATABASE_URL`.
 - **Support:** chat-ui support panel + `POST /api/support/` persist `SupportTicket` records for follow-up.
 - **Main code:** `guide_api/views.py`, `guide_api/services.py`, `guide_api/models.py`, `guide_api/permissions.py`, `guide_api/tests.py`.
-- **Optional ITR app:** Same process; **`ITR_ENABLED`**, **`config/settings_itr.py`**, **`config/urls_itr.py`**, **`apps/`** — see `README.md` and `docs/AI_AGENT_HANDOFF.md`.
+- **Optional ITR app:** Same process; **`ITR_ENABLED`**, **`config/settings_itr.py`**, **`config/urls_itr.py`**, **`apps/`** — see **`docs/ITR_APP_KNOWLEDGE_BASE.md`** for complete reference.
 - **ITR OAuth + PDF:** django-allauth Google login needs **`GOOGLE_CLIENT_ID`** / **`GOOGLE_CLIENT_SECRET`** (see **`.env.example`**); authorize redirect **`/accounts/google/login/callback/`**. **WeasyPrint** CA-layout PDFs need OS libraries in the **Fly/Docker image** (**`Dockerfile`**)—not Python wheels alone.
 
 ## Frontend Redesign Protocol

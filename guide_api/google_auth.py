@@ -81,7 +81,11 @@ def get_or_create_user_from_google_claims(claims: dict):
         .first()
     )
     if conflict:
-        return None, "email_exists_password"
+        # The Google token proves ownership of this verified email address.
+        # Auto-link: update profile fields and log the user in rather than
+        # blocking them with an unhelpful conflict error.
+        apply_google_claims_to_user(conflict, claims)
+        return conflict, None
 
     user = user_model(username=uname, email=email)
     user.set_unusable_password()

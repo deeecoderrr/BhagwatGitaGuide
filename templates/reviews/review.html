@@ -3,7 +3,14 @@
 {% block title %}Review — {{ document.pk }}{% endblock %}
 {% block content %}
 <h1>Review extracted fields</h1>
-<p class="muted">Document #{{ document.pk }} — {{ document.get_detected_type_display }}. Correct values before approval.</p>
+<p class="muted">Document #{{ document.pk }} — {{ document.get_detected_type_display }}</p>
+
+<div style="background: #fefce8; border: 1px solid #fde047; border-radius: 8px; padding: 0.875rem 1rem; margin-bottom: 1.5rem; max-width: 44rem;">
+  <p style="margin: 0; font-size: 0.95rem;">
+    <strong>💡 Tip:</strong> Most fields are correct from your ITR JSON. Only edit if you spot an error.
+    <a href="{% url 'exports:create' document.pk %}" style="margin-left: 0.5rem; font-weight: 500;">Skip review → Generate PDF</a>
+  </p>
+</div>
 
 <form method="post" class="review-form">
   {% csrf_token %}

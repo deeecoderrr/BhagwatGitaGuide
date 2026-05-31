@@ -45,9 +45,9 @@
       {% else %}
         {% if itr_beta_release %}
         <a class="btn btn-primary" href="#beta-try">Try without signing in</a>
-        <a class="btn" href="{% url 'account_signup' %}">Create free account</a>
+        <a class="btn" href="{% url 'account_signup' %}">Create account</a>
         {% else %}
-        <a class="btn btn-primary" href="{% url 'account_signup' %}">Create free account</a>
+        <a class="btn btn-primary" href="{% url 'account_signup' %}">Create account</a>
         {% endif %}
         <a class="btn" href="{% url 'account_login' %}">Log in</a>
       {% endif %}

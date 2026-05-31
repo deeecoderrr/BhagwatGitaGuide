@@ -5,11 +5,12 @@
   <div class="beta-spotlight__inner">
     <p class="beta-spotlight__eyebrow">
       <span class="beta-spotlight__eyebrow-dot" aria-hidden="true"></span>
-      Free · No account needed · Try instantly
+      Just ₹50 · No account needed · Instant PDF
     </p>
-    <h1 id="beta-spotlight-heading">Your ITR, ready for CA review in minutes</h1>
+    <h1 id="beta-spotlight-heading">Your ITR computation PDF in 2 minutes</h1>
     <p class="beta-spotlight__lead">
-      Upload your Income Tax portal JSON, review the imported fields, and download a CA-style computation PDF. Supports <strong>ITR-1</strong>, <strong>ITR-3</strong>, and <strong>ITR-4</strong>.
+      Upload your Income Tax portal JSON → Get a <strong>CA-style computation summary</strong> instantly. Supports <strong>ITR-1</strong>, <strong>ITR-3</strong>, and <strong>ITR-4</strong>.
+      <br><span style="color: #059669; font-weight: 500;">CAs charge ₹500–1,000 for this. Get yours for just ₹50.</span>
     </p>
 
     <div class="beta-spotlight__card">
@@ -22,11 +23,10 @@
           </svg>
         </div>
         <div class="beta-spotlight__card-intro">
-          <h2 class="beta-spotlight__card-title">Upload your portal JSON</h2>
+          <h2 class="beta-spotlight__card-title">Step 1: Upload your ITR JSON</h2>
           <p class="muted small beta-spotlight__card-desc">
             Acknowledgment or utility export (.json) from <strong>incometaxindia.gov.in</strong>.
-            Fields are mapped automatically — review before downloading your PDF.
-            Want a saved workspace? <a href="{% url 'account_signup' %}">Create a free account</a>.
+            We extract all fields automatically — verify and download your PDF.
           </p>
         </div>
       </div>
@@ -39,17 +39,18 @@
             <p class="error">{{ beta_try_form.file.errors }}</p>
           {% endif %}
         </div>
-        <button type="submit" class="btn btn-primary beta-spotlight__submit">Upload &amp; get your PDF</button>
+        <button type="submit" class="btn btn-primary beta-spotlight__submit">Upload JSON → Preview &amp; Pay ₹50</button>
       </form>
-      <ul class="beta-spotlight__trust" aria-label="Privacy notes">
+      <ul class="beta-spotlight__trust" aria-label="Features">
         <li><span aria-hidden="true">✓</span> ITR-1, ITR-3, ITR-4 supported</li>
-        <li><span aria-hidden="true">✓</span> PDF ready in under a minute</li>
-        <li><span aria-hidden="true">✓</span> Session-only — nothing stored after you close</li>
+        <li><span aria-hidden="true">✓</span> Verify extracted data before paying</li>
+        <li><span aria-hidden="true">✓</span> Secure Razorpay · UPI / Card / Netbanking</li>
+        <li><span aria-hidden="true">✓</span> Instant PDF download after payment</li>
       </ul>
     </div>
 
     <div class="beta-spotlight__secondary">
-      <a href="{% url 'account_signup' %}">Create free account</a>
+      <a href="{% url 'account_signup' %}">Create account</a>
       <span class="beta-spotlight__sep" aria-hidden="true">·</span>
       <a href="{% url 'account_login' %}">Log in</a>
       <span class="beta-spotlight__sep" aria-hidden="true">·</span>

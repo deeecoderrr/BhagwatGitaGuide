@@ -15,17 +15,8 @@
 
       <div class="export-retention-card">
         <p class="export-retention-lead">
-          <strong>Summary PDF:</strong> after generation you can download it for
-          <strong>{% itr_output_retention_hours %} hours</strong>, then we remove the file from our servers
-          (expired rows may still appear in your workspace). Save a local copy if you need it longer.
-        </p>
-        {% itr_delete_input_after_export as itr_del_upload %}
-        <p class="muted small export-retention-sub">
-          {% if itr_del_upload %}
-          <strong>Original JSON:</strong> may be removed from our servers as soon as export succeeds—that is separate from the {% itr_output_retention_hours %}‑hour PDF window. Re-upload to re-import from raw JSON later.
-          {% else %}
-          <strong>Original JSON:</strong> stays on the server after export on this deployment unless you delete the document.
-          {% endif %}
+          After payment, your PDF is available for instant download. You can also re-download it for
+          <strong>{% itr_output_retention_hours %} hours</strong>. Save a copy to your device for permanent access.
         </p>
       </div>
 
@@ -43,40 +34,52 @@
           </p>
         </div>
       {% elif export_blocked %}
-        <div class="export-pay-wall">
-          <p class="export-status-title">
-            <strong>Export limit reached</strong>
-            <span class="muted small"> — purchase credits to continue</span>
+        <div class="export-pay-wall" style="background: linear-gradient(135deg, #fefce8 0%, #ecfeff 100%); border: 1px solid #fde047; border-radius: 16px; padding: 1.75rem 2rem;">
+          <p class="export-status-title" style="font-size: 1.25rem; margin-bottom: 0.5rem;">
+            <span style="color: #059669;">🎉</span>
+            <strong>Your computation summary is ready!</strong>
           </p>
-          <p class="muted small" style="margin-bottom:1.25rem;">{{ export_block_reason }}</p>
+
+          <div style="background: white; border-radius: 10px; padding: 1rem 1.25rem; margin: 1rem 0 1.5rem; border: 1px solid #e5e7eb;">
+            <p style="margin: 0 0 0.75rem; font-weight: 500; color: #374151;">Your PDF includes:</p>
+            <ul style="margin: 0; padding-left: 1.25rem; color: #4b5563; line-height: 1.7;">
+              <li><strong>CA-style computation sheet</strong> — professional layout</li>
+              <li><strong>Head-wise income breakdown</strong> — salary, business, other sources</li>
+              <li><strong>Tax slab calculations</strong> — with applicable rates</li>
+              <li><strong>Refund/demand summary</strong> — ready for CA review</li>
+            </ul>
+          </div>
 
           {% if user.is_authenticated %}
             <div class="export-plan-options">
 
               <!-- Pay-as-you-go -->
-              <div class="export-plan-card">
+              <div class="export-plan-card" style="border: 2px solid #059669; background: linear-gradient(to bottom, #f0fdf4, white);">
                 <div class="export-plan-card__top">
-                  <span class="export-plan-card__name">Pay-as-you-go</span>
+                  <span class="export-plan-card__name">Instant Download</span>
+                  <span class="export-plan-card__badge" style="background: #059669;">Most Popular</span>
                 </div>
                 <div class="export-plan-card__price">₹50</div>
-                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
-                <a class="btn btn-primary export-plan-card__btn"
+                <div class="export-plan-card__desc muted small">One-time payment · Instant PDF</div>
+                <a class="btn btn-primary export-plan-card__btn" style="background: #059669; font-size: 1.05rem;"
                    data-pay-btn data-init-url="{{ auth_init_url }}" data-doc="{{ document.pk }}" data-user-email="{{ user_email|escapejs }}">
-                  Pay ₹50 &amp; generate
+                  Pay ₹50 &amp; Download
                 </a>
+                <p style="margin: 0.75rem 0 0; font-size: 0.8rem; color: #6b7280; text-align: center;">
+                  ✓ Secure payment via Razorpay
+                </p>
               </div>
 
               <!-- Essentials -->
-              <div class="export-plan-card export-plan-card--featured">
+              <div class="export-plan-card">
                 <div class="export-plan-card__top">
                   <span class="export-plan-card__name">Essentials</span>
-                  <span class="export-plan-card__badge">Popular</span>
                 </div>
                 <div class="export-plan-card__price">₹1,000</div>
-                <div class="export-plan-card__desc muted small">40 exports/year</div>
-                <a class="btn btn-primary export-plan-card__btn"
+                <div class="export-plan-card__desc muted small">40 exports/year · ₹25/file</div>
+                <a class="btn export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'essentials' %}">
-                  Buy Essentials — Annual
+                  Buy Annual Plan
                 </a>
               </div>
 
@@ -84,49 +87,53 @@
               <div class="export-plan-card">
                 <div class="export-plan-card__top">
                   <span class="export-plan-card__name">Professional</span>
-                  <span class="export-plan-card__badge export-plan-card__badge--alt">Best value</span>
                 </div>
                 <div class="export-plan-card__price">₹2,000</div>
-                <div class="export-plan-card__desc muted small">100 exports/year</div>
+                <div class="export-plan-card__desc muted small">100 exports/year · ₹20/file</div>
                 <a class="btn export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'professional' %}">
-                  Buy Professional — Annual
+                  Buy Annual Plan
                 </a>
               </div>
 
             </div>
 
             <p class="muted small" style="margin-top:1.25rem;text-align:center;">
-              Need more than 100 exports?
-              <a href="mailto:{{ contact_email|default:'support@askbhagavadgita.in' }}">Contact us</a>
-              for bulk pricing.
+              <strong style="color: #059669;">💡 Compare:</strong> CAs typically charge ₹500–1,000 for computation statements.
             </p>
 
           {% else %}
             <!-- Guest: offer PAYG without login, plus sign-up options -->
             <div class="export-plan-options">
-              <div class="export-plan-card">
+              <div class="export-plan-card" style="border: 2px solid #059669; background: linear-gradient(to bottom, #f0fdf4, white); max-width: 320px; margin: 0 auto;">
                 <div class="export-plan-card__top">
-                  <span class="export-plan-card__name">Pay-as-you-go</span>
-                  <span class="export-plan-card__badge">No login needed</span>
+                  <span class="export-plan-card__name">Instant Download</span>
+                  <span class="export-plan-card__badge" style="background: #059669;">No login needed</span>
                 </div>
-                <div class="export-plan-card__price">₹50</div>
-                <div class="export-plan-card__desc muted small">1 export &nbsp;·&nbsp; ₹50/file</div>
-                <a class="btn btn-primary export-plan-card__btn"
+                <div class="export-plan-card__price" style="font-size: 2.25rem;">₹50</div>
+                <div class="export-plan-card__desc muted small">One-time · Secure payment · Instant PDF</div>
+                <a class="btn btn-primary export-plan-card__btn" style="background: #059669; font-size: 1.1rem; padding: 0.85rem 1.5rem;"
                    data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
-                  Pay ₹50 &amp; generate
+                  Pay ₹50 &amp; Download PDF
                 </a>
+                <p style="margin: 0.75rem 0 0; font-size: 0.8rem; color: #6b7280; text-align: center;">
+                  ✓ Razorpay secure · ✓ UPI / Card / Netbanking
+                </p>
               </div>
             </div>
-            <p class="muted small" style="margin-top:1.25rem;text-align:center;">
-              Want annual plans or more credits?
-              <a href="{% url 'account_signup' %}">Create a free account</a>
-              or <a href="{% url 'account_login' %}">log in</a>.
-            </p>
+
+            <div style="text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 0.5rem; color: #059669; font-weight: 500;">
+                💡 CAs charge ₹500–1,000 for this computation statement
+              </p>
+              <p class="muted small" style="margin: 0;">
+                Need multiple exports? <a href="{% url 'account_signup' %}">Create an account</a> for annual plans starting at ₹25/export.
+              </p>
+            </div>
           {% endif %}
 
           <p class="export-status-actions" style="margin-top:1rem;">
-            <a class="btn btn-ghost" href="{% url 'documents:detail' document.pk %}">Back to document</a>
+            <a class="btn btn-ghost" href="{% url 'documents:detail' document.pk %}">← Back to document</a>
           </p>
         </div>
       {% else %}

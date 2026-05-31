@@ -3,12 +3,33 @@
 {% block title %}Document {{ document.pk }}{% endblock %}
 {% block content %}
 <div class="wrap">
+
+<!-- Progress stepper -->
+{% if not poll_status %}
+<nav class="itr-stepper" aria-label="Progress" style="display: flex; align-items: center; gap: 0; margin: 0.75rem 0 1.5rem; max-width: 36rem;">
+  <div class="itr-step itr-step--done" style="display: flex; align-items: center; gap: 0.4rem;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #059669; color: white; font-size: 0.75rem; font-weight: 700;">✓</span>
+    <span style="font-size: 0.85rem; font-weight: 500; color: #059669;">Upload</span>
+  </div>
+  <span style="flex: 1; height: 2px; background: #059669; margin: 0 0.25rem;"></span>
+  <div class="itr-step itr-step--done" style="display: flex; align-items: center; gap: 0.4rem;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #059669; color: white; font-size: 0.75rem; font-weight: 700;">✓</span>
+    <span style="font-size: 0.85rem; font-weight: 500; color: #059669;">Extracted</span>
+  </div>
+  <span style="flex: 1; height: 2px; background: #d1d5db; margin: 0 0.25rem;"></span>
+  <div class="itr-step itr-step--current" style="display: flex; align-items: center; gap: 0.4rem;">
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: #f59e0b; color: white; font-size: 0.8rem; font-weight: 700;">3</span>
+    <span style="font-size: 0.85rem; font-weight: 600; color: #92400e;">Get PDF</span>
+  </div>
+</nav>
+{% endif %}
+
 <h1>{{ document.original_filename }}</h1>
 <p class="muted">Source: {{ document.get_upload_source_display }}{% if document.upload_source == "json" %} (filed ITR JSON){% endif %}</p>
+
 {% if not document.user %}
 <p class="muted small" style="border-left:3px solid var(--accent, #0d9488); padding-left:0.85rem; max-width:44rem;">
-  <strong>Anonymous trial:</strong> review and approve figures on the next screens—same validation as signed-in users.
-  Keep this browser tab; your session ties this document to your browser until export.
+  <strong>Your data is safe.</strong> We'll keep it while your session is active. Review is optional — most users skip straight to generating the PDF.
 </p>
 {% endif %}
 
@@ -18,13 +39,37 @@
   <p class="error">{{ document.error_message }}</p>
 {% endif %}
 
+{% if summary.name or summary.pan %}
+<div class="data-summary-card" style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%); border: 1px solid #a7f3d0; border-radius: 12px; padding: 1.25rem 1.5rem; margin: 1.25rem 0; max-width: 32rem;">
+  <p style="margin: 0 0 0.75rem; font-weight: 600; color: #065f46; font-size: 0.9rem;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="vertical-align: -3px; margin-right: 4px;"><path d="M9 12l2 2 4-4" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#059669" stroke-width="1.5"/></svg>
+    Your {{ document.get_detected_type_display }} data extracted successfully
+  </p>
+  <dl style="margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; font-size: 0.95rem;">
+    {% if summary.name %}<dt style="color: #6b7280;">Name</dt><dd style="margin: 0; font-weight: 500;">{{ summary.name }}</dd>{% endif %}
+    {% if summary.pan %}<dt style="color: #6b7280;">PAN</dt><dd style="margin: 0; font-family: monospace;">{{ summary.pan }}</dd>{% endif %}
+    {% if summary.ay %}<dt style="color: #6b7280;">Assessment Year</dt><dd style="margin: 0;">{{ summary.ay }}</dd>{% endif %}
+    {% if summary.total_income %}<dt style="color: #6b7280;">Total Income</dt><dd style="margin: 0; font-weight: 600; color: #047857;">₹{{ summary.total_income }}</dd>{% endif %}
+    {% if summary.tax_payable %}<dt style="color: #6b7280;">Tax Payable</dt><dd style="margin: 0;">₹{{ summary.tax_payable }}</dd>{% endif %}
+    {% if summary.refund %}<dt style="color: #6b7280;">Refund Due</dt><dd style="margin: 0; color: #059669; font-weight: 600;">₹{{ summary.refund }}</dd>{% endif %}
+    {% if summary.demand %}<dt style="color: #6b7280;">Demand</dt><dd style="margin: 0; color: #dc2626;">₹{{ summary.demand }}</dd>{% endif %}
+  </dl>
+</div>
+{% endif %}
+
 {% if poll_status %}
-  <p class="muted">Review and export are available after import completes.</p>
+  <p class="muted">Processing your JSON… this page updates automatically.</p>
 {% else %}
-  <div class="actions">
-    <a class="btn" href="{% url 'reviews:review' document.pk %}">Review &amp; edit fields</a>
-    <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}">Generate summary PDF</a>
+  <div class="actions" style="margin: 1.5rem 0;">
+    <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">
+      Generate PDF — ₹50
+    </a>
+    <a class="btn btn-ghost" href="{% url 'reviews:review' document.pk %}">Review &amp; edit fields (optional)</a>
   </div>
+  <p class="muted small" style="max-width: 28rem;">
+    <strong>Your PDF includes:</strong> CA-style computation sheet with head-wise income, deductions, tax slabs, and refund/demand summary.
+    <br><span style="color: #059669;">CAs typically charge ₹500–1,000 for this.</span>
+  </p>
 {% endif %}
 
 <form method="post" action="{% url 'documents:reprocess' document.pk %}" class="inline">

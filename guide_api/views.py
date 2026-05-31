@@ -3162,6 +3162,45 @@ def _google_oauth_callback_url(request) -> str:
     return request.build_absolute_uri("/api/v1/auth/google/callback/")
 
 
+def _encode_oauth_state(state_value: str, code_verifier: str) -> str:
+    """Encode state + code_verifier into a compact HMAC-signed token.
+
+    This makes the OAuth flow stateless (no session cookie required) which is
+    critical for mobile flows where Chrome Custom Tabs may not share session
+    cookies reliably across the cross-site redirect.
+    """
+    import base64
+    import hashlib
+    import hmac
+    import json
+
+    payload = base64.urlsafe_b64encode(
+        json.dumps({"s": state_value, "v": code_verifier}).encode()
+    ).rstrip(b"=").decode()
+    key = (settings.SECRET_KEY[:32] if len(settings.SECRET_KEY) >= 32 else settings.SECRET_KEY).encode()
+    sig = hmac.new(key, payload.encode(), hashlib.sha256).hexdigest()[:16]
+    return f"{payload}.{sig}"
+
+
+def _decode_oauth_state(token: str):
+    """Decode and verify a state token.  Returns (state, code_verifier) or (None, None)."""
+    import base64
+    import hashlib
+    import hmac
+    import json
+
+    try:
+        payload, sig = token.rsplit(".", 1)
+        key = (settings.SECRET_KEY[:32] if len(settings.SECRET_KEY) >= 32 else settings.SECRET_KEY).encode()
+        expected = hmac.new(key, payload.encode(), hashlib.sha256).hexdigest()[:16]
+        if not hmac.compare_digest(sig, expected):
+            return None, None
+        data = json.loads(base64.urlsafe_b64decode(payload + "=="))
+        return data["s"], data["v"]
+    except Exception:
+        return None, None
+
+
 class GoogleOAuthInitiateView(APIView):
     """Start the server-side Google OAuth flow for the mobile app.
 
@@ -3191,9 +3230,11 @@ class GoogleOAuthInitiateView(APIView):
         import base64
         code_challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
-        state = secrets.token_urlsafe(16)
-        request.session["google_oauth_verifier"] = code_verifier
-        request.session["google_oauth_state"] = state
+        # Encode state + code_verifier into a signed stateless token so the
+        # callback doesn't depend on a session cookie (Chrome Custom Tabs may
+        # not share session cookies reliably across cross-site redirects).
+        state_value = secrets.token_urlsafe(16)
+        state = _encode_oauth_state(state_value, code_verifier)
 
         params = urlencode({
             "client_id": client_id,
@@ -3222,10 +3263,11 @@ class GoogleOAuthCallbackView(APIView):
     authentication_classes = []
 
     def _error_redirect(self, error_code: str):
-        from django.shortcuts import redirect as django_redirect
-        return django_redirect(
-            f"{_GOOGLE_MOBILE_APP_SCHEME}://oauth?error={error_code}"
-        )
+        from django.http import HttpResponse
+        url = f"{_GOOGLE_MOBILE_APP_SCHEME}://oauth?error={error_code}"
+        resp = HttpResponse(status=302)
+        resp["Location"] = url
+        return resp
 
     def get(self, request):
         from urllib.parse import urlencode
@@ -3237,19 +3279,16 @@ class GoogleOAuthCallbackView(APIView):
 
         code = request.GET.get("code")
         state = request.GET.get("state")
-        stored_state = request.session.get("google_oauth_state")
-        code_verifier = request.session.get("google_oauth_verifier")
 
         if not code:
             return self._error_redirect("no_code")
-        if not state or state != stored_state:
+        if not state:
             return self._error_redirect("state_mismatch")
-        if not code_verifier:
-            return self._error_redirect("session_expired")
 
-        # Clean up session entries.
-        request.session.pop("google_oauth_verifier", None)
-        request.session.pop("google_oauth_state", None)
+        # Decode the stateless signed state token (no session required).
+        _state_value, code_verifier = _decode_oauth_state(state)
+        if not _state_value or not code_verifier:
+            return self._error_redirect("state_mismatch")
 
         # --- Token exchange --------------------------------------------------
         client_id = getattr(settings, "GOOGLE_OAUTH_CLIENT_ID", "").strip()
@@ -3304,13 +3343,14 @@ class GoogleOAuthCallbackView(APIView):
         _session_auth_login(request, user)
         drf_token, _ = Token.objects.get_or_create(user=user)
 
-        from django.shortcuts import redirect as django_redirect
-        from urllib.parse import quote as _quote
+        from django.http import HttpResponse as _HttpResponse
         qs = urlencode({
             "token": drf_token.key,
             "username": user.username,
         })
-        return django_redirect(f"{_GOOGLE_MOBILE_APP_SCHEME}://oauth?{qs}")
+        resp = _HttpResponse(status=302)
+        resp["Location"] = f"{_GOOGLE_MOBILE_APP_SCHEME}://oauth?{qs}"
+        return resp
 
 
 class MeView(APIView):

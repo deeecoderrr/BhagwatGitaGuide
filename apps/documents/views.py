@@ -94,6 +94,19 @@ def document_upload(request):
 def document_detail(request, pk: int):
     doc = document_for_request(request, pk)
     reprocess = DocumentReprocessForm()
+    # Build key data summary for conversion optimization
+    key_fields = {}
+    for ef in doc.extracted_fields.all():
+        key_fields[ef.field_name] = ef.normalized_value or ""
+    summary = {
+        "name": key_fields.get("assessee_name", ""),
+        "pan": key_fields.get("pan", ""),
+        "ay": key_fields.get("assessment_year", ""),
+        "total_income": key_fields.get("total_income", "") or key_fields.get("rounded_total_income", ""),
+        "tax_payable": key_fields.get("net_tax_liability", "") or key_fields.get("gross_tax_liability", ""),
+        "refund": key_fields.get("refund_amount", "") or key_fields.get("rounded_refund_amount", ""),
+        "demand": key_fields.get("demand_amount", ""),
+    }
     return render(
         request,
         "documents/detail.html",
@@ -101,6 +114,7 @@ def document_detail(request, pk: int):
             "document": doc,
             "reprocess_form": reprocess,
             "poll_status": _should_poll_status(doc),
+            "summary": summary,
         },
     )
 

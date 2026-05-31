@@ -15,6 +15,7 @@ Run `make test` for the current test count (see `guide_api/tests.py`).
   `docs/KNOWLEDGE_BASE.md` §3 for Expo ↔ API map, intro video + Today’s Signal)
 - Production operations runbook: `docs/PRODUCTION_RUNBOOK.md`
 - AI / coding-agent handoff: `AGENTS.md` (start here) and `docs/AI_AGENT_HANDOFF.md`
+- ITR app complete reference: `docs/ITR_APP_KNOWLEDGE_BASE.md`
 - ITR merge / revert audit list: `docs/ITR_CHANGE_LOG.md`
 
 ## ITR Summary Generator (optional bundled app)

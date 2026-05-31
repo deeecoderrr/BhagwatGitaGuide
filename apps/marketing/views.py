@@ -20,7 +20,7 @@ def home(request):
     site_url = request.build_absolute_uri("/").rstrip("/")
     canonical = request.build_absolute_uri(request.path)
     page_title = (
-        "ITR Computation & Income Tax Computation Summary PDF | Free ITR Summary "
+        "ITR Computation & Income Tax Computation Summary PDF | ₹50 Instant Export "
         "(ITR-1, ITR-3, ITR-4 JSON — India)"
     )
     comments_qs = (
@@ -86,8 +86,8 @@ def pricing(request):
             "ITR Computation PDF Pricing — Income Tax Summary Exports | India"
         ),
         "meta_description": (
-            "Compare Free vs Essentials vs Professional for ITR computation PDF exports from filed ITR JSON "
-            "(ITR-1, ITR-3, ITR-4). "
+            "ITR computation PDF exports from ₹50 — Pay-as-you-go, Essentials, or Professional plans. "
+            "Filed ITR JSON (ITR-1, ITR-3, ITR-4). "
             "Income tax computation summary downloads for assessment-year workflows — Razorpay checkout."
         ),
         "meta_keywords": SEO_META_KEYWORDS,

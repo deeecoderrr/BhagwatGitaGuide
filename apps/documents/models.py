@@ -21,7 +21,7 @@ class Document(models.Model):
         (STATUS_QUEUED, "Queued"),
         (STATUS_CLASSIFYING, "Classifying"),
         (STATUS_EXTRACTING, "Extracting"),
-        (STATUS_REVIEW_REQUIRED, "Review Required"),
+        (STATUS_REVIEW_REQUIRED, "✓ Ready to Export"),
         (STATUS_APPROVED, "Approved"),
         (STATUS_EXPORTED, "Exported"),
         (STATUS_FAILED, "Failed"),

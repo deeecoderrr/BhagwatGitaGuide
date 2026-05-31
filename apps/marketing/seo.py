@@ -250,8 +250,8 @@ def structured_data_pricing_json_ld(
                 "url": page_url,
                 "name": "Pricing — ITR Computation PDF Exports | India",
                 "description": (
-                    "Plans for unlimited or limited monthly income tax computation "
-                    "summary PDF exports from filed ITR JSON — Free vs Pro (India)."
+                    "Plans for income tax computation summary PDF exports from filed "
+                    "ITR JSON — Pay-as-you-go from ₹50 or annual plans (India)."
                 ),
                 "inLanguage": "en-IN",
                 "isPartOf": {"@id": f"{site_url}/#website"},
@@ -310,14 +310,14 @@ def structured_data_pricing_json_ld(
                     },
                     {
                         "@type": "Question",
-                        "name": "What is the difference between Free and Pro?",
+                        "name": "What plans are available?",
                         "acceptedAnswer": {
                             "@type": "Answer",
                             "text": (
-                                "Free includes filed ITR JSON import (ITR-1, ITR-3, ITR-4) "
-                                "and review with a limited number of "
-                                "computation PDF exports per month. Pro removes that export cap for "
-                                "heavy assessment-year workflows while your subscription is active."
+                                "Pay-as-you-go at ₹50 per export (no login needed), "
+                                "Essentials at ₹1,000/year for 40 exports, or Professional "
+                                "at ₹2,000/year for 100 exports. All plans include ITR-1, "
+                                "ITR-3, ITR-4 JSON import and CA-style computation PDF generation."
                             ),
                         },
                     },

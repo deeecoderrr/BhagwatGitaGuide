@@ -1,14 +1,32 @@
 <div id="doc-status"
      {% if poll_status %}hx-get="{% url 'documents:status' document.pk %}" hx-trigger="every 2s" hx-swap="outerHTML"{% endif %}>
   <dl class="meta-grid">
-    <dt>Status</dt><dd>{{ document.get_status_display }}</dd>
+    <dt>Status</dt>
+    <dd>
+      {% if document.status == "review_required" %}
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #d1fae5; color: #065f46; padding: 0.25rem 0.65rem; border-radius: 99px; font-weight: 500; font-size: 0.9rem;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/></svg>
+          Ready to Export
+        </span>
+      {% elif document.status == "exported" %}
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #dbeafe; color: #1e40af; padding: 0.25rem 0.65rem; border-radius: 99px; font-weight: 500; font-size: 0.9rem;">
+          ✓ Exported
+        </span>
+      {% elif document.status == "failed" %}
+        <span style="display: inline-flex; align-items: center; gap: 0.35rem; background: #fee2e2; color: #991b1b; padding: 0.25rem 0.65rem; border-radius: 99px; font-weight: 500; font-size: 0.9rem;">
+          ✗ Failed
+        </span>
+      {% else %}
+        {{ document.get_status_display }}
+      {% endif %}
+    </dd>
     <dt>Detected type</dt><dd>{{ document.get_detected_type_display }}</dd>
-    <dt>Pages</dt><dd>{{ document.page_count|default:"—" }}</dd>
-    <dt>Source length (chars)</dt><dd>{{ document.native_text_char_count|default:"—" }}</dd>
     <dt>Import</dt><dd>{% if document.upload_source == "json" %}Filed ITR JSON{% elif document.used_ocr_fallback %}OCR (legacy){% else %}Legacy PDF text{% endif %}</dd>
-    <dt>Hash</dt><dd class="mono">{{ document.file_hash|truncatechars:24 }}</dd>
   </dl>
   {% if poll_status %}
-    <p class="muted">Processing… updates every 2s.</p>
+    <p class="muted" style="display: flex; align-items: center; gap: 0.5rem;">
+      <span class="chakra-loader" style="width: 16px; height: 16px;"></span>
+      Processing your JSON… this updates automatically.
+    </p>
   {% endif %}
 </div>

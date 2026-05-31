@@ -43,7 +43,16 @@
   {% endif %}
 {% endif %}
 
-<h1>Documents</h1>
+<h1>Your Documents</h1>
+
+{% if not user.is_authenticated and documents %}
+<div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.875rem 1.25rem; margin-bottom: 1.25rem; max-width: 44rem;">
+  <p style="margin: 0; font-size: 0.9rem; color: #1e40af;">
+    <strong>📎 Session workspace</strong> — your uploaded documents are shown below. Click <strong>View</strong> to preview your data and generate a PDF (₹50/export).
+  </p>
+</div>
+{% endif %}
+
 <p><a class="btn btn-primary" href="{% url 'documents:upload' %}">Upload ITR JSON</a></p>
 <table class="data-table">
   <thead>
@@ -81,7 +90,13 @@
         <td><a href="{% url 'documents:detail' d.pk %}">View</a></td>
       </tr>
     {% empty %}
-      <tr><td colspan="7">No documents yet.</td></tr>
+      <tr>
+        <td colspan="7" style="text-align: center; padding: 2rem 1rem;">
+          <p style="margin: 0 0 0.5rem; font-size: 1.1rem; font-weight: 500;">No documents yet</p>
+          <p class="muted" style="margin: 0 0 1rem;">Upload your ITR JSON from incometaxindia.gov.in to get started.</p>
+          <a class="btn btn-primary" href="{% url 'documents:upload' %}">Upload ITR JSON</a>
+        </td>
+      </tr>
     {% endfor %}
   </tbody>
 </table>
