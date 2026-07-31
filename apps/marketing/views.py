@@ -174,15 +174,30 @@ def _save_lead_and_notify(request: HttpRequest, form: AppointmentLeadForm) -> Se
     return lead
 
 
-def _flash_lead_result(request: HttpRequest, lead: ServiceAppointmentLead) -> None:
+def _flash_lead_result(
+    request: HttpRequest,
+    lead: ServiceAppointmentLead,
+    *,
+    thread=None,
+) -> None:
     from django.conf import settings
+
+    if thread:
+        messages.success(
+            request,
+            "Your request is saved — continue the conversation below. "
+            "Our team typically replies within 24 hours.",
+        )
+        return
 
     chat_hint = ""
     if getattr(settings, "ITR_SUPPORT_CHAT_ENABLED", False):
         if request.user.is_authenticated:
             chat_hint = " Track updates in Support Chat."
         else:
-            chat_hint = " Sign in and open Support Chat to follow up in one thread."
+            chat_hint = (
+                " Sign in to open Support Chat and track this request in one thread."
+            )
 
     if lead.email_sent:
         messages.success(
@@ -245,7 +260,14 @@ def appointment_book(request):
         )
 
     lead = _save_lead_and_notify(request, form)
-    _flash_lead_result(request, lead)
+    thread = None
+    if getattr(settings, "ITR_SUPPORT_CHAT_ENABLED", False) and request.user.is_authenticated:
+        from apps.support_chat.lead_bridge import create_thread_from_lead
+
+        thread = create_thread_from_lead(request.user, lead)
+    _flash_lead_result(request, lead, thread=thread)
+    if thread:
+        return redirect(reverse("support_chat:thread", kwargs={"pk": thread.pk}))
     return redirect(_redirect_after_book(source_page))
 
 

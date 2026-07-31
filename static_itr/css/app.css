@@ -2494,3 +2494,109 @@ body.pdf-modal-open {
 body:has(.ca-sticky-cta:not([hidden])) .chat-fab {
   bottom: 4.5rem;
 }
+
+/* --- Home trust strip & journey --- */
+.home-trust-strip {
+  padding: 0 0 1.25rem;
+}
+
+.home-trust-strip__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.65rem;
+}
+
+.home-trust-strip__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+}
+
+.home-trust-strip__icon {
+  flex-shrink: 0;
+}
+
+.home-trust-strip__item strong {
+  color: var(--text);
+}
+
+.home-journey {
+  padding: 0.5rem 0 1.25rem;
+}
+
+.home-journey__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.home-journey__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 99px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: var(--surface);
+  font-size: 0.82rem;
+}
+
+.home-journey__step--active {
+  border-color: rgba(13, 148, 136, 0.35);
+  background: #f0fdfa;
+}
+
+.home-journey__num {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--accent);
+  color: #fff;
+}
+
+.home-journey__step:not(.home-journey__step--active) .home-journey__num {
+  background: #e2e8f0;
+  color: var(--muted);
+}
+
+.home-journey__label {
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.home-journey__step:not(.home-journey__step--active) .home-journey__label {
+  color: var(--muted);
+}
+
+.ca-appointment-signin {
+  margin: 0.5rem 0 0;
+  padding: 0.55rem 0.65rem;
+  background: #f0fdfa;
+  border-radius: 8px;
+  border: 1px solid #ccfbf1;
+}
+
+@media (max-width: 640px) {
+  .home-trust-strip__list {
+    grid-template-columns: 1fr 1fr;
+  }
+}

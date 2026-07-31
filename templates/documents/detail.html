@@ -301,6 +301,9 @@
 </div>
 
 {% if razorpay_available and export_blocked and not user.is_authenticated %}
+<script>
+window.postPayUpsellHtml = {% if filing_upsell_service %}'<div style="margin-top:1.25rem;padding-top:1.15rem;border-top:1px solid #e5e7eb;text-align:left;"><p style="margin:0 0 0.5rem;font-size:0.82rem;font-weight:600;color:#065f46;">Need full filing help?</p><p style="margin:0 0 0.75rem;font-size:0.8rem;color:#6b7280;">Our CA team can e-file this return for you.</p><a href="{% url 'marketing:service_page' slug=filing_upsell_slug %}#book-appointment" style="display:inline-block;font-size:0.85rem;font-weight:600;color:#059669;">Book {{ filing_upsell_service.label }} from {{ filing_upsell_service.price_display }} →</a></div>'{% else %}''{% endif %};
+</script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 (function () {
@@ -442,6 +445,7 @@
                   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
                   'Download PDF</a>' +
                   '<p style="margin:1rem 0 0;font-size:0.8rem;color:#9ca3af;">Didn\u2019t start automatically? Click the button above.</p>' +
+                  (window.postPayUpsellHtml || '') +
                   '</div>';
               }
             })

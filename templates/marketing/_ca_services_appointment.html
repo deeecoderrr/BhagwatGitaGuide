@@ -17,6 +17,16 @@
         <p class="muted small">
           Share your details and the service you need. No payment on this form.
         </p>
+        {% if not user.is_authenticated and itr_support_chat_enabled %}
+        <p class="ca-appointment-signin muted small">
+          <a href="{% url 'account_login' %}?next={{ request.path }}%23book-appointment">Sign in</a>
+          or
+          <a href="{% url 'account_signup' %}?next={{ request.path }}%23book-appointment">sign up</a>
+          to track your request in live chat automatically.
+        </p>
+        {% elif user.is_authenticated and itr_support_chat_enabled %}
+        <p class="ca-appointment-signin muted small">Signed in — we’ll open a chat thread when you submit.</p>
+        {% endif %}
       </div>
 
       {% include "marketing/_appointment_form.html" %}
