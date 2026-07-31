@@ -17,6 +17,7 @@ EVENT_ITR_PAY_CLICK = "itr_pay_click"
 EVENT_ITR_CHECKOUT_INIT = "itr_checkout_init"
 EVENT_ITR_PAYMENT_SUCCESS = "itr_payment_success"
 EVENT_ITR_PDF_EXPORT = "itr_pdf_export"
+EVENT_APPOINTMENT_LEAD = "appointment_lead"
 
 
 def visitor_id_for_request(request: HttpRequest) -> str:

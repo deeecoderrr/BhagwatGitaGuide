@@ -49,6 +49,7 @@ class GrowthEvent(models.Model):
     EVENT_ITR_CHECKOUT_INIT = "itr_checkout_init"
     EVENT_ITR_PAYMENT_SUCCESS = "itr_payment_success"
     EVENT_ITR_PDF_EXPORT = "itr_pdf_export"
+    EVENT_APPOINTMENT_LEAD = "appointment_lead"
     EVENT_CHOICES = [
         (EVENT_PAGE_VIEW, "Page view"),
         (EVENT_PRICING_VIEW, "Pricing view"),
@@ -59,6 +60,7 @@ class GrowthEvent(models.Model):
         (EVENT_ITR_CHECKOUT_INIT, "Checkout initiated"),
         (EVENT_ITR_PAYMENT_SUCCESS, "Payment success"),
         (EVENT_ITR_PDF_EXPORT, "PDF exported"),
+        (EVENT_APPOINTMENT_LEAD, "Appointment lead"),
     ]
 
     visitor_id = models.CharField(max_length=64, db_index=True)

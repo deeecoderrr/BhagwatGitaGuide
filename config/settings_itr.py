@@ -115,6 +115,10 @@ def register_itr_settings(g: dict[str, Any]) -> None:
     ).strip()
     g["ITR_SUPPORT_EMAIL_BACKUP"] = os.getenv("ITR_SUPPORT_EMAIL_BACKUP", "").strip()
     g["ITR_WHATSAPP_NUMBER"] = os.getenv("ITR_WHATSAPP_NUMBER", "").strip()
+    g["ITR_LEAD_NOTIFICATION_EMAIL"] = os.getenv(
+        "ITR_LEAD_NOTIFICATION_EMAIL",
+        "",
+    ).strip()
     g["ITR_GUARANTEE_HOURS"] = int(os.getenv("ITR_GUARANTEE_HOURS", "24"))
     g["ITR_FIRST_EXPORT_PROMO_ENABLED"] = os.getenv(
         "ITR_FIRST_EXPORT_PROMO_ENABLED",

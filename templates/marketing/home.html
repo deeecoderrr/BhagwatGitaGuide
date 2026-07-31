@@ -68,6 +68,8 @@
 </section>
 {% endif %}
 
+{% include "marketing/_ca_services_appointment.html" %}
+
 <section class="sample-output-section wrap" aria-labelledby="sample-heading">
   <div class="sample-output card">
     <div class="sample-output-grid">
@@ -225,6 +227,16 @@
 (function () {
   var el = document.getElementById("comments-home");
   if (el && location.hash === "#comments-home") el.open = true;
+})();
+(function () {
+  if (location.hash === "#book-appointment") {
+    var target = document.getElementById("book-appointment");
+    if (target) {
+      requestAnimationFrame(function () {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+  }
 })();
 (function () {
   var modal = document.getElementById("sample-pdf-modal");

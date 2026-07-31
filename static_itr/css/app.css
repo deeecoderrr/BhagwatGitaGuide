@@ -1487,6 +1487,154 @@ body.pdf-modal-open {
   }
 }
 
+/* --- CA services + appointment booking (landing) --- */
+.ca-services-section {
+  padding: 3rem 0 2.5rem;
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.6) 0%, rgba(255, 255, 255, 0) 100%);
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ca-services-section__head {
+  text-align: center;
+  max-width: 42rem;
+  margin: 0 auto 2rem;
+}
+
+.ca-services-section__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.ca-services-section__head h2 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  color: var(--text);
+}
+
+.ca-services-section__lead {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.ca-services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ca-services-card {
+  background: var(--surface);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  padding: 1.1rem 1.15rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.ca-services-card__title {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.ca-services-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ca-services-card__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: baseline;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+  font-size: 0.88rem;
+}
+
+.ca-services-card__row:last-child {
+  border-bottom: none;
+}
+
+.ca-services-card__label {
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.ca-services-card__price {
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ca-appointment-card {
+  background: var(--surface);
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  border-radius: 16px;
+  padding: 1.35rem 1.5rem 1.5rem;
+  box-shadow: 0 12px 32px rgba(13, 148, 136, 0.08);
+}
+
+.ca-appointment-card__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.ca-appointment-form__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.15rem;
+}
+
+.ca-appointment-form__field label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.ca-appointment-form__field input,
+.ca-appointment-form__field select,
+.ca-appointment-form__field textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.ca-appointment-form__field--full {
+  grid-column: 1 / -1;
+}
+
+.ca-appointment-form__honeypot {
+  position: absolute;
+  left: -9999px;
+  height: 0;
+  overflow: hidden;
+}
+
+.ca-appointment-form__submit {
+  margin-top: 1.15rem;
+  width: 100%;
+  max-width: 320px;
+}
+
+@media (max-width: 640px) {
+  .ca-appointment-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ca-appointment-form__submit {
+    max-width: none;
+  }
+}
+
 /* --- Upload page --- */
 .upload-page-shell {
   display: flex;

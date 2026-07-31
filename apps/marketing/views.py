@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 from django.conf import settings
+from django.contrib import messages
 from django.db.models import Prefetch
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.urls import reverse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.comments.forms import CommentForm
 from apps.comments.models import Comment
+from apps.marketing.forms import AppointmentLeadForm
+from apps.marketing.lead_email import send_appointment_lead_email
+from apps.marketing.models import ServiceAppointmentLead
+from apps.marketing.services_catalog import CA_SERVICE_BY_KEY, services_by_category
 from apps.marketing.seo import (
     SEO_META_KEYWORDS,
     structured_data_json_ld,
@@ -15,10 +20,9 @@ from apps.marketing.seo import (
 )
 
 
-@require_GET
-def home(request):
+def _home_context(request, *, appointment_form: AppointmentLeadForm | None = None):
     site_url = request.build_absolute_uri("/").rstrip("/")
-    canonical = request.build_absolute_uri(request.path)
+    canonical = request.build_absolute_uri(reverse("marketing:home"))
     page_title = (
         "ITR Computation & Income Tax Computation Summary PDF | From ₹20 Instant Export "
         "(ITR-1, ITR-2, ITR-3, ITR-4 JSON — India)"
@@ -38,8 +42,8 @@ def home(request):
     )
     meta_desc = (
         "ITR computation & income tax computation summary: import filed ITR-1, ITR-2, ITR-3, or "
-        "ITR-4 JSON, review figures free, export a CA-style ITR summary PDF for assessment-year "
-        "workflows in India. Pay via UPI from ₹20."
+        "ITR-4 JSON, review figures free, export a CA-style ITR summary PDF. "
+        "Also book CA help for ITR filing, GST, and MSME registration."
     )
     itr_beta = getattr(settings, "ITR_BETA_RELEASE", False)
     ctx = {
@@ -57,12 +61,71 @@ def home(request):
         "comments_page_slug": Comment.PAGE_HOME,
         "itr_beta_release": itr_beta,
         "beta_try_form": None,
+        "appointment_form": appointment_form or AppointmentLeadForm(),
+        "ca_services_by_category": services_by_category(),
     }
     if itr_beta:
         from apps.documents.forms import ItrUploadForm
 
         ctx["beta_try_form"] = ItrUploadForm()
-    return render(request, "marketing/home.html", ctx)
+    return ctx
+
+
+@require_GET
+def home(request):
+    return render(request, "marketing/home.html", _home_context(request))
+
+
+@require_http_methods(["POST"])
+def appointment_book(request):
+    form = AppointmentLeadForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Please fix the errors in the appointment form.")
+        return render(
+            request,
+            "marketing/home.html",
+            _home_context(request, appointment_form=form),
+            status=400,
+        )
+
+    svc = CA_SERVICE_BY_KEY[form.cleaned_data["service"]]
+    visitor_id = getattr(request, "audience_id", "") or ""
+    lead = ServiceAppointmentLead.objects.create(
+        name=form.cleaned_data["name"].strip(),
+        phone=form.cleaned_data["phone"].strip(),
+        email=form.cleaned_data["email"].strip().lower(),
+        service_key=svc.key,
+        service_label=svc.label,
+        notes=(form.cleaned_data.get("notes") or "").strip(),
+        source_page="home",
+        visitor_id=visitor_id[:64],
+    )
+    lead.email_sent = send_appointment_lead_email(lead)
+    lead.save(update_fields=["email_sent"])
+
+    try:
+        from apps.analytics.events import EVENT_APPOINTMENT_LEAD, log_itr_funnel_event
+
+        log_itr_funnel_event(
+            request,
+            EVENT_APPOINTMENT_LEAD,
+            metadata={"service": svc.key, "lead_id": lead.pk},
+        )
+    except Exception:
+        pass
+
+    if lead.email_sent:
+        messages.success(
+            request,
+            "Thank you — we received your request. Our team will call or email you shortly.",
+        )
+    else:
+        messages.warning(
+            request,
+            "Your request was saved, but we could not send the alert email right now. "
+            "We will still follow up using the details you provided.",
+        )
+    return redirect(reverse("marketing:home") + "#book-appointment")
 
 
 @require_GET
@@ -74,7 +137,6 @@ def pricing(request):
     contact_email = getattr(
         settings, "ITR_CONTACT_EMAIL", "askbhagwatgitasupport@gmail.com"
     )
-    # Keep pro_inr for SEO structured-data (use Professional bundle price)
     pro_inr = ITR_BUNDLES["professional"]["amount_inr"]
     plan_status = None
     if request.user.is_authenticated:
