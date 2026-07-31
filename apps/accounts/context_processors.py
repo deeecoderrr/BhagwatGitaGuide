@@ -22,7 +22,7 @@ def itr_support(request):
     primary = getattr(
         settings,
         "ITR_CONTACT_EMAIL",
-        "support@askbhagavadgita.in",
+        "askbhagwatgitasupport@gmail.com",
     ).strip()
     backup = getattr(settings, "ITR_SUPPORT_EMAIL_BACKUP", "").strip()
     whatsapp = getattr(settings, "ITR_WHATSAPP_NUMBER", "").strip().lstrip("+")

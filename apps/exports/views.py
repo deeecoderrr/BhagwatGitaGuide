@@ -252,7 +252,7 @@ def export_pdf(request, pk: int):
             "contact_email": getattr(
                 __import__("django.conf", fromlist=["settings"]).settings,
                 "ITR_CONTACT_EMAIL",
-                "support@askbhagavadgita.in",
+                "askbhagwatgitasupport@gmail.com",
             ),
             "razorpay_available": razorpay_available,
             "user_email": user_email,
