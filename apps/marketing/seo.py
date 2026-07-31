@@ -315,8 +315,8 @@ def structured_data_pricing_json_ld(
                             "@type": "Answer",
                             "text": (
                                 "Pay-as-you-go at ₹50 per export (no login needed), "
-                                "Essentials at ₹1,000/year for 40 exports, or Professional "
-                                "at ₹2,000/year for 100 exports. All plans include ITR-1, "
+                                "Essentials at ₹500/year for 40 exports, or Professional "
+                                "at ₹1,000/year for 1000 exports. All plans include ITR-1, "
                                 "ITR-3, ITR-4 JSON import and CA-style computation PDF generation."
                             ),
                         },

@@ -120,7 +120,7 @@
       </p>
 
       <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 1rem;">
-        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹50</span>
+        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹20</span>
         <span style="font-size: 0.85rem; color: #9ca3af; text-decoration: line-through;">₹500+</span>
         <span style="font-size: 0.78rem; font-weight: 500; color: #059669; background: #ecfdf5; padding: 0.15rem 0.5rem; border-radius: 99px;">Save 90%</span>
       </div>
@@ -128,7 +128,7 @@
       <button type="button" class="btn btn-primary" id="detail-pay-btn"
               style="width: 100%; font-size: 1.05rem; padding: 0.9rem 1.5rem; background: #059669; border-color: #059669; border-radius: 10px; font-weight: 600; letter-spacing: 0.01em;"
               data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
-        Pay ₹50 — Instant PDF Download
+        Pay ₹20 — Instant PDF Download
       </button>
 
       <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1rem; font-size: 0.78rem; color: #6b7280;">
@@ -173,7 +173,7 @@
       Purchase an export credit to generate your PDF.
     </p>
     <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">
-      Generate PDF — ₹50
+      Generate PDF — ₹20
     </a>
   </div>
   {% endif %}
@@ -360,7 +360,7 @@
               }
             })
             .catch(function (err) {
-              btn.textContent = 'Pay ₹50 & Download PDF';
+              btn.textContent = 'Pay ₹20 & Download PDF';
               btn.style.pointerEvents = '';
               btn.style.opacity = '1';
               alert('Payment succeeded but download failed. Please refresh the page to download your PDF.');
@@ -368,7 +368,7 @@
           },
           modal: {
             ondismiss: function() {
-              btn.textContent = 'Pay ₹50 & Download PDF';
+              btn.textContent = 'Pay ₹20 & Download PDF';
               btn.style.pointerEvents = '';
             }
           },
@@ -377,7 +377,7 @@
         new Razorpay(options).open();
       })
       .catch(function (err) {
-        btn.textContent = 'Pay ₹50 & Download PDF';
+        btn.textContent = 'Pay ₹20 & Download PDF';
         btn.style.pointerEvents = '';
         alert(err.message || 'Something went wrong. Please try again.');
       });

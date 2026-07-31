@@ -12084,5 +12084,13 @@
 
     window.initChatUi();
   </script>
+  <script>
+    (function(){
+      var el = document.createElement('div');
+      el.setAttribute('style','position:fixed;bottom:0;left:0;right:0;text-align:center;padding:4px 0;background:rgba(10,10,20,0.85);z-index:2147483647;pointer-events:none;');
+      el.innerHTML = '<span style="font-size:0.72rem;color:rgba(255,255,255,0.7);letter-spacing:0.06em;font-family:sans-serif;">Jyoti Traders</span>';
+      document.body.appendChild(el);
+    })();
+  </script>
 </body>
 </html>

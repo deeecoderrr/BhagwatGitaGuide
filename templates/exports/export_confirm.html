@@ -59,11 +59,11 @@
                   <span class="export-plan-card__name">Instant Download</span>
                   <span class="export-plan-card__badge" style="background: #059669;">Most Popular</span>
                 </div>
-                <div class="export-plan-card__price">₹50</div>
+                <div class="export-plan-card__price">₹20</div>
                 <div class="export-plan-card__desc muted small">One-time payment · Instant PDF</div>
                 <a class="btn btn-primary export-plan-card__btn" style="background: #059669; font-size: 1.05rem;"
                    data-pay-btn data-init-url="{{ auth_init_url }}" data-doc="{{ document.pk }}" data-user-email="{{ user_email|escapejs }}">
-                  Pay ₹50 &amp; Download
+                  Pay ₹20 &amp; Download
                 </a>
                 <p style="margin: 0.75rem 0 0; font-size: 0.8rem; color: #6b7280; text-align: center;">
                   ✓ Secure payment via Razorpay
@@ -75,8 +75,8 @@
                 <div class="export-plan-card__top">
                   <span class="export-plan-card__name">Essentials</span>
                 </div>
-                <div class="export-plan-card__price">₹1,000</div>
-                <div class="export-plan-card__desc muted small">40 exports/year · ₹25/file</div>
+                <div class="export-plan-card__price">₹500</div>
+                <div class="export-plan-card__desc muted small">40 exports/year · ₹12.5/file</div>
                 <a class="btn export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'essentials' %}">
                   Buy Annual Plan
@@ -88,8 +88,8 @@
                 <div class="export-plan-card__top">
                   <span class="export-plan-card__name">Professional</span>
                 </div>
-                <div class="export-plan-card__price">₹2,000</div>
-                <div class="export-plan-card__desc muted small">100 exports/year · ₹20/file</div>
+                <div class="export-plan-card__price">₹1,000</div>
+                <div class="export-plan-card__desc muted small">1000 exports/year · ₹1/file</div>
                 <a class="btn export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'professional' %}">
                   Buy Annual Plan
@@ -110,11 +110,11 @@
                   <span class="export-plan-card__name">Instant Download</span>
                   <span class="export-plan-card__badge" style="background: #059669;">No login needed</span>
                 </div>
-                <div class="export-plan-card__price" style="font-size: 2.25rem;">₹50</div>
+                <div class="export-plan-card__price" style="font-size: 2.25rem;">₹20</div>
                 <div class="export-plan-card__desc muted small">One-time · Secure payment · Instant PDF</div>
                 <a class="btn btn-primary export-plan-card__btn" style="background: #059669; font-size: 1.1rem; padding: 0.85rem 1.5rem;"
                    data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
-                  Pay ₹50 &amp; Download PDF
+                  Pay ₹20 &amp; Download PDF
                 </a>
                 <p style="margin: 0.75rem 0 0; font-size: 0.8rem; color: #6b7280; text-align: center;">
                   ✓ Razorpay secure · ✓ UPI / Card / Netbanking
@@ -127,7 +127,7 @@
                 💡 CAs charge ₹500–1,000 for this computation statement
               </p>
               <p class="muted small" style="margin: 0;">
-                Need multiple exports? <a href="{% url 'account_signup' %}">Create an account</a> for annual plans starting at ₹25/export.
+                Need multiple exports? <a href="{% url 'account_signup' %}">Create an account</a> for annual plans starting at ₹12.5/export.
               </p>
             </div>
           {% endif %}
@@ -258,7 +258,7 @@
           },
           modal: {
             ondismiss: function () {
-              btn.textContent = 'Pay ₹50 & generate';
+              btn.textContent = 'Pay ₹20 & generate';
               btn.style.pointerEvents = '';
               document.body.removeChild(form);
             },
@@ -267,7 +267,7 @@
         new Razorpay(options).open();
       })
       .catch(function (err) {
-        btn.textContent = 'Pay ₹50 & generate';
+        btn.textContent = 'Pay ₹20 & generate';
         btn.style.pointerEvents = '';
         alert(err.message || 'Something went wrong. Please try again.');
       });

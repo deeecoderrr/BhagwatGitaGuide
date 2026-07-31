@@ -56,11 +56,11 @@ class UserProfile(models.Model):
     ITR_ANNUAL_PLAN_CHOICES = [
         ("", "None"),
         ("essentials", "Essentials — 40 exports/yr"),
-        ("professional", "Professional — 100 exports/yr"),
+        ("professional", "Professional — 1000 exports/yr"),
     ]
     ANNUAL_EXPORT_LIMITS: dict[str, int] = {
         "essentials": 40,
-        "professional": 100,
+        "professional": 1000,
     }
 
     user = models.OneToOneField(
@@ -89,7 +89,7 @@ class UserProfile(models.Model):
         choices=ITR_ANNUAL_PLAN_CHOICES,
         default="",
         blank=True,
-        help_text="Active annual plan: essentials (40/yr) or professional (100/yr).",
+        help_text="Active annual plan: essentials (40/yr) or professional (1000/yr).",
     )
     itr_plan_until = models.DateTimeField(
         null=True,
