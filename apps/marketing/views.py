@@ -86,7 +86,7 @@ def pricing(request):
             "ITR Computation PDF Pricing — Income Tax Summary Exports | India"
         ),
         "meta_description": (
-            "ITR computation PDF exports from ₹50 — Pay-as-you-go, Essentials, or Professional plans. "
+            "ITR computation PDF exports from ₹20 — Pay-as-you-go, Essentials, or Professional plans. "
             "Filed ITR JSON (ITR-1, ITR-3, ITR-4). "
             "Income tax computation summary downloads for assessment-year workflows — Razorpay checkout."
         ),

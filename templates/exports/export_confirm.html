@@ -88,8 +88,8 @@
                 <div class="export-plan-card__top">
                   <span class="export-plan-card__name">Professional</span>
                 </div>
-                <div class="export-plan-card__price">₹1,000</div>
-                <div class="export-plan-card__desc muted small">1000 exports/year · ₹1/file</div>
+                <div class="export-plan-card__price">₹{{ itr_bundles.professional.amount_inr|floatformat:0 }}</div>
+                <div class="export-plan-card__desc muted small">{{ itr_bundles.professional.credits }} exports/year · ₹{{ itr_bundles.professional.per_export_inr }}/file</div>
                 <a class="btn export-plan-card__btn"
                    href="{% url 'billing:checkout_bundle' 'professional' %}">
                   Buy Annual Plan

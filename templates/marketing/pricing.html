@@ -107,16 +107,16 @@
       <!-- Professional -->
       <div class="price-card price-card--pro">
         <div class="price-card__header">
-          <span class="price-card__name">Professional</span>
-          <span class="price-card__badge price-card__badge--alt">Best value</span>
+          <span class="price-card__name">{{ itr_bundles.professional.label }}</span>
+          <span class="price-card__badge price-card__badge--alt">{{ itr_bundles.professional.badge }}</span>
         </div>
         <div class="price-card__amount">
-          <span class="price-card__price">₹1,000</span>
+          <span class="price-card__price">₹{{ itr_bundles.professional.amount_inr|floatformat:0 }}</span>
           <span class="price-card__unit muted">/ year</span>
         </div>
-        <p class="price-card__saving">1000 exports/year</p>
+        <p class="price-card__saving">{{ itr_bundles.professional.credits }} exports/year</p>
         <ul class="price-card__features muted small">
-          <li>1000 PDF exports per year</li>
+          <li>{{ itr_bundles.professional.credits }} PDF exports per year</li>
           <li>Resets on annual renewal</li>
           <li>Designed for busy CA offices</li>
         </ul>

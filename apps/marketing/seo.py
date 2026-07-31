@@ -226,6 +226,19 @@ def structured_data_pricing_json_ld(
     """Product + Offer + FAQ for the pricing page."""
     import json
 
+    from apps.billing.views import ITR_BUNDLES
+
+    payg = ITR_BUNDLES["payg"]
+    essentials = ITR_BUNDLES["essentials"]
+    professional = ITR_BUNDLES["professional"]
+    plans_answer = (
+        f"Pay-as-you-go at ₹{payg['amount_inr']} per export (no login needed), "
+        f"Essentials at ₹{essentials['amount_inr']:,}/year for {essentials['credits']} exports, "
+        f"or Professional at ₹{professional['amount_inr']:,}/year for "
+        f"{professional['credits']} exports. All plans include ITR-1, "
+        "ITR-3, ITR-4 JSON import and CA-style computation PDF generation."
+    )
+
     home_nav = itr_home_url or site_url.rstrip("/") + "/"
 
     data = {
@@ -251,7 +264,7 @@ def structured_data_pricing_json_ld(
                 "name": "Pricing — ITR Computation PDF Exports | India",
                 "description": (
                     "Plans for income tax computation summary PDF exports from filed "
-                    "ITR JSON — Pay-as-you-go from ₹50 or annual plans (India)."
+                    f"ITR JSON — Pay-as-you-go from ₹{payg['amount_inr']} or annual plans (India)."
                 ),
                 "inLanguage": "en-IN",
                 "isPartOf": {"@id": f"{site_url}/#website"},
@@ -313,12 +326,7 @@ def structured_data_pricing_json_ld(
                         "name": "What plans are available?",
                         "acceptedAnswer": {
                             "@type": "Answer",
-                            "text": (
-                                "Pay-as-you-go at ₹50 per export (no login needed), "
-                                "Essentials at ₹500/year for 40 exports, or Professional "
-                                "at ₹1,000/year for 1000 exports. All plans include ITR-1, "
-                                "ITR-3, ITR-4 JSON import and CA-style computation PDF generation."
-                            ),
+                            "text": plans_answer,
                         },
                     },
                     {

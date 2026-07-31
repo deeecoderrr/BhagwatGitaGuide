@@ -224,6 +224,8 @@ def export_pdf(request, pk: int):
         response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response
 
+    from apps.billing.views import ITR_BUNDLES
+
     return render(
         request,
         "exports/export_confirm.html",
@@ -234,6 +236,7 @@ def export_pdf(request, pk: int):
             "export_blocked": not allowed_export,
             "export_block_reason": export_reason,
             "plan_status": plan_status,
+            "itr_bundles": ITR_BUNDLES,
             "contact_email": getattr(
                 __import__("django.conf", fromlist=["settings"]).settings,
                 "ITR_CONTACT_EMAIL",

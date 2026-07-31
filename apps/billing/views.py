@@ -50,12 +50,14 @@ ITR_BUNDLES: dict[str, dict] = {
     "professional": {
         "key": "professional",
         "label": "Professional",
-        "credits": 1000,
+        "credits": UserProfile.ANNUAL_EXPORT_LIMITS["professional"],
         "annual": True,
         "amount_paise": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 100000)),
         "amount_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 100000)) // 100,
-        "per_export_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 100000)) // 100 // 1000,
-        "description": "1000 PDF exports per year — for busy CA offices",
+        "per_export_inr": int(getattr(settings, "ITR_PROFESSIONAL_AMOUNT_PAISE", 100000))
+        // 100
+        // UserProfile.ANNUAL_EXPORT_LIMITS["professional"],
+        "description": "100 PDF exports per year — for busy CA offices",
         "badge": "Best value",
     },
 }
