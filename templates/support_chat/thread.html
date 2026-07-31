@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="chat-shell wrap chat-thread-page">
+  <header class="chat-thread-page__head">
+    <p class="chat-back"><a href="{% url 'support_chat:list' %}">← Conversations</a></p>
+    <h1>{{ thread.subject }}</h1>
+    <p class="muted small">{{ thread.get_status_display }} · we usually reply within 24 hours</p>
+  </header>
+
+  <div class="chat-panel card">
+    <div
+      id="chat-messages"
+      class="chat-messages"
+      hx-get="{{ poll_url }}"
+      hx-trigger="every 3s"
+      hx-swap="innerHTML"
+    >
+      {% include "support_chat/_message_list.html" %}
+    </div>
+
+    {% if thread.status != 'closed' %}
+    <form method="post" action="" class="chat-compose">
+      {% csrf_token %}
+      {{ reply_form.body }}
+      {% if reply_form.body.errors %}<div class="form-errors">{{ reply_form.body.errors }}</div>{% endif %}
+      <button type="submit" class="btn btn-primary chat-compose__send">Send</button>
+    </form>
+    {% else %}
+    <p class="muted small chat-closed-note">This conversation is closed. <a href="{% url 'support_chat:new' %}">Start a new one</a>.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  var box = document.getElementById("chat-messages");
+  if (!box) return;
+  function scrollBottom() {
+    box.scrollTop = box.scrollHeight;
+  }
+  scrollBottom();
+  document.body.addEventListener("htmx:afterSwap", function (ev) {
+    if (ev.target === box) scrollBottom();
+  });
+})();
+</script>
+{% endblock %}

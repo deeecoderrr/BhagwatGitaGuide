@@ -29,6 +29,11 @@
           <a href="{% url 'documents:list' %}">Workspace</a>
           <a href="{% url 'documents:upload' %}">Upload JSON</a>
           <a href="{% url 'marketing:pricing' %}">Pricing</a>
+          {% if itr_support_chat_enabled %}
+          <a href="{% url 'support_chat:list' %}" class="nav-chat-link">
+            Chat{% if support_chat_unread %} <span class="nav-chat-badge">{{ support_chat_unread }}</span>{% endif %}
+          </a>
+          {% endif %}
           <span class="nav-user"><strong>{{ user.username }}</strong>{% if account_profile and account_profile.plan == 'pro' %} <span class="badge-pro">Pro</span>{% endif %}</span>
           <form class="nav-logout" method="post" action="{% url 'account_logout' %}">
             {% csrf_token %}
@@ -38,6 +43,9 @@
           <a href="{% url 'marketing:home' %}">Home</a>
           <a href="{% url 'marketing:home' %}#book-appointment">CA Services</a>
           <a href="{% url 'marketing:pricing' %}">Pricing</a>
+          {% if itr_support_chat_enabled %}
+          <a href="{% url 'account_login' %}?next={% url 'support_chat:list' %}">Chat</a>
+          {% endif %}
           <a href="{% url 'account_login' %}?next={% url 'documents:list' %}">Log in</a>
           <a href="{% url 'account_signup' %}?next={% url 'documents:list' %}" class="btn btn-primary btn-sm">Sign up</a>
         {% endif %}
@@ -77,6 +85,9 @@
         <a href="{% url 'marketing:service_page' slug='itr-2-filing' %}">ITR-2 filing</a>
         <a href="{% url 'marketing:service_page' slug='gst-registration' %}">GST</a>
         <a href="{% url 'marketing:pricing' %}">Pricing</a>
+        {% if itr_support_chat_enabled %}
+        <a href="{% if user.is_authenticated %}{% url 'support_chat:list' %}{% else %}{% url 'account_login' %}?next={% url 'support_chat:list' %}{% endif %}">Support chat</a>
+        {% endif %}
         <a href="mailto:askbhagwatgitasupport@gmail.com">Contact Us</a>
         {% if not user.is_authenticated %}
           <a href="{% url 'account_signup' %}">Sign up</a>
@@ -87,6 +98,17 @@
       <p style="font-size:0.78rem;color:#9ca3af;letter-spacing:0.02em;text-align:center;margin:0;">Jyoti Traders</p>
     </div>
   </footer>
+  {% if itr_support_chat_enabled %}
+  <a
+    class="chat-fab"
+    href="{% if user.is_authenticated %}{% url 'support_chat:list' %}{% else %}{% url 'account_login' %}?next={% url 'support_chat:list' %}{% endif %}"
+    aria-label="{% if user.is_authenticated %}Open support chat{% else %}Sign in to chat with us{% endif %}"
+  >
+    <span class="chat-fab__icon" aria-hidden="true">💬</span>
+    <span class="chat-fab__label">Chat</span>
+    {% if support_chat_unread %}<span class="chat-fab__badge">{{ support_chat_unread }}</span>{% endif %}
+  </a>
+  {% endif %}
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>

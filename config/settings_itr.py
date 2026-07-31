@@ -43,6 +43,7 @@ def register_itr_settings(g: dict[str, Any]) -> None:
             "apps.extractors",
             "apps.marketing",
             "apps.reviews",
+            "apps.support_chat",
         ],
     )
 
@@ -79,6 +80,7 @@ def register_itr_settings(g: dict[str, Any]) -> None:
             "apps.accounts.context_processors.account_profile",
             "apps.accounts.context_processors.support_contact",
             "apps.accounts.context_processors.itr_support",
+            "apps.accounts.context_processors.support_chat",
         ],
     )
     g["STATICFILES_DIRS"] = [base_dir / "static_itr"]
@@ -173,6 +175,14 @@ def register_itr_settings(g: dict[str, Any]) -> None:
     g["ITR_ANONYMOUS_MAX_DOCS_PER_SESSION"] = int(
         os.getenv("ITR_ANONYMOUS_MAX_DOCS_PER_SESSION", "8"),
     )
+
+    _chat_env = os.getenv("ITR_SUPPORT_CHAT_ENABLED", "").strip().lower()
+    if _chat_env in ("1", "true", "yes"):
+        g["ITR_SUPPORT_CHAT_ENABLED"] = True
+    elif _chat_env in ("0", "false", "no"):
+        g["ITR_SUPPORT_CHAT_ENABLED"] = False
+    else:
+        g["ITR_SUPPORT_CHAT_ENABLED"] = True
 
     g["RQ_QUEUES"] = {
         "default": {

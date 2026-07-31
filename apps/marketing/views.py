@@ -175,10 +175,20 @@ def _save_lead_and_notify(request: HttpRequest, form: AppointmentLeadForm) -> Se
 
 
 def _flash_lead_result(request: HttpRequest, lead: ServiceAppointmentLead) -> None:
+    from django.conf import settings
+
+    chat_hint = ""
+    if getattr(settings, "ITR_SUPPORT_CHAT_ENABLED", False):
+        if request.user.is_authenticated:
+            chat_hint = " Track updates in Support Chat."
+        else:
+            chat_hint = " Sign in and open Support Chat to follow up in one thread."
+
     if lead.email_sent:
         messages.success(
             request,
-            "Thank you — we received your request. Our team will call or email you within 24 hours.",
+            "Thank you — we received your request. Our team will call or email you within 24 hours."
+            + chat_hint,
         )
     else:
         messages.warning(

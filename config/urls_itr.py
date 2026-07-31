@@ -11,5 +11,6 @@ urlpatterns = [
     path("reviews/", include("apps.reviews.urls")),
     path("exports/", include("apps.exports.urls")),
     path("comments/", include("apps.comments.urls")),
+    path("chat/", include("apps.support_chat.urls")),
     path("", include("apps.marketing.urls")),
 ]

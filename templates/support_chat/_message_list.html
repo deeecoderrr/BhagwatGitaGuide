@@ -1,0 +1,13 @@
+{% for msg in chat_messages %}
+<div class="chat-msg {% if msg.is_staff %}chat-msg--staff{% else %}chat-msg--user{% endif %}">
+  <div class="chat-msg__bubble">
+    <p class="chat-msg__body">{{ msg.body|linebreaksbr }}</p>
+    <p class="chat-msg__meta muted small">
+      {% if msg.is_staff %}Team{% else %}You{% endif %}
+      · {{ msg.created_at|date:"d M, g:i A" }}
+    </p>
+  </div>
+</div>
+{% empty %}
+<p class="chat-empty muted small">No messages yet — say hello below.</p>
+{% endfor %}

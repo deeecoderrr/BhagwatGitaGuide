@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="chat-shell wrap">
+  <header class="chat-shell__head">
+    <div>
+      <h1>Staff inbox</h1>
+      <p class="muted">Reply to customer conversations</p>
+    </div>
+  </header>
+
+  <ul class="chat-thread-list">
+    {% for thread in threads %}
+    <li class="chat-thread-list__item">
+      <a href="{% url 'support_chat:staff_thread' pk=thread.pk %}" class="chat-thread-list__link">
+        <span class="chat-thread-list__subject">{{ thread.subject }}</span>
+        <span class="chat-thread-list__meta muted small">
+          {{ thread.user.get_username }} · {{ thread.get_status_display }}
+          {% if thread.unread_count %}· <strong>{{ thread.unread_count }} unread</strong>{% endif %}
+        </span>
+      </a>
+    </li>
+    {% empty %}
+    <li class="muted">No open conversations.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

@@ -1,7 +1,7 @@
 <section id="book-appointment" class="ca-services-section" aria-labelledby="ca-services-heading">
   <div class="wrap ca-services-section__inner">
     <header class="ca-services-section__head">
-      <p class="ca-services-section__eyebrow">Full CA support · Transparent pricing</p>
+      <p class="ca-services-section__eyebrow">Full CA support · Transparent pricing · 24h callback</p>
       <h2 id="ca-services-heading">Need help beyond the ₹20 PDF?</h2>
       <p class="ca-services-section__lead muted">
         Expert ITR filing, GST registration &amp; returns, and MSME Udyam registration.
@@ -21,6 +21,13 @@
 
       {% include "marketing/_appointment_form.html" %}
       {% include "marketing/_appointment_what_next.html" %}
+      {% if itr_support_chat_enabled %}
+      <p class="muted small" style="margin-top:1rem;">
+        Prefer messaging?
+        <a href="{% if user.is_authenticated %}{% url 'support_chat:new' %}{% else %}{% url 'account_login' %}?next={% url 'support_chat:new' %}{% endif %}">Open support chat</a>
+        (sign-in required to save your conversation).
+      </p>
+      {% endif %}
     </div>
   </div>
 </section>

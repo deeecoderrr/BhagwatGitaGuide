@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="chat-shell wrap chat-thread-page">
+  <header class="chat-thread-page__head">
+    <p class="chat-back"><a href="{% url 'support_chat:staff_inbox' %}">← Staff inbox</a></p>
+    <h1>{{ thread.subject }}</h1>
+    <p class="muted small">
+      Customer: <strong>{{ thread.user.get_username }}</strong>
+      ({{ thread.user.email }}) · {{ thread.get_status_display }}
+    </p>
+  </header>
+
+  <div class="chat-panel card">
+    <div class="chat-messages chat-messages--static">
+      {% include "support_chat/_message_list.html" %}
+    </div>
+
+    {% if thread.status != 'closed' %}
+    <form method="post" action="" class="chat-compose">
+      {% csrf_token %}
+      {{ reply_form.body }}
+      {% if reply_form.body.errors %}<div class="form-errors">{{ reply_form.body.errors }}</div>{% endif %}
+      <div class="chat-compose__actions">
+        <button type="submit" class="btn btn-primary">Send reply</button>
+        <button type="submit" name="action" value="close" class="btn btn-ghost">Close thread</button>
+      </div>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

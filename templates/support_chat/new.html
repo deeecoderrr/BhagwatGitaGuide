@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="chat-shell wrap">
+  <p class="chat-back"><a href="{% url 'support_chat:list' %}">← All conversations</a></p>
+  <h1>New conversation</h1>
+  <p class="muted">Sign-in keeps your thread history so we can follow up properly.</p>
+
+  <div class="card chat-compose-card">
+    <form method="post" action="">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="form-errors">{{ form.non_field_errors }}</div>{% endif %}
+      <div class="ca-appointment-form__field">
+        {{ form.subject.label_tag }}
+        {{ form.subject }}
+        {% if form.subject.errors %}<div class="form-errors">{{ form.subject.errors }}</div>{% endif %}
+      </div>
+      <div class="ca-appointment-form__field">
+        {{ form.service.label_tag }}
+        {{ form.service }}
+      </div>
+      <div class="ca-appointment-form__field">
+        {{ form.body.label_tag }}
+        {{ form.body }}
+        {% if form.body.errors %}<div class="form-errors">{{ form.body.errors }}</div>{% endif %}
+      </div>
+      <button type="submit" class="btn btn-primary">Start conversation</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

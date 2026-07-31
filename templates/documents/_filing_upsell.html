@@ -14,6 +14,11 @@
     <a class="btn btn-primary btn-sm" href="{% url 'marketing:service_page' slug=filing_upsell_slug %}#book-appointment">
       Book filing
     </a>
+    {% if itr_support_chat_enabled %}
+    <a class="btn btn-sm" href="{% if user.is_authenticated %}{% url 'support_chat:new' %}?service={{ filing_upsell_service.key }}&subject={{ filing_upsell_service.label|urlencode }}{% else %}{% url 'account_login' %}?next={% url 'support_chat:new' %}{% endif %}">
+      Chat with us
+    </a>
+    {% endif %}
     <a class="btn btn-sm" href="{% url 'marketing:home' %}#book-appointment">All services</a>
   </div>
 </div>

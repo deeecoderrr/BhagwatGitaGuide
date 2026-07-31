@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="chat-shell wrap">
+  <header class="chat-shell__head">
+    <div>
+      <h1>Support chat</h1>
+      <p class="muted">Talk directly with our team about ITR filing, GST, MSME, or your PDF order.</p>
+    </div>
+    <a class="btn btn-primary" href="{% url 'support_chat:new' %}">New conversation</a>
+  </header>
+
+  {% if threads %}
+  <ul class="chat-thread-list">
+    {% for thread in threads %}
+    <li class="chat-thread-list__item">
+      <a href="{% url 'support_chat:thread' pk=thread.pk %}" class="chat-thread-list__link">
+        <span class="chat-thread-list__subject">{{ thread.subject }}</span>
+        <span class="chat-thread-list__meta muted small">
+          {{ thread.get_status_display }}
+          {% if thread.last_message_at %}· {{ thread.last_message_at|date:"d M, g:i A" }}{% endif %}
+        </span>
+        {% if thread.unread_count %}
+        <span class="chat-thread-list__badge">{{ thread.unread_count }} new</span>
+        {% endif %}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="chat-empty-state card">
+    <p>No conversations yet.</p>
+    <p class="muted small">Start one to ask about ITR filing, GST registration, or help with your computation PDF.</p>
+    <a class="btn btn-primary" href="{% url 'support_chat:new' %}">Start a conversation</a>
+  </div>
+  {% endif %}
+
+  {% if user.is_staff %}
+  <p class="muted small" style="margin-top:1.5rem;">
+    <a href="{% url 'support_chat:staff_inbox' %}">Staff inbox →</a>
+  </p>
+  {% endif %}
+</section>
+{% endblock %}

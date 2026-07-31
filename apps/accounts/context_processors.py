@@ -59,3 +59,23 @@ def account_profile(request):
 
     profile, _ = UserProfile.objects.get_or_create(user=user)
     return {"account_profile": profile}
+
+
+def support_chat(request):
+    enabled = getattr(settings, "ITR_SUPPORT_CHAT_ENABLED", False)
+    unread = 0
+    if enabled and request.user.is_authenticated:
+        try:
+            from apps.support_chat.models import SupportMessage
+
+            unread = SupportMessage.objects.filter(
+                thread__user=request.user,
+                is_staff=True,
+                read_by_user_at__isnull=True,
+            ).count()
+        except Exception:
+            unread = 0
+    return {
+        "itr_support_chat_enabled": enabled,
+        "support_chat_unread": unread,
+    }
