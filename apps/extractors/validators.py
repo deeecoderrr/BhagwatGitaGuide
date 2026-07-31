@@ -76,7 +76,7 @@ def validate_document_for_export(
         issues.append(
             ValidationIssue(
                 "unknown_type",
-                "Document type could not be determined as ITR-1, ITR-3, or ITR-4.",
+                "Document type could not be determined as ITR-1, ITR-2, ITR-3, or ITR-4.",
                 Severity.BLOCK,
             )
         )
@@ -209,7 +209,7 @@ def issues_after_extraction(
         issues.append(
             ValidationIssue(
                 "unknown_type",
-                "Could not classify as ITR-1, ITR-3, or ITR-4.",
+                "Could not classify as ITR-1, ITR-2, ITR-3, or ITR-4.",
                 Severity.BLOCK,
             )
         )

@@ -30,6 +30,7 @@ ADDRESS = "address"
 INCOME_SALARY = "income_salary"
 INCOME_BUSINESS_PROFESSION = "income_business_profession"
 INCOME_HOUSE_PROPERTY = "income_house_property"
+INCOME_CAPITAL_GAINS = "income_capital_gains"
 INCOME_OTHER_SOURCES = "income_other_sources"
 TOTAL_HEAD_WISE_INCOME = "total_head_wise_income"
 CURRENT_YEAR_LOSSES_ADJUSTMENT = "current_year_losses_adjustment"
@@ -133,6 +134,7 @@ INCOME_FIELDS = [
     INCOME_SALARY,
     INCOME_BUSINESS_PROFESSION,
     INCOME_HOUSE_PROPERTY,
+    INCOME_CAPITAL_GAINS,
     INCOME_OTHER_SOURCES,
     OTHER_SOURCE_NATURE,
     OS_INTEREST_SAVINGS,

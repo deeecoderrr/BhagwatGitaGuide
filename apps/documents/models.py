@@ -28,12 +28,14 @@ class Document(models.Model):
     ]
 
     TYPE_ITR1 = "ITR1"
+    TYPE_ITR2 = "ITR2"
     TYPE_ITR3 = "ITR3"
     TYPE_ITR4 = "ITR4"
     TYPE_UNKNOWN = "UNKNOWN"
 
     TYPE_CHOICES = [
         (TYPE_ITR1, "ITR-1"),
+        (TYPE_ITR2, "ITR-2"),
         (TYPE_ITR3, "ITR-3"),
         (TYPE_ITR4, "ITR-4"),
         (TYPE_UNKNOWN, "Unknown"),

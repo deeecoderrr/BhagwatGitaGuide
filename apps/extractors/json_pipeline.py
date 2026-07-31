@@ -799,20 +799,39 @@ def _parse_itr4(
     return fields, bank_rows, tds_rows
 
 
-def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, Any]], list[dict[str, Any]]]:
+def _cap_gain_total_from_part_b(part_b: dict[str, Any]) -> str:
+    cap = part_b.get("CapGain")
+    if isinstance(cap, dict):
+        for key in ("TotalCapGains", "TotCapGain", "TotalCapGain", "Total"):
+            if cap.get(key) is not None:
+                return _fmt_num(cap.get(key))
+    for key in ("TotalCapGains", "TotCapGain"):
+        if part_b.get(key) is not None:
+            return _fmt_num(part_b.get(key))
+    return "0"
+
+
+def _parse_itr_part_b_form(
+    itr: dict[str, Any],
+    *,
+    form_key: str,
+    itr_type: str,
+    include_bp_schedule: bool,
+) -> tuple[dict[str, str], list[dict[str, Any]], list[dict[str, Any]]]:
     fields: dict[str, str] = {}
 
-    form = _dig(itr3, "Form_ITR3") or {}
+    form = _dig(itr, form_key) or {}
     ay_raw = _fmt_num(form.get("AssessmentYear"))
     ay = _format_ay(ay_raw)
     fields[C.ASSESSMENT_YEAR] = ay
     fields[C.FINANCIAL_YEAR] = _format_fy_from_ay(ay)
-    fields[C.ITR_TYPE] = "ITR-3"
+    fields[C.ITR_TYPE] = itr_type
 
-    pi = _dig(itr3, "PartA_GEN1", "PersonalInfo") or {}
+    pi = _dig(itr, "PartA_GEN1", "PersonalInfo") or {}
     fn = _fmt_num(_dig(pi, "AssesseeName", "FirstName"))
+    mn = _fmt_num(_dig(pi, "AssesseeName", "MiddleName"))
     sn = _fmt_num(_dig(pi, "AssesseeName", "SurNameOrOrgName"))
-    fields[C.ASSESSEE_NAME] = f"{fn} {sn}".strip()
+    fields[C.ASSESSEE_NAME] = " ".join(x for x in (fn, mn, sn) if x).strip()
     fields[C.PAN] = _fmt_num(pi.get("PAN")).upper()
     fields[C.DATE_OF_BIRTH] = _format_dob_iso(_fmt_num(pi.get("DOB")))
     fields[C.STATUS] = _status_individual(_fmt_num(pi.get("Status")))
@@ -824,27 +843,31 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
     fields[C.ADDRESS] = _compose_address(addr)
     fields[C.GENDER] = _gender_label(pi.get("Gender"))
 
-    fs = _dig(itr3, "PartA_GEN1", "FilingStatus") or {}
+    fs = _dig(itr, "PartA_GEN1", "FilingStatus") or {}
     fields[C.RESIDENTIAL_STATUS] = _residential_status(_fmt_num(fs.get("ResidentialStatus")))
     fields[C.FILING_SECTION] = _return_file_sec_label(fs.get("ReturnFileSec"))
     fields[C.FILING_STATUS] = _return_file_sec_filing_status(fs.get("ReturnFileSec"))
     fields[C.FILING_DUE_DATE] = _fmt_num(fs.get("ItrFilingDueDate"))
     fields[C.SEVENTH_PROVISO_139] = _fmt_num(fs.get("SeventhProvisio139"))
 
-    ver = _dig(itr3, "Verification", "Declaration") or {}
+    ver = _dig(itr, "Verification", "Declaration") or {}
     fields[C.FATHER_NAME] = _fmt_num(ver.get("FatherName"))
 
-    ver_main = itr3.get("Verification") if isinstance(itr3.get("Verification"), dict) else {}
+    ver_main = itr.get("Verification") if isinstance(itr.get("Verification"), dict) else {}
     fields[C.FILING_DATE] = _fmt_num(ver_main.get("Date"))
     fields[C.VERIFICATION_PLACE] = _fmt_num(ver_main.get("Place"))
     fields[C.ORIGINAL_OR_REVISED] = fields[C.FILING_STATUS] or fields[C.FILING_SECTION]
 
-    part_b = itr3.get("PartB-TI") or {}
+    part_b = itr.get("PartB-TI") or {}
     fields[C.INCOME_SALARY] = _fmt_num(part_b.get("Salaries"))
     fields[C.INCOME_HOUSE_PROPERTY] = _fmt_num(part_b.get("IncomeFromHP"))
-    fields[C.INCOME_BUSINESS_PROFESSION] = _fmt_num(
-        _dig(part_b, "ProfBusGain", "TotProfBusGain")
-    )
+    fields[C.INCOME_CAPITAL_GAINS] = _cap_gain_total_from_part_b(part_b)
+    if include_bp_schedule:
+        fields[C.INCOME_BUSINESS_PROFESSION] = _fmt_num(
+            _dig(part_b, "ProfBusGain", "TotProfBusGain")
+        )
+    else:
+        fields[C.INCOME_BUSINESS_PROFESSION] = "0"
     fields[C.INCOME_OTHER_SOURCES] = _fmt_num(_dig(part_b, "IncFromOS", "TotIncFromOS"))
     fields[C.TOTAL_HEAD_WISE_INCOME] = _fmt_num(part_b.get("TotalTI"))
     fields[C.CURRENT_YEAR_LOSSES_ADJUSTMENT] = _fmt_num(part_b.get("CurrentYearLoss"))
@@ -852,7 +875,12 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
     fields[C.BROUGHT_FORWARD_LOSS_SETOFF] = _fmt_num(part_b.get("BroughtFwdLossesSetoff"))
     fields[C.GROSS_TOTAL_INCOME] = _fmt_num(part_b.get("GrossTotalIncome"))
     ded = _dig(part_b, "DeductionsUndSchVIADtl") or {}
-    fields[C.TOTAL_DEDUCTIONS] = _fmt_num(ded.get("TotDeductUndSchVIA"))
+    ded_total = ded.get("TotDeductUndSchVIA")
+    if ded_total is None:
+        ded_total = part_b.get("DeductionsUnderScheduleVIA")
+    if ded_total is None:
+        ded_total = _dig(itr, "ScheduleVIA", "DeductUndChapVIA", "TotalChapVIADeductions")
+    fields[C.TOTAL_DEDUCTIONS] = _fmt_num(ded_total)
     ti = part_b.get("TotalIncome")
     fields[C.TOTAL_INCOME] = _fmt_num(ti)
     try:
@@ -861,28 +889,46 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
         ti_d = Decimal("0")
     fields[C.ROUNDED_TOTAL_INCOME] = _fmt_num(round_total_income_288a(ti_d))
 
-    sch_os = _dig(itr3, "ScheduleOS", "IncOthThanOwnRaceHorse") or {}
+    sch_os = _dig(itr, "ScheduleOS", "IncOthThanOwnRaceHorse") or {}
     fields[C.OS_INTEREST_SAVINGS] = _fmt_num(sch_os.get("IntrstFrmSavingBank"))
     fields[C.OS_INTEREST_TERM_DEPOSIT] = _fmt_num(sch_os.get("IntrstFrmTermDeposit"))
     fields[C.OS_INTEREST_REFUND] = _fmt_num(sch_os.get("IntrstFrmIncmTaxRefund"))
+    others_dtls = _dig(sch_os, "OthersInc", "OthersIncDtls")
+    if isinstance(others_dtls, list):
+        nature_parts: list[str] = []
+        for row in others_dtls:
+            if not isinstance(row, dict):
+                continue
+            desc = _fmt_num(row.get("OthNatOfInc") or row.get("OthSrcNatureDesc"))
+            if desc:
+                nature_parts.append(desc)
+        if nature_parts:
+            fields[C.OTHER_SOURCE_NATURE] = ", ".join(nature_parts)
 
-    bp = _dig(itr3, "ITR3ScheduleBP", "BusinessIncOthThanSpec") or {}
-    fields[C.BUSINESS_DEPRECIATION_BOOKS] = _fmt_num(bp.get("DepreciationDebPLCosAct"))
-    dep_it = _dig(bp, "DepreciationAllowITAct32") or {}
-    fields[C.BUSINESS_DEPRECIATION_IT] = _fmt_num(dep_it.get("TotDeprAllowITAct"))
+    if include_bp_schedule:
+        bp = _dig(itr, "ITR3ScheduleBP", "BusinessIncOthThanSpec") or {}
+        fields[C.BUSINESS_DEPRECIATION_BOOKS] = _fmt_num(bp.get("DepreciationDebPLCosAct"))
+        dep_it = _dig(bp, "DepreciationAllowITAct32") or {}
+        fields[C.BUSINESS_DEPRECIATION_IT] = _fmt_num(dep_it.get("TotDeprAllowITAct"))
+    else:
+        fields[C.BUSINESS_DEPRECIATION_BOOKS] = "0"
+        fields[C.BUSINESS_DEPRECIATION_IT] = "0"
 
     # Chapter VIA is not split per section in this JSON; 80TTA claim defaults to 0.
     fields[C.DEDUCTION_80TTA] = "0"
 
-    tax_pay = _dig(itr3, "PartB_TTI", "ComputationOfTaxLiability", "TaxPayableOnTI") or {}
+    net_tl = _dig(itr, "PartB_TTI", "ComputationOfTaxLiability") or {}
+    tax_pay = net_tl.get("TaxPayableOnTI") if isinstance(net_tl.get("TaxPayableOnTI"), dict) else {}
+    if not tax_pay:
+        tax_pay = _dig(itr, "PartB_TTI", "ComputationOfTaxLiability", "TaxPayableOnTI") or {}
     fields[C.TAX_NORMAL_RATES] = _fmt_num(tax_pay.get("TaxAtNormalRatesOnAggrInc"))
-    fields[C.REBATE_87A] = _fmt_num(tax_pay.get("Rebate87A"))
+    fields[C.REBATE_87A] = _fmt_num(tax_pay.get("Rebate87A") or net_tl.get("Rebate87A"))
     fields[C.TAX_PAYABLE_ON_TOTAL_INCOME] = _fmt_num(tax_pay.get("TaxPayableOnTotInc"))
 
-    fields[C.CESS] = _fmt_num(tax_pay.get("EducationCess"))
-    fields[C.GROSS_TAX_LIABILITY] = _fmt_num(tax_pay.get("GrossTaxLiability"))
-
-    net_tl = _dig(itr3, "PartB_TTI", "ComputationOfTaxLiability") or {}
+    fields[C.CESS] = _fmt_num(tax_pay.get("EducationCess") or net_tl.get("EducationCess"))
+    fields[C.GROSS_TAX_LIABILITY] = _fmt_num(
+        tax_pay.get("GrossTaxLiability") or net_tl.get("GrossTaxLiability")
+    )
     fields[C.NET_TAX_LIABILITY] = _fmt_num(net_tl.get("NetTaxLiability"))
 
     intr_pay = net_tl.get("IntrstPay")
@@ -893,21 +939,21 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
         fields[C.FEE_234F] = _fmt_num(intr_pay.get("LateFilingFee234F"))
     fields[C.TOTAL_TAX_PLUS_INTEREST] = _fmt_num(net_tl.get("AggregateTaxInterestLiability"))
 
-    tpaid = _dig(itr3, "PartB_TTI", "TaxPaid", "TaxesPaid") or {}
+    tpaid = _dig(itr, "PartB_TTI", "TaxPaid", "TaxesPaid") or {}
     fields[C.ADVANCE_TAX] = _fmt_num(tpaid.get("AdvanceTax"))
     fields[C.SELF_ASSESSMENT_TAX] = _fmt_num(tpaid.get("SelfAssessmentTax"))
     fields[C.TCS_TOTAL] = _fmt_num(tpaid.get("TCS"))
     fields[C.TDS_TOTAL] = _fmt_num(tpaid.get("TDS"))
     fields[C.TAXES_PAID_TOTAL] = _fmt_num(tpaid.get("TotalTaxesPaid"))
 
-    tax_paid_outer = _dig(itr3, "PartB_TTI", "TaxPaid") or {}
+    tax_paid_outer = _dig(itr, "PartB_TTI", "TaxPaid") or {}
     fields[C.DEMAND_AMOUNT] = _fmt_num(tax_paid_outer.get("BalTaxPayable"))
 
-    sch_tds2_root = itr3.get("ScheduleTDS2") if isinstance(itr3.get("ScheduleTDS2"), dict) else {}
+    sch_tds2_root = itr.get("ScheduleTDS2") if isinstance(itr.get("ScheduleTDS2"), dict) else {}
     fields[C.TDS_OTHER_THAN_SALARY] = _fmt_num(sch_tds2_root.get("TotalTDSonOthThanSals"))
 
-    salary_tds_rows = _collect_itr3_schedule_tds1_rows(itr3)
-    sal_tot = _itr3_tds_from_salary_total_str(itr3)
+    salary_tds_rows = _collect_itr3_schedule_tds1_rows(itr)
+    sal_tot = _itr3_tds_from_salary_total_str(itr)
     if not sal_tot.strip() and salary_tds_rows:
         tot_dec = Decimal("0")
         for r in salary_tds_rows:
@@ -922,7 +968,7 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
         sal_tot = _fmt_num(tot_dec)
     fields[C.TDS_FROM_SALARY] = sal_tot
 
-    ref_amt = _dig(itr3, "PartB_TTI", "Refund", "RefundDue")
+    ref_amt = _dig(itr, "PartB_TTI", "Refund", "RefundDue")
     try:
         ref_d = Decimal(str(ref_amt)) if ref_amt is not None else Decimal("0")
     except Exception:
@@ -937,10 +983,10 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
     fields[C.REFUND_AMOUNT] = _fmt_num(ref_amt)
     fields[C.ROUNDED_REFUND_AMOUNT] = _fmt_num(round_refund_288b(ref_d))
 
-    fields[C.REGIME] = _infer_regime_label_itr3(itr3, ti_d)
+    fields[C.REGIME] = _infer_regime_label_itr3(itr, ti_d)
 
     bank_rows: list[dict[str, Any]] = []
-    add_banks = _dig(itr3, "PartB_TTI", "Refund", "BankAccountDtls", "AddtnlBankDetails")
+    add_banks = _dig(itr, "PartB_TTI", "Refund", "BankAccountDtls", "AddtnlBankDetails")
     if isinstance(add_banks, list):
         for b in add_banks:
             if not isinstance(b, dict):
@@ -960,7 +1006,7 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
 
     tds_rows: list[dict[str, Any]] = []
     tds_rows.extend(salary_tds_rows)
-    tds_list = _dig(itr3, "ScheduleTDS2", "TDSOthThanSalaryDtls")
+    tds_list = _dig(itr, "ScheduleTDS2", "TDSOthThanSalaryDtls")
     if isinstance(tds_list, list):
         for row in tds_list:
             if not isinstance(row, dict):
@@ -974,7 +1020,9 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
             sec = _normalize_tds_section(_fmt_num(row.get("TDSSection")))
             cr = row.get("TaxDeductCreditDtls") or {}
             ho = _fmt_num(row.get("HeadOfIncome")).strip()
-            if not ho:
+            if ho.upper() == "OS":
+                ho = "Other sources"
+            elif not ho:
                 ho = "Other sources"
             tds_rows.append(
                 {
@@ -992,12 +1040,32 @@ def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, An
     return fields, bank_rows, tds_rows
 
 
+def _parse_itr3(itr3: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, Any]], list[dict[str, Any]]]:
+    return _parse_itr_part_b_form(
+        itr3,
+        form_key="Form_ITR3",
+        itr_type="ITR-3",
+        include_bp_schedule=True,
+    )
+
+
+def _parse_itr2(itr2: dict[str, Any]) -> tuple[dict[str, str], list[dict[str, Any]], list[dict[str, Any]]]:
+    return _parse_itr_part_b_form(
+        itr2,
+        form_key="Form_ITR2",
+        itr_type="ITR-2",
+        include_bp_schedule=False,
+    )
+
+
 def detect_json_itr_type(data: dict[str, Any]) -> str | None:
     itr = data.get("ITR")
     if not isinstance(itr, dict):
         return None
     if "ITR3" in itr:
         return Document.TYPE_ITR3
+    if "ITR2" in itr:
+        return Document.TYPE_ITR2
     if "ITR1" in itr:
         return Document.TYPE_ITR1
     if "ITR4" in itr:
@@ -1116,7 +1184,9 @@ def process_json_document_file(document: Document) -> None:
 
     if detected in (None, Document.TYPE_UNKNOWN):
         document.status = Document.STATUS_FAILED
-        document.error_message = "Could not find ITR1, ITR3, or ITR4 under the JSON \"ITR\" key."
+        document.error_message = (
+            'Could not find ITR1, ITR2, ITR3, or ITR4 under the JSON "ITR" key.'
+        )
         document.save(
             update_fields=[
                 "detected_type",
@@ -1133,12 +1203,13 @@ def process_json_document_file(document: Document) -> None:
 
     if detected not in (
         Document.TYPE_ITR1,
+        Document.TYPE_ITR2,
         Document.TYPE_ITR3,
         Document.TYPE_ITR4,
     ):
         document.status = Document.STATUS_FAILED
         document.error_message = (
-            "JSON import is implemented for filed ITR-1, ITR-3, and ITR-4 JSON in "
+            "JSON import is implemented for filed ITR-1, ITR-2, ITR-3, and ITR-4 JSON in "
             "this version. "
             f"Found: {detected}."
         )
@@ -1179,6 +1250,8 @@ def process_json_document_file(document: Document) -> None:
             fields, bank_rows, tds_rows = _parse_itr1(itr_payload)
         elif detected == Document.TYPE_ITR4:
             fields, bank_rows, tds_rows = _parse_itr4(itr_payload)
+        elif detected == Document.TYPE_ITR2:
+            fields, bank_rows, tds_rows = _parse_itr2(itr_payload)
         else:
             fields, bank_rows, tds_rows = _parse_itr3(itr_payload)
     except Exception as exc:

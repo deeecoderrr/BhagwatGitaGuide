@@ -17,6 +17,9 @@ _FIX_ITR1 = Path(__file__).resolve().parent / "fixtures" / "min_itr1_ack.json"
 _FIX_ITR4 = Path(__file__).resolve().parent / "fixtures" / "min_itr4_ack.json"
 
 
+_FIX_ITR2 = Path(__file__).resolve().parent / "fixtures" / "min_itr2_ack.json"
+
+
 class JsonPipelineTests(TestCase):
     def test_import_min_itr1_json(self) -> None:
         raw = _FIX_ITR1.read_bytes()
@@ -64,6 +67,32 @@ class JsonPipelineTests(TestCase):
         self.assertEqual(fm.get(C.OS_INTEREST_SAVINGS), "321")
         self.assertEqual(fm.get(C.OS_INTEREST_TERM_DEPOSIT), "1650")
         self.assertEqual(fm.get(C.BUSINESS_NAME), "ALAM VASTRALAYA")
+
+    def test_import_min_itr2_json(self) -> None:
+        raw = _FIX_ITR2.read_bytes()
+        doc = Document.objects.create(
+            uploaded_file=SimpleUploadedFile("itr2_ack.json", raw),
+            original_filename="itr2_ack.json",
+            file_hash="pending",
+            status=Document.STATUS_UPLOADED,
+            upload_source=Document.UPLOAD_JSON,
+        )
+        process_json_document_file(doc)
+        doc.refresh_from_db()
+        self.assertEqual(doc.status, Document.STATUS_REVIEW_REQUIRED)
+        self.assertEqual(doc.detected_type, Document.TYPE_ITR2)
+        fm = {f.field_name: f.normalized_value for f in doc.extracted_fields.all()}
+        self.assertEqual(fm.get(C.PAN), "ABCDE1234F")
+        self.assertEqual(fm.get(C.ITR_TYPE), "ITR-2")
+        self.assertEqual(fm.get(C.ASSESSEE_NAME), "Test ITR Two")
+        self.assertEqual(fm.get(C.INCOME_OTHER_SOURCES), "605537")
+        self.assertEqual(fm.get(C.GROSS_TOTAL_INCOME), "605537")
+        self.assertEqual(fm.get(C.TOTAL_INCOME), "605540")
+        self.assertEqual(fm.get(C.REFUND_AMOUNT), "11860")
+        self.assertEqual(fm.get(C.TDS_OTHER_THAN_SALARY), "11864")
+        self.assertEqual(fm.get(C.OTHER_SOURCE_NATURE), "Receipts from life insurance policy")
+        self.assertEqual(doc.bank_details.count(), 1)
+        self.assertEqual(doc.tds_details.count(), 1)
 
     def test_import_min_itr3_json(self) -> None:
         raw = _FIX.read_bytes()

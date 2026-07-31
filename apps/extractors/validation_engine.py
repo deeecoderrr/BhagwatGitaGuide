@@ -171,9 +171,12 @@ def run_computation_validation(
     gti = _d(fm, C.GROSS_TOTAL_INCOME)
     sum_heads = b1 + b2 + b3 + b4
     head_wise_total = _d(fm, C.TOTAL_HEAD_WISE_INCOME)
-    is_itr3 = detected_type == Document.TYPE_ITR3 or "ITR-3" in (fm.get(C.ITR_TYPE) or "")
+    is_part_b_ti = detected_type in (
+        Document.TYPE_ITR2,
+        Document.TYPE_ITR3,
+    ) or any(x in (fm.get(C.ITR_TYPE) or "") for x in ("ITR-2", "ITR-3"))
     if gti is not None:
-        if is_itr3 and head_wise_total is not None:
+        if is_part_b_ti and head_wise_total is not None:
             ok = head_wise_total == gti
             add(
                 C.GROSS_TOTAL_INCOME,
@@ -203,7 +206,7 @@ def run_computation_validation(
             "I1",
             Severity.WARN,
             "GTI missing; cannot verify I1.",
-            str(head_wise_total if is_itr3 and head_wise_total is not None else sum_heads),
+            str(head_wise_total if is_part_b_ti and head_wise_total is not None else sum_heads),
             None,
         )
 

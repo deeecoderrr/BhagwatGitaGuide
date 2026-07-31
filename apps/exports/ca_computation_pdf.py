@@ -443,6 +443,7 @@ def render_ca_computation_pdf(context: dict) -> bytes:
             [
                 ("Income from Salary", format_inr(f.get(C.INCOME_SALARY))),
                 ("Income from House Property", format_inr(f.get(C.INCOME_HOUSE_PROPERTY))),
+                ("Income from Capital Gains", format_inr(f.get(C.INCOME_CAPITAL_GAINS))),
                 ("Profits and gains of business or profession", format_inr(f.get(C.INCOME_BUSINESS_PROFESSION))),
                 ("Income from Other Sources", format_inr(f.get(C.INCOME_OTHER_SOURCES))),
                 ("Gross Total Income", format_inr(f.get(C.GROSS_TOTAL_INCOME))),
