@@ -43,14 +43,26 @@ class GrowthEvent(models.Model):
     EVENT_PAGE_VIEW = "page_view"
     EVENT_PRICING_VIEW = "pricing_view"
     EVENT_SIGNUP_START = "signup_start"
+    EVENT_ITR_UPLOAD = "itr_upload"
+    EVENT_ITR_PREVIEW = "itr_preview"
+    EVENT_ITR_PAY_CLICK = "itr_pay_click"
+    EVENT_ITR_CHECKOUT_INIT = "itr_checkout_init"
+    EVENT_ITR_PAYMENT_SUCCESS = "itr_payment_success"
+    EVENT_ITR_PDF_EXPORT = "itr_pdf_export"
     EVENT_CHOICES = [
         (EVENT_PAGE_VIEW, "Page view"),
         (EVENT_PRICING_VIEW, "Pricing view"),
         (EVENT_SIGNUP_START, "Signup page"),
+        (EVENT_ITR_UPLOAD, "ITR upload"),
+        (EVENT_ITR_PREVIEW, "ITR preview viewed"),
+        (EVENT_ITR_PAY_CLICK, "Pay button clicked"),
+        (EVENT_ITR_CHECKOUT_INIT, "Checkout initiated"),
+        (EVENT_ITR_PAYMENT_SUCCESS, "Payment success"),
+        (EVENT_ITR_PDF_EXPORT, "PDF exported"),
     ]
 
     visitor_id = models.CharField(max_length=64, db_index=True)
-    event_type = models.CharField(max_length=24, choices=EVENT_CHOICES)
+    event_type = models.CharField(max_length=32, choices=EVENT_CHOICES)
     path = models.CharField(max_length=255, blank=True)
     metadata = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)

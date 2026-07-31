@@ -1,0 +1,18 @@
+<div style="margin-bottom: 1rem; padding: 0.85rem 1rem; background: #f9fafb; border: 1px solid #f3f4f6; border-radius: 10px;">
+  <p style="margin: 0 0 0.5rem; font-size: 0.78rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.03em;">Why download the PDF?</p>
+  <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.82rem; color: #4b5563; line-height: 1.55;">
+    <li>Home loan / NBFC income proof</li>
+    <li>Employer or visa documentation</li>
+    <li>CA second opinion before filing</li>
+    <li>Printable record for your files (7-year retention)</li>
+  </ul>
+  <p style="margin: 0.65rem 0 0; font-size: 0.78rem; color: #6b7280; line-height: 1.45;">
+    <strong style="color: #047857;">{{ itr_guarantee_hours }}-hour guarantee:</strong>
+    PDF unreadable or numbers wrong? Email
+    <a href="mailto:{{ itr_contact_email }}" style="color: #059669;">{{ itr_contact_email }}</a>
+    — we'll re-export or refund.
+  </p>
+  {% if itr_show_export_stat %}
+  <p style="margin: 0.5rem 0 0; font-size: 0.75rem; color: #9ca3af;">{{ itr_exports_generated }}+ computation PDFs generated on this platform.</p>
+  {% endif %}
+</div>

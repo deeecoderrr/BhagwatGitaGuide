@@ -7,7 +7,7 @@ SEO_META_KEYWORDS = (
     "ITR computation pdf, itr computation excel, itr computation ay, itr computation india, "
     "ITR summary, itr income computation, income tax computation summary, "
     "income computation sheet, CA computation sheet, computation sheet pdf, "
-    "ITR-1 JSON, ITR1 Sahaj, ITR-3 computation, ITR 3 computation, itr3 computation, "
+    "ITR-1 JSON, ITR1 Sahaj, ITR-2 JSON, ITR2 computation, ITR-3 computation, ITR 3 computation, itr3 computation, "
     "ITR-4 JSON, ITR4 Sugam, itr4 computation, filed ITR JSON, "
     "ITR acknowledgment JSON, income tax portal JSON, e filing json download, "
     "tax computation PDF India, ay computation, assessment year computation, "
@@ -18,7 +18,7 @@ SEO_META_KEYWORDS = (
 )
 
 SITE_TAGLINE = (
-    "Turn filed ITR-1, ITR-3, or ITR-4 JSON into a reviewed CA-style computation PDF — "
+    "Turn filed ITR-1, ITR-2, ITR-3, or ITR-4 JSON into a reviewed CA-style computation PDF — "
     "income tax computation summary built for assessment-year reporting."
 )
 

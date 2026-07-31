@@ -70,14 +70,37 @@
         </div>
         <ul class="price-card__features muted small">
           <li>1 PDF export credit</li>
-          <li>No commitment</li>
-          <li>Per-file when you need it</li>
+          <li>Free HTML preview first</li>
+          <li>UPI · Card · Netbanking</li>
         </ul>
         {% if user.is_authenticated %}
           <a class="btn price-card__cta" href="{% url 'billing:checkout_bundle' 'payg' %}">Buy 1 export — ₹20</a>
         {% else %}
           <a class="btn btn-primary price-card__cta" href="{% url 'billing:guest_checkout' %}">Pay ₹20 — no login needed</a>
           <a class="btn price-card__cta--secondary muted small" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'payg' %}" style="display:block;margin-top:0.5rem;text-align:center;">Log in for more options</a>
+        {% endif %}
+      </div>
+
+      <!-- Value pack -->
+      <div class="price-card">
+        <div class="price-card__header">
+          <span class="price-card__name">{{ itr_bundles.value3.label }}</span>
+          {% if itr_bundles.value3.badge %}<span class="price-card__badge">{{ itr_bundles.value3.badge }}</span>{% endif %}
+        </div>
+        <div class="price-card__amount">
+          <span class="price-card__price">₹{{ itr_bundles.value3.amount_inr }}</span>
+          <span class="price-card__unit muted">/ 3 exports</span>
+        </div>
+        <p class="price-card__saving">₹{{ itr_bundles.value3.per_export_inr }} per PDF</p>
+        <ul class="price-card__features muted small">
+          <li>3 PDF export credits</li>
+          <li>Family returns or revisions</li>
+          <li>Credits never expire</li>
+        </ul>
+        {% if user.is_authenticated %}
+          <a class="btn btn-primary price-card__cta" href="{% url 'billing:checkout_bundle' 'value3' %}">Buy 3 exports — ₹{{ itr_bundles.value3.amount_inr }}</a>
+        {% else %}
+          <a class="btn btn-primary price-card__cta" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'value3' %}">Log in to buy</a>
         {% endif %}
       </div>
 
@@ -147,6 +170,20 @@
         <p style="margin:0.5rem 0 0;font-size:0.75rem;color:#6b7280;word-break:break-all;text-align:center;">{{ contact_email }}</p>
       </div>
 
+    </div>
+
+    <div style="margin-top:2rem;padding:1.25rem 1.5rem;background:linear-gradient(135deg,#ecfdf5 0%,#fff 100%);border:1px solid #bbf7d0;border-radius:14px;">
+      <h2 style="margin:0 0 0.5rem;font-size:1.05rem;font-weight:600;color:#065f46;">For CAs &amp; tax professionals</h2>
+      <p class="muted small" style="margin:0 0 0.75rem;line-height:1.55;">
+        <strong>Professional — ₹{{ itr_bundles.professional.amount_inr|floatformat:0 }}/year</strong>
+        for {{ itr_bundles.professional.credits }} exports (≈ ₹{{ itr_bundles.professional.per_export_inr }} each).
+        Manual computation statements often take 15–30 minutes per client — this pays for itself after a handful of returns.
+      </p>
+      {% if user.is_authenticated %}
+        <a class="btn btn-primary btn-sm" href="{% url 'billing:checkout_bundle' 'professional' %}">Get Professional plan</a>
+      {% else %}
+        <a class="btn btn-primary btn-sm" href="{% url 'account_login' %}?next={% url 'billing:checkout_bundle' 'professional' %}">Log in for Professional plan</a>
+      {% endif %}
     </div>
 
     <p class="muted small" style="text-align:center;margin-top:1.5rem;">

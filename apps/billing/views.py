@@ -18,6 +18,11 @@ from django.views.decorators.http import require_http_methods
 
 from apps.accounts.models import UserProfile
 from apps.billing.models import RazorpayOrder
+from apps.billing.promo import (
+    first_export_promo_context,
+    mark_first_export_promo_used,
+    payg_amount_paise,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +40,17 @@ ITR_BUNDLES: dict[str, dict] = {
         "per_export_inr": int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 2000)) // 100,
         "description": "One PDF export — pay only when you need it",
         "badge": None,
+    },
+    "value3": {
+        "key": "value3",
+        "label": "Value pack",
+        "credits": 3,
+        "annual": False,
+        "amount_paise": int(getattr(settings, "ITR_VALUE3_AMOUNT_PAISE", 5000)),
+        "amount_inr": int(getattr(settings, "ITR_VALUE3_AMOUNT_PAISE", 5000)) // 100,
+        "per_export_inr": int(getattr(settings, "ITR_VALUE3_AMOUNT_PAISE", 5000)) // 100 // 3,
+        "description": "Three PDF exports — family returns or revisions",
+        "badge": "Save ₹10",
     },
     "essentials": {
         "key": "essentials",
@@ -105,7 +121,10 @@ def checkout_bundle_init(request, bundle: str):
         return JsonResponse({"error": "Payments are not configured."}, status=503)
 
     key_id = getattr(settings, "RAZORPAY_KEY_ID", "").strip()
-    amount_paise = bundle_info["amount_paise"]
+    amount_paise = (
+        payg_amount_paise(request) if bundle == "payg" else bundle_info["amount_paise"]
+    )
+    amount_inr = amount_paise // 100
     receipt = f"itr_{bundle}_{request.user.pk}_{int(timezone.now().timestamp())}"
 
     try:
@@ -132,13 +151,23 @@ def checkout_bundle_init(request, bundle: str):
         logger.exception("Razorpay bundle order create failed")
         return JsonResponse({"error": "Payment setup failed. Please try again."}, status=500)
 
+    from apps.analytics.events import EVENT_ITR_CHECKOUT_INIT, log_itr_funnel_event
+
+    log_itr_funnel_event(
+        request,
+        EVENT_ITR_CHECKOUT_INIT,
+        metadata={"bundle": bundle, "amount_paise": amount_paise},
+    )
+
+    promo_ctx = first_export_promo_context(request) if bundle == "payg" else {}
     return JsonResponse({
         "order_id": order_data["id"],
         "key_id": key_id,
         "amount_paise": amount_paise,
-        "amount_inr": bundle_info["amount_inr"],
+        "amount_inr": amount_inr,
         "label": bundle_info["label"],
         "description": bundle_info["description"],
+        "first_export_promo": promo_ctx.get("first_export_promo", False),
     })
 
 
@@ -249,6 +278,19 @@ def _payment_success_inner(request):
                     request,
                     f"Payment confirmed — {credits_to_add} export credit added. You can now generate your PDF.",
                 )
+            if order.bundle_key == "payg":
+                mark_first_export_promo_used(request)
+            from apps.analytics.events import (
+                EVENT_ITR_PAYMENT_SUCCESS,
+                log_itr_funnel_event,
+            )
+
+            log_itr_funnel_event(
+                request,
+                EVENT_ITR_PAYMENT_SUCCESS,
+                document_id=int(doc_pk) if doc_pk.isdigit() else None,
+                metadata={"bundle": bundle_key, "guest": False},
+            )
         except Exception as exc:
             logger.critical(
                 "PAYMENT CREDIT SAVE FAILED — user=%s order=%s payment=%s bundle=%s credits=%s error=%s",
@@ -471,14 +513,14 @@ def guest_checkout_init(request):
             status=503,
         )
 
-    bundle_info = ITR_BUNDLES["payg"]
+    amount_paise = payg_amount_paise(request)
     key_id = getattr(settings, "RAZORPAY_KEY_ID", "").strip()
     receipt = f"itr_g_{int(timezone.now().timestamp())}"
 
     try:
         order_data = client.order.create(
             {
-                "amount": bundle_info["amount_paise"],
+                "amount": amount_paise,
                 "currency": "INR",
                 "receipt": receipt[:40],
                 "notes": {"bundle": "payg"},
@@ -491,12 +533,22 @@ def guest_checkout_init(request):
             status=500,
         )
 
+    from apps.analytics.events import EVENT_ITR_CHECKOUT_INIT, log_itr_funnel_event
+
+    log_itr_funnel_event(
+        request,
+        EVENT_ITR_CHECKOUT_INIT,
+        metadata={"bundle": "payg", "amount_paise": amount_paise, "guest": True},
+    )
+
+    promo_ctx = first_export_promo_context(request)
     return JsonResponse(
         {
             "order_id": order_data["id"],
             "key_id": key_id,
-            "amount_paise": bundle_info["amount_paise"],
-            "amount_inr": bundle_info["amount_inr"],
+            "amount_paise": amount_paise,
+            "amount_inr": amount_paise // 100,
+            "first_export_promo": promo_ctx.get("first_export_promo", False),
         }
     )
 
@@ -572,6 +624,13 @@ def guest_payment_success(request):
             guest_email = ""
             guest_phone = ""
 
+        paid_paise = payg_amount_paise(request)
+        try:
+            rzp_order = client.order.fetch(rzp_order_id)
+            paid_paise = int(rzp_order.get("amount") or paid_paise)
+        except Exception:
+            pass
+
         # EmailField is required; fall back to a placeholder if Razorpay gives nothing.
         if not guest_email:
             guest_email = f"guest+{rzp_order_id}@razorpay.internal"
@@ -582,7 +641,7 @@ def guest_payment_success(request):
                 guest_email=guest_email,
                 guest_phone=guest_phone,
                 razorpay_order_id=rzp_order_id,
-                amount_paise=ITR_BUNDLES["payg"]["amount_paise"],
+                amount_paise=paid_paise,
                 credits_granted=1,
                 status=GuestOrder.STATUS_PAID,
                 razorpay_payment_id=params["razorpay_payment_id"],
@@ -629,6 +688,16 @@ def guest_payment_success(request):
         request.session.get(SESSION_GUEST_CREDITS, 0) + (guest_order.credits_granted if guest_order else 1)
     )
     request.session.modified = True
+    mark_first_export_promo_used(request)
+
+    from apps.analytics.events import EVENT_ITR_PAYMENT_SUCCESS, log_itr_funnel_event
+
+    log_itr_funnel_event(
+        request,
+        EVENT_ITR_PAYMENT_SUCCESS,
+        document_id=int(doc_pk) if doc_pk.isdigit() else None,
+        metadata={"bundle": "payg", "guest": True},
+    )
 
     if doc_pk:
         try:

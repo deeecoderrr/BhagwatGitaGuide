@@ -23,6 +23,17 @@ from apps.documents.session_docs import (
 from apps.extractors.queue import schedule_document_processing
 
 
+def _log_upload_event(request, doc: Document) -> None:
+    from apps.analytics.events import EVENT_ITR_UPLOAD, log_itr_funnel_event
+
+    log_itr_funnel_event(
+        request,
+        EVENT_ITR_UPLOAD,
+        document_id=doc.pk,
+        metadata={"source": doc.upload_source or ""},
+    )
+
+
 def _should_poll_status(document: Document) -> bool:
     return document.status in (
         Document.STATUS_QUEUED,
@@ -80,6 +91,7 @@ def document_upload(request):
                 )
                 doc.save()
                 queued = schedule_document_processing(doc)
+                _log_upload_event(request, doc)
                 if queued:
                     messages.info(
                         request,
@@ -131,6 +143,22 @@ def document_detail(request, pk: int):
         from apps.exports.preview import build_computation_preview_context
 
         computation_preview = build_computation_preview_context(doc)
+        if computation_preview:
+            session_key = f"_itr_preview_logged_{doc.pk}"
+            if not request.session.get(session_key):
+                from apps.analytics.events import EVENT_ITR_PREVIEW, log_itr_funnel_event
+
+                log_itr_funnel_event(
+                    request,
+                    EVENT_ITR_PREVIEW,
+                    document_id=doc.pk,
+                )
+                request.session[session_key] = True
+                request.session.modified = True
+
+    from apps.billing.promo import first_export_promo_context
+
+    promo_ctx = first_export_promo_context(request)
 
     return render(
         request,
@@ -149,6 +177,8 @@ def document_detail(request, pk: int):
             "auth_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": "payg"}) if request.user.is_authenticated else "",
             "auth_success_url": reverse("billing:payment_success") if request.user.is_authenticated else "",
             "computation_preview": computation_preview,
+            "analytics_event_url": reverse("analytics:record_event"),
+            **promo_ctx,
         },
     )
 
@@ -237,6 +267,7 @@ def beta_try_upload(request: HttpRequest) -> HttpResponse:
     )
     doc.save()
     register_anonymous_document(request.session, doc.pk)
+    _log_upload_event(request, doc)
 
     queued = schedule_document_processing(doc)
     if queued:

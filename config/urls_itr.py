@@ -5,6 +5,7 @@ Auth uses root /accounts/ (see config.urls) so login is shared with the rest of 
 from django.urls import include, path
 
 urlpatterns = [
+    path("analytics/", include("apps.analytics.urls")),
     path("billing/", include("apps.billing.urls")),
     path("documents/", include("apps.documents.urls")),
     path("reviews/", include("apps.reviews.urls")),

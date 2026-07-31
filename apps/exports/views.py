@@ -98,6 +98,16 @@ def _build_export_context(document: Document, fm: dict[str, str] | None = None) 
     }
 
 
+def _log_pdf_export(request, document: Document) -> None:
+    from apps.analytics.events import EVENT_ITR_PDF_EXPORT, log_itr_funnel_event
+
+    log_itr_funnel_event(
+        request,
+        EVENT_ITR_PDF_EXPORT,
+        document_id=document.pk,
+    )
+
+
 @require_http_methods(["GET", "POST"])
 def export_pdf(request, pk: int):
     purge_expired_exports()
@@ -168,6 +178,7 @@ def export_pdf(request, pk: int):
                 guest_order_from_token.export_used = True
                 guest_order_from_token.save(update_fields=["export_used"])
         delete_document_upload_after_export(document)
+        _log_pdf_export(request, document)
         # Serve PDF bytes directly — avoids cross-machine FileNotFoundError
         # (Fly.io round-robin can route the redirect to a different machine).
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
@@ -220,6 +231,7 @@ def export_pdf(request, pk: int):
                 guest_order_from_token.export_used = True
                 guest_order_from_token.save(update_fields=["export_used"])
         delete_document_upload_after_export(document)
+        _log_pdf_export(request, document)
         response = HttpResponse(pdf_bytes, content_type="application/pdf")
         response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response

@@ -20,8 +20,8 @@ def home(request):
     site_url = request.build_absolute_uri("/").rstrip("/")
     canonical = request.build_absolute_uri(request.path)
     page_title = (
-        "ITR Computation & Income Tax Computation Summary PDF | ₹50 Instant Export "
-        "(ITR-1, ITR-3, ITR-4 JSON — India)"
+        "ITR Computation & Income Tax Computation Summary PDF | From ₹20 Instant Export "
+        "(ITR-1, ITR-2, ITR-3, ITR-4 JSON — India)"
     )
     comments_qs = (
         Comment.objects.filter(page_slug=Comment.PAGE_HOME, parent__isnull=True)
@@ -37,9 +37,9 @@ def home(request):
         .order_by("-created_at")[:100]
     )
     meta_desc = (
-        "ITR computation & income tax computation summary: import filed ITR-1, ITR-3, or "
-        "ITR-4 JSON, review figures, export a CA-style ITR summary PDF for assessment-year "
-        "workflows in India. Human review before export."
+        "ITR computation & income tax computation summary: import filed ITR-1, ITR-2, ITR-3, or "
+        "ITR-4 JSON, review figures free, export a CA-style ITR summary PDF for assessment-year "
+        "workflows in India. Pay via UPI from ₹20."
     )
     itr_beta = getattr(settings, "ITR_BETA_RELEASE", False)
     ctx = {
@@ -71,7 +71,7 @@ def pricing(request):
     canonical = request.build_absolute_uri(request.path)
     itr_home_abs = request.build_absolute_uri(reverse("marketing:home"))
     from apps.billing.views import ITR_BUNDLES
-    contact_email = getattr(settings, "ITR_CONTACT_EMAIL", "askbhagwatgitasupport@gmail.com")
+    contact_email = getattr(settings, "ITR_CONTACT_EMAIL", "support@askbhagavadgita.in")
     # Keep pro_inr for SEO structured-data (use Professional bundle price)
     pro_inr = ITR_BUNDLES["professional"]["amount_inr"]
     plan_status = None
@@ -86,9 +86,9 @@ def pricing(request):
             "ITR Computation PDF Pricing — Income Tax Summary Exports | India"
         ),
         "meta_description": (
-            "ITR computation PDF exports from ₹20 — Pay-as-you-go, Essentials, or Professional plans. "
-            "Filed ITR JSON (ITR-1, ITR-3, ITR-4). "
-            "Income tax computation summary downloads for assessment-year workflows — Razorpay checkout."
+            "ITR computation PDF exports from ₹20 — Pay-as-you-go, Value pack, Essentials, or Professional plans. "
+            "Filed ITR JSON (ITR-1, ITR-2, ITR-3, ITR-4). "
+            "Free preview before pay. UPI, card, netbanking via Razorpay."
         ),
         "meta_keywords": SEO_META_KEYWORDS,
         "canonical_url": canonical,

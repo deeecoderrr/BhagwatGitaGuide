@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}ITR Summary Generator{% endblock %}</title>
   {% block meta %}
-  <meta name="description" content="{% block meta_description %}Income tax computation summary from filed ITR-1, ITR-3, or ITR-4 JSON — CA-style PDF.{% endblock %}">
+  <meta name="description" content="{% block meta_description %}Income tax computation summary from filed ITR-1, ITR-2, ITR-3, or ITR-4 JSON — CA-style PDF.{% endblock %}">
   {% endblock %}
   {% block extra_head %}{% endblock %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -64,13 +64,19 @@
         <p class="muted small">Computation summaries for review — not legal or tax advice.</p>
         <p class="muted small" style="margin-top: 0.4rem;">
           Questions or need help?
-          <a href="mailto:askbhagwatgitasupport@gmail.com" style="color: #059669; font-weight: 500;">askbhagwatgitasupport@gmail.com</a>
+          <a href="mailto:{{ itr_contact_email }}" style="color: #059669; font-weight: 500;">{{ itr_contact_email }}</a>
+          {% if itr_support_email_backup %}
+          · <a href="mailto:{{ itr_support_email_backup }}" style="color: #059669;">backup email</a>
+          {% endif %}
+          {% if itr_whatsapp_url %}
+          · <a href="{{ itr_whatsapp_url }}" target="_blank" rel="noopener" style="color: #059669; font-weight: 500;">WhatsApp</a>
+          {% endif %}
         </p>
       </div>
       <div class="footer-links">
         <a href="{% url 'marketing:home' %}">Home</a>
         <a href="{% url 'marketing:pricing' %}">Pricing</a>
-        <a href="mailto:askbhagwatgitasupport@gmail.com">Contact Us</a>
+        <a href="mailto:{{ itr_contact_email }}">Contact Us</a>
         {% if not user.is_authenticated %}
           <a href="{% url 'account_signup' %}">Sign up</a>
         {% endif %}

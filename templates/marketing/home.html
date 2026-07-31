@@ -206,11 +206,17 @@
     <p style="margin: 0 0 0.75rem; font-size: 0.9rem; color: #374151; line-height: 1.5;">
       We're here to help — whether it's about your upload, payment, or PDF download.
     </p>
-    <a href="mailto:askbhagwatgitasupport@gmail.com"
+    <a href="mailto:{{ itr_contact_email }}"
        style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: 500; color: #059669; text-decoration: none; border: 1px solid #a7f3d0; border-radius: 8px; padding: 0.6rem 1.25rem; background: #ffffff; transition: background 0.15s;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="4" width="20" height="16" rx="2" stroke="#059669" stroke-width="1.5"/><path d="M22 7l-10 7L2 7" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      askbhagwatgitasupport@gmail.com
+      {{ itr_contact_email }}
     </a>
+    {% if itr_whatsapp_url %}
+    <p style="margin:0.75rem 0 0;font-size:0.85rem;">
+      <a href="{{ itr_whatsapp_url }}" target="_blank" rel="noopener" style="color:#059669;font-weight:500;">WhatsApp us</a>
+      {% if itr_support_email_backup %} · backup: <a href="mailto:{{ itr_support_email_backup }}" style="color:#059669;">{{ itr_support_email_backup }}</a>{% endif %}
+    </p>
+    {% endif %}
   </section>
 
   {% include "comments/home_section.html" %}

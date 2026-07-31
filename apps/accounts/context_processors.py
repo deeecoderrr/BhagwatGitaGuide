@@ -17,6 +17,35 @@ def support_contact(request):
     return {"support_email": getattr(settings, "SUPPORT_EMAIL", "")}
 
 
+def itr_support(request):
+    """ITR support contact links (primary email, backup, WhatsApp)."""
+    primary = getattr(
+        settings,
+        "ITR_CONTACT_EMAIL",
+        "support@askbhagavadgita.in",
+    ).strip()
+    backup = getattr(settings, "ITR_SUPPORT_EMAIL_BACKUP", "").strip()
+    whatsapp = getattr(settings, "ITR_WHATSAPP_NUMBER", "").strip().lstrip("+")
+    wa_url = f"https://wa.me/{whatsapp}" if whatsapp else ""
+    guarantee_hours = int(getattr(settings, "ITR_GUARANTEE_HOURS", 24))
+    export_count = 0
+    try:
+        from apps.exports.models import ExportedSummary
+
+        export_count = ExportedSummary.objects.count()
+    except Exception:
+        pass
+    return {
+        "itr_contact_email": primary,
+        "itr_support_email_backup": backup,
+        "itr_whatsapp_number": whatsapp,
+        "itr_whatsapp_url": wa_url,
+        "itr_guarantee_hours": guarantee_hours,
+        "itr_exports_generated": export_count,
+        "itr_show_export_stat": export_count >= 5,
+    }
+
+
 def account_profile(request):
     user = request.user
     if isinstance(user, AnonymousUser) or not user.is_authenticated:

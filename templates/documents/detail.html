@@ -127,6 +127,10 @@
 {# ── Computation preview (HTML, pre-payment) ── #}
 {% if computation_preview and not poll_status %}
   {% include "documents/_computation_preview.html" %}
+  {% if export_blocked %}
+  {% include "documents/_sample_pdf_teaser.html" %}
+  {% include "documents/_conversion_trust.html" %}
+  {% endif %}
 {% endif %}
 
 {# ── Main action area ── #}
@@ -156,17 +160,31 @@
         {% endif %}
       </p>
 
-      <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 1rem;">
-        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹20</span>
-        <span style="font-size: 0.85rem; color: #9ca3af; text-decoration: line-through;">₹500+</span>
+      <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+        {% if first_export_promo %}
+        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹{{ payg_amount_inr }}</span>
+        <span style="font-size: 1rem; color: #9ca3af; text-decoration: line-through;">₹{{ payg_list_amount_inr }}</span>
+        <span style="font-size: 0.78rem; font-weight: 600; color: #059669; background: #ecfdf5; padding: 0.15rem 0.5rem; border-radius: 99px;">First export offer</span>
+        {% else %}
+        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹{{ payg_amount_inr }}</span>
+        {% endif %}
+        <span style="font-size: 0.85rem; color: #9ca3af; text-decoration: line-through;">₹500+ CA fee</span>
         <span style="font-size: 0.78rem; font-weight: 500; color: #059669; background: #ecfdf5; padding: 0.15rem 0.5rem; border-radius: 99px;">Save 90%</span>
       </div>
+      <p style="margin: 0 0 1rem; font-size: 0.8rem; color: #047857; font-weight: 500;">
+        Pay via Google Pay · PhonePe · any UPI app — takes about 30 seconds
+      </p>
 
       <button type="button" class="btn btn-primary" id="detail-pay-btn"
               style="width: 100%; font-size: 1.05rem; padding: 0.9rem 1.5rem; background: #059669; border-color: #059669; border-radius: 10px; font-weight: 600; letter-spacing: 0.01em;"
-              data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
-        Pay ₹20 — Download Full PDF
+              data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email=""
+              data-pay-label="Pay ₹{{ payg_amount_inr }} — Download Full PDF">
+        Pay ₹{{ payg_amount_inr }} — Download Full PDF
       </button>
+
+      <p style="margin: 0.85rem 0 0; font-size: 0.78rem; color: #6b7280; text-align: center;">
+        Need 3 returns? <a href="{% url 'account_signup' %}?next={% url 'marketing:pricing' %}" style="color:#059669;font-weight:500;">Sign up</a> for 3 exports at ₹50
+      </p>
 
       <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1rem; font-size: 0.78rem; color: #6b7280;">
         <span style="display: flex; align-items: center; gap: 0.25rem;">
@@ -175,7 +193,7 @@
         </span>
         <span style="display: flex; align-items: center; gap: 0.25rem;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" stroke="#059669" stroke-width="1.5"/><path d="M1 10h22" stroke="#059669" stroke-width="1.5"/></svg>
-          UPI · Card · Netbanking
+          Google Pay · PhonePe · UPI
         </span>
         <span style="display: flex; align-items: center; gap: 0.25rem;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#059669" stroke-width="1.5"/></svg>
@@ -258,12 +276,29 @@
 
 {# ── Support contact ── #}
 <div style="border-top: 1px solid #f3f4f6; padding-top: 1.25rem; margin-top: 1.25rem; text-align: center;">
-  <p style="margin: 0; font-size: 0.82rem; color: #9ca3af;">
+  <p style="margin: 0; font-size: 0.82rem; color: #9ca3af; line-height: 1.55;">
     Facing any issue?
-    <a href="mailto:askbhagwatgitasupport@gmail.com" style="color: #059669; font-weight: 500;">Mail us</a>
+    <a href="mailto:{{ itr_contact_email }}" style="color: #059669; font-weight: 500;">Email us</a>
+    {% if itr_whatsapp_url %}
+    · <a href="{{ itr_whatsapp_url }}" target="_blank" rel="noopener" style="color: #059669; font-weight: 500;">WhatsApp</a>
+    {% endif %}
+    {% if itr_support_email_backup %}
+    · <a href="mailto:{{ itr_support_email_backup }}" style="color: #059669;">Backup email</a>
+    {% endif %}
     — we typically respond within a few hours.
   </p>
 </div>
+
+{% if export_blocked and razorpay_available and not user.is_authenticated and computation_preview and not poll_status %}
+<div id="sticky-pay-bar" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:40; padding:0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom)); background:rgba(255,255,255,0.96); border-top:1px solid #e5e7eb; box-shadow:0 -4px 20px rgba(0,0,0,0.08);">
+  <button type="button" class="btn btn-primary" id="sticky-pay-btn" data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email=""
+          style="width:100%; font-size:1rem; padding:0.85rem; background:#059669; border-color:#059669; border-radius:10px; font-weight:600;"
+          data-pay-label="Pay ₹{{ payg_amount_inr }} — Download PDF">
+    Pay ₹{{ payg_amount_inr }} — Download PDF
+  </button>
+</div>
+<style>@media (max-width:768px){ .wrap{padding-bottom:5rem !important;} #sticky-pay-bar{display:block !important;} }</style>
+{% endif %}
 
 </div>
 
@@ -279,12 +314,28 @@
                    document.querySelector('[name=csrfmiddlewaretoken]').value) ||
                   getCookie('csrftoken');
   var successUrl = "{{ guest_success_url|escapejs }}";
+  var analyticsUrl = "{{ analytics_event_url|escapejs }}";
+  var docPkGlobal = "{{ document.pk }}";
+
+  function trackEvent(eventType) {
+    if (!analyticsUrl) return;
+    try {
+      fetch(analyticsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+        body: JSON.stringify({ event_type: eventType, document_id: docPkGlobal }),
+        keepalive: true,
+      });
+    } catch (e) {}
+  }
 
   document.querySelectorAll('[data-pay-btn]').forEach(function (btn) {
     btn.style.cursor = 'pointer';
     btn.addEventListener('click', function () {
+      trackEvent('itr_pay_click');
       var initUrl   = btn.getAttribute('data-init-url');
       var docPk     = btn.getAttribute('data-doc');
+      var payLabel  = btn.getAttribute('data-pay-label') || 'Pay — Download Full PDF';
 
       btn.textContent = 'Setting up payment…';
       btn.style.pointerEvents = 'none';
@@ -397,7 +448,7 @@
               }
             })
             .catch(function (err) {
-              btn.textContent = 'Pay ₹20 — Download Full PDF';
+              btn.textContent = payLabel;
               btn.style.pointerEvents = '';
               btn.style.opacity = '1';
               alert('Payment succeeded but download failed. Please refresh the page to download your PDF.');
@@ -405,7 +456,7 @@
           },
           modal: {
             ondismiss: function() {
-              btn.textContent = 'Pay ₹20 — Download Full PDF';
+              btn.textContent = payLabel;
               btn.style.pointerEvents = '';
             }
           },
@@ -414,7 +465,7 @@
         new Razorpay(options).open();
       })
       .catch(function (err) {
-        btn.textContent = 'Pay ₹20 & Download PDF';
+        btn.textContent = payLabel;
         btn.style.pointerEvents = '';
         alert(err.message || 'Something went wrong. Please try again.');
       });

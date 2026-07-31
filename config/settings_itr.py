@@ -78,6 +78,7 @@ def register_itr_settings(g: dict[str, Any]) -> None:
             "apps.accounts.context_processors.google_oauth",
             "apps.accounts.context_processors.account_profile",
             "apps.accounts.context_processors.support_contact",
+            "apps.accounts.context_processors.itr_support",
         ],
     )
     g["STATICFILES_DIRS"] = [base_dir / "static_itr"]
@@ -109,6 +110,20 @@ def register_itr_settings(g: dict[str, Any]) -> None:
     g["ITR_ESSENTIALS_AMOUNT_PAISE"] = int(os.getenv("ITR_ESSENTIALS_AMOUNT_PAISE", "50000"))   # ₹500
     g["ITR_PROFESSIONAL_AMOUNT_PAISE"] = int(os.getenv("ITR_PROFESSIONAL_AMOUNT_PAISE", "100000")) # ₹1000
     g["ITR_CONTACT_EMAIL"] = os.getenv("ITR_CONTACT_EMAIL", "support@askbhagavadgita.in").strip()
+    g["ITR_SUPPORT_EMAIL_BACKUP"] = os.getenv(
+        "ITR_SUPPORT_EMAIL_BACKUP",
+        "deecoderr@gmail.com",
+    ).strip()
+    g["ITR_WHATSAPP_NUMBER"] = os.getenv("ITR_WHATSAPP_NUMBER", "").strip()
+    g["ITR_GUARANTEE_HOURS"] = int(os.getenv("ITR_GUARANTEE_HOURS", "24"))
+    g["ITR_FIRST_EXPORT_PROMO_ENABLED"] = os.getenv(
+        "ITR_FIRST_EXPORT_PROMO_ENABLED",
+        "true",
+    ).lower() in ("1", "true", "yes")
+    g["ITR_FIRST_EXPORT_AMOUNT_PAISE"] = int(
+        os.getenv("ITR_FIRST_EXPORT_AMOUNT_PAISE", "1000"),
+    )
+    g["ITR_VALUE3_AMOUNT_PAISE"] = int(os.getenv("ITR_VALUE3_AMOUNT_PAISE", "5000"))
     # Keep for backward compat (unused by new credit system)
     g["PRO_PLAN_AMOUNT_PAISE"] = int(
         os.getenv("PRO_PLAN_AMOUNT_PAISE", "49900"),
