@@ -28,6 +28,8 @@ def itr_support(request):
     whatsapp = getattr(settings, "ITR_WHATSAPP_NUMBER", "").strip().lstrip("+")
     wa_url = f"https://wa.me/{whatsapp}" if whatsapp else ""
     guarantee_hours = int(getattr(settings, "ITR_GUARANTEE_HOURS", 24))
+    from apps.marketing.itr_copy import ITR_FORMS_COMMA, ITR_FORMS_FAQ, ITR_FORMS_SLASH
+
     export_count = 0
     try:
         from apps.exports.models import ExportedSummary
@@ -43,6 +45,9 @@ def itr_support(request):
         "itr_guarantee_hours": guarantee_hours,
         "itr_exports_generated": export_count,
         "itr_show_export_stat": export_count >= 5,
+        "itr_forms_comma": ITR_FORMS_COMMA,
+        "itr_forms_slash": ITR_FORMS_SLASH,
+        "itr_forms_faq": ITR_FORMS_FAQ,
     }
 
 

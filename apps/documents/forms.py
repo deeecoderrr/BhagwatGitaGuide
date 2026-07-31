@@ -7,7 +7,7 @@ class ItrUploadForm(forms.Form):
     """Upload filed ITR JSON (ITR-1, ITR-2, ITR-3, or ITR-4). PDF is not accepted."""
 
     file = forms.FileField(
-        label="Filed ITR JSON (ITR-1 / ITR-3 / ITR-4 — acknowledgment or utility export)",
+        label="Filed ITR JSON (ITR-1 / ITR-2 / ITR-3 / ITR-4 — acknowledgment or utility export)",
         allow_empty_file=False,
         widget=forms.ClearableFileInput(attrs={"accept": "application/json,.json"}),
     )

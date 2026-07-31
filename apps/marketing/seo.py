@@ -1,5 +1,7 @@
 """SEO copy and search synonyms for Indian income-tax / ITR computation intent."""
 
+from apps.marketing.itr_copy import ITR_FORMS_COMMA, ITR_FORMS_FAQ, ITR_FORMS_SLASH
+
 # Meta keywords (comma-separated synonyms and long-tail variants)
 SEO_META_KEYWORDS = (
     "ITR computation, income tax computation, computation summary, income computation "
@@ -13,12 +15,12 @@ SEO_META_KEYWORDS = (
     "tax computation PDF India, ay computation, assessment year computation, "
     "Chapter VI-A, Chapter VIA deductions, Gross Total Income, taxable income computation, "
     "refund computation, tax liability computation, TDS computation, advance tax computation, "
-    "professional income computation, business income computation, Form ITR-3 summary, "
+    "professional income computation, business income computation, Form ITR-2 summary, Form ITR-3 summary, "
     "सालाना आयकर गणना, आईटीआर संक्षेप, आयकर समरी, आय गणना, टैक्स समरी पीडीएफ"
 )
 
 SITE_TAGLINE = (
-    "Turn filed ITR-1, ITR-2, ITR-3, or ITR-4 JSON into a reviewed CA-style computation PDF — "
+    f"Turn filed {ITR_FORMS_COMMA} JSON into a reviewed CA-style computation PDF — "
     "income tax computation summary built for assessment-year reporting."
 )
 
@@ -36,7 +38,7 @@ def structured_data_json_ld(
         page_heading
         or (
             "ITR computation summary — income tax computation PDF from filed "
-            "ITR-1 / ITR-3 / ITR-4 JSON"
+            f"{ITR_FORMS_SLASH} JSON"
         )
     )
 
@@ -71,7 +73,7 @@ def structured_data_json_ld(
                     "@type": "Thing",
                     "name": (
                         "Income tax computation, ITR computation summary, "
-                        "filed ITR-1 / ITR-3 / ITR-4 JSON"
+                        f"filed {ITR_FORMS_SLASH} JSON"
                     ),
                 },
             },
@@ -84,12 +86,12 @@ def structured_data_json_ld(
                 "url": page_url,
                 "keywords": (
                     "ITR computation, ITR summary, income tax computation, itr income computation, "
-                    "computation of income, filed ITR JSON ITR-1 ITR-3 ITR-4, CA computation PDF, "
+                    "computation of income, filed ITR JSON ITR-1 ITR-2 ITR-3 ITR-4, CA computation PDF, "
                     "assessment year India"
                 ),
                 "featureList": [
                     (
-                        "Import filed ITR-1, ITR-3, or ITR-4 JSON from the income-tax portal "
+                        f"Import filed {ITR_FORMS_COMMA} JSON from the income-tax portal "
                         "(utility / acknowledgment export)"
                     ),
                     "Computation of income and tax liability summary sections",
@@ -125,7 +127,7 @@ def structured_data_json_ld(
                             "@type": "Answer",
                             "text": (
                                 "No. This tool imports your filed ITR JSON (supported forms: "
-                                "ITR-1, ITR-3, ITR-4) and helps you generate "
+                                f"{ITR_FORMS_COMMA}) and helps you generate "
                                 "a human-reviewed summary PDF. Professional advice and official filing "
                                 "remain your responsibility."
                             ),
@@ -137,8 +139,7 @@ def structured_data_json_ld(
                         "acceptedAnswer": {
                             "@type": "Answer",
                             "text": (
-                                "Filed JSON for ITR-1 (Sahaj), ITR-3 (business/profession), "
-                                "or ITR-4 (Sugam) from the income-tax portal "
+                                f"Filed JSON for {ITR_FORMS_FAQ} from the income-tax portal "
                                 "(acknowledgment / utility export). PDF uploads are not used."
                             ),
                         },
@@ -235,8 +236,8 @@ def structured_data_pricing_json_ld(
         f"Pay-as-you-go at ₹{payg['amount_inr']} per export (no login needed), "
         f"Essentials at ₹{essentials['amount_inr']:,}/year for {essentials['credits']} exports, "
         f"or Professional at ₹{professional['amount_inr']:,}/year for "
-        f"{professional['credits']} exports. All plans include ITR-1, "
-        "ITR-3, ITR-4 JSON import and CA-style computation PDF generation."
+        f"{professional['credits']} exports. All plans include {ITR_FORMS_COMMA} "
+        "JSON import and CA-style computation PDF generation."
     )
 
     home_nav = itr_home_url or site_url.rstrip("/") + "/"
