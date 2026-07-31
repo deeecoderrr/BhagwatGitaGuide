@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block meta %}
+  <meta name="description" content="{{ meta_description }}">
+  <link rel="canonical" href="{{ canonical_url }}">
+  <meta name="robots" content="index,follow">
+{% endblock %}
+
+{% block content %}
+<section class="service-hero wrap">
+  <p class="service-hero__eyebrow">{{ service.category }} · {{ service.price_display }}</p>
+  <h1>{{ page.headline }}</h1>
+  <p class="service-hero__tagline">{{ page.tagline }}</p>
+  <p class="service-hero__intro muted">{{ page.intro }}</p>
+  <div class="service-hero__cta">
+    <a class="btn btn-primary" href="#book-appointment">Book {{ service.label }}</a>
+    <a class="btn" href="{% url 'marketing:home' %}">← JSON to PDF (₹20)</a>
+  </div>
+</section>
+
+<div class="wrap service-content-grid">
+  {% if page.eligible %}
+  <section class="service-panel card">
+    <h2>Who this is for</h2>
+    <ul class="service-checklist service-checklist--yes">
+      {% for item in page.eligible %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
+  {% if page.not_eligible %}
+  <section class="service-panel card">
+    <h2>Not eligible if</h2>
+    <ul class="service-checklist service-checklist--no">
+      {% for item in page.not_eligible %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+
+<section class="wrap service-process card">
+  <h2>How it works</h2>
+  <ol class="service-process__steps">
+    {% for step in page.process_steps %}
+    <li>{{ step }}</li>
+    {% endfor %}
+  </ol>
+</section>
+
+{% if page.documents %}
+<section class="wrap service-docs card">
+  <h2>Documents you'll need</h2>
+  <ul class="service-docs__list">
+    {% for doc in page.documents %}
+    <li>{{ doc }}</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if page.faqs %}
+<section class="wrap service-faq card">
+  <h2>Common questions</h2>
+  <dl class="faq-dl muted small">
+    {% for q, a in page.faqs %}
+    <dt><strong>{{ q }}</strong></dt>
+    <dd>{{ a }}</dd>
+    {% endfor %}
+  </dl>
+</section>
+{% endif %}
+
+<section id="book-appointment" class="ca-services-section ca-services-section--embedded">
+  <div class="wrap">
+    <div class="ca-appointment-card">
+      <div class="ca-appointment-card__intro">
+        <h2 class="ca-appointment-card__title">Book {{ service.label }}</h2>
+        <p class="muted small">Flat {{ service.price_display }} — confirm scope on our callback.</p>
+      </div>
+      {% include "marketing/_appointment_form.html" %}
+      {% include "marketing/_appointment_what_next.html" %}
+    </div>
+  </div>
+</section>
+
+<section class="wrap service-related">
+  <h2 class="service-related__title">Other services</h2>
+  <div class="other-services-strip other-services-strip--wrap">
+    <a class="other-services-strip__link" href="{% url 'marketing:home' %}#book-appointment">ITR computation PDF · ₹20</a>
+    <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='itr-1-filing' %}">ITR-1 filing</a>
+    <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='itr-2-filing' %}">ITR-2 filing</a>
+    <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='gst-registration' %}">GST registration</a>
+    <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='msme-udyam' %}">MSME Udyam</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  if (location.hash === "#book-appointment") {
+    var target = document.getElementById("book-appointment");
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+})();
+</script>
+{% endblock %}

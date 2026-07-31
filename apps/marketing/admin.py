@@ -10,6 +10,8 @@ class ServiceAppointmentLeadAdmin(admin.ModelAdmin):
         "name",
         "phone",
         "service_label",
+        "assessment_year",
+        "source_page",
         "status",
         "email_sent",
     )

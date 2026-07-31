@@ -18,6 +18,8 @@ class ServiceAppointmentLead(models.Model):
     email = models.EmailField()
     service_key = models.CharField(max_length=40, db_index=True)
     service_label = models.CharField(max_length=160)
+    assessment_year = models.CharField(max_length=16, blank=True)
+    income_source = models.CharField(max_length=32, blank=True)
     notes = models.TextField(blank=True)
     status = models.CharField(
         max_length=16,

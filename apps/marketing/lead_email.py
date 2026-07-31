@@ -6,6 +6,7 @@ import logging
 from django.conf import settings
 from django.core.mail import send_mail
 
+from apps.marketing.forms import INCOME_SOURCE_CHOICES, AppointmentLeadForm
 from apps.marketing.models import ServiceAppointmentLead
 from apps.marketing.services_catalog import CA_SERVICE_BY_KEY
 
@@ -21,20 +22,33 @@ def lead_notification_recipient() -> str:
     )
 
 
-def send_appointment_lead_email(lead: ServiceAppointmentLead) -> bool:
+def _income_source_label(key: str) -> str:
+    for k, label in INCOME_SOURCE_CHOICES:
+        if k == key:
+            return label
+    return key or "—"
+
+
+def send_appointment_lead_email(
+    lead: ServiceAppointmentLead,
+    form: AppointmentLeadForm | None = None,
+) -> bool:
     svc = CA_SERVICE_BY_KEY.get(lead.service_key)
     price = svc.price_display if svc else "—"
     subject = f"[ITR Lead] {lead.service_label} — {lead.name}"
+    income = _income_source_label(lead.income_source)
     body = "\n".join(
         [
-            "New appointment / service enquiry from ITR Summary landing page",
+            "New appointment / service enquiry from ITR Summary",
             "",
             f"Name: {lead.name}",
             f"Phone: {lead.phone}",
             f"Email: {lead.email}",
             f"Service: {lead.service_label}",
             f"Listed price: {price}",
-            f"Source: {lead.source_page or 'home'}",
+            f"Assessment year: {lead.assessment_year or '—'}",
+            f"Income source: {income}",
+            f"Source page: {lead.source_page or 'home'}",
             "",
             "Notes:",
             lead.notes.strip() or "—",

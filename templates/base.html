@@ -36,6 +36,7 @@
           </form>
         {% else %}
           <a href="{% url 'marketing:home' %}">Home</a>
+          <a href="{% url 'marketing:home' %}#book-appointment">CA Services</a>
           <a href="{% url 'marketing:pricing' %}">Pricing</a>
           <a href="{% url 'account_login' %}?next={% url 'documents:list' %}">Log in</a>
           <a href="{% url 'account_signup' %}?next={% url 'documents:list' %}" class="btn btn-primary btn-sm">Sign up</a>
@@ -72,6 +73,9 @@
       </div>
       <div class="footer-links">
         <a href="{% url 'marketing:home' %}">Home</a>
+        <a href="{% url 'marketing:home' %}#book-appointment">Book CA help</a>
+        <a href="{% url 'marketing:service_page' slug='itr-2-filing' %}">ITR-2 filing</a>
+        <a href="{% url 'marketing:service_page' slug='gst-registration' %}">GST</a>
         <a href="{% url 'marketing:pricing' %}">Pricing</a>
         <a href="mailto:askbhagwatgitasupport@gmail.com">Contact Us</a>
         {% if not user.is_authenticated %}

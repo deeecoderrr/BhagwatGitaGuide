@@ -1,0 +1,15 @@
+<div class="itr-plan-grid" role="list">
+  {% for svc in itr_filing_services %}
+  {% if svc.key == 'itr1_filing' %}{% with page_slug='itr-1-filing' %}{% include 'marketing/_itr_plan_card_item.html' %}{% endwith %}
+  {% elif svc.key == 'itr2_filing' %}{% with page_slug='itr-2-filing' %}{% include 'marketing/_itr_plan_card_item.html' %}{% endwith %}
+  {% elif svc.key == 'itr3_filing' %}{% with page_slug='itr-3-filing' %}{% include 'marketing/_itr_plan_card_item.html' %}{% endwith %}
+  {% elif svc.key == 'itr4_filing' %}{% with page_slug='itr-4-filing' %}{% include 'marketing/_itr_plan_card_item.html' %}{% endwith %}
+  {% endif %}
+  {% endfor %}
+</div>
+
+<div class="other-services-strip">
+  <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='gst-registration' %}">GST registration · ₹2,000</a>
+  <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='gst-filing' %}">GST filing · from ₹500</a>
+  <a class="other-services-strip__link" href="{% url 'marketing:service_page' slug='msme-udyam' %}">MSME Udyam · ₹1,000</a>
+</div>

@@ -1635,6 +1635,278 @@ body.pdf-modal-open {
   }
 }
 
+.ca-appointment-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+  align-items: center;
+}
+
+.ca-appointment-form__whatsapp {
+  border-color: #25d366;
+  color: #128c7e;
+}
+
+.ca-what-next {
+  margin-top: 1.35rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ca-what-next__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+}
+
+.ca-what-next__list {
+  margin: 0 0 0.65rem;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.ca-what-next__note {
+  margin: 0;
+}
+
+.itr-plan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.itr-plan-card {
+  background: var(--surface);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.itr-plan-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.itr-plan-card__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.itr-plan-card__price {
+  margin: 0;
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+}
+
+.itr-plan-card__blurb {
+  margin: 0;
+  flex: 1;
+}
+
+.itr-plan-card__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.other-services-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.other-services-strip__link {
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.4rem 0.75rem;
+  border-radius: 99px;
+  border: 1px solid rgba(13, 148, 136, 0.25);
+  background: #fff;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.other-services-strip__link:hover {
+  background: #f0fdfa;
+}
+
+.other-services-strip--wrap {
+  margin-bottom: 2rem;
+}
+
+.ca-sticky-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  text-align: center;
+  padding: 0.85rem 1rem;
+  background: #065f46;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.ca-services-section--embedded {
+  padding: 2rem 0 3rem;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.service-hero {
+  padding: 2rem 0 1.5rem;
+  max-width: 46rem;
+}
+
+.service-hero__eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+}
+
+.service-hero h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.service-hero__tagline {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  color: #047857;
+}
+
+.service-hero__intro {
+  margin: 0 0 1.25rem;
+  line-height: 1.6;
+}
+
+.service-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.service-content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.service-panel h2,
+.service-process h2,
+.service-docs h2,
+.service-faq h2 {
+  margin: 0 0 0.85rem;
+  font-size: 1.05rem;
+}
+
+.service-checklist {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+
+.service-checklist--yes li::marker {
+  color: #059669;
+}
+
+.service-checklist--no li::marker {
+  color: #dc2626;
+}
+
+.service-process,
+.service-docs,
+.service-faq {
+  margin-bottom: 1rem;
+}
+
+.service-process__steps {
+  margin: 0;
+  padding-left: 1.2rem;
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.service-docs__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  columns: 2;
+  column-gap: 1.5rem;
+  font-size: 0.88rem;
+}
+
+.service-related__title {
+  font-size: 1rem;
+  margin: 0 0 0.75rem;
+}
+
+.filing-upsell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid #a7f3d0;
+  background: linear-gradient(135deg, #ecfdf5 0%, #fff 100%);
+}
+
+.filing-upsell__eyebrow {
+  margin: 0 0 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #047857;
+}
+
+.filing-upsell__title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.filing-upsell__text {
+  margin: 0;
+}
+
+.filing-upsell__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .service-docs__list {
+    columns: 1;
+  }
+
+  .filing-upsell__actions {
+    width: 100%;
+  }
+
+  .filing-upsell__actions .btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+
 /* --- Upload page --- */
 .upload-page-shell {
   display: flex;

@@ -4,88 +4,27 @@
       <p class="ca-services-section__eyebrow">Full CA support · Transparent pricing</p>
       <h2 id="ca-services-heading">Need help beyond the ₹20 PDF?</h2>
       <p class="ca-services-section__lead muted">
-        Our team handles ITR filing, GST registration &amp; returns, and MSME Udyam registration.
-        Book an appointment — we’ll call or email you at a convenient time.
+        Expert ITR filing, GST registration &amp; returns, and MSME Udyam registration.
+        Pick a plan below or book a callback — we respond within 24 hours.
       </p>
     </header>
 
-    <div class="ca-services-grid" role="list">
-      {% for category, services in ca_services_by_category.items %}
-      <article class="ca-services-card" role="listitem">
-        <h3 class="ca-services-card__title">{{ category }}</h3>
-        <ul class="ca-services-card__list">
-          {% for svc in services %}
-          <li class="ca-services-card__row">
-            <span class="ca-services-card__label">{{ svc.label }}</span>
-            <span class="ca-services-card__price">{{ svc.price_display }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </article>
-      {% endfor %}
-    </div>
+    {% include "marketing/_itr_plan_cards.html" %}
 
     <div class="ca-appointment-card">
       <div class="ca-appointment-card__intro">
         <h3 class="ca-appointment-card__title">Book an appointment</h3>
         <p class="muted small">
-          Share your details and the service you need. No payment on this form — we’ll confirm scope and pricing when we reach out.
+          Share your details and the service you need. No payment on this form.
         </p>
       </div>
 
-      <form method="post" action="{% url 'marketing:appointment_book' %}" class="ca-appointment-form">
-        {% csrf_token %}
-        {% if appointment_form.non_field_errors %}
-        <div class="form-errors">{{ appointment_form.non_field_errors }}</div>
-        {% endif %}
-
-        <div class="ca-appointment-form__grid">
-          <div class="ca-appointment-form__field">
-            {{ appointment_form.name.label_tag }}
-            {{ appointment_form.name }}
-            {% if appointment_form.name.errors %}
-            <div class="form-errors">{{ appointment_form.name.errors }}</div>
-            {% endif %}
-          </div>
-          <div class="ca-appointment-form__field">
-            {{ appointment_form.phone.label_tag }}
-            {{ appointment_form.phone }}
-            {% if appointment_form.phone.errors %}
-            <div class="form-errors">{{ appointment_form.phone.errors }}</div>
-            {% endif %}
-          </div>
-          <div class="ca-appointment-form__field ca-appointment-form__field--full">
-            {{ appointment_form.email.label_tag }}
-            {{ appointment_form.email }}
-            {% if appointment_form.email.errors %}
-            <div class="form-errors">{{ appointment_form.email.errors }}</div>
-            {% endif %}
-          </div>
-          <div class="ca-appointment-form__field ca-appointment-form__field--full">
-            {{ appointment_form.service.label_tag }}
-            {{ appointment_form.service }}
-            {% if appointment_form.service.errors %}
-            <div class="form-errors">{{ appointment_form.service.errors }}</div>
-            {% endif %}
-          </div>
-          <div class="ca-appointment-form__field ca-appointment-form__field--full">
-            {{ appointment_form.notes.label_tag }}
-            {{ appointment_form.notes }}
-            {% if appointment_form.notes.errors %}
-            <div class="form-errors">{{ appointment_form.notes.errors }}</div>
-            {% endif %}
-          </div>
-        </div>
-
-        {# Honeypot — leave empty #}
-        <div class="ca-appointment-form__honeypot" aria-hidden="true">
-          {{ appointment_form.company }}
-        </div>
-
-        <button type="submit" class="btn btn-primary ca-appointment-form__submit">
-          Request callback
-        </button>
-      </form>
+      {% include "marketing/_appointment_form.html" %}
+      {% include "marketing/_appointment_what_next.html" %}
     </div>
   </div>
 </section>
+
+<a href="#book-appointment" class="ca-sticky-cta" id="ca-sticky-cta" hidden>
+  Need filing help? Book callback →
+</a>

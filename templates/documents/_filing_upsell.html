@@ -1,0 +1,20 @@
+{% if filing_upsell_service %}
+<div class="filing-upsell" aria-labelledby="filing-upsell-heading">
+  <div class="filing-upsell__copy">
+    <p class="filing-upsell__eyebrow">Need a CA to file this return?</p>
+    <h3 id="filing-upsell-heading" class="filing-upsell__title">
+      {{ filing_upsell_service.label }} from {{ filing_upsell_service.price_display }}
+    </h3>
+    <p class="filing-upsell__text muted small">
+      You've already uploaded your {{ document.get_detected_type_display }} JSON.
+      Book a callback — we'll review your computation and e-file for you.
+    </p>
+  </div>
+  <div class="filing-upsell__actions">
+    <a class="btn btn-primary btn-sm" href="{% url 'marketing:service_page' slug=filing_upsell_slug %}#book-appointment">
+      Book filing
+    </a>
+    <a class="btn btn-sm" href="{% url 'marketing:home' %}#book-appointment">All services</a>
+  </div>
+</div>
+{% endif %}

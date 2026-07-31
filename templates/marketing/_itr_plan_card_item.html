@@ -1,0 +1,17 @@
+<article class="itr-plan-card" role="listitem">
+  <div class="itr-plan-card__head">
+    <h3 class="itr-plan-card__title">{{ svc.label }}</h3>
+    <p class="itr-plan-card__price">{{ svc.price_display }}</p>
+  </div>
+  <p class="itr-plan-card__blurb muted small">
+    {% if svc.key == 'itr1_filing' %}Salary, pension, one house property — up to ₹50L income.
+    {% elif svc.key == 'itr2_filing' %}Capital gains, multiple properties, foreign income.
+    {% elif svc.key == 'itr3_filing' %}Business &amp; professional income with books.
+    {% elif svc.key == 'itr4_filing' %}Presumptive tax u/s 44AD, 44ADA, 44AE.
+    {% endif %}
+  </p>
+  <div class="itr-plan-card__actions">
+    <a class="btn btn-sm" href="{% url 'marketing:service_page' slug=page_slug %}">Details</a>
+    <a class="btn btn-primary btn-sm" href="{% url 'marketing:service_page' slug=page_slug %}#book-appointment">Book</a>
+  </div>
+</article>

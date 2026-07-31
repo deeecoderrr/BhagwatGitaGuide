@@ -160,6 +160,20 @@ def document_detail(request, pk: int):
 
     promo_ctx = first_export_promo_context(request)
 
+    filing_upsell_service = None
+    filing_upsell_slug = ""
+    if computation_preview and doc.detected_type:
+        from apps.marketing.services_catalog import (
+            CA_SERVICE_BY_KEY,
+            DOCUMENT_TYPE_TO_SERVICE,
+            SERVICE_PAGE_SLUG_BY_KEY,
+        )
+
+        svc_key = DOCUMENT_TYPE_TO_SERVICE.get(doc.detected_type, "")
+        if svc_key:
+            filing_upsell_service = CA_SERVICE_BY_KEY.get(svc_key)
+            filing_upsell_slug = SERVICE_PAGE_SLUG_BY_KEY.get(svc_key, "")
+
     return render(
         request,
         "documents/detail.html",
@@ -177,6 +191,8 @@ def document_detail(request, pk: int):
             "auth_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": "payg"}) if request.user.is_authenticated else "",
             "auth_success_url": reverse("billing:payment_success") if request.user.is_authenticated else "",
             "computation_preview": computation_preview,
+            "filing_upsell_service": filing_upsell_service,
+            "filing_upsell_slug": filing_upsell_slug,
             "analytics_event_url": reverse("analytics:record_event"),
             **promo_ctx,
         },
