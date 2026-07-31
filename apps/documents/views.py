@@ -126,6 +126,12 @@ def document_detail(request, pk: int):
         allowed, _ = can_export_pdf_anonymous(request)
         export_blocked = not allowed
 
+    computation_preview = None
+    if not _should_poll_status(doc) and not doc.error_message:
+        from apps.exports.preview import build_computation_preview_context
+
+        computation_preview = build_computation_preview_context(doc)
+
     return render(
         request,
         "documents/detail.html",
@@ -142,6 +148,7 @@ def document_detail(request, pk: int):
             "guest_success_url": reverse("billing:guest_payment_success"),
             "auth_init_url": reverse("billing:checkout_bundle_init", kwargs={"bundle": "payg"}) if request.user.is_authenticated else "",
             "auth_success_url": reverse("billing:payment_success") if request.user.is_authenticated else "",
+            "computation_preview": computation_preview,
         },
     )
 

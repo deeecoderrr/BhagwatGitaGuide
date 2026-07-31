@@ -2,7 +2,7 @@
 {% load itr_export %}
 {% block title %}{{ document.get_detected_type_display }} Summary — {{ document.original_filename }}{% endblock %}
 {% block content %}
-<div class="wrap" style="max-width: 640px; margin: 0 auto; padding-top: 1.5rem; padding-bottom: 3rem;">
+<div class="wrap" style="max-width: 720px; margin: 0 auto; padding-top: 1.5rem; padding-bottom: 3rem;">
 
 {# ── Progress stepper ── #}
 {% if not poll_status %}
@@ -19,7 +19,7 @@
   <span id="stepper-connector" style="flex: 1; height: 2px; background: linear-gradient(90deg, #059669 0%, #d1d5db 100%); margin: 0 0.5rem;"></span>
   <div style="display: flex; align-items: center; gap: 0.35rem;">
     <span id="stepper-step3" style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #059669; color: white; font-size: 0.8rem; font-weight: 700; flex-shrink: 0;">3</span>
-    <span style="font-size: 0.82rem; font-weight: 600; color: #065f46;">Download</span>
+    <span style="font-size: 0.82rem; font-weight: 600; color: #065f46;">Preview &amp; Download</span>
   </div>
 </nav>
 {% endif %}
@@ -39,8 +39,35 @@
   </div>
 {% endif %}
 
-{# ── Extracted data card ── #}
-{% if summary.name or summary.pan %}
+{# ── Outcome hero (refund / demand / income) ── #}
+{% if computation_preview %}
+<div style="border-radius: 14px; padding: 1.25rem 1.35rem; margin-bottom: 1.25rem; border: 1px solid {% if computation_preview.fields.demand_amount|nz %}#fecaca{% else %}#bbf7d0{% endif %}; background: {% if computation_preview.fields.demand_amount|nz %}linear-gradient(135deg, #fef2f2 0%, #fff 100%){% else %}linear-gradient(135deg, #ecfdf5 0%, #fff 100%){% endif %};">
+  <p style="margin: 0 0 0.35rem; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: {% if computation_preview.fields.demand_amount|nz %}#b91c1c{% else %}#047857{% endif %};">
+    {% if computation_preview.fields.demand_amount|nz %}Tax demand{% elif computation_preview.fields.rounded_refund_amount|nz or computation_preview.fields.refund_amount|nz %}Refund due{% else %}Total income{% endif %}
+  </p>
+  <p style="margin: 0; font-size: clamp(1.6rem, 5vw, 2.1rem); font-weight: 700; line-height: 1.15; color: #111827;">
+    {% if computation_preview.fields.demand_amount|nz %}
+      ₹{{ computation_preview.fields.demand_amount|inr }}
+    {% elif computation_preview.fields.rounded_refund_amount|nz or computation_preview.fields.refund_amount|nz %}
+      ₹{{ computation_preview.refund_display_rounded }}
+    {% else %}
+      ₹{{ computation_preview.fields.total_income|inr }}
+    {% endif %}
+  </p>
+  <p style="margin: 0.55rem 0 0; font-size: 0.85rem; color: #6b7280; line-height: 1.45;">
+    {% if computation_preview.fields.demand_amount|nz %}
+      Your computation shows tax payable after TDS and other credits.
+    {% elif computation_preview.fields.rounded_refund_amount|nz or computation_preview.fields.refund_amount|nz %}
+      Refund rounded u/s 288B — preview the full breakdown below before downloading the PDF.
+    {% else %}
+      A.Y. {{ computation_preview.fields.assessment_year|default:"—" }} — preview your head-wise income and tax calculation below.
+    {% endif %}
+  </p>
+</div>
+{% endif %}
+
+{# ── Extracted data card (when no full preview) ── #}
+{% if not computation_preview and summary.name or not computation_preview and summary.pan %}
 <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
   <div style="background: #f0fdf4; padding: 0.75rem 1.25rem; border-bottom: 1px solid #d1fae5;">
     <p style="margin: 0; font-weight: 600; color: #065f46; font-size: 0.88rem; display: flex; align-items: center; gap: 0.4rem;">
@@ -97,6 +124,11 @@
 </div>
 {% endif %}
 
+{# ── Computation preview (HTML, pre-payment) ── #}
+{% if computation_preview and not poll_status %}
+  {% include "documents/_computation_preview.html" %}
+{% endif %}
+
 {# ── Main action area ── #}
 {% if poll_status %}
   <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 1.5rem; text-align: center;">
@@ -109,14 +141,19 @@
 
   {% if export_blocked and razorpay_available and not user.is_authenticated %}
   {# ── PAYMENT CARD: Guest user, needs to pay ── #}
-  <div id="payment-card" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
+  <div id="unlock-pdf" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
     <div style="padding: 1.5rem 1.5rem 1.25rem;">
       <p style="margin: 0 0 0.25rem; font-size: 1.1rem; font-weight: 600; color: #111827;">
-        Download computation PDF
+        Download full computation PDF
       </p>
       <p style="margin: 0 0 1.25rem; font-size: 0.88rem; color: #6b7280; line-height: 1.5;">
+        {% if computation_preview %}
+        You've reviewed the preview above. Pay once to download the printable PDF with bank details,
+        TDS annexure, and CA-style formatting.
+        {% else %}
         Professional CA-style computation sheet with head-wise income breakdown,
         deductions, tax slab calculations, and refund/demand summary.
+        {% endif %}
       </p>
 
       <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 1rem;">
@@ -128,7 +165,7 @@
       <button type="button" class="btn btn-primary" id="detail-pay-btn"
               style="width: 100%; font-size: 1.05rem; padding: 0.9rem 1.5rem; background: #059669; border-color: #059669; border-radius: 10px; font-weight: 600; letter-spacing: 0.01em;"
               data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email="">
-        Pay ₹20 — Instant PDF Download
+        Pay ₹20 — Download Full PDF
       </button>
 
       <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1rem; font-size: 0.78rem; color: #6b7280;">
@@ -346,7 +383,7 @@
               }
 
               /* 4. Payment card → success state with download link */
-              var card = document.getElementById('payment-card');
+              var card = document.getElementById('unlock-pdf');
               if (card) {
                 card.innerHTML = '<div style="padding:1.5rem;text-align:center;">' +
                   '<div style="width:52px;height:52px;border-radius:50%;background:#ecfdf5;display:inline-flex;align-items:center;justify-content:center;margin-bottom:0.75rem;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="#059669" stroke-width="1.5"/></svg></div>' +
@@ -360,7 +397,7 @@
               }
             })
             .catch(function (err) {
-              btn.textContent = 'Pay ₹20 & Download PDF';
+              btn.textContent = 'Pay ₹20 — Download Full PDF';
               btn.style.pointerEvents = '';
               btn.style.opacity = '1';
               alert('Payment succeeded but download failed. Please refresh the page to download your PDF.');
@@ -368,7 +405,7 @@
           },
           modal: {
             ondismiss: function() {
-              btn.textContent = 'Pay ₹20 & Download PDF';
+              btn.textContent = 'Pay ₹20 — Download Full PDF';
               btn.style.pointerEvents = '';
             }
           },

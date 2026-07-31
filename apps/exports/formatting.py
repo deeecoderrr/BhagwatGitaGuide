@@ -113,3 +113,21 @@ def mask_account_number(raw: str | None, last: int = 4) -> str:
     if len(s) <= last:
         return s
     return "*" * max(0, len(s) - last) + s[-last:]
+
+
+def mask_pan(raw: str | None) -> str:
+    """Mask PAN for HTML preview (first 2 + last 1 visible)."""
+    pan = re.sub(r"\s+", "", (raw or "").strip().upper())
+    if len(pan) < 4:
+        return "****"
+    if len(pan) <= 5:
+        return pan[0] + "*" * (len(pan) - 2) + pan[-1]
+    return pan[:2] + "*" * (len(pan) - 3) + pan[-1]
+
+
+def mask_aadhaar(raw: str | None) -> str:
+    """Mask Aadhaar for HTML preview (last 4 digits only)."""
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) < 4:
+        return "XXXX XXXX XXXX"
+    return f"XXXX XXXX {digits[-4:]}"

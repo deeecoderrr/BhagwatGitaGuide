@@ -4,7 +4,13 @@ from __future__ import annotations
 from django import template
 from django.conf import settings
 
-from apps.exports.formatting import amount_nonzero_for_pdf, format_inr
+from apps.exports.formatting import (
+    amount_nonzero_for_pdf,
+    format_inr,
+    mask_account_number,
+    mask_aadhaar as mask_aadhaar_value,
+    mask_pan as mask_pan_value,
+)
 
 register = template.Library()
 
@@ -18,6 +24,21 @@ def inr(value):
 def nz_amount(value):
     """True if amount is non-zero detail (suppress ₹0 clutter)."""
     return amount_nonzero_for_pdf(value)
+
+
+@register.filter
+def mask_pan(value):
+    return mask_pan_value(value)
+
+
+@register.filter
+def mask_aadhaar(value):
+    return mask_aadhaar_value(value)
+
+
+@register.filter
+def mask_account(value):
+    return mask_account_number(value)
 
 
 @register.simple_tag

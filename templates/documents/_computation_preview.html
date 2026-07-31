@@ -1,0 +1,258 @@
+{% load itr_export %}
+{# HTML computation preview — same structure as PDF, no downloadable bytes. #}
+<style>
+  .itr-preview-shell { margin-bottom: 1.5rem; }
+  .itr-preview-shell h2 {
+    margin: 0 0 0.35rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  .itr-preview-shell .itr-preview-sub {
+    margin: 0 0 0.85rem;
+    font-size: 0.82rem;
+    color: #6b7280;
+    line-height: 1.45;
+  }
+  .itr-preview-wrap {
+    position: relative;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+  .itr-preview-scroll {
+    position: relative;
+    max-height: 520px;
+    overflow: hidden;
+    padding: 1rem 1.1rem 2.5rem;
+  }
+  .itr-preview-scroll::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      -32deg,
+      transparent,
+      transparent 72px,
+      rgba(5, 150, 105, 0.035) 72px,
+      rgba(5, 150, 105, 0.035) 144px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+  .itr-preview-watermark {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-24deg);
+    font-size: clamp(0.95rem, 3.2vw, 1.35rem);
+    font-weight: 700;
+    color: rgba(5, 150, 105, 0.16);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 3;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    user-select: none;
+  }
+  .itr-preview-fade {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 88px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0), #fff 78%);
+    z-index: 4;
+    pointer-events: none;
+  }
+  .itr-preview-doc { position: relative; z-index: 2; font-size: 0.82rem; color: #0f172a; line-height: 1.4; }
+  .itr-preview-doc .topbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    justify-content: space-between;
+    font-size: 0.72rem;
+    border-bottom: 1px solid #cbd5e1;
+    padding-bottom: 0.45rem;
+    margin-bottom: 0.65rem;
+  }
+  .itr-preview-doc .firm { font-weight: 700; color: #334155; }
+  .itr-preview-doc .doctitle { flex: 1; text-align: center; color: #1d4ed8; font-weight: 700; min-width: 12rem; }
+  .itr-preview-doc .assessee { text-align: right; color: #475569; }
+  .itr-preview-doc h3.comp {
+    text-align: center;
+    font-size: 1rem;
+    margin: 0.35rem 0 0.65rem;
+    font-weight: 700;
+  }
+  .itr-preview-doc .sec {
+    background: #f3e8dc;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    padding: 0.25rem 0.5rem;
+    margin-top: 0.65rem;
+    border: 1px solid #e7d5c4;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .itr-preview-doc .kv-grid, .itr-preview-doc .line-row {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.25rem;
+    table-layout: fixed;
+  }
+  .itr-preview-doc .kv-grid td, .itr-preview-doc .line-row td {
+    padding: 0.15rem 0.35rem;
+    vertical-align: top;
+    word-break: break-word;
+  }
+  .itr-preview-doc .kv-grid .k { color: #475569; width: 26%; }
+  .itr-preview-doc .kv-grid .v { font-weight: 600; width: 24%; }
+  .itr-preview-doc .line-row .lbl { width: 54%; text-align: left; }
+  .itr-preview-doc .line-row .mid { width: 22%; text-align: right; color: #334155; }
+  .itr-preview-doc .line-row .end { width: 24%; text-align: right; font-weight: 600; }
+  .itr-preview-doc .highlight td { background: #f8fafc; }
+  .itr-preview-doc .muted { color: #64748b; font-size: 0.75rem; }
+  .itr-preview-doc .subhead {
+    background: #f1f5f9;
+    font-weight: 700;
+    font-size: 0.72rem;
+    padding: 0.2rem 0.45rem;
+    margin-top: 0.45rem;
+    border: 1px solid #cbd5e1;
+  }
+  .itr-preview-foot {
+    border-top: 1px solid #f3f4f6;
+    padding: 0.75rem 1rem;
+    background: #f9fafb;
+    font-size: 0.78rem;
+    color: #6b7280;
+    text-align: center;
+    line-height: 1.45;
+  }
+</style>
+
+{% with fields=computation_preview.fields %}
+<div class="itr-preview-shell">
+  <h2>Computation preview</h2>
+  <p class="itr-preview-sub">
+    Review your income, tax, and refund summary below. Pay only when you want the full printable PDF
+    with bank details, TDS annexure, and CA-style formatting.
+  </p>
+
+  <div class="itr-preview-wrap">
+    <div class="itr-preview-scroll">
+      <div class="itr-preview-watermark" aria-hidden="true">Preview — pay to download PDF</div>
+      <div class="itr-preview-doc">
+        <div class="topbar">
+          <div class="firm">{{ computation_preview.computation_firm_name|default:"" }}</div>
+          <div class="doctitle">Income &amp; Tax Computation A.Y. {{ fields.assessment_year|default:"" }}{% if fields.regime %} ({{ fields.regime }}){% endif %}</div>
+          <div class="assessee">{{ fields.assessee_name|default:"" }} ({{ fields.pan|default:"—" }})</div>
+        </div>
+
+        <h3 class="comp">Computation of Income</h3>
+
+        <div class="sec">Personal Information</div>
+        <table class="kv-grid">
+          <tr>
+            <td class="k">Name of Assessee</td><td class="v">{{ fields.assessee_name|default:"—" }}</td>
+            <td class="k">Assessment Year</td><td class="v">{{ fields.assessment_year|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td class="k">PAN</td><td class="v">{{ fields.pan|default:"—" }}</td>
+            <td class="k">Aadhaar</td><td class="v">{{ fields.aadhaar|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td class="k">Status</td><td class="v">{{ fields.status|default:"—" }}</td>
+            <td class="k">Residential Status</td><td class="v">{{ fields.residential_status|default:"—" }}</td>
+          </tr>
+        </table>
+
+        {% if computation_preview.primary_bank %}
+        <div class="subhead">Bank Details (primary)</div>
+        <table class="kv-grid">
+          <tr>
+            <td class="k">Account Number</td><td class="v">{{ computation_preview.primary_bank.account_number|mask_account }}</td>
+            <td class="k">Bank Name</td><td class="v">{{ computation_preview.primary_bank.bank_name|default:"—" }}</td>
+          </tr>
+          <tr>
+            <td class="k">IFSC Code</td><td class="v">{{ computation_preview.primary_bank.ifsc|default:"—" }}</td>
+            <td class="k">Account Type</td><td class="v">{{ computation_preview.primary_bank.account_type|default:"—" }}</td>
+          </tr>
+        </table>
+        {% endif %}
+
+        {% if fields.income_salary|nz %}
+        <div class="sec">Income from Salary <span>{{ fields.income_salary|inr }}</span></div>
+        {% endif %}
+        {% if fields.income_house_property|nz %}
+        <div class="sec">Income from House Property <span>{{ fields.income_house_property|inr }}</span></div>
+        {% endif %}
+        {% if fields.income_business_profession|nz %}
+        <div class="sec">Income from Business &amp; Profession <span>{{ fields.income_business_profession|inr }}</span></div>
+        {% endif %}
+        {% if fields.income_capital_gains|nz %}
+        <div class="sec">Capital Gains <span>{{ fields.income_capital_gains|inr }}</span></div>
+        {% endif %}
+        {% if fields.income_other_sources|nz %}
+        <div class="sec">Other Sources Income <span>{{ fields.income_other_sources|inr }}</span></div>
+        <table class="line-row">
+          {% if fields.os_interest_savings|nz %}<tr><td class="lbl">Saving Bank Interest</td><td class="mid">{{ fields.os_interest_savings|inr }}</td><td class="end"></td></tr>{% endif %}
+          {% if fields.os_interest_term_deposit|nz %}<tr><td class="lbl">FDR Interest</td><td class="mid">{{ fields.os_interest_term_deposit|inr }}</td><td class="end"></td></tr>{% endif %}
+          {% if fields.os_interest_refund|nz %}<tr><td class="lbl">Interest on Income Tax Refund</td><td class="mid">{{ fields.os_interest_refund|inr }}</td><td class="end"></td></tr>{% endif %}
+        </table>
+        {% endif %}
+
+        <table class="line-row" style="margin-top:0.5rem;">
+          <tr><td class="lbl"><strong>Gross Total Income</strong></td><td class="mid"></td><td class="end"><strong>{{ fields.gross_total_income|inr }}</strong></td></tr>
+          {% if fields.total_deductions|nz %}
+          <tr><td class="lbl">Total deductions under Chapter VI-A</td><td class="mid">{{ fields.total_deductions|inr }}</td><td class="end"></td></tr>
+          {% endif %}
+          <tr class="highlight"><td class="lbl"><strong>Total Income</strong></td><td class="mid"></td><td class="end"><strong>{{ fields.total_income|inr }}</strong></td></tr>
+        </table>
+
+        <div class="sec">Tax Calculation</div>
+        <table class="line-row">
+          {% for row in computation_preview.slab_rows %}
+          {% if row.tax_disp != "Nil" %}
+          <tr>
+            <td class="lbl">Tax @ {{ row.rate_pct }}% on Income ₹{{ row.slab_income_inr }}</td>
+            <td class="mid">{{ row.tax_disp }}</td>
+            <td class="end"></td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+          <tr><td class="lbl"><strong>Gross Tax Liability</strong></td><td class="mid"></td><td class="end"><strong>{{ fields.gross_tax_liability|inr }}</strong></td></tr>
+          <tr><td class="lbl"><strong>Net Tax Liability</strong></td><td class="mid"></td><td class="end"><strong>{{ fields.net_tax_liability|inr }}</strong></td></tr>
+          <tr><td class="lbl">TDS on income</td><td class="mid">{{ fields.tds_total|inr }}</td><td class="end"></td></tr>
+          <tr><td class="lbl">Taxes Paid (Total TDS on Income)</td><td class="mid"></td><td class="end">{{ fields.taxes_paid_total|inr }}</td></tr>
+          <tr><td class="lbl">Amount Refundable</td><td class="mid"></td><td class="end">{{ computation_preview.refund_display_pre }}</td></tr>
+          <tr class="highlight"><td class="lbl"><strong>Amount Refundable Rounded off u/s 288B</strong></td><td class="mid"></td><td class="end"><strong>{{ computation_preview.refund_display_rounded }}</strong></td></tr>
+          {% if fields.demand_amount|nz %}
+          <tr><td class="lbl" style="color:#b91c1c;">Tax demand payable</td><td class="mid"></td><td class="end" style="color:#b91c1c;">{{ fields.demand_amount|inr }}</td></tr>
+          {% endif %}
+        </table>
+
+        {% if computation_preview.tds_preview_rows or computation_preview.bank_rows_hidden_count %}
+        <p class="muted" style="margin-top:0.65rem;">
+          Full PDF includes
+          {% if computation_preview.bank_rows_hidden_count %}all bank accounts{% endif %}
+          {% if computation_preview.bank_rows_hidden_count and computation_preview.tds_rows_hidden_count %} and {% endif %}
+          {% if computation_preview.tds_rows_hidden_count %}complete TDS annexure ({{ computation_preview.tds_rows_hidden_count }} more row{{ computation_preview.tds_rows_hidden_count|pluralize }}){% elif computation_preview.tds_preview_rows and not computation_preview.tds_rows_hidden_count %}TDS annexure{% endif %}.
+        </p>
+        {% endif %}
+      </div>
+      <div class="itr-preview-fade" aria-hidden="true"></div>
+    </div>
+    <div class="itr-preview-foot">
+      Watermarked preview only — not a downloadable PDF.
+      <a href="#unlock-pdf" style="color:#059669;font-weight:600;text-decoration:none;">Unlock full PDF ↓</a>
+    </div>
+  </div>
+</div>
+{% endwith %}
