@@ -29,6 +29,11 @@
           <a href="{% url 'documents:list' %}">Workspace</a>
           <a href="{% url 'documents:upload' %}">Upload JSON</a>
           <a href="{% url 'marketing:pricing' %}">Pricing</a>
+          {% if itr_support_chat_enabled and user.is_staff %}
+          <a href="{% url 'support_chat:staff_inbox' %}" class="nav-inbox-link{% if staff_inbox_unread %} nav-inbox-link--alert{% endif %}">
+            Inbox{% if staff_inbox_unread %} <span class="nav-inbox-badge">{{ staff_inbox_unread }}</span>{% endif %}
+          </a>
+          {% endif %}
           {% if itr_support_chat_enabled %}
           <a href="{% url 'support_chat:list' %}" class="nav-chat-link">
             Chat{% if support_chat_unread %} <span class="nav-chat-badge">{{ support_chat_unread }}</span>{% endif %}
@@ -100,13 +105,17 @@
   </footer>
   {% if itr_support_chat_enabled %}
   <a
-    class="chat-fab"
-    href="{% if user.is_authenticated %}{% url 'support_chat:list' %}{% else %}{% url 'account_login' %}?next={% url 'support_chat:list' %}{% endif %}"
-    aria-label="{% if user.is_authenticated %}Open support chat{% else %}Sign in to chat with us{% endif %}"
+    class="chat-fab{% if user.is_staff and staff_inbox_unread %} chat-fab--staff-alert{% endif %}"
+    href="{% if user.is_staff %}{% url 'support_chat:staff_inbox' %}{% elif user.is_authenticated %}{% url 'support_chat:list' %}{% else %}{% url 'account_login' %}?next={% url 'support_chat:list' %}{% endif %}"
+    aria-label="{% if user.is_staff %}Open staff inbox{% elif user.is_authenticated %}Open support chat{% else %}Sign in to chat with us{% endif %}"
   >
-    <span class="chat-fab__icon" aria-hidden="true">💬</span>
-    <span class="chat-fab__label">Chat</span>
-    {% if support_chat_unread %}<span class="chat-fab__badge">{{ support_chat_unread }}</span>{% endif %}
+    <span class="chat-fab__icon" aria-hidden="true">{% if user.is_staff %}📥{% else %}💬{% endif %}</span>
+    <span class="chat-fab__label">{% if user.is_staff %}Inbox{% else %}Chat{% endif %}</span>
+    {% if user.is_staff and staff_inbox_unread %}
+    <span class="chat-fab__badge">{{ staff_inbox_unread }}</span>
+    {% elif not user.is_staff and support_chat_unread %}
+    <span class="chat-fab__badge">{{ support_chat_unread }}</span>
+    {% endif %}
   </a>
   {% endif %}
   {% block extra_scripts %}{% endblock %}

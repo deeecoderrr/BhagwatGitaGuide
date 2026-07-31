@@ -104,3 +104,22 @@ class SupportChatTests(TestCase):
         self.client.login(username="customer", password="pwd1234567890123456789")
         r = self.client.get(reverse("support_chat:list"))
         self.assertEqual(r.status_code, 404)
+
+    def test_staff_nav_shows_inbox_with_unread_count(self) -> None:
+        thread = SupportThread.objects.create(
+            user=self.user,
+            subject="Need help",
+            status=SupportThread.STATUS_WAITING_STAFF,
+        )
+        SupportMessage.objects.create(
+            thread=thread,
+            sender=self.user,
+            body="Unread customer message",
+            is_staff=False,
+        )
+        self.client.login(username="owner", password="pwd1234567890123456789")
+        r = self.client.get(reverse("support_chat:staff_inbox"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "nav-inbox-link")
+        self.assertContains(r, "nav-inbox-badge")
+        self.assertContains(r, ">1<")

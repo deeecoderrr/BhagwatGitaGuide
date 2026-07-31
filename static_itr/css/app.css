@@ -2477,6 +2477,40 @@ body.pdf-modal-open {
   position: relative;
 }
 
+.nav-inbox-link {
+  font-weight: 600;
+  color: var(--accent) !important;
+}
+
+.nav-inbox-link--alert {
+  animation: inbox-pulse 2s ease-in-out infinite;
+}
+
+@keyframes inbox-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.nav-inbox-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.3rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: #dc2626;
+  color: #fff;
+  border-radius: 99px;
+  vertical-align: middle;
+}
+
+.chat-fab--staff-alert {
+  background: #b45309;
+  box-shadow: 0 8px 28px rgba(180, 83, 9, 0.4);
+}
+
 @media (max-width: 640px) {
   .chat-fab__label {
     display: none;

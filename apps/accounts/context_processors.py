@@ -64,6 +64,7 @@ def account_profile(request):
 def support_chat(request):
     enabled = getattr(settings, "ITR_SUPPORT_CHAT_ENABLED", False)
     unread = 0
+    staff_inbox_unread = 0
     if enabled and request.user.is_authenticated:
         try:
             from apps.support_chat.models import SupportMessage
@@ -73,9 +74,21 @@ def support_chat(request):
                 is_staff=True,
                 read_by_user_at__isnull=True,
             ).count()
+            if getattr(request.user, "is_staff", False):
+                staff_inbox_unread = SupportMessage.objects.filter(
+                    is_staff=False,
+                    read_by_staff_at__isnull=True,
+                    thread__status__in=(
+                        "open",
+                        "waiting_staff",
+                        "waiting_user",
+                    ),
+                ).count()
         except Exception:
             unread = 0
+            staff_inbox_unread = 0
     return {
         "itr_support_chat_enabled": enabled,
         "support_chat_unread": unread,
+        "staff_inbox_unread": staff_inbox_unread,
     }
