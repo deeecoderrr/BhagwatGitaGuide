@@ -120,7 +120,7 @@ class JsonPipelineTests(TestCase):
         self.assertEqual(fm.get(C.TDS_OTHER_THAN_SALARY), "0")
         self.assertEqual(fm.get(C.TDS_FROM_SALARY), "0")
         self.assertEqual(fm.get(C.TOTAL_TAX_PLUS_INTEREST), "15600")
-        self.assertIn("Uttar Pradesh", fm.get(C.ADDRESS, ""))
+        self.assertIn("Karnataka", fm.get(C.ADDRESS, ""))
         self.assertEqual(doc.bank_details.count(), 1)
         self.assertEqual(doc.tds_details.count(), 0)
 

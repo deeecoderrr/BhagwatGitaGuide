@@ -14,7 +14,7 @@ from apps.extractors import canonical as C
 from apps.extractors.utils import normalize as N
 from apps.extractors.validators import issues_after_extraction
 from apps.exports.tax_slabs import round_refund_288b, round_total_income_288a
-from apps.extractors.india_state_codes import state_name_from_code
+from apps.extractors.pincode_state import resolve_state_from_address
 
 AMOUNT_FIELDS = set(C.INCOME_FIELDS + C.TAX_FIELDS)
 
@@ -115,8 +115,7 @@ def _compose_address(addr: dict[str, Any] | None) -> str:
         _fmt_num(addr.get("CityOrTownOrDistrict")),
     ]
     pin = addr.get("PinCode")
-    st_code = _fmt_num(addr.get("StateCode"))
-    st_name = state_name_from_code(addr.get("StateCode"))
+    st_code, st_name, _source = resolve_state_from_address(addr)
     line = ", ".join(p for p in parts if p and p != "None")
     tail = []
     if pin:
