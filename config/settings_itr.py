@@ -160,6 +160,10 @@ def register_itr_settings(g: dict[str, Any]) -> None:
         "true",
     ).lower() in ("1", "true", "yes")
 
+    g["ITR_INPUT_RETENTION_DAYS"] = int(
+        os.getenv("ITR_INPUT_RETENTION_DAYS", "7"),
+    )
+
     # Homepage anonymous “try PDF” strip (marketing home): JSON → PDF in one request,
     # then delete all rows + files.
     # Unset env: ON when DEBUG (local dev), OFF when not DEBUG (typical production).

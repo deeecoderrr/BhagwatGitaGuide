@@ -16,6 +16,7 @@ from apps.documents.forms import DocumentReprocessForm, ItrUploadForm
 from apps.documents.models import Document
 from apps.exports.models import ExportedSummary
 from apps.exports.retention import purge_expired_exports
+from apps.documents.retention import maybe_purge_stale_json_uploads_on_upload
 from apps.documents.session_docs import (
     anonymous_document_count,
     register_anonymous_document,
@@ -81,6 +82,7 @@ def document_upload(request):
             if hasattr(f, "size") and f.size and f.size > max_bytes:
                 form.add_error("file", "File too large.")
             else:
+                maybe_purge_stale_json_uploads_on_upload()
                 doc = Document(
                     user=request.user,
                     uploaded_file=f,
@@ -272,6 +274,8 @@ def beta_try_upload(request: HttpRequest) -> HttpResponse:
             "Create an account for a workspace, or clear old sessions.",
         )
         return redirect(beta_home)
+
+    maybe_purge_stale_json_uploads_on_upload()
 
     doc = Document(
         user=None,

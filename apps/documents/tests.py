@@ -51,3 +51,73 @@ class BetaTryTests(TestCase):
         r = c.get(url, follow=False)
         self.assertEqual(r.status_code, 302)
         self.assertIn(reverse("marketing:home"), r["Location"])
+
+
+class StaleJsonRetentionTests(TestCase):
+    """Stale JSON upload retention (lazy purge on upload)."""
+
+    def setUp(self) -> None:
+        from django.core.cache import cache
+
+        from apps.documents.retention import _STALE_JSON_PURGE_CACHE_KEY
+
+        cache.delete(_STALE_JSON_PURGE_CACHE_KEY)
+
+    def _doc(self, *, age_days: int, name: str = "old.json"):
+        from datetime import timedelta
+
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from django.utils import timezone
+
+        from apps.documents.models import Document
+
+        doc = Document.objects.create(
+            uploaded_file=SimpleUploadedFile(name, b'{"ITR":{}}'),
+            original_filename=name,
+            file_hash="abc",
+            status=Document.STATUS_REVIEW_REQUIRED,
+            upload_source=Document.UPLOAD_JSON,
+        )
+        Document.objects.filter(pk=doc.pk).update(
+            created_at=timezone.now() - timedelta(days=age_days)
+        )
+        doc.refresh_from_db()
+        return doc
+
+    @override_settings(ITR_INPUT_RETENTION_DAYS=7)
+    def test_purge_removes_json_older_than_retention(self) -> None:
+        from apps.documents.retention import purge_stale_json_uploads
+
+        old = self._doc(age_days=8)
+        recent = self._doc(age_days=2, name="new.json")
+        n = purge_stale_json_uploads()
+        self.assertEqual(n, 1)
+        old.refresh_from_db()
+        recent.refresh_from_db()
+        self.assertFalse(old.uploaded_file)
+        self.assertTrue(recent.uploaded_file)
+
+    @override_settings(ITR_INPUT_RETENTION_DAYS=7)
+    def test_maybe_purge_runs_at_most_once_per_day(self) -> None:
+        from apps.documents.retention import maybe_purge_stale_json_uploads_on_upload
+
+        self._doc(age_days=10)
+        first = maybe_purge_stale_json_uploads_on_upload()
+        second = maybe_purge_stale_json_uploads_on_upload()
+        self.assertEqual(first, 1)
+        self.assertEqual(second, 0)
+
+    @override_settings(ITR_INPUT_RETENTION_DAYS=7)
+    def test_maybe_purge_runs_again_after_cache_expires(self) -> None:
+        from django.core.cache import cache
+
+        from apps.documents.retention import (
+            _STALE_JSON_PURGE_CACHE_KEY,
+            maybe_purge_stale_json_uploads_on_upload,
+        )
+
+        self._doc(age_days=10, name="a.json")
+        self.assertEqual(maybe_purge_stale_json_uploads_on_upload(), 1)
+        cache.delete(_STALE_JSON_PURGE_CACHE_KEY)
+        self._doc(age_days=10, name="b.json")
+        self.assertEqual(maybe_purge_stale_json_uploads_on_upload(), 1)
