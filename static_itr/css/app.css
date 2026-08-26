@@ -1907,6 +1907,167 @@ body.pdf-modal-open {
   }
 }
 
+/* --- Guest checkout pay card (document detail) --- */
+.itr-pay-card {
+  background: #fff;
+  border: 1px solid #d1fae5;
+  border-radius: 14px;
+  padding: 1.35rem 1.35rem 1.25rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 28px rgba(5, 150, 105, 0.1);
+}
+
+.itr-pay-card__step {
+  margin: 0 0 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #059669;
+}
+
+.itr-pay-card__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.itr-pay-card__lede {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
+.itr-pay-card__pricing {
+  margin-bottom: 0.85rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
+  border: 1px solid #bbf7d0;
+}
+
+.itr-pay-card__price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+}
+
+.itr-pay-card__price {
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: #065f46;
+  line-height: 1;
+}
+
+.itr-pay-card__list {
+  font-size: 1.05rem;
+  color: #9ca3af;
+  text-decoration: line-through;
+}
+
+.itr-pay-card__pill {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #047857;
+  background: #fff;
+  border: 1px solid #a7f3d0;
+  padding: 0.15rem 0.55rem;
+  border-radius: 99px;
+}
+
+.itr-pay-card__anchor {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+.itr-pay-card__bullets {
+  margin: 0 0 1rem;
+  padding-left: 1.15rem;
+  font-size: 0.84rem;
+  color: #374151;
+  line-height: 1.55;
+}
+
+.itr-pay-card__cta {
+  width: 100%;
+  font-size: 1.05rem !important;
+  padding: 0.95rem 1.25rem !important;
+  border-radius: 10px !important;
+  font-weight: 700 !important;
+  background: #059669 !important;
+  border-color: #059669 !important;
+}
+
+.itr-pay-card__methods {
+  margin: 0.75rem 0 0;
+  font-size: 0.76rem;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.itr-secondary-upsell {
+  margin: 0 0 1.25rem;
+  font-size: 0.82rem;
+  color: #6b7280;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.itr-secondary-upsell a {
+  color: #059669;
+  font-weight: 600;
+}
+
+.itr-sticky-pay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  padding: 0.55rem 0.85rem calc(0.55rem + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid #e5e7eb;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.itr-sticky-pay__inner {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.itr-sticky-pay__copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.itr-sticky-pay__copy strong {
+  font-size: 1.1rem;
+  color: #065f46;
+}
+
+.itr-sticky-pay__btn {
+  flex-shrink: 0;
+  padding: 0.65rem 1rem !important;
+  font-size: 0.92rem !important;
+  font-weight: 700 !important;
+  background: #059669 !important;
+  border-color: #059669 !important;
+  border-radius: 10px !important;
+}
+
 /* --- Upload page --- */
 .upload-page-shell {
   display: flex;

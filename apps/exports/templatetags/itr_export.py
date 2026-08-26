@@ -55,3 +55,20 @@ def itr_output_retention_hours():
 def itr_delete_input_after_export():
     """Upload removed after export (``ITR_DELETE_INPUT_AFTER_EXPORT``)."""
     return bool(getattr(settings, "ITR_DELETE_INPUT_AFTER_EXPORT", True))
+
+
+@register.simple_tag
+def itr_payg_intro_inr():
+    """First-export intro price in INR (``ITR_FIRST_EXPORT_AMOUNT_PAISE``)."""
+    return int(getattr(settings, "ITR_FIRST_EXPORT_AMOUNT_PAISE", 4900)) // 100
+
+
+@register.simple_tag
+def itr_payg_list_inr():
+    """Standard single-export price in INR (``ITR_PAYG_AMOUNT_PAISE``)."""
+    return int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 9900)) // 100
+
+
+@register.simple_tag
+def itr_ca_fee_anchor_inr():
+    return int(getattr(settings, "ITR_CA_FEE_ANCHOR_INR", 499))

@@ -1,16 +1,17 @@
 {% load socialaccount %}
+{% load itr_export %}
 <section id="beta-try" class="beta-spotlight" aria-labelledby="beta-spotlight-heading">
   <div class="beta-spotlight__mesh" aria-hidden="true"></div>
   <div class="beta-spotlight__glow" aria-hidden="true"></div>
   <div class="beta-spotlight__inner">
     <p class="beta-spotlight__eyebrow">
       <span class="beta-spotlight__eyebrow-dot" aria-hidden="true"></span>
-      Just ₹20 · No account needed · UPI / Card · Instant PDF
+      Just ₹{% itr_payg_intro_inr %} · No account needed · UPI / Card · Instant PDF
     </p>
     <h1 id="beta-spotlight-heading">Your ITR computation PDF in 2 minutes</h1>
     <p class="beta-spotlight__lead">
       Upload your Income Tax portal JSON → Get a <strong>CA-style computation summary</strong> instantly. Supports <strong>ITR-1</strong>, <strong>ITR-2</strong>, <strong>ITR-3</strong>, and <strong>ITR-4</strong>.
-      <br><span style="color: #059669; font-weight: 500;">CAs charge ₹500–1,000 for this. Get yours for just ₹20.</span>
+      <br><span style="color: #059669; font-weight: 500;">CAs charge ₹{% itr_ca_fee_anchor_inr %}+ for this. Yours from ₹{% itr_payg_intro_inr %}.</span>
     </p>
 
     <div class="beta-spotlight__card">
@@ -41,7 +42,7 @@
         </div>
         <button type="submit" class="btn btn-primary beta-spotlight__submit"
                 onclick="this.disabled=true;this.textContent='Uploading…';this.form.submit();">
-          Upload JSON → Preview &amp; Pay ₹20</button>
+          Upload JSON → Preview &amp; Pay ₹{% itr_payg_intro_inr %}</button>
       </form>
       <ul class="beta-spotlight__trust" aria-label="Features">
         <li><span aria-hidden="true">✓</span> ITR-1, ITR-2, ITR-3, ITR-4 supported</li>

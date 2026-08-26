@@ -14,19 +14,23 @@ def first_export_promo_eligible(request: HttpRequest) -> bool:
 
 
 def payg_amount_paise(request: HttpRequest) -> int:
-    base = int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 2000))
+    base = int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 9900))
     if first_export_promo_eligible(request):
-        return int(getattr(settings, "ITR_FIRST_EXPORT_AMOUNT_PAISE", 1000))
+        return int(getattr(settings, "ITR_FIRST_EXPORT_AMOUNT_PAISE", 4900))
     return base
 
 
 def payg_list_amount_inr() -> int:
-    return int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 2000)) // 100
+    return int(getattr(settings, "ITR_PAYG_AMOUNT_PAISE", 9900)) // 100
 
 
 def mark_first_export_promo_used(request: HttpRequest) -> None:
     request.session[SESSION_PROMO_USED] = True
     request.session.modified = True
+
+
+def payg_ca_anchor_inr() -> int:
+    return int(getattr(settings, "ITR_CA_FEE_ANCHOR_INR", 499))
 
 
 def first_export_promo_context(request: HttpRequest) -> dict:
@@ -37,4 +41,5 @@ def first_export_promo_context(request: HttpRequest) -> dict:
         "payg_amount_paise": amount_paise,
         "payg_amount_inr": amount_paise // 100,
         "payg_list_amount_inr": payg_list_amount_inr(),
+        "payg_ca_anchor_inr": payg_ca_anchor_inr(),
     }

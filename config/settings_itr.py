@@ -108,7 +108,7 @@ def register_itr_settings(g: dict[str, Any]) -> None:
     g["ACCOUNT_EMAIL_VERIFICATION"] = _email_verification
 
     # ITR credit bundle amounts (paise) — separate from Gita app plans
-    g["ITR_PAYG_AMOUNT_PAISE"] = int(os.getenv("ITR_PAYG_AMOUNT_PAISE", "2000"))           # ₹20
+    g["ITR_PAYG_AMOUNT_PAISE"] = int(os.getenv("ITR_PAYG_AMOUNT_PAISE", "9900"))           # ₹99
     g["ITR_ESSENTIALS_AMOUNT_PAISE"] = int(os.getenv("ITR_ESSENTIALS_AMOUNT_PAISE", "50000"))   # ₹500
     g["ITR_PROFESSIONAL_AMOUNT_PAISE"] = int(os.getenv("ITR_PROFESSIONAL_AMOUNT_PAISE", "100000")) # ₹1000
     g["ITR_CONTACT_EMAIL"] = os.getenv(
@@ -127,8 +127,9 @@ def register_itr_settings(g: dict[str, Any]) -> None:
         "true",
     ).lower() in ("1", "true", "yes")
     g["ITR_FIRST_EXPORT_AMOUNT_PAISE"] = int(
-        os.getenv("ITR_FIRST_EXPORT_AMOUNT_PAISE", "1000"),
+        os.getenv("ITR_FIRST_EXPORT_AMOUNT_PAISE", "4900"),
     )
+    g["ITR_CA_FEE_ANCHOR_INR"] = int(os.getenv("ITR_CA_FEE_ANCHOR_INR", "499"))
     g["ITR_VALUE3_AMOUNT_PAISE"] = int(os.getenv("ITR_VALUE3_AMOUNT_PAISE", "5000"))
     # Keep for backward compat (unused by new credit system)
     g["PRO_PLAN_AMOUNT_PAISE"] = int(

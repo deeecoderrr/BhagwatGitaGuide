@@ -25,12 +25,21 @@
 {% endif %}
 
 {# ── Document header ── #}
-<div style="margin-bottom: 1.5rem;">
-  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+<div style="margin-bottom: 1.25rem;">
+  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
     <span style="display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; font-size: 0.78rem; font-weight: 600; color: #065f46; letter-spacing: 0.02em;">{{ document.get_detected_type_display }}</span>
-    <span style="font-size: 0.78rem; color: #9ca3af;">Filed ITR JSON</span>
+    {% if summary.ay %}<span style="font-size: 0.78rem; color: #9ca3af;">A.Y. {{ summary.ay }}</span>{% endif %}
   </div>
-  <h1 style="font-size: 1.35rem; font-weight: 600; margin: 0.5rem 0 0; line-height: 1.3; word-break: break-all;">{{ document.original_filename }}</h1>
+  <h1 style="font-size: 1.35rem; font-weight: 600; margin: 0; line-height: 1.3;">
+    {% if summary.name %}{{ summary.name }}{% else %}Your tax computation{% endif %}
+  </h1>
+  {% if export_blocked and payg_amount_inr %}
+  <p style="margin: 0.45rem 0 0; font-size: 0.88rem; color: #047857; font-weight: 500;">
+    Full PDF ready — intro price ₹{{ payg_amount_inr }} (one-time)
+  </p>
+  {% elif not export_blocked %}
+  <p class="muted small" style="margin: 0.35rem 0 0; word-break: break-all;">{{ document.original_filename }}</p>
+  {% endif %}
 </div>
 
 {% if document.error_message %}
@@ -58,13 +67,15 @@
     {% if computation_preview.fields.demand_amount|nz %}
       Your computation shows tax payable after TDS and other credits.
     {% elif computation_preview.fields.rounded_refund_amount|nz or computation_preview.fields.refund_amount|nz %}
-      Refund rounded u/s 288B — preview the full breakdown below before downloading the PDF.
+      {% if export_blocked %}Your refund is calculated — unlock the printable PDF below.{% else %}Refund rounded u/s 288B — preview the full breakdown below.{% endif %}
     {% else %}
       A.Y. {{ computation_preview.fields.assessment_year|default:"—" }} — preview your head-wise income and tax calculation below.
     {% endif %}
   </p>
 </div>
+{% if filing_upsell_service and not export_blocked %}
 {% include "documents/_filing_upsell.html" %}
+{% endif %}
 {% endif %}
 
 {# ── Extracted data card (when no full preview) ── #}
@@ -128,10 +139,6 @@
 {# ── Computation preview (HTML, pre-payment) ── #}
 {% if computation_preview and not poll_status %}
   {% include "documents/_computation_preview.html" %}
-  {% if export_blocked %}
-  {% include "documents/_sample_pdf_teaser.html" %}
-  {% include "documents/_conversion_trust.html" %}
-  {% endif %}
 {% endif %}
 
 {# ── Main action area ── #}
@@ -146,70 +153,15 @@
 
   {% if export_blocked and razorpay_available and not user.is_authenticated %}
   {# ── PAYMENT CARD: Guest user, needs to pay ── #}
-  <div id="unlock-pdf" class="itr-unlock-target" tabindex="-1" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
-    <div style="padding: 1.5rem 1.5rem 1.25rem;">
-      <p style="margin: 0 0 0.25rem; font-size: 1.1rem; font-weight: 600; color: #111827;">
-        Download full computation PDF
-      </p>
-      <p style="margin: 0 0 1.25rem; font-size: 0.88rem; color: #6b7280; line-height: 1.5;">
-        {% if computation_preview %}
-        You've reviewed the preview above. Pay once to download the printable PDF with bank details,
-        TDS annexure, and CA-style formatting.
-        {% else %}
-        Professional CA-style computation sheet with head-wise income breakdown,
-        deductions, tax slab calculations, and refund/demand summary.
-        {% endif %}
-      </p>
+  {% include "documents/_guest_pay_card.html" %}
 
-      <div style="display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
-        {% if first_export_promo %}
-        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹{{ payg_amount_inr }}</span>
-        <span style="font-size: 1rem; color: #9ca3af; text-decoration: line-through;">₹{{ payg_list_amount_inr }}</span>
-        <span style="font-size: 0.78rem; font-weight: 600; color: #059669; background: #ecfdf5; padding: 0.15rem 0.5rem; border-radius: 99px;">First export offer</span>
-        {% else %}
-        <span style="font-size: 2rem; font-weight: 700; color: #111827; line-height: 1;">₹{{ payg_amount_inr }}</span>
-        {% endif %}
-        <span style="font-size: 0.85rem; color: #9ca3af; text-decoration: line-through;">₹500+ CA fee</span>
-        <span style="font-size: 0.78rem; font-weight: 500; color: #059669; background: #ecfdf5; padding: 0.15rem 0.5rem; border-radius: 99px;">Save 90%</span>
-      </div>
-      <p style="margin: 0 0 1rem; font-size: 0.8rem; color: #047857; font-weight: 500;">
-        Pay via Google Pay · PhonePe · any UPI app — takes about 30 seconds
-      </p>
-
-      <button type="button" class="btn btn-primary" id="detail-pay-btn"
-              style="width: 100%; font-size: 1.05rem; padding: 0.9rem 1.5rem; background: #059669; border-color: #059669; border-radius: 10px; font-weight: 600; letter-spacing: 0.01em;"
-              data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email=""
-              data-pay-label="Pay ₹{{ payg_amount_inr }} — Download Full PDF">
-        Pay ₹{{ payg_amount_inr }} — Download Full PDF
-      </button>
-
-      <p style="margin: 0.85rem 0 0; font-size: 0.78rem; color: #6b7280; text-align: center;">
-        Need 3 returns? <a href="{% url 'account_signup' %}?next={% url 'marketing:pricing' %}" style="color:#059669;font-weight:500;">Sign up</a> for 3 exports at ₹50
-      </p>
-
-      <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-top: 1rem; font-size: 0.78rem; color: #6b7280;">
-        <span style="display: flex; align-items: center; gap: 0.25rem;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#059669" stroke-width="1.5"/></svg>
-          Razorpay Secure
-        </span>
-        <span style="display: flex; align-items: center; gap: 0.25rem;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" stroke="#059669" stroke-width="1.5"/><path d="M1 10h22" stroke="#059669" stroke-width="1.5"/></svg>
-          Google Pay · PhonePe · UPI
-        </span>
-        <span style="display: flex; align-items: center; gap: 0.25rem;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#059669" stroke-width="1.5"/></svg>
-          Instant download
-        </span>
-      </div>
-    </div>
-
-    <div style="background: #f9fafb; border-top: 1px solid #f3f4f6; padding: 0.85rem 1.5rem;">
-      <p style="margin: 0; font-size: 0.8rem; color: #6b7280; text-align: center; line-height: 1.5;">
-        Chartered Accountants typically charge <strong style="color: #374151;">₹500–1,000</strong> for this computation statement.
-        You save over 90% and get it instantly.
-      </p>
-    </div>
-  </div>
+  {% if filing_upsell_service %}
+  <p class="itr-secondary-upsell">
+    Prefer a CA to e-file this return?
+    <a href="{% url 'marketing:service_page' slug=filing_upsell_slug %}#book-appointment">Book {{ filing_upsell_service.label }}</a>
+    from {{ filing_upsell_service.price_display }}.
+  </p>
+  {% endif %}
 
   {% elif not export_blocked %}
   {# ── User has credits: direct generate ── #}
@@ -229,7 +181,7 @@
       Purchase an export credit to generate your PDF.
     </p>
     <a class="btn btn-primary" href="{% url 'exports:create' document.pk %}" style="font-size: 1.05rem; padding: 0.75rem 1.5rem;">
-      Generate PDF — ₹20
+      Generate PDF{% if payg_amount_inr %} — ₹{{ payg_amount_inr }}{% endif %}
     </a>
   </div>
   {% endif %}
@@ -288,14 +240,19 @@
 </div>
 
 {% if export_blocked and razorpay_available and not user.is_authenticated and computation_preview and not poll_status %}
-<div id="sticky-pay-bar" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:40; padding:0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom)); background:rgba(255,255,255,0.96); border-top:1px solid #e5e7eb; box-shadow:0 -4px 20px rgba(0,0,0,0.08);">
-  <button type="button" class="btn btn-primary" id="sticky-pay-btn" data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email=""
-          style="width:100%; font-size:1rem; padding:0.85rem; background:#059669; border-color:#059669; border-radius:10px; font-weight:600;"
-          data-pay-label="Pay ₹{{ payg_amount_inr }} — Download PDF">
-    Pay ₹{{ payg_amount_inr }} — Download PDF
-  </button>
+<div id="sticky-pay-bar" class="itr-sticky-pay" style="display:none;">
+  <div class="itr-sticky-pay__inner">
+    <div class="itr-sticky-pay__copy">
+      <strong>₹{{ payg_amount_inr }}</strong>
+      <span>Full computation PDF</span>
+    </div>
+    <button type="button" class="btn btn-primary itr-sticky-pay__btn" id="sticky-pay-btn" data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email=""
+            data-pay-label="Pay ₹{{ payg_amount_inr }}">
+      Pay &amp; download
+    </button>
+  </div>
 </div>
-<style>@media (max-width:768px){ .wrap{padding-bottom:5rem !important;} #sticky-pay-bar{display:block !important;} }</style>
+<style>@media (max-width:768px){ .wrap{padding-bottom:5rem !important;} .itr-sticky-pay{display:block !important;} }</style>
 {% endif %}
 
 </div>

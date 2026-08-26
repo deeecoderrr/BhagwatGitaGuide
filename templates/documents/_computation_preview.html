@@ -28,6 +28,12 @@
     overflow: hidden;
     padding: 1rem 1.1rem 2.5rem;
   }
+  .itr-preview-shell--checkout .itr-preview-scroll {
+    max-height: 340px;
+  }
+  .itr-preview-shell--checkout .itr-preview-sub {
+    margin-bottom: 0.65rem;
+  }
   .itr-preview-scroll::before {
     content: "";
     position: absolute;
@@ -170,12 +176,11 @@
 </style>
 
 {% with fields=computation_preview.fields %}
-<div class="itr-preview-shell">
+<div class="itr-preview-shell{% if export_blocked %} itr-preview-shell--checkout{% endif %}">
   <h2>Computation preview</h2>
   <p class="itr-preview-sub">
     {% if export_blocked %}
-    Review your income, tax, and refund summary below. Pay only when you want the full printable PDF
-    with bank details, TDS annexure, and CA-style formatting.
+    Scroll the summary below. When it looks right, pay once to download the full PDF.
     {% else %}
     Review your income, tax, and refund summary below. When you are ready, generate the full printable PDF
     with bank details, TDS annexure, and CA-style formatting.

@@ -16,15 +16,15 @@ class PromoPricingTests(TestCase):
 
     @override_settings(
         ITR_FIRST_EXPORT_PROMO_ENABLED=True,
-        ITR_FIRST_EXPORT_AMOUNT_PAISE=1000,
-        ITR_PAYG_AMOUNT_PAISE=2000,
+        ITR_FIRST_EXPORT_AMOUNT_PAISE=4900,
+        ITR_PAYG_AMOUNT_PAISE=9900,
     )
     def test_first_export_promo_amount(self) -> None:
         request = self.factory.get("/")
         request.session = self.client.session
         self.assertTrue(first_export_promo_eligible(request))
-        self.assertEqual(payg_amount_paise(request), 1000)
-        self.assertEqual(payg_list_amount_inr(), 20)
+        self.assertEqual(payg_amount_paise(request), 4900)
+        self.assertEqual(payg_list_amount_inr(), 99)
 
     @override_settings(ITR_FIRST_EXPORT_PROMO_ENABLED=True)
     def test_promo_not_eligible_after_use(self) -> None:

@@ -1,0 +1,40 @@
+{# Guest checkout — single focused paywall (included from detail.html) #}
+<div id="unlock-pdf" class="itr-pay-card itr-unlock-target" tabindex="-1">
+  <div class="itr-pay-card__top">
+    <p class="itr-pay-card__step">Final step</p>
+    <h2 class="itr-pay-card__title">Download your full computation PDF</h2>
+    <p class="itr-pay-card__lede">
+      Everything in the preview above — plus bank accounts, complete TDS annexure,
+      and a print-ready A4 PDF you can share with your CA or bank.
+    </p>
+  </div>
+
+  <div class="itr-pay-card__pricing">
+    <div class="itr-pay-card__price-row">
+      <span class="itr-pay-card__price">₹{{ payg_amount_inr }}</span>
+      {% if first_export_promo %}
+      <span class="itr-pay-card__list">₹{{ payg_list_amount_inr }}</span>
+      <span class="itr-pay-card__pill">Intro price</span>
+      {% endif %}
+    </div>
+    <p class="itr-pay-card__anchor">
+      CA firms typically charge <strong>₹{{ payg_ca_anchor_inr }}+</strong> for this statement
+    </p>
+  </div>
+
+  <ul class="itr-pay-card__bullets">
+    <li>Instant download after UPI / card payment</li>
+    <li>Matches your filed {{ document.get_detected_type_display }} JSON</li>
+    <li>{{ itr_guarantee_hours }}-hour re-export guarantee if anything looks off</li>
+  </ul>
+
+  <button type="button" class="btn btn-primary itr-pay-card__cta" id="detail-pay-btn"
+          data-pay-btn data-init-url="{{ guest_init_url }}" data-doc="{{ document.pk }}" data-user-email=""
+          data-pay-label="Pay ₹{{ payg_amount_inr }} — Download PDF">
+    Pay ₹{{ payg_amount_inr }} — Download PDF
+  </button>
+
+  <p class="itr-pay-card__methods">
+    Google Pay · PhonePe · any UPI · Razorpay secure checkout
+  </p>
+</div>

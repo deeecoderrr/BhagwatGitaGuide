@@ -1,0 +1,89 @@
+{
+  "ITR": {
+    "ITR4": {
+      "Form_ITR4": {"AssessmentYear": "2024", "FormName": "ITR-4"},
+      "PersonalInfo": {
+        "PAN": "AFKPH4065D",
+        "DOB": "1991-07-10",
+        "AssesseeName": {
+          "FirstName": "KAMAL",
+          "SurNameOrOrgName": "HUSAIN"
+        },
+        "Address": {
+          "EmailAddress": "sample@example.com",
+          "MobileNo": 9792417287,
+          "CityOrTownOrDistrict": "BASTI",
+          "StateCode": "31",
+          "PinCode": 272182
+        },
+        "Status": "I"
+      },
+      "FilingStatus": {"ReturnFileSec": 11, "OptOutNewTaxRegime": "N"},
+      "Verification": {
+        "Declaration": {"FatherName": "ALI HASAN"},
+        "Place": "Basti"
+      },
+      "IncomeDeductions": {
+        "IncomeFromBusinessProf": 250200,
+        "IncomeFromSal": 0,
+        "GrossTotIncome": 252171,
+        "TotalIncome": 252170,
+        "IncomeOthSrc": 1971,
+        "TotalIncomeOfHP": 0,
+        "OthersInc": {
+          "OthersIncDtlsOthSrc": [
+            {"OthSrcNatureDesc": "IFD", "OthSrcOthAmount": 1650},
+            {"OthSrcNatureDesc": "SAV", "OthSrcOthAmount": 321}
+          ]
+        },
+        "DeductUndChapVIA": {
+          "Section80C": 0,
+          "Section80D": 0,
+          "Section80TTA": 0,
+          "Section80G": 0,
+          "TotalChapVIADeductions": 0
+        }
+      },
+      "ScheduleBP": {
+        "NatOfBus44AD": [{"NameOfBusiness": "ALAM VASTRALAYA", "CodeAD": "09028"}],
+        "PersumptiveInc44AD": {
+          "GrsTotalTrnOver": 1314289,
+          "GrsTrnOverAnyOthMode": 1314289,
+          "TotPersumptiveInc44AD": 250200
+        }
+      },
+      "TaxComputation": {
+        "TotalTaxPayable": 0,
+        "Rebate87A": 0,
+        "TaxPayableOnRebate": 0,
+        "EducationCess": 0,
+        "GrossTaxLiability": 0,
+        "Section89": 0,
+        "NetTaxLiability": 0,
+        "TotTaxPlusIntrstPay": 0,
+        "IntrstPay": {
+          "IntrstPayUs234A": 0,
+          "IntrstPayUs234B": 0,
+          "IntrstPayUs234C": 0,
+          "LateFilingFee234F": 0
+        }
+      },
+      "TaxPaid": {
+        "TaxesPaid": {
+          "AdvanceTax": 0,
+          "SelfAssessmentTax": 0,
+          "TDS": 0,
+          "TCS": 0,
+          "TotalTaxesPaid": 0
+        },
+        "BalTaxPayable": 0
+      },
+      "Refund": {
+        "RefundDue": 0,
+        "BankAccountDtls": {"AddtnlBankDetails": []}
+      },
+      "TDSonOthThanSals": {"TotalTDSonOthThanSals": 0},
+      "TDSonSalaries": {"TotalTDSonSalaries": 0}
+    }
+  }
+}

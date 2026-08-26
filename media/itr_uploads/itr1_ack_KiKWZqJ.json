@@ -1,0 +1,119 @@
+{
+  "ITR": {
+    "ITR1": {
+      "Form_ITR1": {"AssessmentYear": "2025", "FormName": "ITR-1"},
+      "PersonalInfo": {
+        "PAN": "ABCDE1234F",
+        "DOB": "1988-08-23",
+        "AadhaarCardNo": "123412341234",
+        "AssesseeName": {"SurNameOrOrgName": "Sample Individual"},
+        "EmployerCategory": "OTH",
+        "Address": {
+          "EmailAddress": "sample@example.com",
+          "MobileNo": 9876543210,
+          "ResidenceName": "House 10",
+          "RoadOrStreet": "MG Road",
+          "LocalityOrArea": "Central",
+          "CityOrTownOrDistrict": "Lucknow",
+          "StateCode": "09",
+          "PinCode": 226001
+        }
+      },
+      "FilingStatus": {
+        "ReturnFileSec": 11,
+        "OptOutNewTaxRegime": "N",
+        "ItrFilingDueDate": "2025-07-31",
+        "SeventhProvisio139": "N"
+      },
+      "Verification": {
+        "Declaration": {
+          "FatherName": "Sample Father",
+          "AssesseeVerName": "SAMPLE INDIVIDUAL",
+          "AssesseeVerPAN": "ABCDE1234F"
+        },
+        "Date": "2025-06-18",
+        "Capacity": "S",
+        "Place": "Lucknow"
+      },
+      "ITR1_IncomeDeductions": {
+        "GrossSalary": 320000,
+        "Salary": 320000,
+        "NetSalary": 310000,
+        "DeductionUs16ia": 50000,
+        "IncomeFromSal": 300000,
+        "TotalIncomeOfHP": 0,
+        "OthersInc": {
+          "OthersIncDtlsOthSrc": [
+            {"OthSrcNatureDesc": "SAV", "OthSrcOthAmount": 2500},
+            {"OthSrcNatureDesc": "OTH", "OthSrcOthAmount": 12500}
+          ]
+        },
+        "IncomeOthSrc": 15000,
+        "GrossTotIncome": 315000,
+        "DeductUndChapVIA": {
+          "Section80C": 50000,
+          "Section80D": 15000,
+          "Section80TTA": 2500,
+          "Section80G": 0,
+          "TotalChapVIADeductions": 67500
+        },
+        "TotalIncome": 247500
+      },
+      "TDSonOthThanSals": {
+        "TDSonOthThanSal": [
+          {
+            "EmployerOrDeductorOrCollectDetl": {
+              "TAN": "LKOE12345A",
+              "EmployerOrDeductorOrCollecterName": "Sample Deductor Pvt Ltd"
+            },
+            "TDSSection": "194A",
+            "AmtForTaxDeduct": 15000,
+            "TotTDSOnAmtPaid": 1500,
+            "ClaimOutOfTotTDSOnAmtPaid": 1500
+          }
+        ],
+        "TotalTDSonOthThanSals": 1500
+      },
+      "TaxPaid": {
+        "TaxesPaid": {
+          "TCS": 0,
+          "AdvanceTax": 0,
+          "SelfAssessmentTax": 0,
+          "TDS": 1500,
+          "TotalTaxesPaid": 1500
+        },
+        "BalTaxPayable": 0
+      },
+      "Refund": {
+        "RefundDue": 1500,
+        "BankAccountDtls": {
+          "AddtnlBankDetails": [
+            {
+              "IFSCCode": "SBIN0001234",
+              "BankName": "STATE BANK OF INDIA",
+              "BankAccountNo": "1234567890",
+              "AccountType": "SB",
+              "UseForRefund": "true"
+            }
+          ]
+        }
+      },
+      "ITR1_TaxComputation": {
+        "TotalTaxPayable": 0,
+        "Rebate87A": 0,
+        "TaxPayableOnRebate": 0,
+        "EducationCess": 0,
+        "GrossTaxLiability": 0,
+        "Section89": 0,
+        "NetTaxLiability": 0,
+        "IntrstPay": {
+          "IntrstPayUs234A": 0,
+          "IntrstPayUs234B": 0,
+          "IntrstPayUs234C": 0,
+          "LateFilingFee234F": 0
+        },
+        "TotTaxPlusIntrstPay": 0
+      }
+    }
+  }
+}
