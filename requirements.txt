@@ -9,6 +9,7 @@ openai
 openpyxl
 gunicorn
 gevent
+packaging
 dj-database-url
 whitenoise
 razorpay
