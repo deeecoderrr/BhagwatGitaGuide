@@ -146,7 +146,7 @@
 
   {% if export_blocked and razorpay_available and not user.is_authenticated %}
   {# ── PAYMENT CARD: Guest user, needs to pay ── #}
-  <div id="unlock-pdf" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
+  <div id="unlock-pdf" class="itr-unlock-target" tabindex="-1" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.06); margin-bottom: 1.5rem;">
     <div style="padding: 1.5rem 1.5rem 1.25rem;">
       <p style="margin: 0 0 0.25rem; font-size: 1.1rem; font-weight: 600; color: #111827;">
         Download full computation PDF
@@ -213,7 +213,7 @@
 
   {% elif not export_blocked %}
   {# ── User has credits: direct generate ── #}
-  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+  <div id="unlock-pdf" class="itr-unlock-target" tabindex="-1" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
     <p style="margin: 0 0 1rem; font-size: 0.92rem; color: #374151;">
       Your computation PDF is ready to generate.
     </p>
@@ -224,7 +224,7 @@
 
   {% else %}
   {# ── Authenticated user without credits ── #}
-  <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+  <div id="unlock-pdf" class="itr-unlock-target" tabindex="-1" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
     <p style="margin: 0 0 1rem; font-size: 0.92rem; color: #374151;">
       Purchase an export credit to generate your PDF.
     </p>
@@ -473,6 +473,38 @@ window.postPayUpsellHtml = {% if filing_upsell_service %}'<div style="margin-top
       });
     });
   });
+})();
+</script>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if computation_preview and not poll_status %}
+<script>
+(function () {
+  function scrollToUnlock(highlight) {
+    var el = document.getElementById('unlock-pdf');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (highlight) {
+      el.classList.add('itr-unlock-target--pulse');
+      el.focus({ preventScroll: true });
+      window.setTimeout(function () {
+        el.classList.remove('itr-unlock-target--pulse');
+      }, 2200);
+    }
+  }
+
+  document.querySelectorAll('.itr-preview-unlock-link').forEach(function (link) {
+    link.addEventListener('click', function (event) {
+      event.preventDefault();
+      scrollToUnlock(true);
+    });
+  });
+
+  if (window.location.hash === '#unlock-pdf') {
+    window.setTimeout(function () { scrollToUnlock(true); }, 120);
+  }
 })();
 </script>
 {% endif %}
